@@ -312,7 +312,7 @@ const AttendanceSettings = () => {
 
           <div className="border-t pt-6">
             <h3 className="text-sm font-semibold mb-4">
-              Late Deduction Settings
+              Default Late Deduction Rule (Global)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Enable Deduction */}

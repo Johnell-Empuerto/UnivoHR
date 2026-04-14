@@ -165,13 +165,33 @@ WHERE e.status = 'ACTIVE'
 
         if (row.check_in_time) {
           const checkInTime = new Date(row.check_in_time);
-          const scheduledStart = new Date(row.date);
+          const scheduledStart = new Date(row.check_in_time);
           scheduledStart.setHours(8, 0, 0, 0);
 
-          const diffMinutes = (checkInTime - scheduledStart) / 1000 / 60;
-          if (diffMinutes > 0) {
-            late_minutes += diffMinutes;
+          const rawLateMinutes = (checkInTime - scheduledStart) / 1000 / 60;
+
+          // 🔥 CRITICAL FIX: Apply threshold and grace period
+          const threshold = rules?.late_threshold || 0;
+          const grace = rules?.grace_period || 0;
+
+          let penaltyMinutes = rawLateMinutes - threshold - grace;
+
+          // Cap at max reasonable value (4 hours)
+          if (penaltyMinutes > 0) {
+            // ✅ LIMIT: max 30 minutes penalty per day
+            const cappedMinutes = Math.min(penaltyMinutes, 30);
+            late_minutes += cappedMinutes;
           }
+
+          // Debug log (remove in production)
+          console.log("Late Debug:", {
+            employee: emp.employee_code,
+            checkIn: row.check_in_time,
+            rawLateMinutes,
+            threshold,
+            grace,
+            penaltyMinutes: penaltyMinutes > 0 ? penaltyMinutes : 0,
+          });
         }
       } else if (row.status === "HALF_DAY") {
         // Use work_fraction from DB (should be 0.5)
@@ -196,26 +216,89 @@ WHERE e.status = 'ACTIVE'
     }
 
     // Calculate effective late minutes with grace period
-    const effectiveLateMinutes = rules?.grace_period
-      ? Math.max(0, late_minutes - Number(rules.grace_period))
-      : late_minutes;
+    // const effectiveLateMinutes = rules?.grace_period
+    //   ? Math.max(0, late_minutes - Number(rules.grace_period))
+    //   : late_minutes;
 
-    let late_deduction = 0;
+    // Calculate effective late minutes (penalty minutes already account for threshold+grace)
+    // No need to subtract again - just use late_minutes directly
+    const effectiveLateMinutes = late_minutes;
 
-    if (rules?.late_deduction_enabled) {
-      if (rules.late_deduction_type === "FIXED") {
-        late_deduction = late_count * Number(rules.late_deduction_value);
-      } else if (rules.late_deduction_type === "PER_MINUTE") {
-        late_deduction =
-          effectiveLateMinutes * Number(rules.late_deduction_value);
+    // FETCH EMPLOYEE-SPECIFIC LATE DEDUCTION OVERRIDE
+    const empLateRes = await pool.query(
+      `
+      SELECT * FROM employee_deductions
+      WHERE employee_id = $1
+        AND type LIKE 'LATE%'
+        AND is_active = true
+      LIMIT 1
+    `,
+      [emp.id],
+    );
+
+    const empLate = empLateRes.rows[0];
+
+    // DETERMINE DEDUCTION TYPE AND VALUE (Employee override > Global rule)
+    let deductionType = rules?.late_deduction_type;
+    let deductionValue = Number(rules?.late_deduction_value || 0);
+    let lateDeductionEnabled = rules?.late_deduction_enabled;
+
+    if (empLate) {
+      if (empLate.type === "LATE_FIXED") {
+        deductionType = "FIXED";
+        deductionValue = Number(empLate.amount || 0);
+        lateDeductionEnabled = true;
+      } else if (empLate.type === "LATE_PER_MINUTE") {
+        deductionType = "PER_MINUTE";
+        deductionValue = Number(empLate.amount || 0);
+        lateDeductionEnabled = true;
+      } else if (empLate.type === "LATE_SALARY_BASED") {
+        deductionType = "SALARY_BASED";
+        lateDeductionEnabled = true;
       }
     }
 
-    // Government deductions
+    let late_deduction = 0;
+
+    if (lateDeductionEnabled) {
+      if (deductionType === "FIXED") {
+        late_deduction = late_count * deductionValue;
+      } else if (deductionType === "PER_MINUTE") {
+        late_deduction = effectiveLateMinutes * deductionValue;
+      } else if (deductionType === "SALARY_BASED") {
+        let workingDays = Number(salary.working_days_per_month);
+
+        // ✅ prevent wrong DB values
+        if (!workingDays || workingDays < 20) {
+          workingDays = 26;
+        }
+
+        const maxHours = rules?.max_work_hours || 8;
+        const totalMinutes = workingDays * maxHours * 60;
+
+        const perMinuteRate = monthly_salary / totalMinutes;
+
+        console.log("RATE DEBUG:", {
+          monthly_salary,
+          workingDays,
+          totalMinutes,
+          perMinuteRate,
+          effectiveLateMinutes,
+        });
+
+        late_deduction = effectiveLateMinutes * perMinuteRate;
+      }
+    }
+
+    // Government deductions (EXCLUDE late deduction configs)
     const govRes = await pool.query(
-      `SELECT COALESCE(SUM(amount), 0) AS total
-       FROM employee_deductions
-       WHERE employee_id = $1 AND is_active = true`,
+      `
+  SELECT COALESCE(SUM(amount), 0) AS total
+  FROM employee_deductions
+  WHERE employee_id = $1
+    AND is_active = true
+    AND type NOT LIKE 'LATE%'
+`,
       [emp.id],
     );
 
@@ -284,6 +367,12 @@ WHERE e.status = 'ACTIVE'
           late_count,
           late_minutes: effectiveLateMinutes,
           total_days_in_cutoff: attendanceFull.rows.length,
+          late_deduction_config: {
+            type: deductionType,
+            value: deductionValue,
+            enabled: lateDeductionEnabled,
+            has_employee_override: !!empLate,
+          },
           leave_conversion: {
             converted: leave_conversion_cash > 0,
             amount: leave_conversion_cash,
@@ -513,8 +602,10 @@ const getPayrollDetails = async (id) => {
   const deductionsRes = await pool.query(
     `
     SELECT type, amount
-    FROM employee_deductions
-    WHERE employee_id = $1 AND is_active = true
+FROM employee_deductions
+WHERE employee_id = $1 
+AND is_active = true
+AND type NOT LIKE 'LATE%'
     `,
     [payroll.employee_id],
   );

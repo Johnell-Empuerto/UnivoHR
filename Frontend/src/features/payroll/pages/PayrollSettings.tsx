@@ -54,6 +54,9 @@ const PayrollSettings = () => {
     amount: "",
   });
 
+  const [lateType, setLateType] = useState("");
+  const [lateAmount, setLateAmount] = useState("");
+
   // Debounce effect
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
@@ -84,7 +87,20 @@ const PayrollSettings = () => {
   const fetchDeductions = async (employeeId: number) => {
     try {
       const data = await getDeductions(employeeId);
-      setDeductions(data);
+      const nonLateDeductions = data.filter(
+        (d: any) => !d.type.startsWith("LATE"),
+      );
+      setDeductions(nonLateDeductions);
+
+      // Extract late deduction if exists
+      const late = data.find((d: any) => d.type.startsWith("LATE"));
+      if (late) {
+        setLateType(late.type);
+        setLateAmount(late.amount || "");
+      } else {
+        setLateType("");
+        setLateAmount("");
+      }
     } catch {
       toast.error("Failed to load deductions");
     }
@@ -152,6 +168,53 @@ const PayrollSettings = () => {
       fetchDeductions(selected.id);
     } catch {
       toast.error("Failed to delete");
+    }
+  };
+
+  const handleSaveLate = async () => {
+    if (!lateType) {
+      return toast.error("Select late deduction type");
+    }
+
+    if (
+      lateType !== "LATE_SALARY_BASED" &&
+      (!lateAmount || Number(lateAmount) <= 0)
+    ) {
+      return toast.error("Enter valid amount");
+    }
+
+    try {
+      // First, remove any existing late deduction
+      const existingLate = deductions.find((d) => d.type.startsWith("LATE"));
+      if (existingLate) {
+        await deleteDeduction(existingLate.id);
+      }
+
+      await createDeduction({
+        employee_id: selected.id,
+        type: lateType,
+        amount: lateType === "LATE_SALARY_BASED" ? 0 : Number(lateAmount),
+      });
+
+      toast.success("Late deduction saved");
+      fetchDeductions(selected.id);
+    } catch {
+      toast.error("Failed to save late deduction");
+    }
+  };
+
+  const handleDeleteLate = async () => {
+    try {
+      const existingLate = deductions.find((d) => d.type.startsWith("LATE"));
+      if (existingLate) {
+        await deleteDeduction(existingLate.id);
+        toast.success("Late deduction removed");
+        setLateType("");
+        setLateAmount("");
+        fetchDeductions(selected.id);
+      }
+    } catch {
+      toast.error("Failed to delete late deduction");
     }
   };
 
@@ -482,7 +545,7 @@ const PayrollSettings = () => {
 
               {deductions.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  No deductions yet
+                  No government deductions yet
                 </p>
               ) : (
                 <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -504,6 +567,67 @@ const PayrollSettings = () => {
                       </Button>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+
+            {/* LATE DEDUCTION SETTINGS */}
+            <div className="border-t pt-4 space-y-4">
+              <h3 className="font-semibold">Late Deduction Settings</h3>
+
+              <div className="flex gap-2">
+                <select
+                  className="border rounded px-2 py-1 w-full"
+                  value={lateType}
+                  onChange={(e) => setLateType(e.target.value)}
+                >
+                  <option value="">Select Type</option>
+                  <option value="LATE_FIXED">Fixed (per late)</option>
+                  <option value="LATE_PER_MINUTE">Per Minute</option>
+                  <option value="LATE_SALARY_BASED">Salary Based</option>
+                </select>
+
+                <input
+                  type="number"
+                  placeholder="Amount"
+                  value={lateAmount}
+                  onChange={(e) => setLateAmount(e.target.value)}
+                  className="border rounded px-2 py-1 w-full"
+                  disabled={lateType === "LATE_SALARY_BASED"}
+                />
+
+                <Button onClick={handleSaveLate} size="sm">
+                  Save
+                </Button>
+              </div>
+
+              {lateType === "LATE_SALARY_BASED" && (
+                <p className="text-xs text-muted-foreground">
+                  Auto computed from employee salary based on minutes late
+                </p>
+              )}
+
+              {lateType && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">Current:</span>
+                  <span className="font-medium">
+                    {lateType === "LATE_FIXED" && "Fixed"}
+                    {lateType === "LATE_PER_MINUTE" && "Per Minute"}
+                    {lateType === "LATE_SALARY_BASED" && "Salary Based"}
+                  </span>
+                  {lateAmount && lateType !== "LATE_SALARY_BASED" && (
+                    <span className="text-muted-foreground">
+                      - ₱{Number(lateAmount).toLocaleString()}
+                    </span>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDeleteLate}
+                    className="ml-auto"
+                  >
+                    Remove
+                  </Button>
                 </div>
               )}
             </div>
