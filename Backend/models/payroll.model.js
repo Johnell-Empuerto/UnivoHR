@@ -170,7 +170,7 @@ WHERE e.status = 'ACTIVE'
 
           const rawLateMinutes = (checkInTime - scheduledStart) / 1000 / 60;
 
-          // 🔥 CRITICAL FIX: Apply threshold and grace period
+          // CRITICAL FIX: Apply threshold and grace period
           const threshold = rules?.late_threshold || 0;
           const grace = rules?.grace_period || 0;
 
@@ -178,7 +178,7 @@ WHERE e.status = 'ACTIVE'
 
           // Cap at max reasonable value (4 hours)
           if (penaltyMinutes > 0) {
-            // ✅ LIMIT: max 30 minutes penalty per day
+            // LIMIT: max 30 minutes penalty per day
             const cappedMinutes = Math.min(penaltyMinutes, 30);
             late_minutes += cappedMinutes;
           }
@@ -216,13 +216,13 @@ WHERE e.status = 'ACTIVE'
     }
 
     // Calculate effective late minutes with grace period
-    // const effectiveLateMinutes = rules?.grace_period
-    //   ? Math.max(0, late_minutes - Number(rules.grace_period))
-    //   : late_minutes;
+    const effectiveLateMinutes = rules?.grace_period
+      ? Math.max(0, late_minutes - Number(rules.grace_period))
+      : late_minutes;
 
-    // Calculate effective late minutes (penalty minutes already account for threshold+grace)
-    // No need to subtract again - just use late_minutes directly
-    const effectiveLateMinutes = late_minutes;
+    // // Calculate effective late minutes (penalty minutes already account for threshold+grace)
+    // // No need to subtract again - just use late_minutes directly
+    // const effectiveLateMinutes = late_minutes;
 
     // FETCH EMPLOYEE-SPECIFIC LATE DEDUCTION OVERRIDE
     const empLateRes = await pool.query(
@@ -268,7 +268,7 @@ WHERE e.status = 'ACTIVE'
       } else if (deductionType === "SALARY_BASED") {
         let workingDays = Number(salary.working_days_per_month);
 
-        // ✅ prevent wrong DB values
+        // prevent wrong DB values
         if (!workingDays || workingDays < 20) {
           workingDays = 26;
         }
@@ -432,13 +432,13 @@ const getPayroll = async (
     e.suffix,
     e.employee_code,
 
-    -- salary
+   
     s.basic_salary,
     s.daily_rate,
     s.overtime_rate,
     s.working_days_per_month,
 
-    -- payroll (IMPORTANT)
+  
     p.id AS payroll_id,
     p.net_salary,
     p.overtime_pay,
@@ -454,7 +454,7 @@ const getPayroll = async (
   LEFT JOIN employee_salary s 
     ON s.employee_id = e.id
 
-  -- 🔥 PUT IT HERE
+  
   LEFT JOIN payroll p 
     ON p.employee_id = e.id
     AND p.cutoff_start::date >= $4::date

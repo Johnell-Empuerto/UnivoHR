@@ -123,7 +123,7 @@ const getAllManHourReports = async (
         AND ea.approver_id = $1
         AND (ea.approval_type = 'MAN_HOUR' OR ea.approval_type = 'ALL')
       ) AS is_assigned_approver,
-      -- ✅ ADD STATUS HERE (same as getMyManHourReports)
+   
       COALESCE((
         SELECT al.action
         FROM approval_logs al

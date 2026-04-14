@@ -5,13 +5,13 @@ const attendanceModel = require("../models/attendance.model");
 // Create attendance (check-in / check-out logic)
 const createAttendance = async (req, res) => {
   try {
-    console.log("📥 REQUEST BODY:", req.body); // 👈 ADD THIS
+    console.log(" REQUEST BODY:", req.body);
 
     const result = await attendanceService.createAttendance(req.body);
 
     res.status(201).json(result);
   } catch (error) {
-    console.error("❌ ERROR:", error.message); // 👈 ADD THIS
+    console.error("❌ ERROR:", error.message);
     res.status(500).json({ message: error.message });
   }
 };

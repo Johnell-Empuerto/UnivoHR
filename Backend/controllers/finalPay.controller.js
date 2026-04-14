@@ -70,7 +70,7 @@ const downloadFinalPaySlip = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // ✅ Call service that generates PDF
+    //  Call service that generates PDF
     await finalPayService.downloadFinalPaySlip(id, res);
   } catch (err) {
     console.error("Download error:", err.message);
