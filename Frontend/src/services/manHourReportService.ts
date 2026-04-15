@@ -1,6 +1,33 @@
 import api from "./api";
 
-// MAN HOUR REPORT - EMPLOYEE
+/**
+ * ==========================================
+ * TYPES (NEW STRUCTURE - MULTIPLE ENTRIES)
+ * ==========================================
+ */
+
+export type ManHourDetail = {
+  time_from: string; // "08:00"
+  time_to: string; // "17:00"
+  activity: string;
+};
+
+export type CreateManHourReportData = {
+  work_date: string;
+  details: ManHourDetail[];
+  remarks?: string;
+};
+
+export type UpdateManHourReportData = {
+  details: ManHourDetail[];
+  remarks?: string;
+};
+
+/**
+ * ==========================================
+ * EMPLOYEE FUNCTIONS
+ * ==========================================
+ */
 
 // GET MY MAN HOUR REPORTS
 export const getMyManHourReports = async (
@@ -10,35 +37,21 @@ export const getMyManHourReports = async (
   status: string = "",
 ) => {
   const response = await api.get("/man-hour-reports/my", {
-    params: {
-      page,
-      limit,
-      search,
-      status,
-    },
+    params: { page, limit, search, status },
   });
   return response.data;
 };
 
-// CREATE MAN HOUR REPORT
-export const createManHourReport = async (data: {
-  work_date: string;
-  task: string;
-  hours: number;
-  remarks?: string;
-}) => {
+// CREATE MAN HOUR REPORT (MULTI ENTRY ✅)
+export const createManHourReport = async (data: CreateManHourReportData) => {
   const response = await api.post("/man-hour-reports", data);
   return response.data;
 };
 
-// UPDATE MAN HOUR REPORT
+// UPDATE MAN HOUR REPORT (MULTI ENTRY ✅)
 export const updateManHourReport = async (
   id: number,
-  data: {
-    task?: string;
-    hours?: number;
-    remarks?: string;
-  },
+  data: UpdateManHourReportData,
 ) => {
   const response = await api.put(`/man-hour-reports/${id}`, data);
   return response.data;
@@ -50,9 +63,29 @@ export const deleteManHourReport = async (id: number) => {
   return response.data;
 };
 
-// MAN HOUR REPORT - ADMIN/HR
+/**
+ * ==========================================
+ * 🔥 NEW FEATURE: MISSING MAN HOUR DATES
+ * ==========================================
+ */
 
-// GET ALL MAN HOUR REPORTS (for approval)
+export const getMissingManHourDates = async (
+  start_date: string,
+  end_date: string,
+) => {
+  const response = await api.get("/man-hour-reports/missing", {
+    params: { start_date, end_date },
+  });
+  return response.data;
+};
+
+/**
+ * ==========================================
+ * ADMIN / HR / APPROVER FUNCTIONS
+ * ==========================================
+ */
+
+// GET ALL MAN HOUR REPORTS
 export const getAllManHourReports = async (
   page: number,
   limit: number,
@@ -60,12 +93,7 @@ export const getAllManHourReports = async (
   date: string = "",
 ) => {
   const response = await api.get("/man-hour-reports", {
-    params: {
-      page,
-      limit,
-      search,
-      date,
-    },
+    params: { page, limit, search, date },
   });
   return response.data;
 };
@@ -88,24 +116,20 @@ export const rejectManHourReport = async (
   return response.data;
 };
 
-// GET MAN HOUR REPORT DETAILS (with approval timeline)
+// GET MAN HOUR REPORT DETAILS
 export const getManHourReportDetails = async (id: number) => {
   const response = await api.get(`/man-hour-reports/${id}`);
   return response.data;
 };
 
-// GET MAN HOUR SUMMARY FOR DATE RANGE
+// GET SUMMARY
 export const getManHourSummary = async (
   start_date: string,
   end_date: string,
   employee_id?: string,
 ) => {
   const response = await api.get("/man-hour-reports/summary/range", {
-    params: {
-      start_date,
-      end_date,
-      employee_id,
-    },
+    params: { start_date, end_date, employee_id },
   });
   return response.data;
 };

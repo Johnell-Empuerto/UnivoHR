@@ -435,7 +435,7 @@ const PayrollSettings = () => {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg! w-full sm:max-w-lg!">
           <DialogHeader>
             <DialogTitle>Edit Salary & Deductions</DialogTitle>
             <p className="text-sm text-muted-foreground">

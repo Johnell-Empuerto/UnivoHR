@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import TimeEntryForm from "../components/TimeEntryForm";
 import {
   getMyManHourReports,
   createManHourReport,
@@ -26,7 +27,9 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import ManHourReportTable from "../components/ManHourReportTable";
 import ManHourReportDrawer from "../components/ManHourReportDrawer";
+import MissingManHoursTab from "../components/MissingManHoursTab";
 import { useAuth } from "@/app/providers/AuthProvider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type ManHourReport = {
   id: number;
@@ -39,6 +42,12 @@ type ManHourReport = {
   remarks?: string | null;
   created_at: string;
   status?: string;
+  details?: Array<{
+    id: number;
+    time_from: string;
+    time_to: string;
+    activity: string;
+  }>;
 };
 
 const MyManHoursReport = () => {
@@ -60,8 +69,7 @@ const MyManHoursReport = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     work_date: "",
-    task: "",
-    hours: "",
+    details: [{ time_from: "09:00", time_to: "17:00", activity: "" }],
     remarks: "",
   });
   const [formProcessing, setFormProcessing] = useState(false);
@@ -115,8 +123,7 @@ const MyManHoursReport = () => {
   const handleOpenForm = () => {
     setFormData({
       work_date: new Date().toISOString().split("T")[0],
-      task: "",
-      hours: "",
+      details: [{ time_from: "09:00", time_to: "17:00", activity: "" }],
       remarks: "",
     });
     setIsEditing(false);
@@ -124,7 +131,34 @@ const MyManHoursReport = () => {
     setIsFormOpen(true);
   };
 
-  const confirmDelete = async () => {
+  const handleEdit = async (report: ManHourReport) => {
+    try {
+      // Fetch full details including time entries
+      const fullReport = await getManHourReportDetails(report.id);
+
+      setFormData({
+        work_date: fullReport.work_date,
+        details: fullReport.details?.map((d: any) => ({
+          time_from: d.time_from.substring(0, 5), // Ensure HH:MM format
+          time_to: d.time_to.substring(0, 5),
+          activity: d.activity,
+        })) || [{ time_from: "09:00", time_to: "17:00", activity: "" }],
+        remarks: fullReport.remarks || "",
+      });
+      setIsEditing(true);
+      setEditingId(report.id);
+      setIsFormOpen(true);
+    } catch (err: any) {
+      toast.error("Failed to load report data for editing");
+    }
+  };
+
+  const confirmDelete = (id: number) => {
+    setDeleteId(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
     if (!deleteId) return;
 
     try {
@@ -149,9 +183,28 @@ const MyManHoursReport = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.work_date || !formData.task || !formData.hours) {
-      toast.error("Please fill in all required fields");
+    if (!formData.work_date) {
+      toast.error("Please select a work date");
       return;
+    }
+
+    if (formData.details.length === 0) {
+      toast.error("Please add at least one time entry");
+      return;
+    }
+
+    // Validate each entry
+    for (const detail of formData.details) {
+      if (!detail.time_from || !detail.time_to || !detail.activity) {
+        toast.error("Please fill in all time entry fields");
+        return;
+      }
+      if (detail.time_from >= detail.time_to) {
+        toast.error(
+          `End time must be after start time for: ${detail.activity}`,
+        );
+        return;
+      }
     }
 
     try {
@@ -159,15 +212,13 @@ const MyManHoursReport = () => {
 
       const submitData = {
         work_date: formData.work_date,
-        task: formData.task,
-        hours: parseFloat(formData.hours),
+        details: formData.details,
         remarks: formData.remarks || undefined,
       };
 
       if (isEditing && editingId) {
         await updateManHourReport(editingId, {
-          task: submitData.task,
-          hours: submitData.hours,
+          details: submitData.details,
           remarks: submitData.remarks,
         });
         toast.success("Man hour report updated");
@@ -179,8 +230,7 @@ const MyManHoursReport = () => {
       setIsFormOpen(false);
       setFormData({
         work_date: "",
-        task: "",
-        hours: "",
+        details: [{ time_from: "09:00", time_to: "17:00", activity: "" }],
         remarks: "",
       });
 
@@ -190,7 +240,10 @@ const MyManHoursReport = () => {
       setTotalPages(res.pagination.totalPages);
       setTotalRecords(res.pagination.total);
     } catch (err: any) {
-      toast.error(err.message || "Failed to save report");
+      const message =
+        err?.response?.data?.message || err.message || "Failed to save report";
+
+      toast.error(message);
     } finally {
       setFormProcessing(false);
     }
@@ -223,7 +276,8 @@ const MyManHoursReport = () => {
           <div>
             <h1 className="text-2xl font-bold">My Man Hours</h1>
             <p className="text-sm text-muted-foreground">
-              Track and submit your daily man hour reports
+              Track and submit your daily man hour reports with multiple time
+              entries
             </p>
           </div>
         </div>
@@ -233,65 +287,81 @@ const MyManHoursReport = () => {
         </Button>
       </div>
 
-      {/* Filters Card */}
-      <Card className="shadow-sm">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by task..."
-                value={searchInput}
-                onChange={handleSearchChange}
-                className="pl-9"
-              />
+      <Tabs defaultValue="reports" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="reports">Man Hour Reports</TabsTrigger>
+          <TabsTrigger value="missing">No Manhour Reports</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="reports" className="space-y-4">
+          {/* Filters Card */}
+          <Card className="shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by task..."
+                    value={searchInput}
+                    onChange={handleSearchChange}
+                    className="pl-9"
+                  />
+                </div>
+                {searchInput && (
+                  <Button variant="ghost" onClick={handleClearFilters}>
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Loading Indicator */}
+          {loading && (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
+              <span className="text-sm text-muted-foreground">
+                Loading man hour reports...
+              </span>
             </div>
-            {searchInput && (
-              <Button variant="ghost" onClick={handleClearFilters}>
-                Clear Filters
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          )}
 
-      {/* Loading Indicator */}
-      {loading && (
-        <div className="flex items-center justify-center py-4">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-          <span className="text-sm text-muted-foreground">
-            Loading man hour reports...
-          </span>
-        </div>
-      )}
+          {/* Man Hour Reports Table */}
+          <ManHourReportTable
+            data={data}
+            onView={handleView}
+            onEdit={handleEdit}
+            onDelete={confirmDelete}
+            onApprove={handleApprove}
+            onReject={handleReject}
+            canApprove={false}
+            canEdit={true}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalRecords={totalRecords}
+            onPageChange={setCurrentPage}
+            onRowsPerPageChange={setRowsPerPage}
+            rowsPerPage={rowsPerPage}
+            title="My Reports"
+          />
+        </TabsContent>
 
-      {/* Man Hour Reports Table */}
-      <ManHourReportTable
-        data={data}
-        onView={handleView}
-        onApprove={handleApprove}
-        onReject={handleReject}
-        canApprove={false}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        totalRecords={totalRecords}
-        onPageChange={setCurrentPage}
-        onRowsPerPageChange={setRowsPerPage}
-        rowsPerPage={rowsPerPage}
-        title="My Reports"
-      />
+        <TabsContent value="missing">
+          <MissingManHoursTab />
+        </TabsContent>
+      </Tabs>
 
       {/* Add/Edit Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg! w-full sm:max-w-lg! max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {isEditing ? "Edit Man Hour Report" : "Submit Man Hour Report"}
             </DialogTitle>
             <DialogDescription>
               {isEditing
-                ? "Update your man hour report"
-                : "Record your work hours for the day"}
+                ? "Update your man hour report with multiple time entries"
+                : "Record your work hours for the day with multiple time entries"}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
@@ -309,33 +379,13 @@ const MyManHoursReport = () => {
                   max={new Date().toISOString().split("T")[0]}
                 />
               </div>
-              <div>
-                <Label htmlFor="hours">Hours Worked *</Label>
-                <Input
-                  id="hours"
-                  type="number"
-                  step="0.5"
-                  min="0.5"
-                  max="24"
-                  placeholder="e.g., 8"
-                  value={formData.hours}
-                  onChange={(e) =>
-                    setFormData({ ...formData, hours: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="task">Task/Description *</Label>
-                <Textarea
-                  id="task"
-                  placeholder="Describe what you worked on..."
-                  rows={4}
-                  value={formData.task}
-                  onChange={(e) =>
-                    setFormData({ ...formData, task: e.target.value })
-                  }
-                />
-              </div>
+
+              <TimeEntryForm
+                details={formData.details}
+                onChange={(details) => setFormData({ ...formData, details })}
+                disabled={false}
+              />
+
               <div>
                 <Label htmlFor="remarks">Remarks (Optional)</Label>
                 <Textarea
@@ -370,7 +420,7 @@ const MyManHoursReport = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg! w-full sm:max-w-lg!">
           <DialogHeader>
             <DialogTitle>Delete Man Hour Report</DialogTitle>
             <DialogDescription>
@@ -387,7 +437,7 @@ const MyManHoursReport = () => {
             </Button>
             <Button
               variant="destructive"
-              onClick={confirmDelete}
+              onClick={handleDelete}
               disabled={formProcessing}
             >
               {formProcessing && (

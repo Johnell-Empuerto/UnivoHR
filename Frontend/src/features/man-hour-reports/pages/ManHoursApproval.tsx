@@ -319,7 +319,7 @@ const ManHoursApproval = () => {
 
       {/* Reject Reason Modal */}
       <Dialog open={isRejectModalOpen} onOpenChange={setIsRejectModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg! w-full sm:max-w-lg!">
           <DialogHeader>
             <DialogTitle>Reject Man Hour Report</DialogTitle>
             <DialogDescription>

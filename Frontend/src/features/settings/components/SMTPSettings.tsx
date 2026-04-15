@@ -376,7 +376,7 @@ const SMTPSettings = () => {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg! w-full sm:max-w-lg!">
           <DialogHeader>
             <DialogTitle>
               {editingItem
@@ -516,7 +516,7 @@ const SMTPSettings = () => {
 
       {/* Test Email Dialog */}
       <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg! w-full sm:max-w-lg!">
           <DialogHeader>
             <DialogTitle>Send Test Email</DialogTitle>
             <DialogDescription>

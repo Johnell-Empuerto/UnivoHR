@@ -17,6 +17,14 @@ router.get(
   controller.getMyManHourReports,
 );
 
+// GET MISSING MAN HOUR DATES (for "No Reports" tab)
+router.get(
+  "/missing",
+  authenticate,
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.EMPLOYEE]),
+  controller.getMissingManHourDates,
+);
+
 // CREATE MAN HOUR REPORT
 router.post(
   "/",
@@ -41,16 +49,11 @@ router.delete(
   controller.deleteManHourReport,
 );
 
-// ==========================================
-// CHECK IF USER IS APPROVER - FIXED ✅
-// ==========================================
-
-// 🔥 THIS IS THE FIX - Allow EMPLOYEE role to access this endpoint
+// THIS IS THE FIX - Allow EMPLOYEE role to access this endpoint
 router.get(
   "/is-approver",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.EMPLOYEE]), // ✅ Added EMPLOYEE
-  controller.isApprover,
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.EMPLOYEE]),
 );
 
 // ==========================================

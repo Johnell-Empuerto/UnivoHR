@@ -139,7 +139,7 @@ const AdminLeavePage = () => {
 
       {/* Reject Reason Modal */}
       <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg! w-full sm:max-w-lg!">
           <DialogHeader>
             <DialogTitle>Reject Leave Request</DialogTitle>
             <DialogDescription>

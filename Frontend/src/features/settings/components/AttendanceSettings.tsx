@@ -518,7 +518,7 @@ const AttendanceSettings = () => {
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-125">
+        <DialogContent className="max-w-lg! w-full sm:max-w-lg!">
           <DialogHeader>
             <DialogTitle>Edit Attendance Rule</DialogTitle>
             <DialogDescription>

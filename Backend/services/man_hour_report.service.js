@@ -19,7 +19,7 @@ const formatDate = (dateStr) => {
 const sendManHourEmailNotification = async (
   report,
   status,
-  rejectionReason = null
+  rejectionReason = null,
 ) => {
   try {
     const notifyKey =
@@ -37,7 +37,7 @@ const sendManHourEmailNotification = async (
       `SELECT e.email, e.first_name, e.last_name
        FROM employees e
        WHERE e.id = $1`,
-      [report.employee_id]
+      [report.employee_id],
     );
 
     const employee = employeeResult.rows[0];
@@ -59,12 +59,12 @@ const sendManHourEmailNotification = async (
 
     const { subject, html } = await emailTemplateService.renderEmail(
       templateType,
-      data
+      data,
     );
 
     await smtpService.sendEmail(employee.email, subject, html);
     console.log(
-      `Man hour ${status} email sent to ${employee.email} using template`
+      `Man hour ${status} email sent to ${employee.email} using template`,
     );
   } catch (error) {
     console.error(`Failed to send man hour ${status} email:`, error.message);
@@ -73,21 +73,42 @@ const sendManHourEmailNotification = async (
 
 // CREATE MAN HOUR REPORT
 const createManHourReport = async (employee_id, data) => {
-  // Check if report already exists for this date
+  // Check if using new format (with details)
+  if (data.details && Array.isArray(data.details) && data.details.length > 0) {
+    return await manHourReportModel.createManHourReportWithDetails({
+      employee_id,
+      work_date: data.work_date,
+      details: data.details,
+      remarks: data.remarks,
+    });
+  }
+
+  // Legacy single-entry support (backward compatible)
   const exists = await manHourReportModel.existsForDate(
     employee_id,
-    data.work_date
+    data.work_date,
   );
 
   if (exists) {
     throw new Error(
-      "Man hour report already exists for this date. Please update instead."
+      "Man hour report already exists for this date. Please update instead.",
     );
   }
 
-  return await manHourReportModel.createManHourReport({
+  // Convert single entry to details format
+  const details = [
+    {
+      time_from: "09:00",
+      time_to: `09:${data.hours * 60}`,
+      activity: data.task,
+    },
+  ];
+
+  return await manHourReportModel.createManHourReportWithDetails({
     employee_id,
-    ...data,
+    work_date: data.work_date,
+    details,
+    remarks: data.remarks,
   });
 };
 
@@ -97,14 +118,14 @@ const getMyManHourReports = async (
   page,
   limit,
   search,
-  status
+  status,
 ) => {
   return await manHourReportModel.getMyManHourReports(
     employee_id,
     page,
     limit,
     search,
-    status
+    status,
   );
 };
 
@@ -115,7 +136,7 @@ const getAllManHourReports = async (
   limit,
   search,
   date,
-  userRole
+  userRole,
 ) => {
   return await manHourReportModel.getAllManHourReports(
     user_id,
@@ -123,7 +144,7 @@ const getAllManHourReports = async (
     limit,
     search,
     date,
-    userRole
+    userRole,
   );
 };
 
@@ -155,7 +176,7 @@ const approveManHourReport = async (id, approver_id, comment, userRole) => {
       approver_id,
       report.employee_id,
       "MAN_HOUR",
-      userRole
+      userRole,
     );
   }
 
@@ -166,7 +187,7 @@ const approveManHourReport = async (id, approver_id, comment, userRole) => {
   const result = await manHourReportModel.approveManHourReport(
     id,
     approver_id,
-    comment
+    comment,
   );
 
   // Send notification
@@ -214,7 +235,7 @@ const rejectManHourReport = async (id, approver_id, reason, userRole) => {
       approver_id,
       report.employee_id,
       "MAN_HOUR",
-      userRole
+      userRole,
     );
   }
 
@@ -225,7 +246,7 @@ const rejectManHourReport = async (id, approver_id, reason, userRole) => {
   const result = await manHourReportModel.rejectManHourReport(
     id,
     approver_id,
-    reason
+    reason,
   );
 
   // Send notification
@@ -259,12 +280,22 @@ const getManHourSummary = async (start_date, end_date, employee_id = null) => {
   return await manHourReportModel.getManHourSummary(
     start_date,
     end_date,
-    employee_id
+    employee_id,
   );
 };
 
 // UPDATE MAN HOUR REPORT (only if not yet approved)
 const updateManHourReport = async (id, employee_id, data) => {
+  // Check if using new format (with details)
+  if (data.details && Array.isArray(data.details) && data.details.length > 0) {
+    return await manHourReportModel.updateManHourReportWithDetails(
+      id,
+      employee_id,
+      data,
+    );
+  }
+
+  // Legacy single-entry support
   const report = await manHourReportModel.getManHourReportDetails(id);
 
   if (report.employee_id !== employee_id) {
@@ -276,7 +307,35 @@ const updateManHourReport = async (id, employee_id, data) => {
     throw new Error("Cannot update an approved man hour report");
   }
 
-  return await manHourReportModel.updateManHourReport(id, data);
+  // Convert single entry to details format
+  const details = [
+    {
+      time_from: "09:00",
+      time_to: `09:${data.hours * 60}`,
+      activity: data.task,
+    },
+  ];
+
+  return await manHourReportModel.updateManHourReportWithDetails(
+    id,
+    employee_id,
+    {
+      details,
+      remarks: data.remarks,
+    },
+  );
+};
+
+// ADD NEW SERVICE FUNCTION
+const getMissingManHourDates = async (employee_id, start_date, end_date) => {
+  if (!start_date || !end_date) {
+    throw new Error("start_date and end_date are required");
+  }
+  return await manHourReportModel.getMissingManHourDates(
+    employee_id,
+    start_date,
+    end_date,
+  );
 };
 
 // DELETE MAN HOUR REPORT (only if not yet approved)
@@ -310,7 +369,7 @@ const isApprover = async (user_id) => {
       AND (approval_type = 'MAN_HOUR' OR approval_type = 'ALL')
       LIMIT 1
     ) as is_approver`,
-    [user_id]
+    [user_id],
   );
 
   return result.rows[0].is_approver;
@@ -328,4 +387,5 @@ module.exports = {
   deleteManHourReport,
   isApprover,
   sendManHourEmailNotification,
+  getMissingManHourDates,
 };

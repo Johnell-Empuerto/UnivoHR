@@ -394,14 +394,8 @@ const AttendancePage = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="attendance">
-            <Clock className="h-4 w-4 mr-2" />
-            Attendance Records
-          </TabsTrigger>
-          <TabsTrigger value="time-requests">
-            <FileClock className="h-4 w-4 mr-2" />
-            Time Requests
-          </TabsTrigger>
+          <TabsTrigger value="attendance">Attendance Records</TabsTrigger>
+          <TabsTrigger value="time-requests">Time Requests</TabsTrigger>
         </TabsList>
 
         {/* ========== ATTENDANCE TAB ========== */}
@@ -701,7 +695,7 @@ const AttendancePage = () => {
 
       {/* Request Form Dialog */}
       <Dialog open={requestFormOpen} onOpenChange={setRequestFormOpen}>
-        <DialogContent className="sm:max-w-125">
+        <DialogContent className="max-w-lg! w-full sm:max-w-lg!">
           <DialogHeader>
             <DialogTitle>Request Time Modification</DialogTitle>
           </DialogHeader>
@@ -793,7 +787,7 @@ const AttendancePage = () => {
 
       {/* Action Dialog (Approve/Reject) */}
       <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>
-        <DialogContent className="sm:max-w-112.5">
+        <DialogContent className="max-w-lg! w-full sm:max-w-lg!">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {actionType === "APPROVED" ? (

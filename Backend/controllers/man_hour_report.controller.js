@@ -12,7 +12,6 @@ const formatDateForMeta = (dateString) => {
 // ==========================================
 // EMPLOYEE CONTROLLERS
 // ==========================================
-
 const createManHourReport = async (req, res) => {
   try {
     const employee_id = req.user.employee_id;
@@ -21,21 +20,21 @@ const createManHourReport = async (req, res) => {
 
     const data = await manHourReportService.createManHourReport(
       employee_id,
-      req.body
+      req.body,
     );
 
-    // Notify approvers
+    // Notify approvers (same as before)
     const adminUsers = await pool.query(
       `SELECT DISTINCT u.id
        FROM users u
-       WHERE u.role IN ('ADMIN', 'HR_ADMIN', 'HR')`
+       WHERE u.role IN ('ADMIN', 'HR_ADMIN', 'HR')`,
     );
 
     const assignedApprovers = await pool.query(
       `SELECT ea.approver_id
        FROM employee_approvers ea
        WHERE ea.employee_id = $1 AND (ea.approval_type = 'MAN_HOUR' OR ea.approval_type = 'ALL')`,
-      [employee_id]
+      [employee_id],
     );
 
     const approverIds = [
@@ -50,15 +49,15 @@ const createManHourReport = async (req, res) => {
         user_id: approverId,
         type: "MAN_HOUR",
         title: "New Man Hour Report",
-        message: `${employeeName} submitted a man hour report`,
+        message: `${employeeName} submitted a man hour report with ${req.body.details?.length || 1} activities`,
         reference_id: data.id,
         meta: {
           man_hour_id: data.id,
           status: "SUBMITTED",
           employee_name: employeeName,
           work_date: formatDateForMeta(req.body.work_date),
-          hours: req.body.hours,
-          task: req.body.task,
+          total_hours: data.hours,
+          activities_count: req.body.details?.length || 1,
         },
       });
     }
@@ -79,7 +78,7 @@ const getMyManHourReports = async (req, res) => {
       page,
       limit,
       search,
-      status
+      status,
     );
 
     res.json(data);
@@ -96,7 +95,7 @@ const updateManHourReport = async (req, res) => {
     const data = await manHourReportService.updateManHourReport(
       id,
       employee_id,
-      req.body
+      req.body,
     );
 
     res.json({ message: "Man hour report updated successfully", data });
@@ -143,7 +142,7 @@ const getAllManHourReports = async (req, res) => {
       limit,
       search,
       date,
-      userRole
+      userRole,
     );
 
     res.json(data);
@@ -166,7 +165,7 @@ const getManHourReportDetails = async (req, res) => {
 
     const data = await manHourReportService.getManHourReportDetails(
       id,
-      user_id
+      user_id,
     );
     res.json(data);
   } catch (error) {
@@ -185,7 +184,7 @@ const approveManHourReport = async (req, res) => {
       id,
       approver_id,
       comment,
-      userRole
+      userRole,
     );
 
     const report = await manHourReportService.getManHourReportDetails(id);
@@ -224,7 +223,7 @@ const rejectManHourReport = async (req, res) => {
       id,
       approver_id,
       reason,
-      userRole
+      userRole,
     );
 
     const report = await manHourReportService.getManHourReportDetails(id);
@@ -266,7 +265,7 @@ const getManHourSummary = async (req, res) => {
     const data = await manHourReportService.getManHourSummary(
       start_date,
       end_date,
-      employee_id
+      employee_id,
     );
 
     res.json(data);
@@ -289,6 +288,29 @@ const isApprover = async (req, res) => {
   }
 };
 
+const getMissingManHourDates = async (req, res) => {
+  try {
+    const employee_id = req.user.employee_id;
+    const { start_date, end_date } = req.query;
+
+    if (!start_date || !end_date) {
+      return res.status(400).json({
+        message: "start_date and end_date are required",
+      });
+    }
+
+    const data = await manHourReportService.getMissingManHourDates(
+      employee_id,
+      start_date,
+      end_date,
+    );
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createManHourReport,
   getMyManHourReports,
@@ -300,4 +322,5 @@ module.exports = {
   updateManHourReport,
   deleteManHourReport,
   isApprover,
+  getMissingManHourDates,
 };

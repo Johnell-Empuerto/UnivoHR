@@ -10,7 +10,16 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Eye, CheckCircle, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import {
+  Eye,
+  CheckCircle,
+  XCircle,
+  Edit,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { formatDate } from "@/utils/formatDate";
 
 type ManHourReport = {
@@ -30,9 +39,12 @@ type ManHourReport = {
 type Props = {
   data: ManHourReport[];
   onView: (report: ManHourReport) => void;
+  onEdit?: (report: ManHourReport) => void;
+  onDelete?: (id: number) => void;
   onApprove: (id: number) => void;
   onReject: (id: number) => void;
   canApprove: boolean;
+  canEdit?: boolean;
   currentPage: number;
   totalPages: number;
   totalRecords: number;
@@ -86,13 +98,17 @@ const getStatusBadge = (status: string) => {
 const ManHourReportTable = ({
   data,
   onView,
+  onEdit,
+  onDelete,
   onApprove,
   onReject,
   canApprove,
+  canEdit = false,
   currentPage,
   totalPages,
   totalRecords,
   onPageChange,
+  onRowsPerPageChange,
   rowsPerPage,
   title = "Man Hour Reports",
 }: Props) => {
@@ -101,6 +117,48 @@ const ManHourReportTable = ({
     const status = report.status || "SUBMITTED";
     if (status === "SUBMITTED") return "PENDING";
     return status;
+  };
+
+  // Pagination calculations
+  const start = (currentPage - 1) * rowsPerPage + 1;
+  const end = Math.min(currentPage * rowsPerPage, totalRecords);
+
+  const goToPage = (page: number) => {
+    onPageChange(Math.max(1, Math.min(page, totalPages)));
+  };
+
+  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newRows = Number(e.target.value);
+    onRowsPerPageChange(newRows);
+    onPageChange(1);
+  };
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pageNumbers: (number | string)[] = [];
+    const maxPagesToShow = 5;
+
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pageNumbers.push(i);
+        pageNumbers.push("...");
+        pageNumbers.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pageNumbers.push(1);
+        pageNumbers.push("...");
+        for (let i = totalPages - 3; i <= totalPages; i++) pageNumbers.push(i);
+      } else {
+        pageNumbers.push(1);
+        pageNumbers.push("...");
+        for (let i = currentPage - 1; i <= currentPage + 1; i++)
+          pageNumbers.push(i);
+        pageNumbers.push("...");
+        pageNumbers.push(totalPages);
+      }
+    }
+    return pageNumbers;
   };
 
   return (
@@ -115,11 +173,10 @@ const ManHourReportTable = ({
               <TableRow className="bg-muted">
                 <TableHead>Employee</TableHead>
                 <TableHead>Work Date</TableHead>
-                {/* <TableHead className="max-w-xs">Task</TableHead> */}
                 <TableHead>Hours</TableHead>
                 <TableHead>Status</TableHead>
-                {canApprove && <TableHead>Actions</TableHead>}
-                <TableHead>View</TableHead>
+                {canApprove && <TableHead>Approval</TableHead>}
+                {(canEdit || canApprove) && <TableHead>Actions</TableHead>}
               </TableRow>
             </TableHeader>
 
@@ -127,7 +184,7 @@ const ManHourReportTable = ({
               {data.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={canApprove ? 7 : 6}
+                    colSpan={canApprove || canEdit ? 6 : 5}
                     className="text-center py-8 text-muted-foreground"
                   >
                     No man hour reports found
@@ -156,12 +213,6 @@ const ManHourReportTable = ({
                       </TableCell>
 
                       <TableCell>{formatDate(report.work_date)}</TableCell>
-
-                      {/* <TableCell className="max-w-xs">
-                        <div className="truncate" title={report.task}>
-                          {report.task}
-                        </div>
-                      </TableCell> */}
 
                       <TableCell>
                         <Badge
@@ -204,14 +255,35 @@ const ManHourReportTable = ({
                         </TableCell>
                       )}
 
+                      {/* Action Buttons (View/Edit/Delete) */}
                       <TableCell>
-                        <button
-                          className="p-1 rounded hover:bg-muted transition"
-                          onClick={() => onView(report)}
-                          title="View Details"
-                        >
-                          <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="p-1 rounded hover:bg-muted transition"
+                            onClick={() => onView(report)}
+                            title="View Details"
+                          >
+                            <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                          </button>
+                          {canEdit && isPending && onEdit && (
+                            <button
+                              className="p-1 rounded hover:bg-muted transition"
+                              onClick={() => onEdit(report)}
+                              title="Edit"
+                            >
+                              <Edit className="h-4 w-4 text-blue-600 hover:text-blue-700" />
+                            </button>
+                          )}
+                          {canEdit && isPending && onDelete && (
+                            <button
+                              className="p-1 rounded hover:bg-muted transition"
+                              onClick={() => onDelete(report.id)}
+                              title="Delete"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-600 hover:text-red-700" />
+                            </button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -221,34 +293,65 @@ const ManHourReportTable = ({
           </Table>
         </div>
 
-        {/* Pagination */}
+        {/* Pagination Controls - Matching AttendanceTable styling */}
         {totalRecords > 0 && (
-          <div className="mt-4 pt-4 border-t flex justify-between items-center">
-            <div className="text-sm text-muted-foreground">
-              Showing {(currentPage - 1) * rowsPerPage + 1} to{" "}
-              {Math.min(currentPage * rowsPerPage, totalRecords)} of{" "}
-              {totalRecords} entries
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1 text-sm border rounded-md hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <span className="px-3 py-1 text-sm">
-                Page {currentPage} of {totalPages}
+          <div className="p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
+            {/* Rows per page */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                Rows per page:
               </span>
-              <button
-                onClick={() =>
-                  onPageChange(Math.min(totalPages, currentPage + 1))
-                }
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 text-sm border rounded-md hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
+              <select
+                value={rowsPerPage}
+                onChange={handleRowsPerPageChange}
+                className="border rounded px-2 py-1 text-sm bg-background"
               >
-                Next
-              </button>
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+
+            {/* Showing X to Y of Z */}
+            <div className="text-sm text-muted-foreground">
+              Showing {start} to {end} of {totalRecords} entries
+            </div>
+
+            {/* Pagination Buttons */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              {getPageNumbers().map((page, index) => (
+                <Button
+                  key={index}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => typeof page === "number" && goToPage(page)}
+                  disabled={page === "..."}
+                  className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
+                >
+                  {page}
+                </Button>
+              ))}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         )}
