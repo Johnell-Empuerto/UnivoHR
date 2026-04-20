@@ -363,7 +363,7 @@ const FinalPayHistoryTable = () => {
 
       {/* Details Dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className=" max-w-lg! w-full sm:max-w-lg!">
           <DialogHeader>
             <DialogTitle>Final Pay Details</DialogTitle>
           </DialogHeader>

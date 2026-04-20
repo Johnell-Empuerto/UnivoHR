@@ -719,7 +719,7 @@ const FinalPayTable = ({
 
       {/* Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-lg! w-full sm:max-w-lg!">
           <DialogHeader>
             <DialogTitle>Final Pay Preview</DialogTitle>
             <DialogDescription>

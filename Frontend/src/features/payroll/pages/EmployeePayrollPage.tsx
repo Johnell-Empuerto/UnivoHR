@@ -396,7 +396,7 @@ const EmployeePayrollPage = () => {
 
       {/*  UPDATED Salary Breakdown Dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-lg! w-full sm:max-w-lg!">
+        <DialogContent className="max-w-lg! w-full sm:max-w-lg! max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Salary Breakdown</DialogTitle>
           </DialogHeader>
