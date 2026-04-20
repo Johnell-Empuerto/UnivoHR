@@ -135,7 +135,9 @@ const PayrollDetails = () => {
               <Wallet className="h-5 w-5 text-primary dark:text-black" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Payroll Details</h1>
+              <h1 className="text-2xl font-bold text-muted-foreground">
+                Payroll Details
+              </h1>
               <p className="text-sm text-muted-foreground">
                 View detailed salary breakdown
               </p>
@@ -173,7 +175,9 @@ const PayrollDetails = () => {
             <Wallet className="h-5 w-5 text-primary dark:text-black" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Payroll Details</h1>
+            <h1 className="text-2xl font-bold text-muted-foreground">
+              Payroll Details
+            </h1>
             <p className="text-sm text-muted-foreground">
               View detailed salary breakdown
             </p>

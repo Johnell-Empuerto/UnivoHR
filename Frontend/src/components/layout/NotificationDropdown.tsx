@@ -91,6 +91,13 @@ const NotificationDropdown = () => {
       case "PAYROLL":
         return "/payroll";
 
+      case "MAN_HOUR":
+        // Man hour notifications: New Man Hour Report goes to approval page, others to my man hours
+        if (notification.title.includes("New") && canManage) {
+          return "/manhours-approval";
+        }
+        return "/my-manhours";
+
       default:
         return "/dashboard";
     }

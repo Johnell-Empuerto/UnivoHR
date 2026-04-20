@@ -10,7 +10,9 @@ const CreditLeavePage = () => {
           <CalendarDays className="h-5 w-5 text-primary dark:text-black" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Leave Credits & History</h1>
+          <h1 className="text-2xl font-bold text-muted-foreground">
+            Leave Credits & History
+          </h1>
           <p className="text-sm text-muted-foreground">
             Track your leave balances and view your leave transaction history
           </p>

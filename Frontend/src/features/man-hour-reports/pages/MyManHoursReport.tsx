@@ -274,7 +274,9 @@ const MyManHoursReport = () => {
             <FileText className="h-5 w-5 text-primary dark:text-black" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">My Man Hours</h1>
+            <h1 className="text-2xl font-bold text-muted-foreground">
+              My Man Hours
+            </h1>
             <p className="text-sm text-muted-foreground">
               Track and submit your daily man hour reports with multiple time
               entries

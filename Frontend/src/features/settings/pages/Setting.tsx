@@ -22,7 +22,9 @@ const Setting = () => {
           <Settings className="h-5 w-5 text-primary dark:text-black" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">System Settings</h1>
+          <h1 className="text-2xl font-bold text-muted-foreground">
+            System Settings
+          </h1>
           <p className="text-sm text-muted-foreground">
             Configure attendance rules, pay rates, approvals, email, and
             notifications

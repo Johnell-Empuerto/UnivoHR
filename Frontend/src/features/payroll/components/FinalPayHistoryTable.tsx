@@ -180,7 +180,9 @@ const FinalPayHistoryTable = () => {
           <Wallet className="h-5 w-5 text-primary dark:text-black" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Final Pay History</h1>
+          <h1 className="text-2xl font-bold text-muted-foreground">
+            Final Pay History
+          </h1>
           <p className="text-sm text-muted-foreground">
             View all processed final pay records
           </p>

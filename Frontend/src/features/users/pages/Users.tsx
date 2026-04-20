@@ -182,7 +182,9 @@ const Users = () => {
             <UserCog className="h-5 w-5 text-primary dark:text-black" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">User Accounts</h1>
+            <h1 className="text-2xl font-bold text-muted-foreground">
+              User Accounts
+            </h1>
             <p className="text-sm text-muted-foreground">
               Manage system user accounts, roles, and permissions
             </p>

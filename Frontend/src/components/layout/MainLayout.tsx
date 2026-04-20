@@ -26,7 +26,7 @@ const MainLayout = ({
         <Navbar collapsed={collapsed} setCollapsed={setCollapsed} />
 
         {/* SCROLLABLE CONTENT */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 min-h-0">
+        <main className="flex-1 overflow-y-auto bg-background min-h-0">
           <Outlet />
         </main>
       </div>

@@ -691,7 +691,9 @@ const CalendarPage: React.FC = () => {
           <CalendarIcon className="h-5 w-5 text-primary dark:text-black" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Calendar Management</h1>
+          <h1 className="text-2xl font-bold text-muted-foreground">
+            Calendar Management
+          </h1>
           <p className="text-sm text-muted-foreground">
             {canEdit
               ? "Manage holidays, special days, and working days for payroll calculations"

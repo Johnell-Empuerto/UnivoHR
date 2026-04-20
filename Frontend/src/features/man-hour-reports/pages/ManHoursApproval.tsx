@@ -232,7 +232,9 @@ const ManHoursApproval = () => {
           <FileText className="h-5 w-5 text-primary dark:text-black" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Man Hours Approval</h1>
+          <h1 className="text-2xl font-bold text-muted-foreground">
+            Man Hours Approval
+          </h1>
           <p className="text-sm text-muted-foreground">
             Review and approve employee man hour reports
           </p>

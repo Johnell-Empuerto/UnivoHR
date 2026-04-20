@@ -174,7 +174,9 @@ const EmployeePayrollPage = () => {
           <Wallet className="h-5 w-5 text-primary dark:text-black" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">My Payroll</h1>
+          <h1 className="text-2xl font-bold text-muted-foreground">
+            My Payroll
+          </h1>
           <p className="text-sm text-muted-foreground">
             View your payroll history, salary details, and download payslips
           </p>

@@ -289,7 +289,9 @@ const LeaveApprovers = () => {
             <CalendarDays className="h-5 w-5 text-primary dark:text-black" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Leave Approval Settings</h1>
+            <h1 className="text-2xl font-bold text-muted-foreground">
+              Leave Approval Settings
+            </h1>
             <p className="text-sm text-muted-foreground">
               Assign employees who can approve leave requests for other
               employees

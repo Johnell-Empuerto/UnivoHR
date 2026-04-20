@@ -385,7 +385,9 @@ const AttendancePage = () => {
           <Clock className="h-5 w-5 text-primary dark:text-black" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Attendance</h1>
+          <h1 className="text-2xl font-bold text-muted-foreground">
+            Attendance
+          </h1>
           <p className="text-sm text-muted-foreground">
             Monitor employee attendance and manage time modification requests.
           </p>

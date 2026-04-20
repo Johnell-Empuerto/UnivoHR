@@ -50,7 +50,7 @@ const MissingManHoursTab = () => {
         <CardContent className="p-4">
           <div className="flex gap-4 items-end">
             <div className="flex-1">
-              <Label>Start Date</Label>
+              <Label className="mb-2">Start Date</Label>
               <Input
                 type="date"
                 value={startDate}
@@ -59,7 +59,7 @@ const MissingManHoursTab = () => {
               />
             </div>
             <div className="flex-1">
-              <Label>End Date</Label>
+              <Label className="mb-2">End Date</Label>
               <Input
                 type="date"
                 value={endDate}

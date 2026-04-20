@@ -3,7 +3,7 @@ import api from "./api";
 export type Notification = {
   id: number;
   user_id: number;
-  type: "LEAVE" | "OVERTIME" | "PAYROLL" | "TIME_MODIFICATION";
+  type: "LEAVE" | "OVERTIME" | "PAYROLL" | "TIME_MODIFICATION" | "MAN_HOUR";
   title: string;
   message: string;
   reference_id: number | null;

@@ -115,7 +115,9 @@ const AdminDashboardContent = React.memo(
             <LayoutDashboard className="h-5 w-5 text-primary dark:text-black" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+            <h1 className="text-2xl font-bold text-muted-foreground">
+              Admin Dashboard
+            </h1>
             <p className="text-sm text-muted-foreground">
               Overview of company attendance and performance metrics
             </p>
@@ -224,7 +226,9 @@ const EmployeeDashboardContent = React.memo(
             <LayoutDashboard className="h-5 w-5 text-primary dark:text-black" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">My Dashboard</h1>
+            <h1 className="text-2xl font-bold text-muted-foreground">
+              My Dashboard
+            </h1>
             <p className="text-sm text-muted-foreground">
               Welcome back,{" "}
               {user?.first_name || user?.name?.split(" ")[0] || "User"}! Here's

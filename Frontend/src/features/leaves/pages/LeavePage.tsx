@@ -222,7 +222,7 @@ const LeavePage = () => {
             <CalendarDays className="h-5 w-5 text-primary dark:text-black" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-2xl font-bold text-muted-foreground">
               {canManageAllLeaves() ? "Leave Management" : "My Leaves"}
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -247,7 +247,7 @@ const LeavePage = () => {
           <CalendarDays className="h-5 w-5 text-primary dark:text-black" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold text-muted-foreground">
             {canManageAllLeaves() ? "Leave Management" : "My Leaves"}
           </h1>
           <p className="text-sm text-muted-foreground">

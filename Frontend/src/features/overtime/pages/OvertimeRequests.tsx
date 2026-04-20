@@ -286,7 +286,9 @@ const OvertimeRequests = () => {
           <ClipboardList className="h-5 w-5 text-primary dark:text-black" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Overtime Requests</h1>
+          <h1 className="text-2xl font-bold text-muted-foreground">
+            Overtime Requests
+          </h1>
           <p className="text-sm text-muted-foreground">
             Review and manage employee overtime requests
           </p>

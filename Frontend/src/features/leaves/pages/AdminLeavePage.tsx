@@ -151,7 +151,9 @@ const AdminLeavePage = () => {
           <CalendarDays className="h-5 w-5 text-primary dark:text-black" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Leave Management</h1>
+          <h1 className="text-2xl font-bold text-muted-foreground">
+            Leave Management
+          </h1>
           <p className="text-sm text-muted-foreground">
             Review, approve, and manage employee leave requests, conversion
             history, and settings

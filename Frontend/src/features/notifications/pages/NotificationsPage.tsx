@@ -100,6 +100,13 @@ const NotificationsPage = () => {
       case "PAYROLL":
         navigate("/payroll");
         break;
+      case "MAN_HOUR":
+        if (notification.title.includes("New")) {
+          navigate("/manhours-approval");
+        } else {
+          navigate("/my-manhours");
+        }
+        break;
       default:
         break;
     }
@@ -218,7 +225,9 @@ const NotificationsPage = () => {
             <Bell className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Notifications</h1>
+            <h1 className="text-2xl font-bold text-muted-foreground">
+              Notifications
+            </h1>
             <p className="text-sm text-muted-foreground">
               Stay updated with your latest activities
             </p>
