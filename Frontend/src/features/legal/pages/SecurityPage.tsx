@@ -95,7 +95,7 @@ const SecurityPage = () => {
     "Log out when leaving your workstation",
     "Report suspicious activity immediately",
     "Keep your browser updated",
-    "Enable two-factor authentication when available",
+    "Enable two-factor authentication always",
   ];
 
   return (
@@ -104,7 +104,7 @@ const SecurityPage = () => {
         <title>Security | HRMS</title>
       </Helmet>
 
-      <div className="min-h-screen bg-linear-to-brrom-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <div className="container mx-auto px-4 py-6 md:py-10 max-w-5xl">
           {/* Back Button */}
           <Button

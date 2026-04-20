@@ -31,6 +31,7 @@ const settingRoutes = require("./routes/setting.routes");
 const emailTemplateRoutes = require("./routes/emailTemplate.routes");
 const manHourReportRoutes = require("./routes/man_hour_report.routes");
 const finalPayRoutes = require("./routes/finalPay.routes");
+const profileRoutes = require("./routes/profile.routes");
 
 // Middleware
 const authenticate = require("./middleware/auth.middleware");
@@ -102,6 +103,8 @@ app.use("/api/settings", settingRoutes);
 app.use("/api/email-templates", emailTemplateRoutes);
 
 app.use("/api/man-hour-reports", manHourReportRoutes);
+
+app.use("/api/profile", profileRoutes);
 
 const queueService = require("./services/queue.service");
 

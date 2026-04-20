@@ -20,6 +20,7 @@ import NotificationsPage from "@/features/notifications/pages/NotificationsPage"
 import MyManHoursReport from "@/features/man-hour-reports/pages/MyManHoursReport";
 import ManHoursApproval from "@/features/man-hour-reports/pages/ManHoursApproval";
 import Users from "@/features/users/pages/Users";
+import ProfilePage from "@/features/profile/pages/ProfilePage";
 import PrivacyPage from "@/features/legal/pages/PrivacyPage";
 import TermsPage from "@/features/legal/pages/TermsPage";
 import SecurityPage from "@/features/legal/pages/SecurityPage";
@@ -130,6 +131,8 @@ const AppRoutes = () => {
           <Route path="/myovertime" element={<MyOvertime />} />
 
           <Route path="/users" element={<Users />} />
+
+          <Route path="/profile" element={<ProfilePage />} />
 
           {/* Allow approvers (even EMPLOYEE role) to access Manage Overtime */}
           <Route
