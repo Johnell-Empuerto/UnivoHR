@@ -33,7 +33,7 @@ const statusUpdateSchema = Joi.object({
 });
 
 // ==========================
-// 🔥 TIME REQUEST ROUTES FIRST (IMPORTANT)
+//  TIME REQUEST ROUTES FIRST (IMPORTANT)
 // ==========================
 
 // CREATE
@@ -71,7 +71,7 @@ router.put(
 );
 
 // ==========================
-// 🔥 ATTENDANCE ROUTES AFTER
+// ATTENDANCE ROUTES AFTER
 // ==========================
 
 // CREATE ATTENDANCE

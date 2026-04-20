@@ -16,7 +16,6 @@ import {
   Clock,
   UserX,
   Calendar,
-  TrendingUp,
   CheckCircle,
   XCircle,
   AlertCircle,
@@ -27,6 +26,7 @@ import {
   Activity,
   BarChart3,
   LayoutDashboard,
+  Wallet,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -197,6 +197,7 @@ const AdminDashboardContent = React.memo(
 );
 
 //  Extract Employee Dashboard to separate memoized component
+// Extract Employee Dashboard to separate memoized component
 const EmployeeDashboardContent = React.memo(
   ({
     user,
@@ -206,10 +207,18 @@ const EmployeeDashboardContent = React.memo(
     recentLeaves,
     employeeTrends,
     navigate,
-  }: any) => {
+  }: {
+    user: any;
+    summary: any;
+    today: any;
+    leaveCredits: LeaveCredits | null;
+    recentLeaves: RecentLeave[];
+    employeeTrends: any;
+    navigate: (path: string) => void;
+  }) => {
     return (
       <div className="space-y-6 p-6">
-        {/* Header - Matching consistent theme */}
+        {/* Header */}
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
             <LayoutDashboard className="h-5 w-5 text-primary dark:text-black" />
@@ -447,7 +456,7 @@ const EmployeeDashboardContent = React.memo(
             </CardContent>
           </Card>
 
-          {/* Recent Leaves Card */}
+          {/* Recent Leaves Card - FIXED VERSION */}
           <Card className="border-border/50 shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -461,134 +470,48 @@ const EmployeeDashboardContent = React.memo(
             <CardContent>
               {recentLeaves.length > 0 ? (
                 <div className="space-y-3">
-                  {recentLeaves.map(
-                    (leave: {
-                      id: React.Key | null | undefined;
-                      type:
-                        | string
-                        | number
-                        | bigint
-                        | boolean
-                        | React.ReactElement<
-                            unknown,
-                            string | React.JSXElementConstructor<any>
+                  {recentLeaves.map((leave: RecentLeave) => (
+                    <div
+                      key={leave.id}
+                      className="flex items-center justify-between p-3 rounded-lg border border-border/50 hover:bg-muted/30 transition"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{leave.type}</p>
+                          <Badge
+                            variant={
+                              leave.status === "APPROVED"
+                                ? "default"
+                                : leave.status === "REJECTED"
+                                  ? "destructive"
+                                  : "secondary"
+                            }
+                            className="text-xs"
                           >
-                        | Iterable<React.ReactNode>
-                        | React.ReactPortal
-                        | Promise<
-                            | string
-                            | number
-                            | bigint
-                            | boolean
-                            | React.ReactPortal
-                            | React.ReactElement<
-                                unknown,
-                                string | React.JSXElementConstructor<any>
-                              >
-                            | Iterable<React.ReactNode>
-                            | null
-                            | undefined
-                          >
-                        | null
-                        | undefined;
-                      status:
-                        | string
-                        | number
-                        | bigint
-                        | boolean
-                        | React.ReactElement<
-                            unknown,
-                            string | React.JSXElementConstructor<any>
-                          >
-                        | Iterable<React.ReactNode>
-                        | Promise<
-                            | string
-                            | number
-                            | bigint
-                            | boolean
-                            | React.ReactPortal
-                            | React.ReactElement<
-                                unknown,
-                                string | React.JSXElementConstructor<any>
-                              >
-                            | Iterable<React.ReactNode>
-                            | null
-                            | undefined
-                          >
-                        | null
-                        | undefined;
-                      from_date: string | number | Date;
-                      to_date: string | number | Date;
-                      reason:
-                        | string
-                        | number
-                        | bigint
-                        | boolean
-                        | React.ReactElement<
-                            unknown,
-                            string | React.JSXElementConstructor<any>
-                          >
-                        | Iterable<React.ReactNode>
-                        | React.ReactPortal
-                        | Promise<
-                            | string
-                            | number
-                            | bigint
-                            | boolean
-                            | React.ReactPortal
-                            | React.ReactElement<
-                                unknown,
-                                string | React.JSXElementConstructor<any>
-                              >
-                            | Iterable<React.ReactNode>
-                            | null
-                            | undefined
-                          >
-                        | null
-                        | undefined;
-                    }) => (
-                      <div
-                        key={leave.id}
-                        className="flex items-center justify-between p-3 rounded-lg border border-border/50 hover:bg-muted/30 transition"
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">{leave.type}</p>
-                            <Badge
-                              variant={
-                                leave.status === "APPROVED"
-                                  ? "default"
-                                  : leave.status === "REJECTED"
-                                    ? "destructive"
-                                    : "secondary"
-                              }
-                              className="text-xs"
-                            >
-                              {leave.status}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(leave.from_date).toLocaleDateString()} -{" "}
-                            {new Date(leave.to_date).toLocaleDateString()}
-                          </p>
-                          {leave.reason && (
-                            <p className="text-xs text-muted-foreground truncate max-w-50">
-                              {leave.reason}
-                            </p>
-                          )}
+                            {leave.status}
+                          </Badge>
                         </div>
-                        {leave.status === "APPROVED" && (
-                          <CheckCircle className="h-5 w-5 text-green-600" />
-                        )}
-                        {leave.status === "REJECTED" && (
-                          <XCircle className="h-5 w-5 text-red-600" />
-                        )}
-                        {leave.status === "PENDING" && (
-                          <Clock className="h-5 w-5 text-yellow-600" />
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(leave.from_date).toLocaleDateString()} -{" "}
+                          {new Date(leave.to_date).toLocaleDateString()}
+                        </p>
+                        {leave.reason && (
+                          <p className="text-xs text-muted-foreground truncate max-w-50">
+                            {leave.reason}
+                          </p>
                         )}
                       </div>
-                    ),
-                  )}
+                      {leave.status === "APPROVED" && (
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                      )}
+                      {leave.status === "REJECTED" && (
+                        <XCircle className="h-5 w-5 text-red-600" />
+                      )}
+                      {leave.status === "PENDING" && (
+                        <Clock className="h-5 w-5 text-yellow-600" />
+                      )}
+                    </div>
+                  ))}
                   <Button
                     variant="ghost"
                     className="w-full mt-2"
@@ -655,10 +578,10 @@ const EmployeeDashboardContent = React.memo(
               <Button
                 variant="outline"
                 className="h-auto py-4 flex flex-col gap-2"
-                onClick={() => navigate("/reports")}
+                onClick={() => navigate("/payroll")}
               >
-                <TrendingUp className="h-5 w-5" />
-                <span className="text-sm">View Reports</span>
+                <Wallet className="h-5 w-5" />
+                <span className="text-sm">View Payroll</span>
               </Button>
             </div>
           </CardContent>
@@ -709,7 +632,7 @@ const Dashboard = () => {
         setEmployeeTrends(analyticsData.trends);
         setToday(todayData);
         setLeaveCredits(creditsData);
-        setRecentLeaves(leavesData.slice(0, 3));
+        setRecentLeaves(leavesData.data.slice(0, 3));
       }
     } catch (error) {
       console.error("Dashboard error:", error);

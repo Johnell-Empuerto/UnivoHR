@@ -441,7 +441,7 @@ const LeaveApprovers = () => {
 
       {/* Add/Edit Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-lg! w-full sm:max-w-lg!">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
               {editingItem ? "Edit Leave Approver" : "Assign Leave Approver"}

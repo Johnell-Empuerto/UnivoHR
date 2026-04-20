@@ -9,7 +9,15 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/Button";
-import { Eye, DollarSign, Loader2, CheckCircle, Download } from "lucide-react";
+import {
+  Eye,
+  DollarSign,
+  Loader2,
+  CheckCircle,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -68,6 +76,16 @@ interface FinalPayRecord {
 interface FinalPayTableProps {
   data: FinalPayEmployee[];
   onRefresh: () => void;
+  // Pagination props for pending table
+  pendingPagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  onPendingPageChange?: (page: number) => void;
+  onPendingLimitChange?: (limit: number) => void;
+  pendingLoading?: boolean;
 }
 
 const formatCurrency = (value: number) => {
@@ -81,7 +99,14 @@ const formatEmployeeName = (emp: FinalPayEmployee | FinalPayRecord) => {
   return `${emp.first_name} ${emp.middle_name || ""} ${emp.last_name}${emp.suffix ? `, ${emp.suffix}` : ""}`.trim();
 };
 
-const FinalPayTable = ({ data, onRefresh }: FinalPayTableProps) => {
+const FinalPayTable = ({
+  data,
+  onRefresh,
+  pendingPagination,
+  onPendingPageChange,
+  onPendingLimitChange,
+  pendingLoading = false,
+}: FinalPayTableProps) => {
   const [selectedEmployee, setSelectedEmployee] =
     useState<FinalPayEmployee | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -89,6 +114,9 @@ const FinalPayTable = ({ data, onRefresh }: FinalPayTableProps) => {
   const [previewData, setPreviewData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [pendingRowsPerPage, setPendingRowsPerPage] = useState(
+    pendingPagination?.limit || 10,
+  );
 
   // History state
   const [historyData, setHistoryData] = useState<FinalPayRecord[]>([]);
@@ -176,7 +204,7 @@ const FinalPayTable = ({ data, onRefresh }: FinalPayTableProps) => {
         setProcessOpen(false);
         setPreviewOpen(false);
         onRefresh();
-        fetchHistory(); // Refresh history after processing
+        fetchHistory();
       } else {
         toast.error(result.message || "Failed to process final pay");
       }
@@ -243,6 +271,60 @@ const FinalPayTable = ({ data, onRefresh }: FinalPayTableProps) => {
     return date ? formatDate(date) : "—";
   };
 
+  // Pending table pagination helpers
+  const pendingStart = pendingPagination
+    ? (pendingPagination.page - 1) * pendingPagination.limit + 1
+    : 1;
+  const pendingEnd = pendingPagination
+    ? Math.min(
+        pendingPagination.page * pendingPagination.limit,
+        pendingPagination.total,
+      )
+    : data.length;
+
+  const goToPendingPage = (page: number) => {
+    if (page >= 1 && page <= (pendingPagination?.totalPages || 1)) {
+      onPendingPageChange?.(page);
+    }
+  };
+
+  const handlePendingRowsPerPageChange = (
+    e: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    const newLimit = Number(e.target.value);
+    setPendingRowsPerPage(newLimit);
+    onPendingLimitChange?.(newLimit);
+  };
+
+  const getPendingPageNumbers = () => {
+    const totalPages = pendingPagination?.totalPages || 1;
+    const currentPage = pendingPagination?.page || 1;
+    const pageNumbers: (number | string)[] = [];
+    const maxPagesToShow = 5;
+
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pageNumbers.push(i);
+        pageNumbers.push("...");
+        pageNumbers.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pageNumbers.push(1);
+        pageNumbers.push("...");
+        for (let i = totalPages - 3; i <= totalPages; i++) pageNumbers.push(i);
+      } else {
+        pageNumbers.push(1);
+        pageNumbers.push("...");
+        for (let i = currentPage - 1; i <= currentPage + 1; i++)
+          pageNumbers.push(i);
+        pageNumbers.push("...");
+        pageNumbers.push(totalPages);
+      }
+    }
+    return pageNumbers;
+  };
+
   // History pagination helpers
   const historyStart = (historyCurrentPage - 1) * historyRowsPerPage + 1;
   const historyEnd = Math.min(
@@ -299,7 +381,7 @@ const FinalPayTable = ({ data, onRefresh }: FinalPayTableProps) => {
           </div>
           <h2 className="text-xl font-semibold">Pending Final Pay</h2>
           <Badge variant="secondary" className="ml-2">
-            {data.length}
+            {pendingPagination?.total || data.length}
           </Badge>
         </div>
         <div className="rounded-md border shadow-sm">
@@ -316,7 +398,14 @@ const FinalPayTable = ({ data, onRefresh }: FinalPayTableProps) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.length === 0 ? (
+              {pendingLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                    <p className="mt-2 text-muted-foreground">Loading...</p>
+                  </TableCell>
+                </TableRow>
+              ) : data.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={7}
@@ -364,6 +453,73 @@ const FinalPayTable = ({ data, onRefresh }: FinalPayTableProps) => {
             </TableBody>
           </Table>
         </div>
+
+        {/* Pending Table Pagination */}
+        {pendingPagination && pendingPagination.total > 0 && (
+          <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                Rows per page:
+              </span>
+              <select
+                value={pendingRowsPerPage}
+                onChange={handlePendingRowsPerPageChange}
+                className="border rounded px-2 py-1 text-sm bg-background"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+
+            <div className="text-sm text-muted-foreground">
+              Showing {pendingStart} to {pendingEnd} of{" "}
+              {pendingPagination.total} entries
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPendingPage(pendingPagination.page - 1)}
+                disabled={pendingPagination.page === 1}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+
+              {getPendingPageNumbers().map((page, index) => (
+                <Button
+                  key={index}
+                  variant={
+                    pendingPagination.page === page ? "default" : "outline"
+                  }
+                  size="sm"
+                  onClick={() =>
+                    typeof page === "number" && goToPendingPage(page)
+                  }
+                  disabled={page === "..."}
+                  className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
+                >
+                  {page}
+                </Button>
+              ))}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPendingPage(pendingPagination.page + 1)}
+                disabled={
+                  pendingPagination.page === pendingPagination.totalPages
+                }
+                className="h-8 w-8 p-0"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* HISTORY TABLE - Processed Final Pay */}
@@ -529,19 +685,7 @@ const FinalPayTable = ({ data, onRefresh }: FinalPayTableProps) => {
                 disabled={historyCurrentPage === 1}
                 className="h-8 w-8 p-0"
               >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
+                <ChevronLeft className="h-4 w-4" />
               </Button>
 
               {getHistoryPageNumbers().map((page, index) => (
@@ -566,19 +710,7 @@ const FinalPayTable = ({ data, onRefresh }: FinalPayTableProps) => {
                 disabled={historyCurrentPage === historyTotalPages}
                 className="h-8 w-8 p-0"
               >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
+                <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           </div>

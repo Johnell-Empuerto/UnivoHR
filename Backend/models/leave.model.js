@@ -61,8 +61,19 @@ const createLeave = async (data) => {
 };
 
 // GET ALL LEAVES
-const getLeaves = async () => {
-  const result = await pool.query(`
+// GET ALL LEAVES WITH PAGINATION
+const getLeaves = async (
+  page = 1,
+  limit = 10,
+  search = "",
+  status = "",
+  type = "",
+) => {
+  const offset = (page - 1) * limit;
+  const searchValue = `%${search}%`;
+
+  const dataQuery = await pool.query(
+    `
     SELECT 
       l.*, 
       e.first_name,
@@ -73,10 +84,45 @@ const getLeaves = async () => {
       e.department
     FROM leaves l
     JOIN employees e ON e.id = l.employee_id
+    WHERE
+      ($3 = '' OR l.status = $3)
+      AND ($4 = '' OR l.type = $4)
+      AND (
+        $2 = '' OR 
+        e.first_name ILIKE $2 OR 
+        e.last_name ILIKE $2 OR 
+        e.employee_code ILIKE $2 OR
+        CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $2
+      )
     ORDER BY l.created_at DESC
-  `);
+    LIMIT $1 OFFSET $5
+    `,
+    [limit, searchValue, status, type, offset],
+  );
 
-  return result.rows.map((row) => {
+  const countQuery = await pool.query(
+    `
+    SELECT COUNT(*)
+    FROM leaves l
+    JOIN employees e ON e.id = l.employee_id
+    WHERE
+      ($1 = '' OR l.status = $1)
+      AND ($2 = '' OR l.type = $2)
+      AND (
+        $3 = '' OR 
+        e.first_name ILIKE $3 OR 
+        e.last_name ILIKE $3 OR 
+        e.employee_code ILIKE $3 OR
+        CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $3
+      )
+    `,
+    [status, type, searchValue],
+  );
+
+  const total = parseInt(countQuery.rows[0].count);
+
+  // Format the data
+  const formattedData = dataQuery.rows.map((row) => {
     if (row.day_fraction !== null && row.day_fraction !== undefined) {
       row.day_fraction = parseFloat(row.day_fraction);
     }
@@ -89,11 +135,23 @@ const getLeaves = async () => {
           : `${row.first_name || ""} ${row.last_name || ""}`.trim(),
     };
   });
-};
 
+  return {
+    data: formattedData,
+    pagination: {
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
 // GET BY EMPLOYEE
-const getByEmployee = async (employeeId) => {
-  const result = await pool.query(
+// GET BY EMPLOYEE WITH PAGINATION
+const getByEmployee = async (employeeId, page = 1, limit = 10, status = "") => {
+  const offset = (page - 1) * limit;
+
+  const dataQuery = await pool.query(
     `
     SELECT 
       l.*, 
@@ -105,12 +163,26 @@ const getByEmployee = async (employeeId) => {
     FROM leaves l
     JOIN employees e ON e.id = l.employee_id
     WHERE l.employee_id = $1
+      AND ($4 = '' OR l.status = $4)
     ORDER BY l.created_at DESC
+    LIMIT $2 OFFSET $3
     `,
-    [employeeId],
+    [employeeId, limit, offset, status],
   );
 
-  return result.rows.map((row) => {
+  const countQuery = await pool.query(
+    `
+    SELECT COUNT(*)
+    FROM leaves l
+    WHERE l.employee_id = $1
+      AND ($2 = '' OR l.status = $2)
+    `,
+    [employeeId, status],
+  );
+
+  const total = parseInt(countQuery.rows[0].count);
+
+  const formattedData = dataQuery.rows.map((row) => {
     if (row.day_fraction !== null && row.day_fraction !== undefined) {
       row.day_fraction = parseFloat(row.day_fraction);
     }
@@ -123,6 +195,16 @@ const getByEmployee = async (employeeId) => {
           : `${row.first_name || ""} ${row.last_name || ""}`.trim(),
     };
   });
+
+  return {
+    data: formattedData,
+    pagination: {
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };
 
 // GET BY ID

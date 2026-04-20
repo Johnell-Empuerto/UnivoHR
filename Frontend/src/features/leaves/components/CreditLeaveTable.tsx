@@ -58,7 +58,7 @@ const CreditLeaveTable = () => {
 
       // Get leave history
       const leavesData = await leaveService.getMyLeaves();
-      setTransactions(leavesData);
+      setTransactions(leavesData.data || []);
     } catch (err) {
       console.error("Error fetching credits:", err);
       setError("Failed to load leave credits");

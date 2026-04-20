@@ -50,10 +50,13 @@ const PayRollPage = () => {
 
   const navigate = useNavigate();
 
+  // Payroll Records Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
 
+  // Payroll Records State
   const [date, setDate] = useState<Date>(new Date());
   const [payrollData, setPayrollData] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
@@ -63,16 +66,26 @@ const PayRollPage = () => {
   const [markPaidDialogOpen, setMarkPaidDialogOpen] = useState(false);
   const [selectedBatch, setSelectedBatch] = useState<any>(null);
 
-  // Search state
+  // Payroll Records Search state
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
 
-  //  FIXED - Ref to track page changes
+  // Final Pay Pagination State
+  const [pendingCurrentPage, setPendingCurrentPage] = useState(1);
+  const [pendingRowsPerPage, setPendingRowsPerPage] = useState(10);
+  const [pendingTotalPages, setPendingTotalPages] = useState(1);
+  const [pendingTotalRecords, setPendingTotalRecords] = useState(0);
+  const [pendingSearch, setPendingSearch] = useState("");
+  const [pendingSearchInput, setPendingSearchInput] = useState("");
+
+  // Final Pay State
+  const [finalPayEmployees, setFinalPayEmployees] = useState<any[]>([]);
+  const [finalPayLoading, setFinalPayLoading] = useState(false);
+
+  // Refs for scroll restoration
   const isPageChangeRef = useRef(false);
   const savedScrollPositionRef = useRef(0);
   const fetchCountRef = useRef(0);
-
-  //  NEW - Ref for the table container to scroll to
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
   const cutoffStart = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -81,21 +94,15 @@ const PayRollPage = () => {
   const cutoffStartStr = format(cutoffStart, "yyyy-MM-dd");
   const cutoffEndStr = format(cutoffEnd, "yyyy-MM-dd");
 
-  const [totalRecords, setTotalRecords] = useState(0);
-
-  const [finalPayEmployees, setFinalPayEmployees] = useState<any[]>([]);
-  const [finalPayLoading, setFinalPayLoading] = useState(false);
-
+  // ============================================
+  // PAYROLL RECORDS FUNCTIONS
+  // ============================================
   const fetchPayroll = useCallback(async () => {
     fetchCountRef.current++;
     console.log(`fetchPayroll called (${fetchCountRef.current} times)`);
     console.log(`   - currentPage: ${currentPage}`);
     console.log(`   - rowsPerPage: ${rowsPerPage}`);
     console.log(`   - search: "${search}"`);
-    console.log(`   - isPageChangeRef.current: ${isPageChangeRef.current}`);
-    console.log(
-      `   - savedScrollPositionRef.current: ${savedScrollPositionRef.current}`,
-    );
 
     try {
       setLoading(true);
@@ -108,7 +115,7 @@ const PayRollPage = () => {
         search,
       );
 
-      console.log(` Payroll data received: ${payroll.data.length} records`);
+      console.log(`Payroll data received: ${payroll.data.length} records`);
 
       setPayrollData(payroll.data);
       setTotalPages(payroll.pagination.totalPages);
@@ -117,38 +124,27 @@ const PayRollPage = () => {
       const summaryData = await getPayrollSummary(cutoffStartStr, cutoffEndStr);
       setSummary(summaryData);
 
-      //  FIXED - Use requestAnimationFrame instead of setTimeout
+      // Restore scroll position after page change
       if (isPageChangeRef.current) {
-        console.log(
-          ` Will restore scroll to: ${savedScrollPositionRef.current}`,
-        );
-
-        // Use double RAF to ensure DOM is fully updated
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             if (savedScrollPositionRef.current > 0) {
-              console.log(
-                ` Restoring scroll to: ${savedScrollPositionRef.current}`,
-              );
               window.scrollTo({
                 top: savedScrollPositionRef.current,
                 behavior: "instant",
               });
             } else if (tableContainerRef.current) {
-              // Fallback: scroll to table container
-              console.log(` Fallback: scrolling to table container`);
               tableContainerRef.current.scrollIntoView({
                 behavior: "instant",
                 block: "start",
               });
             }
             isPageChangeRef.current = false;
-            console.log(` Scroll restoration complete`);
           });
         });
       }
     } catch (error) {
-      console.error(" fetchPayroll error:", error);
+      console.error("fetchPayroll error:", error);
       toast.error("Failed to load payroll data");
     } finally {
       setLoading(false);
@@ -207,12 +203,10 @@ const PayRollPage = () => {
     if (!selectedBatch) return;
 
     try {
-      const payload = {
-        cutoff_start: toLocalDate(selectedBatch.cutoff_start),
-        cutoff_end: toLocalDate(selectedBatch.cutoff_end),
-      };
-
-      await markAllPayrollAsPaid(payload.cutoff_start, payload.cutoff_end);
+      await markAllPayrollAsPaid(
+        toLocalDate(selectedBatch.cutoff_start),
+        toLocalDate(selectedBatch.cutoff_end),
+      );
 
       toast.success("Batch marked as paid successfully");
       fetchPayroll();
@@ -228,13 +222,21 @@ const PayRollPage = () => {
     }
   };
 
-  // Add fetch function
+  // ============================================
+  // FINAL PAY FUNCTIONS (WITH PAGINATION)
+  // ============================================
   const fetchFinalPayEmployees = async () => {
     try {
       setFinalPayLoading(true);
-      const result = await getEmployeesForFinalPay();
+      const result = await getEmployeesForFinalPay(
+        pendingCurrentPage,
+        pendingRowsPerPage,
+        pendingSearch,
+      );
       if (result.success) {
         setFinalPayEmployees(result.data);
+        setPendingTotalPages(result.pagination.totalPages);
+        setPendingTotalRecords(result.pagination.total);
       }
     } catch (error) {
       console.error("Failed to fetch final pay employees:", error);
@@ -244,37 +246,14 @@ const PayRollPage = () => {
     }
   };
 
-  // Debounced search
-  useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      setSearch(searchInput);
-      setCurrentPage(1);
-    }, 500);
-    return () => clearTimeout(delayDebounce);
-  }, [searchInput]);
-
-  // Add useEffect for final pay
-  useEffect(() => {
-    if (activeTab === "final-pay") {
-      fetchFinalPayEmployees();
-    }
-  }, [activeTab]);
-
-  //  CRITICAL FIX - Capture scroll position BEFORE React re-render
+  // ============================================
+  // EVENT HANDLERS
+  // ============================================
   const handlePageChange = useCallback(
     (page: number) => {
-      // Capture scroll position IMMEDIATELY - before any React rendering
       const currentScrollY = window.scrollY;
-      console.log(` PAGE CHANGE: from ${currentPage} to ${page}`);
-      console.log(` Current scroll position BEFORE React: ${currentScrollY}`);
-
-      // Store the scroll position
       savedScrollPositionRef.current = currentScrollY;
       isPageChangeRef.current = true;
-
-      console.log(` Saved scroll position: ${savedScrollPositionRef.current}`);
-
-      // Then update the state
       setCurrentPage(page);
     },
     [currentPage],
@@ -283,12 +262,8 @@ const PayRollPage = () => {
   const handleRowsPerPageChange = useCallback(
     (newRows: number) => {
       const currentScrollY = window.scrollY;
-      console.log(` ROWS PER PAGE CHANGE: from ${rowsPerPage} to ${newRows}`);
-      console.log(` Current scroll position BEFORE React: ${currentScrollY}`);
-
       savedScrollPositionRef.current = currentScrollY;
       isPageChangeRef.current = true;
-
       setRowsPerPage(newRows);
       setCurrentPage(1);
     },
@@ -300,12 +275,12 @@ const PayRollPage = () => {
     setCurrentPage(1);
   };
 
-  // Effect to fetch data
-  useEffect(() => {
-    if (activeTab === "records") {
-      fetchPayroll();
-    }
-  }, [date, activeTab, currentPage, rowsPerPage, search, fetchPayroll]);
+  const handlePendingSearchInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    setPendingSearchInput(e.target.value);
+    setPendingCurrentPage(1);
+  };
 
   const handleViewDetails = (record: any) => {
     if (!record.payroll_id) {
@@ -321,6 +296,41 @@ const PayRollPage = () => {
   const handleExport = () => {
     toast.info("Export feature coming soon");
   };
+
+  // ============================================
+  // EFFECTS
+  // ============================================
+  // Debounce search for payroll records
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      setSearch(searchInput);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(delayDebounce);
+  }, [searchInput]);
+
+  // Debounce search for final pay
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      setPendingSearch(pendingSearchInput);
+      setPendingCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(delayDebounce);
+  }, [pendingSearchInput]);
+
+  // Fetch payroll records when dependencies change
+  useEffect(() => {
+    if (activeTab === "records") {
+      fetchPayroll();
+    }
+  }, [date, activeTab, currentPage, rowsPerPage, search, fetchPayroll]);
+
+  // Fetch final pay employees when dependencies change
+  useEffect(() => {
+    if (activeTab === "final-pay") {
+      fetchFinalPayEmployees();
+    }
+  }, [activeTab, pendingCurrentPage, pendingRowsPerPage, pendingSearch]);
 
   const groupedPayroll = useMemo(
     () => groupPayroll(payrollData),
@@ -350,7 +360,9 @@ const PayRollPage = () => {
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
-        {/* RECORDS */}
+        {/* ============================================ */}
+        {/* PAYROLL RECORDS TAB */}
+        {/* ============================================ */}
         <TabsContent value="records" className="mt-6 space-y-6">
           {/* FILTERS */}
           <Card>
@@ -397,11 +409,11 @@ const PayRollPage = () => {
 
           {summary && <PayrollSummary summary={summary} />}
 
-          {/*  ADDED REF TO CONTAINER */}
+          {/* Payroll Records Container */}
           <div ref={tableContainerRef} className="space-y-6">
             {loading ? (
               <div className="text-center py-8">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                 <p className="mt-2 text-muted-foreground">Loading...</p>
               </div>
             ) : payrollData.length === 0 ? (
@@ -429,7 +441,7 @@ const PayRollPage = () => {
 
                 return (
                   <Card key={key}>
-                    <CardHeader className="flex flex-row items-center justify-between">
+                    <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
                       <div>
                         <CardTitle>
                           📅 {formatDate(first.cutoff_start)} →{" "}
@@ -496,6 +508,9 @@ const PayRollPage = () => {
           </div>
         </TabsContent>
 
+        {/* ============================================ */}
+        {/* FINAL PAY TAB (WITH PAGINATION) */}
+        {/* ============================================ */}
         <TabsContent value="final-pay" className="mt-6 space-y-6">
           <Card>
             <CardHeader>
@@ -507,25 +522,56 @@ const PayRollPage = () => {
               </p>
             </CardHeader>
             <CardContent>
+              {/* Pending Search Input */}
+              <div className="mb-4">
+                <div className="relative max-w-sm">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search pending by name or code..."
+                    value={pendingSearchInput}
+                    onChange={handlePendingSearchInputChange}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+
               {finalPayLoading ? (
                 <div className="text-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                   <p className="mt-2 text-muted-foreground">Loading...</p>
                 </div>
               ) : (
                 <FinalPayTable
                   data={finalPayEmployees}
                   onRefresh={fetchFinalPayEmployees}
+                  pendingPagination={{
+                    page: pendingCurrentPage,
+                    limit: pendingRowsPerPage,
+                    total: pendingTotalRecords,
+                    totalPages: pendingTotalPages,
+                  }}
+                  onPendingPageChange={setPendingCurrentPage}
+                  onPendingLimitChange={(limit) => {
+                    setPendingRowsPerPage(limit);
+                    setPendingCurrentPage(1);
+                  }}
+                  pendingLoading={finalPayLoading}
                 />
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
+        {/* ============================================ */}
+        {/* GENERATE PAYROLL TAB */}
+        {/* ============================================ */}
         <TabsContent value="generate">
           <PayrollGenerate onGenerateComplete={handleGeneratePayroll} />
         </TabsContent>
 
+        {/* ============================================ */}
+        {/* SETTINGS TAB */}
+        {/* ============================================ */}
         <TabsContent value="settings">
           <PayrollSettings />
         </TabsContent>

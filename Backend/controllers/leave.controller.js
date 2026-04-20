@@ -1,6 +1,4 @@
 const leaveService = require("../services/leave.service");
-// Remove notificationService import if not used elsewhere
-// const notificationService = require("../services/notification.service");
 
 // Helper function to format leave type display name
 const getLeaveTypeDisplay = (type) => {
@@ -14,7 +12,7 @@ const getLeaveTypeDisplay = (type) => {
   return typeMap[type] || type;
 };
 
-// CREATE LEAVE with credit validation and half-day support
+// CREATE LEAVE with credit validation and half-day support - OPTIMIZED
 const createLeave = async (req, res) => {
   try {
     const employeeId = req.user.employee_id;
@@ -96,18 +94,20 @@ const createLeave = async (req, res) => {
     // Get approvers for notification
     const pool = require("../config/db");
 
-    const adminUsers = await pool.query(
-      `SELECT DISTINCT u.id 
-       FROM users u
-       WHERE u.role IN ('ADMIN', 'HR_ADMIN', 'HR')`,
-    );
-
-    const assignedApprovers = await pool.query(
-      `SELECT ea.approver_id 
-       FROM employee_approvers ea
-       WHERE ea.employee_id = $1 AND ea.approval_type = 'LEAVE'`,
-      [employeeId],
-    );
+    // Run both queries in parallel for better performance
+    const [adminUsers, assignedApprovers] = await Promise.all([
+      pool.query(
+        `SELECT DISTINCT u.id 
+         FROM users u
+         WHERE u.role IN ('ADMIN', 'HR_ADMIN', 'HR')`,
+      ),
+      pool.query(
+        `SELECT ea.approver_id 
+         FROM employee_approvers ea
+         WHERE ea.employee_id = $1 AND ea.approval_type = 'LEAVE'`,
+        [employeeId],
+      ),
+    ]);
 
     const approverIds = [
       ...adminUsers.rows.map((r) => r.id),
@@ -121,10 +121,11 @@ const createLeave = async (req, res) => {
         ? `half-day ${half_day_type?.toLowerCase() || ""} leave`
         : "leave";
 
-    //  Keep notification for APPROVERS here (this is correct)
+    // 🚀 OPTIMIZATION 1: Send notifications in PARALLEL (not sequential)
     const notificationService = require("../services/notification.service");
-    for (const approverId of uniqueApproverIds) {
-      await notificationService.notify({
+
+    const notificationPromises = uniqueApproverIds.map((approverId) =>
+      notificationService.notify({
         user_id: approverId,
         type: "LEAVE",
         title: "New Leave Request",
@@ -140,37 +141,67 @@ const createLeave = async (req, res) => {
           day_fraction,
           half_day_type: half_day_type ? half_day_type.toUpperCase() : null,
         },
-      });
-    }
+      }),
+    );
 
+    // 🚀 OPTIMIZATION 2: Don't wait for notifications (fire and forget)
+    // This makes the response INSTANT for the user
+    Promise.all(notificationPromises).catch((error) => {
+      console.error("❌ Failed to send some notifications:", error);
+    });
+
+    // 🚀 OPTIMIZATION 3: Send response IMMEDIATELY (don't wait for notifications)
     res.status(201).json(leave);
   } catch (error) {
+    console.error("❌ Create leave error:", error);
     res.status(500).json({ message: error.message });
   }
 };
 
-// GET ALL (ADMIN)
+// GET ALL (ADMIN) with pagination
 const getLeaves = async (req, res) => {
   try {
-    const data = await leaveService.getLeaves();
+    const {
+      page = 1,
+      limit = 10,
+      search = "",
+      status = "",
+      type = "",
+    } = req.query;
+
+    const data = await leaveService.getLeaves(
+      parseInt(page),
+      parseInt(limit),
+      search,
+      status,
+      type,
+    );
+
     res.json(data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// GET MY LEAVES
+// GET MY LEAVES with pagination
 const getMyLeaves = async (req, res) => {
   try {
     const employeeId = req.user.employee_id;
-    const data = await leaveService.getByEmployee(employeeId);
+    const { page = 1, limit = 10, status = "" } = req.query;
+
+    const data = await leaveService.getByEmployee(
+      employeeId,
+      parseInt(page),
+      parseInt(limit),
+      status,
+    );
     res.json(data);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// UPDATED: REMOVED notification from controller - now handled in service
+// UPDATE STATUS - Already fast, but we can also optimize notifications here
 const updateStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -199,10 +230,10 @@ const updateStatus = async (req, res) => {
       return res.status(404).json({ message: "Leave not found" });
     }
 
-    //  PREVENT DUPLICATE: Check if already approved/rejected
+    // PREVENT DUPLICATE: Check if already approved/rejected
     if (existing.status !== "PENDING") {
       console.log(
-        ` Leave ${leaveId} already has status: ${existing.status}, skipping duplicate update`,
+        `Leave ${leaveId} already has status: ${existing.status}, skipping duplicate update`,
       );
       return res.status(400).json({
         message: `Leave request is already ${existing.status.toLowerCase()}. Cannot change status again.`,
@@ -241,17 +272,17 @@ const updateStatus = async (req, res) => {
       });
     }
 
-    //  Notification is now handled INSIDE the service
+    // Notification is handled INSIDE the service (already fast - only 1 notification)
     const result = await leaveService.updateStatus(
       leaveId,
       status,
       rejection_reason,
     );
 
-    console.log(` Leave ${leaveId} updated to ${status}`);
+    console.log(`Leave ${leaveId} updated to ${status}`);
     res.json(result);
   } catch (error) {
-    console.error(" Error updating leave status:", error);
+    console.error("Error updating leave status:", error);
     res.status(500).json({ message: error.message });
   }
 };

@@ -20,9 +20,40 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
+type PaginationData = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};
+
+type Leave = {
+  id: number;
+  employee_name: string;
+  employee_code?: string;
+  type: string;
+  from_date?: string;
+  to_date?: string;
+  status: string;
+  day_fraction?: number;
+  half_day_type?: "MORNING" | "AFTERNOON" | null;
+};
+
 const AdminLeavePage = () => {
-  const [leaves, setLeaves] = useState([]);
+  const [leaves, setLeaves] = useState<Leave[]>([]);
+  const [pagination, setPagination] = useState<PaginationData>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+  });
+  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("requests");
+
+  // Filter states
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
 
   // Reject modal states
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
@@ -31,24 +62,51 @@ const AdminLeavePage = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchLeaves = async () => {
-    const data = await leaveService.getAllLeaves();
-    setLeaves(data);
+    try {
+      setLoading(true);
+      const data = await leaveService.getAllLeaves(
+        pagination.page,
+        pagination.limit,
+        search,
+        statusFilter,
+        typeFilter,
+      );
+      setLeaves(data.data);
+      setPagination(data.pagination);
+    } catch (error) {
+      console.error("Failed to fetch leaves:", error);
+      toast.error("Failed to load leave requests");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Fetch when dependencies change
+  useEffect(() => {
+    if (activeTab === "requests") {
+      fetchLeaves();
+    }
+  }, [
+    activeTab,
+    pagination.page,
+    pagination.limit,
+    search,
+    statusFilter,
+    typeFilter,
+  ]);
 
   const handleUpdate = async (id: number, status: string) => {
     if (status === "REJECTED") {
-      // Open modal instead of directly rejecting
       setRejectId(id);
       setRejectReason("");
       setRejectModalOpen(true);
       return;
     }
 
-    // For APPROVED, directly call API
     try {
       await leaveService.updateLeaveStatus(id, status);
       toast.success(`Leave ${status.toLowerCase()} successfully`);
-      fetchLeaves();
+      fetchLeaves(); // Refresh with current pagination
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Something went wrong");
     }
@@ -69,7 +127,7 @@ const AdminLeavePage = () => {
       setRejectModalOpen(false);
       setRejectReason("");
       setRejectId(null);
-      fetchLeaves();
+      fetchLeaves(); // Refresh with current pagination
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to reject leave");
     } finally {
@@ -77,15 +135,17 @@ const AdminLeavePage = () => {
     }
   };
 
-  useEffect(() => {
-    if (activeTab === "requests") {
-      fetchLeaves();
-    }
-  }, [activeTab]);
+  const handlePageChange = (page: number) => {
+    setPagination((prev) => ({ ...prev, page }));
+  };
+
+  const handleLimitChange = (limit: number) => {
+    setPagination({ page: 1, limit, total: 0, totalPages: 1 });
+  };
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header - Matching consistent theme */}
+      {/* Header */}
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
           <CalendarDays className="h-5 w-5 text-primary dark:text-black" />
@@ -121,9 +181,21 @@ const AdminLeavePage = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* LEAVE REQUESTS TAB - No extra Card wrapper */}
+        {/* LEAVE REQUESTS TAB */}
         <TabsContent value="requests" className="mt-6">
-          <LeaveTable data={leaves} isAdmin={true} onUpdate={handleUpdate} />
+          <LeaveTable
+            data={leaves}
+            isAdmin={true}
+            onUpdate={handleUpdate}
+            title="All Leave Requests"
+            pagination={pagination}
+            onPageChange={handlePageChange}
+            onLimitChange={handleLimitChange}
+            onSearch={setSearch}
+            onStatusFilter={setStatusFilter}
+            onTypeFilter={setTypeFilter}
+            loading={loading}
+          />
         </TabsContent>
 
         {/* CONVERSION HISTORY TAB */}
@@ -139,7 +211,7 @@ const AdminLeavePage = () => {
 
       {/* Reject Reason Modal */}
       <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
-        <DialogContent className="max-w-lg! w-full sm:max-w-lg!">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Reject Leave Request</DialogTitle>
             <DialogDescription>

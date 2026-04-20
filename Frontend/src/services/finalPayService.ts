@@ -76,13 +76,34 @@ export interface FinalPayHistoryResponse {
 /**
  * Get all resigned and terminated employees who haven't had final pay processed yet
  */
-export const getEmployeesForFinalPay = async (): Promise<{
+// ============================================
+// 1. GET EMPLOYEES ELIGIBLE FOR FINAL PAY (WITH PAGINATION)
+// ============================================
+/**
+ * Get all resigned and terminated employees who haven't had final pay processed yet
+ * @param page - Page number (default: 1)
+ * @param limit - Items per page (default: 10)
+ * @param search - Search by employee name or code
+ */
+export const getEmployeesForFinalPay = async (
+  page: number = 1,
+  limit: number = 10,
+  search: string = "",
+): Promise<{
   success: boolean;
   data: FinalPayEmployee[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
   message?: string;
 }> => {
   try {
-    const response = await api.get("/final-pay/employees");
+    const response = await api.get("/final-pay/employees", {
+      params: { page, limit, search },
+    });
     return response.data;
   } catch (error: any) {
     console.error("Get employees for final pay error:", error);

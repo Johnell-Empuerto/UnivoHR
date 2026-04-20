@@ -68,17 +68,47 @@ const checkIn = async (employeeId, timestamp, status) => {
 
 // CHECK OUT
 const checkOut = async (attendanceId, timestamp) => {
-  console.log("CHECK-OUT:", { attendanceId, timestamp });
+  const result = await pool.query(`SELECT * FROM attendance WHERE id = $1`, [
+    attendanceId,
+  ]);
 
-  const query = `
+  const record = result.rows[0];
+
+  if (!record.check_in_time) return record;
+
+  const checkIn = new Date(record.check_in_time);
+  const checkOut = new Date(timestamp);
+
+  const hoursWorked = (checkOut - checkIn) / 1000 / 60 / 60;
+
+  let status = record.status;
+  let work_fraction = 1;
+
+  // 🔥 HALF DAY LOGIC
+  if (hoursWorked < 4) {
+    status = "ABSENT";
+    work_fraction = 0;
+  } else if (hoursWorked < 8) {
+    status = "HALF_DAY";
+    work_fraction = 0.5;
+  } else {
+    work_fraction = 1;
+  }
+
+  const update = await pool.query(
+    `
     UPDATE attendance
-    SET check_out_time = $1
-    WHERE id = $2
-    RETURNING *;
-  `;
+    SET 
+      check_out_time = $1,
+      status = $2,
+      work_fraction = $3
+    WHERE id = $4
+    RETURNING *
+    `,
+    [timestamp, status, work_fraction, attendanceId],
+  );
 
-  const result = await pool.query(query, [timestamp, attendanceId]);
-  return result.rows[0];
+  return update.rows[0];
 };
 
 // GET ALL ATTENDANCE

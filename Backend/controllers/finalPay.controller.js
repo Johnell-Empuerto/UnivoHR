@@ -1,12 +1,19 @@
 const finalPayService = require("../services/finalPay.service");
 
 // Get employees eligible for final pay
+// Get employees eligible for final pay (with pagination)
 const getEmployeesForFinalPay = async (req, res) => {
   try {
-    const employees = await finalPayService.getEmployeesForFinalPay();
+    const { page = 1, limit = 10, search = "" } = req.query;
+    const result = await finalPayService.getEmployeesForFinalPay(
+      parseInt(page),
+      parseInt(limit),
+      search,
+    );
     res.json({
       success: true,
-      data: employees,
+      data: result.data,
+      pagination: result.pagination,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

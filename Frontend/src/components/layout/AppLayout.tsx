@@ -15,6 +15,7 @@ const routeTitles: Record<string, string> = {
   "/notifications": "Notifications",
   "/users": "Users",
   "/my-manhours": "Man Hours",
+  "/manhours-approval": "Man Hours Approval",
 };
 
 const AppLayout = () => {

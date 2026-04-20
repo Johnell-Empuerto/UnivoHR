@@ -90,8 +90,15 @@ const calculateWorkUnits = async (employeeId, startDate, endDate) => {
 // ============================================
 // GET EMPLOYEES FOR FINAL PAY
 // ============================================
-const getEmployeesForFinalPay = async () => {
-  const result = await pool.query(
+// ============================================
+// GET EMPLOYEES FOR FINAL PAY (WITH PAGINATION)
+// ============================================
+const getEmployeesForFinalPay = async (page = 1, limit = 10, search = "") => {
+  const offset = (page - 1) * limit;
+  const searchValue = `%${search}%`;
+
+  // Data query with pagination
+  const dataQuery = await pool.query(
     `
     SELECT 
       e.id,
@@ -119,13 +126,51 @@ const getEmployeesForFinalPay = async () => {
     LEFT JOIN leave_credits lc ON e.id = lc.employee_id
     WHERE e.status IN ('RESIGNED', 'TERMINATED')
     AND (e.final_pay_processed IS NULL OR e.final_pay_processed = false)
+    AND (
+      $3 = '' OR 
+      e.first_name ILIKE $3 OR 
+      e.last_name ILIKE $3 OR 
+      e.employee_code ILIKE $3 OR
+      CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $3
+    )
     ORDER BY 
       CASE WHEN e.status = 'RESIGNED' THEN 1 ELSE 2 END,
       e.resignation_date DESC NULLS LAST,
       e.termination_date DESC NULLS LAST
+    LIMIT $1 OFFSET $2
     `,
+    [limit, offset, searchValue],
   );
-  return result.rows;
+
+  // Count query for pagination
+  const countQuery = await pool.query(
+    `
+    SELECT COUNT(*)
+    FROM employees e
+    WHERE e.status IN ('RESIGNED', 'TERMINATED')
+    AND (e.final_pay_processed IS NULL OR e.final_pay_processed = false)
+    AND (
+      $1 = '' OR 
+      e.first_name ILIKE $1 OR 
+      e.last_name ILIKE $1 OR 
+      e.employee_code ILIKE $1 OR
+      CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $1
+    )
+    `,
+    [searchValue],
+  );
+
+  const total = parseInt(countQuery.rows[0].count);
+
+  return {
+    data: dataQuery.rows,
+    pagination: {
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };
 
 // ============================================

@@ -8,14 +8,29 @@ export const leaveService = {
   },
 
   // GET MY LEAVES (EMPLOYEE)
-  getMyLeaves: async () => {
-    const res = await api.get("/leaves/my");
+  getMyLeaves: async (page = 1, limit = 10, status = "") => {
+    const res = await api.get(
+      `/leaves/my?page=${page}&limit=${limit}&status=${status}`,
+    );
     return res.data;
   },
 
   // ADMIN - GET ALL LEAVES
-  getAllLeaves: async () => {
-    const res = await api.get("/leaves");
+  getAllLeaves: async (
+    page = 1,
+    limit = 10,
+    search = "",
+    status = "",
+    type = "",
+  ) => {
+    const params = new URLSearchParams();
+    params.append("page", page.toString());
+    params.append("limit", limit.toString());
+    if (search) params.append("search", search);
+    if (status) params.append("status", status);
+    if (type) params.append("type", type);
+
+    const res = await api.get(`/leaves?${params.toString()}`);
     return res.data;
   },
 

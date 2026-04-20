@@ -172,13 +172,14 @@ const createLeave = async (data) => {
 };
 
 // GET ALL
-const getLeaves = async () => {
-  return await leaveModel.getLeaves();
+const getLeaves = async (page, limit, search, status, type) => {
+  return await leaveModel.getLeaves(page, limit, search, status, type);
 };
 
 // GET BY EMPLOYEE
-const getByEmployee = async (employeeId) => {
-  return await leaveModel.getByEmployee(employeeId);
+// GET BY EMPLOYEE with pagination
+const getByEmployee = async (employeeId, page, limit, status) => {
+  return await leaveModel.getByEmployee(employeeId, page, limit, status);
 };
 
 // UPDATE STATUS with notification
