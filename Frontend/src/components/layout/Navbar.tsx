@@ -126,13 +126,15 @@ const Navbar = ({
               Profile
             </DropdownMenuItem>
 
-            <DropdownMenuItem
-              className="flex items-center gap-2"
-              onClick={() => navigate("/settings")}
-            >
-              <Settings className="h-4 w-4" />
-              Settings
-            </DropdownMenuItem>
+            {user?.role === "ADMIN" && (
+              <DropdownMenuItem
+                className="flex items-center gap-2"
+                onClick={() => navigate("/settings")}
+              >
+                <Settings className="h-4 w-4" />
+                Settings
+              </DropdownMenuItem>
+            )}
 
             <DropdownMenuItem
               onClick={handleLogout}

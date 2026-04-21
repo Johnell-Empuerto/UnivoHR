@@ -97,7 +97,7 @@ const PrivacyPage = () => {
           <Button
             variant="ghost"
             onClick={() => navigate("/login")}
-            className="mb-6 gap-2 hover:bg-muted transition-all duration-200"
+            className="mb-6 gap-2 bg-muted text-foreground hover:bg-muted/80 transition-all duration-200"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Login
