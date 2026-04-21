@@ -50,7 +50,7 @@ const getMyManHourReports = async (
   e.first_name || ' ' || e.last_name AS employee_name,
   e.employee_code,
 
-  -- ✅ ADD STATUS HERE
+  -- ADD STATUS HERE
   COALESCE((
     SELECT al.action
     FROM approval_logs al
@@ -315,10 +315,9 @@ const updateManHourReportWithDetails = async (id, employee_id, data) => {
 
     // Check ownership
     const checkResult = await client.query(
-      `SELECT employee_id, status FROM man_hour_reports WHERE id = $1`,
+      `SELECT employee_id FROM man_hour_reports WHERE id = $1`,
       [id],
     );
-
     if (checkResult.rows.length === 0) {
       throw new Error("Man hour report not found");
     }
@@ -550,16 +549,20 @@ const rejectManHourReport = async (id, approver_id, reason) => {
 };
 
 // GET MISSING MAN HOUR DATES (NEW FEATURE)
-const getMissingManHourDates = async (employee_id, start_date, end_date) => {
+const getMissingManHourDates = async (employee_id, end_date) => {
   const result = await pool.query(
     `SELECT d::date AS missing_date
-     FROM generate_series($1::date, $2::date, interval '1 day') d
+     FROM generate_series(
+        (SELECT hired_date FROM employees WHERE id = $2),
+        $1::date,
+        interval '1 day'
+     ) d
      LEFT JOIN man_hour_reports m
-       ON m.work_date = d AND m.employee_id = $3
+       ON m.work_date = d AND m.employee_id = $2
      WHERE m.id IS NULL
        AND d <= CURRENT_DATE
      ORDER BY d ASC`,
-    [start_date, end_date, employee_id],
+    [end_date, employee_id],
   );
 
   return result.rows;
