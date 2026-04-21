@@ -635,6 +635,39 @@ const deleteManHourReport = async (id) => {
   return { message: "Man hour report deleted" };
 };
 
+const getDetailedReports = async (employee_id, start_date, end_date) => {
+  const result = await pool.query(
+    `SELECT
+      m.id,
+      m.employee_id,
+      e.employee_code,
+      e.first_name || ' ' || e.last_name AS employee_name,
+      m.work_date,
+      m.task,
+      m.hours,
+      m.remarks,
+      COALESCE((
+        SELECT al.action
+        FROM approval_logs al
+        WHERE al.request_type = 'MAN_HOUR'
+          AND al.request_id = m.id
+        ORDER BY al.created_at DESC
+        LIMIT 1
+      ), 'SUBMITTED') AS status,
+      d.time_from,
+      d.time_to,
+      d.activity
+    FROM man_hour_reports m
+    JOIN employees e ON e.id = m.employee_id
+    LEFT JOIN man_hour_report_details d ON d.report_id = m.id
+    WHERE m.employee_id = $1
+      AND m.work_date BETWEEN $2 AND $3
+    ORDER BY m.work_date ASC, d.time_from ASC`,
+    [employee_id, start_date, end_date],
+  );
+
+  return result.rows;
+};
 module.exports = {
   createManHourReport,
   createManHourReportWithDetails,
@@ -650,4 +683,5 @@ module.exports = {
   updateManHourReportWithDetails,
   deleteManHourReport,
   getMissingManHourDates,
+  getDetailedReports,
 };

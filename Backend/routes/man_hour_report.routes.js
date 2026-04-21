@@ -56,6 +56,13 @@ router.get(
   authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.EMPLOYEE]),
 );
 
+router.get(
+  "/download",
+  authenticate,
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR]),
+  controller.downloadManHourReports,
+);
+
 // ==========================================
 // GET MAN HOUR REPORT DETAILS - Allow EMPLOYEE to view own reports
 // ==========================================

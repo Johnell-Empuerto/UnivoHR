@@ -42,13 +42,13 @@ export const getMyManHourReports = async (
   return response.data;
 };
 
-// CREATE MAN HOUR REPORT (MULTI ENTRY ✅)
+// CREATE MAN HOUR REPORT (MULTI ENTRY )
 export const createManHourReport = async (data: CreateManHourReportData) => {
   const response = await api.post("/man-hour-reports", data);
   return response.data;
 };
 
-// UPDATE MAN HOUR REPORT (MULTI ENTRY ✅)
+// UPDATE MAN HOUR REPORT (MULTI ENTRY )
 export const updateManHourReport = async (
   id: number,
   data: UpdateManHourReportData,
@@ -65,7 +65,7 @@ export const deleteManHourReport = async (id: number) => {
 
 /**
  * ==========================================
- * 🔥 NEW FEATURE: MISSING MAN HOUR DATES
+ *  MISSING MAN HOUR DATES
  * ==========================================
  */
 
@@ -137,5 +137,29 @@ export const getManHourSummary = async (
 // CHECK IF USER IS APPROVER
 export const isApprover = async () => {
   const response = await api.get("/man-hour-reports/is-approver");
+  return response.data;
+};
+
+// ==========================================
+//  DOWNLOAD MAN HOUR REPORTS
+// ==========================================
+
+export interface DownloadReportParams {
+  start_date: string;
+  end_date: string;
+  employee_id?: string;
+  format: "csv" | "excel" | "pdf";
+}
+
+export const downloadManHourReports = async (params: DownloadReportParams) => {
+  const response = await api.get("/man-hour-reports/download", {
+    params: {
+      start_date: params.start_date,
+      end_date: params.end_date,
+      employee_id: params.employee_id,
+      format: params.format,
+    },
+    responseType: "blob",
+  });
   return response.data;
 };

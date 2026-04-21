@@ -375,6 +375,14 @@ const isApprover = async (user_id) => {
   return result.rows[0].is_approver;
 };
 
+const getDetailedReports = async (employee_id, start_date, end_date) => {
+  return await manHourReportModel.getDetailedReports(
+    employee_id,
+    start_date,
+    end_date,
+  );
+};
+
 module.exports = {
   createManHourReport,
   getMyManHourReports,
@@ -388,4 +396,5 @@ module.exports = {
   isApprover,
   sendManHourEmailNotification,
   getMissingManHourDates,
+  getDetailedReports,
 };
