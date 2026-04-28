@@ -24,6 +24,7 @@ import ProfilePage from "@/features/profile/pages/ProfilePage";
 import PrivacyPage from "@/features/legal/pages/PrivacyPage";
 import TermsPage from "@/features/legal/pages/TermsPage";
 import SecurityPage from "@/features/legal/pages/SecurityPage";
+import AdminLeaveCreditsPage from "@/features/leaves/pages/AdminLeaveCreditsPage";
 
 const AppRoutes = () => {
   const { isAuth, user } = useAuth();
@@ -120,6 +121,18 @@ const AppRoutes = () => {
             path="/leaves"
             element={
               user?.role === "ADMIN" ? <AdminLeavePage /> : <LeavePage />
+            }
+          />
+
+          {/* LEAVE CREDITS MANAGEMENT (ADMIN/HR_ADMIN ONLY) */}
+          <Route
+            path="/leave-credits"
+            element={
+              user?.role === "ADMIN" || user?.role === "HR_ADMIN" ? (
+                <AdminLeaveCreditsPage />
+              ) : (
+                <Navigate to="/dashboard" />
+              )
             }
           />
 

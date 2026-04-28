@@ -5,7 +5,7 @@ const initSocket = (server) => {
 
   io = new Server(server, {
     cors: {
-      origin: ["http://localhost:5173", "http://192.168.0.108:5173"],
+      origin: ["http://localhost:5173", "http://192.168.0.106:5173"],
       methods: ["GET", "POST"],
       credentials: true,
     },

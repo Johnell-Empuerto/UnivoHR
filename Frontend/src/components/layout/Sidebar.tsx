@@ -158,6 +158,17 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           {!collapsed && (canApprove() ? "Manage Leaves" : "My Leaves")}
         </NavLink>
 
+        {/* Leave Credits - ADMIN/HR_ADMIN only */}
+        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && (
+          <NavLink
+            to="/leave-credits"
+            className={({ isActive }) => linkClass(isActive)}
+          >
+            <CalendarDays className="h-5 w-5" />
+            {!collapsed && "Leave Credits"}
+          </NavLink>
+        )}
+
         {/* Overtime Dropdown Menu - For all employees */}
         {showOvertimeDropdown() && !collapsed && (
           <div>

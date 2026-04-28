@@ -202,12 +202,40 @@ router.put(
   controller.updateStatus,
 );
 
-// LEAVE CREDITS (everyone)
+// LEAVE CREDITS (everyone) - MY CREDITS
 router.get(
   "/credits",
   authenticate,
   authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.EMPLOYEE]),
   leaveCreditController.getMyCredits,
+);
+
+// ==========================================
+// LEAVE CREDITS MANAGEMENT (ADMIN/HR_ADMIN ONLY)
+// ==========================================
+
+// GET ALL CREDITS (ADMIN/HR_ADMIN)
+router.get(
+  "/credits/all",
+  authenticate,
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  leaveCreditController.getAllCredits,
+);
+
+// GET SINGLE EMPLOYEE CREDITS (ADMIN/HR_ADMIN)
+router.get(
+  "/credits/:employeeId",
+  authenticate,
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  leaveCreditController.getEmployeeCredits,
+);
+
+// UPDATE EMPLOYEE CREDITS (ADMIN/HR_ADMIN)
+router.put(
+  "/credits/:employeeId",
+  authenticate,
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  leaveCreditController.updateCredits,
 );
 
 module.exports = router;
