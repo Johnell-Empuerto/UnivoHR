@@ -1578,7 +1578,7 @@ BACKEND
 INFRASTRUCTURE
 --------------------------------------------------------------------------------
 - Server: HTTP on port 3002
-- CORS: localhost:5173, 192.168.0.108:5173
+- CORS: localhost:5173, 192.168.0.111:5173
 - Socket.IO: WebSocket for real-time
 - Scheduler: node-cron (leave conversions)
 - Worker: Separate process for queue

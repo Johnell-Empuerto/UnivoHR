@@ -101,7 +101,9 @@ const ProfilePage = () => {
           <User className="h-10 w-10 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">{profile.full_name || "User"}</h1>
+          <h1 className="text-2xl font-bold text-muted-foreground">
+            {profile.full_name || "User"}
+          </h1>
           <div className="flex items-center gap-2 mt-1">
             <Badge variant="outline">{profile.role}</Badge>
             <Badge className={getStatusBadgeClass(profile.status)}>

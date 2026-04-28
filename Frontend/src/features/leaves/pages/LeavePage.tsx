@@ -5,6 +5,7 @@ import { useAuth } from "@/app/providers/AuthProvider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LeaveTable from "../components/LeaveTable";
 import CreditLeaveTable from "../components/CreditLeaveTable";
+import EmployeeCreditsTable from "../components/EmployeeCreditsTable";
 import { leaveService } from "@/services/leaveService";
 import { toast } from "sonner";
 import { CalendarDays, Loader2 } from "lucide-react";
@@ -35,6 +36,7 @@ const LeavePage = () => {
   const [loading, setLoading] = useState(true);
 
   const isHR = ["ADMIN", "HR_ADMIN", "HR"].includes(user?.role ?? "");
+  const canManageCredits = user?.role === "ADMIN" || user?.role === "HR_ADMIN";
 
   // My Leaves State
   const [myLeaves, setMyLeaves] = useState<Leave[]>([]);
@@ -301,7 +303,7 @@ const LeavePage = () => {
         )}
 
         <TabsContent value="credits" className="mt-6">
-          <CreditLeaveTable />
+          {canManageCredits ? <EmployeeCreditsTable /> : <CreditLeaveTable />}
         </TabsContent>
       </Tabs>
     </div>

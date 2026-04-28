@@ -124,16 +124,10 @@ const AppRoutes = () => {
             }
           />
 
-          {/* LEAVE CREDITS MANAGEMENT (ADMIN/HR_ADMIN ONLY) */}
+          {/* LEAVE CREDITS MANAGEMENT - Redirect to /leaves */}
           <Route
             path="/leave-credits"
-            element={
-              user?.role === "ADMIN" || user?.role === "HR_ADMIN" ? (
-                <AdminLeaveCreditsPage />
-              ) : (
-                <Navigate to="/dashboard" />
-              )
-            }
+            element={<Navigate to="/leaves" replace />}
           />
 
           <Route path="/payroll/details/:id" element={<PayrollDetails />} />

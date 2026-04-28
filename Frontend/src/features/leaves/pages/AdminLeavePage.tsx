@@ -5,6 +5,7 @@ import { leaveService } from "@/services/leaveService";
 import LeaveTable from "../components/LeaveTable";
 import LeaveConversionSettings from "../components/LeaveConversionSettings";
 import LeaveConversionHistory from "../components/LeaveConversionHistory";
+import EmployeeCreditsTable from "../components/EmployeeCreditsTable";
 import { CalendarDays } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -162,7 +163,7 @@ const AdminLeavePage = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex w-full max-w-md gap-2">
+        <TabsList className="flex w-full gap-2 overflow-x-auto">
           <TabsTrigger
             value="requests"
             className="flex items-center gap-2 flex-1"
@@ -180,6 +181,12 @@ const AdminLeavePage = () => {
             className="flex items-center gap-2 flex-1"
           >
             Conversion Settings
+          </TabsTrigger>
+          <TabsTrigger
+            value="credits"
+            className="flex items-center gap-2 flex-1"
+          >
+            Leave Credits
           </TabsTrigger>
         </TabsList>
 
@@ -208,6 +215,11 @@ const AdminLeavePage = () => {
         {/* CONVERSION SETTINGS TAB */}
         <TabsContent value="settings" className="mt-6">
           <LeaveConversionSettings />
+        </TabsContent>
+
+        {/* LEAVE CREDITS TAB */}
+        <TabsContent value="credits" className="mt-6">
+          <EmployeeCreditsTable />
         </TabsContent>
       </Tabs>
 
