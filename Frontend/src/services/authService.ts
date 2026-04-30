@@ -38,3 +38,19 @@ export const resendOTP = async (data: {
   const response = await api.post("/auth/resend-otp", data);
   return response.data;
 };
+
+export const forgotPassword = async (data: {
+  username: string;
+}): Promise<{ success: boolean; message: string; user_id?: number; masked_email?: string }> => {
+  const response = await api.post("/auth/forgot-password", data);
+  return response.data;
+};
+
+export const resetPassword = async (data: {
+  user_id: number;
+  otp: string;
+  new_password: string;
+}): Promise<{ success: boolean; message: string }> => {
+  const response = await api.post("/auth/reset-password", data);
+  return response.data;
+};

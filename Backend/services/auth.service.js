@@ -5,6 +5,7 @@ const redisClient = require("../config/redis");
 const settingService = require("./setting.service");
 const otpService = require("./otp.service");
 const loginAttemptService = require("./loginAttempt.service");
+const userService = require("./user.service");
 
 // Validate JWT_SECRET
 if (!process.env.JWT_SECRET) {
@@ -193,8 +194,74 @@ const resendOTP = async ({ user_id }) => {
   return result;
 };
 
+// Forgot Password - Send OTP to user's email
+const forgotPassword = async ({ username }) => {
+  const normalizedUsername = normalizeUsername(username);
+
+  const user = await authModel.findUserByUsername(normalizedUsername);
+  if (!user) {
+    // Don't reveal if user exists or not - security best practice
+    return {
+      success: true,
+      message: "If an account exists with this username, a reset code has been sent.",
+    };
+  }
+
+  const userEmail = user.email;
+  if (!userEmail) {
+    return {
+      success: true,
+      message: "If an account exists with this username, a reset code has been sent.",
+    };
+  }
+
+  const userName =
+    `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username;
+
+  // Generate and store OTP for password reset
+  const otp = otpService.generateOTP();
+  await otpService.storePasswordResetOTP(user.id, userEmail, otp);
+
+  // Send email
+  await otpService.sendPasswordResetEmail(userEmail, otp, userName);
+
+  return {
+    success: true,
+    message: "If an account exists with this username, a reset code has been sent.",
+    user_id: user.id,
+    masked_email: otpService.maskEmail(userEmail),
+  };
+};
+
+// Verify reset OTP and reset password
+const resetPassword = async ({ user_id, otp, new_password }) => {
+  // Verify the OTP
+  const verification = await otpService.verifyPasswordResetOTP(user_id, otp);
+  if (!verification.success) {
+    throw new Error(verification.message);
+  }
+
+  // Validate new password
+  if (!new_password || new_password.length < 6) {
+    throw new Error("Password must be at least 6 characters long");
+  }
+
+  // Reset password
+  await userService.resetPassword(user_id, new_password);
+
+  // Delete the OTP after successful reset
+  await otpService.deletePasswordResetOTP(user_id);
+
+  return {
+    success: true,
+    message: "Password reset successfully. Please login with your new password.",
+  };
+};
+
 module.exports = {
   login,
   verifyOTPAndLogin,
   resendOTP,
+  forgotPassword,
+  resetPassword,
 };

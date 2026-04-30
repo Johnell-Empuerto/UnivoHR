@@ -30,6 +30,8 @@ import {
 import { useTheme } from "@/app/providers/ThemeProvider";
 import smallIcon from "@/assets/images/small-icon.png";
 import OTPVerification from "./OTPVerification";
+import ForgotPassword from "./ForgotPassword";
+import ResetPassword from "./ResetPassword";
 
 // Counter animation hook
 const useCountUp = (
@@ -111,6 +113,11 @@ const LoginForm = () => {
   const [userId, setUserId] = useState<number | null>(null);
   const [maskedEmail, setMaskedEmail] = useState<string | null>(null);
 
+  // Password Reset States
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetMaskedEmail, setResetMaskedEmail] = useState<string>("");
+
   // Counter values
   const attendanceRate = useCountUp(94.8, 2000, "%");
   const pendingLeaves = useCountUp(12, 1500, "");
@@ -164,6 +171,25 @@ const LoginForm = () => {
     setRequires2FA(false);
     setUserId(null);
     setMaskedEmail(null);
+  };
+
+  const handleForgotPasswordBack = () => {
+    setShowForgotPassword(false);
+    setShowResetPassword(false);
+    setResetMaskedEmail("");
+  };
+
+  const handleEmailSent = (userId: number, maskedEmail: string) => {
+    setResetMaskedEmail(maskedEmail);
+    setUserId(userId);
+    setShowForgotPassword(false);
+    setShowResetPassword(true);
+  };
+
+  const handlePasswordResetSuccess = () => {
+    setShowResetPassword(false);
+    setUserId(null);
+    setResetMaskedEmail("");
   };
 
   return (
@@ -320,7 +346,19 @@ const LoginForm = () => {
 
         {/* Right Column - Login/OTP Form - SAME POSITION FOR BOTH */}
         <div className="flex items-center justify-center w-full">
-          {requires2FA ? (
+          {showForgotPassword ? (
+            <ForgotPassword
+              onBack={handleForgotPasswordBack}
+              onEmailSent={handleEmailSent}
+            />
+          ) : showResetPassword && userId ? (
+            <ResetPassword
+              userId={userId}
+              maskedEmail={resetMaskedEmail}
+              onBack={handleForgotPasswordBack}
+              onSuccess={handlePasswordResetSuccess}
+            />
+          ) : requires2FA ? (
             <OTPVerification
               userId={userId!}
               maskedEmail={maskedEmail ?? undefined}
@@ -372,9 +410,18 @@ const LoginForm = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-medium">
-                      Password
-                    </Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password" className="text-sm font-medium">
+                        Password
+                      </Label>
+                      <button
+                        type="button"
+                        className="text-xs text-primary hover:underline font-medium"
+                        onClick={() => setShowForgotPassword(true)}
+                      >
+                        Forgot Password?
+                      </button>
+                    </div>
                     <Input
                       id="password"
                       type="password"

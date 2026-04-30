@@ -192,9 +192,41 @@ const getEmployeesWithoutAccounts = async () => {
 // GET EMPLOYEE NAME BY ID
 const getEmployeeName = async (employeeId) => {
   const result = await pool.query(
-    `SELECT first_name, last_name, middle_name, suffix, employee_code 
+    `SELECT first_name, last_name, middle_name, suffix, employee_code
      FROM employees WHERE id = $1`,
     [employeeId],
+  );
+  return result.rows[0];
+};
+
+// FIND USER BY EMAIL
+const findUserByEmail = async (email) => {
+  const result = await pool.query(
+    `SELECT
+      u.id,
+      u.username,
+      u.password_hash,
+      u.role,
+      u.employee_id,
+      e.first_name,
+      e.last_name,
+      e.middle_name,
+      e.suffix,
+      e.email,
+      e.employee_code
+     FROM users u
+     JOIN employees e ON e.id = u.employee_id
+     WHERE LOWER(e.email) = LOWER($1)`,
+    [email],
+  );
+  return result.rows[0];
+};
+
+// UPDATE PASSWORD
+const updatePassword = async (userId, newPasswordHash) => {
+  const result = await pool.query(
+    `UPDATE users SET password_hash = $1 WHERE id = $2 RETURNING id`,
+    [newPasswordHash, userId],
   );
   return result.rows[0];
 };
@@ -208,4 +240,6 @@ module.exports = {
   usernameExists,
   getEmployeesWithoutAccounts,
   getEmployeeName,
+  findUserByEmail,
+  updatePassword,
 };

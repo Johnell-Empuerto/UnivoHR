@@ -63,6 +63,16 @@ const getEmployeeName = async (employeeId) => {
   return await userModel.getEmployeeName(employeeId);
 };
 
+const getUserByEmail = async (email) => {
+  return await userModel.findUserByEmail(email);
+};
+
+const resetPassword = async (userId, newPassword) => {
+  const saltRounds = 10;
+  const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+  return await userModel.updatePassword(userId, hashedPassword);
+};
+
 module.exports = {
   getUsers,
   getUserById,
@@ -71,4 +81,6 @@ module.exports = {
   deleteUser,
   getEmployeesWithoutAccounts,
   getEmployeeName,
+  getUserByEmail,
+  resetPassword,
 };

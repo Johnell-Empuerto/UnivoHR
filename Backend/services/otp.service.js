@@ -17,8 +17,8 @@ const maskEmail = (email) => {
   return `${local[0]}${local[1]}***@${domain}`;
 };
 
-// Store OTP in Redis with expiration (5 minutes) and rate limit check
-const storeOTP = async (userId, email, otp) => {
+// Store OTP in Redis with expiration (default 5 minutes) and rate limit check
+const storeOTP = async (userId, email, otp, expirationSeconds = 300) => {
   const key = `otp:${userId}`;
 
   const existing = await redisClient.get(key);
@@ -32,15 +32,372 @@ const storeOTP = async (userId, email, otp) => {
 
   await redisClient.setEx(
     key,
-    300,
+    expirationSeconds,
     JSON.stringify({
       otp,
       email,
       attempts: 0,
       created_at: new Date().toISOString(),
+      purpose: "login", // Default purpose
     }),
   );
   return true;
+};
+
+// Store password reset OTP in Redis with 3-minute expiration
+const storePasswordResetOTP = async (userId, email, otp) => {
+  const key = `pwd_reset:${userId}`;
+
+  const existing = await redisClient.get(key);
+  if (existing) {
+    const data = JSON.parse(existing);
+    const elapsed = (Date.now() - new Date(data.created_at).getTime()) / 1000;
+    if (elapsed < 60) {
+      throw new Error("Please wait 60 seconds before requesting another code");
+    }
+  }
+
+  await redisClient.setEx(
+    key,
+    180, // 3 minutes expiration
+    JSON.stringify({
+      otp,
+      email,
+      attempts: 0,
+      created_at: new Date().toISOString(),
+      purpose: "password_reset",
+    }),
+  );
+  return true;
+};
+
+// Verify password reset OTP
+const verifyPasswordResetOTP = async (userId, userOTP) => {
+  const key = `pwd_reset:${userId}`;
+  const data = await redisClient.get(key);
+
+  if (!data) {
+    return {
+      success: false,
+      message: "Reset code expired. Please request a new code.",
+    };
+  }
+
+  const stored = JSON.parse(data);
+
+  if (stored.attempts >= 5) {
+    await redisClient.del(key);
+    return {
+      success: false,
+      message: "Too many failed attempts. Please request a new code.",
+    };
+  }
+
+  if (stored.otp !== userOTP) {
+    stored.attempts++;
+    const ttl = await redisClient.ttl(key);
+    await redisClient.setEx(
+      `pwd_reset:${userId}`,
+      ttl > 0 ? ttl : 180,
+      JSON.stringify(stored),
+    );
+
+    const remainingAttempts = 5 - stored.attempts;
+    return {
+      success: false,
+      message:
+        remainingAttempts > 0
+          ? `Invalid code. ${remainingAttempts} attempt${remainingAttempts > 1 ? "s" : ""} remaining.`
+          : "No attempts remaining. Please request a new code.",
+    };
+  }
+
+  return { success: true, message: "Code verified successfully" };
+};
+
+// Delete password reset OTP
+const deletePasswordResetOTP = async (userId) => {
+  const key = `pwd_reset:${userId}`;
+  await redisClient.del(key);
+};
+
+// Send password reset email
+const sendPasswordResetEmail = async (email, otp, userName) => {
+  console.log("[PWD RESET] Preparing to send reset email to:", email);
+  console.log("[PWD RESET] OTP code:", otp);
+  console.log("[PWD RESET] User name:", userName);
+
+  const subject = "Password Reset Verification - UnivoHR";
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>UnivoHR - Password Reset</title>
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          line-height: 1.6;
+          color: #1e293b;
+          background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+          padding: 20px;
+        }
+
+        .container {
+          max-width: 560px;
+          margin: 0 auto;
+          background: #ffffff;
+          border-radius: 24px;
+          overflow: hidden;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .header {
+          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+          padding: 32px 24px;
+          text-align: center;
+        }
+
+        .logo {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+
+        .logo-icon {
+          width: 48px;
+          height: 48px;
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 28px;
+        }
+
+        .logo-text {
+          font-size: 28px;
+          font-weight: 700;
+          color: white;
+          letter-spacing: -0.5px;
+        }
+
+        .header-subtitle {
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 14px;
+          margin-top: 8px;
+        }
+
+        .content {
+          padding: 40px 32px;
+        }
+
+        .greeting {
+          font-size: 24px;
+          font-weight: 600;
+          color: #1e293b;
+          margin-bottom: 16px;
+        }
+
+        .message {
+          color: #475569;
+          margin-bottom: 32px;
+          font-size: 16px;
+        }
+
+        .otp-box {
+          background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+          border-radius: 20px;
+          padding: 32px;
+          text-align: center;
+          margin: 24px 0;
+          border: 1px solid #fecaca;
+        }
+
+        .otp-label {
+          font-size: 14px;
+          text-transform: uppercase;
+          letter-spacing: 2px;
+          color: #991b1b;
+          margin-bottom: 16px;
+          font-weight: 600;
+        }
+
+        .otp-code {
+          font-size: 56px;
+          font-weight: 800;
+          letter-spacing: 12px;
+          color: #dc2626;
+          background: white;
+          display: inline-block;
+          padding: 16px 32px;
+          border-radius: 16px;
+          font-family: 'Courier New', monospace;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          border: 1px solid #fecaca;
+        }
+
+        .expiry {
+          margin-top: 16px;
+          font-size: 13px;
+          color: #991b1b;
+          font-weight: 600;
+        }
+
+        .info-box {
+          background: #fef3c7;
+          border-left: 4px solid #f59e0b;
+          padding: 16px 20px;
+          border-radius: 12px;
+          margin: 24px 0;
+        }
+
+        .info-box p {
+          color: #92400e;
+          font-size: 13px;
+          margin: 0;
+        }
+
+        .warning-box {
+          background: #fee2e2;
+          border-left: 4px solid #dc2626;
+          padding: 16px 20px;
+          border-radius: 12px;
+          margin: 24px 0;
+        }
+
+        .warning-box p {
+          color: #991b1b;
+          font-size: 13px;
+          margin: 0;
+        }
+
+        .footer {
+          padding: 24px 32px;
+          background: #f8fafc;
+          border-top: 1px solid #e2e8f0;
+          text-align: center;
+        }
+
+        .footer p {
+          color: #64748b;
+          font-size: 12px;
+          margin: 4px 0;
+        }
+
+        .footer a {
+          color: #4F46E5;
+          text-decoration: none;
+        }
+
+        .footer a:hover {
+          text-decoration: underline;
+        }
+
+        hr {
+          border: none;
+          border-top: 1px solid #e2e8f0;
+          margin: 20px 0;
+        }
+
+        @media (max-width: 480px) {
+          .content {
+            padding: 28px 20px;
+          }
+          .otp-code {
+            font-size: 40px;
+            letter-spacing: 8px;
+            padding: 12px 20px;
+          }
+          .greeting {
+            font-size: 20px;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div class="logo">
+            <div class="logo-icon">🔐</div>
+            <div class="logo-text">UnivoHR</div>
+          </div>
+          <p class="header-subtitle">Password Reset Verification</p>
+        </div>
+
+        <div class="content">
+          <div class="greeting">
+            Hello, ${userName}!
+          </div>
+
+          <div class="message">
+            We received a request to reset your UnivoHR account password. Please use the verification code below to proceed with resetting your password.
+          </div>
+
+          <div class="otp-box">
+            <div class="otp-label">Reset Code</div>
+            <div class="otp-code">${otp}</div>
+            <div class="expiry">
+              This code will expire in <strong>3 minutes</strong>
+            </div>
+          </div>
+
+          <div class="info-box">
+            <p>
+              <strong>Important:</strong> Enter this code on the password reset page along with your new password.
+            </p>
+          </div>
+
+          <div class="warning-box">
+            <p>
+              <strong>Security Notice:</strong> If you didn't request this password reset, please ignore this email
+              and contact your administrator immediately. Someone may be trying to access your account.
+            </p>
+          </div>
+
+          <hr />
+
+          <p style="font-size: 13px; color: #475569; text-align: center;">
+            Need help? Contact your system administrator or HR department.
+          </p>
+        </div>
+
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} UnivoHR. All rights reserved.</p>
+          <p>This is an automated message, please do not reply.</p>
+          <p style="margin-top: 12px;">
+            <a href="#">Privacy Policy</a> • <a href="#">Terms of Service</a> • <a href="#">Security</a>
+          </p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    console.log("[PWD RESET] HTML length:", html.length);
+    console.log("[PWD RESET] Calling smtpService.sendEmail...");
+    const result = await smtpService.sendEmail(email, subject, html);
+    console.log(
+      "[PWD RESET] Password reset email sent successfully, messageId:",
+      result.messageId,
+    );
+    return result;
+  } catch (err) {
+    console.error("[PWD RESET] Failed to send reset email:", err.message);
+    console.error("[PWD RESET] Full error:", err);
+    throw new Error(`Failed to send password reset email: ${err.message}`);
+  }
 };
 
 // Get OTP with TTL in one Redis call
@@ -408,4 +765,9 @@ module.exports = {
   resendOTP,
   maskEmail,
   getMaskedEmail,
+  // Password reset functions
+  storePasswordResetOTP,
+  verifyPasswordResetOTP,
+  deletePasswordResetOTP,
+  sendPasswordResetEmail,
 };
