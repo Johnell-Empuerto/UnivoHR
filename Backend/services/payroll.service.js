@@ -54,7 +54,7 @@ const updateDeduction = (id, data) => payrollModel.updateDeduction(id, data);
 
 const deleteDeduction = (id) => payrollModel.deleteDeduction(id);
 
-// MARK AS PAID - FIXED
+// MARK AS PAID - OPTIMIZED (single query for employee)
 const markAsPaid = async (id) => {
   const result = await pool.query(
     `
@@ -68,7 +68,7 @@ const markAsPaid = async (id) => {
 
   const payroll = result.rows[0];
   if (payroll) {
-    // Get employee details
+    // Get employee details (single query)
     const employeeResult = await pool.query(
       `SELECT id, first_name, last_name, email, employee_code FROM employees WHERE id = $1`,
       [payroll.employee_id],
@@ -84,7 +84,7 @@ const markAsPaid = async (id) => {
   return payroll;
 };
 
-// MARK ALL AS PAID - FIXED
+// MARK ALL AS PAID - FULLY OPTIMIZED (NO N+1!)
 const markAllAsPaid = async (cutoff_start, cutoff_end) => {
   const result = await pool.query(
     `
@@ -102,14 +102,28 @@ const markAllAsPaid = async (cutoff_start, cutoff_end) => {
     throw new Error("No payroll found for this cutoff");
   }
 
-  // Get all employees with their payrolls
+  // OPTIMIZATION: Batch fetch all employees in ONE query instead of N queries
+  const employeeIds = result.rows.map((p) => p.employee_id);
+
+  const employeeResult = await pool.query(
+    `
+    SELECT id, first_name, last_name, email, employee_code
+    FROM employees
+    WHERE id = ANY($1::int[])
+    `,
+    [employeeIds],
+  );
+
+  // Create employee map for O(1) lookup
+  const employeeMap = new Map();
+  for (const emp of employeeResult.rows) {
+    employeeMap.set(emp.id, emp);
+  }
+
+  // Build payrolls with employees using the map (no DB queries!)
   const payrollsWithEmployees = [];
   for (const payroll of result.rows) {
-    const employeeResult = await pool.query(
-      `SELECT id, first_name, last_name, email, employee_code FROM employees WHERE id = $1`,
-      [payroll.employee_id],
-    );
-    const employee = employeeResult.rows[0];
+    const employee = employeeMap.get(payroll.employee_id);
     if (employee && employee.email) {
       payrollsWithEmployees.push({
         payroll,

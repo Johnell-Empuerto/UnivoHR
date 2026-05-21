@@ -3,70 +3,130 @@ const attendanceModel = require("./attendance.model");
 const overtimeModel = require("./overtime.model");
 
 // ============================================
-// GENERATE PAYROLL (OPTIMIZED - NO N+1 QUERIES + HOLIDAY LEAVE FIX)
+// GENERATE PAYROLL (FULLY OPTIMIZED - NO N+1 QUERIES + TRANSACTIONS)
 // ============================================
 const generatePayroll = async (cutoff_start, cutoff_end, pay_date) => {
-  // 1. FETCH PAY RULES (MULTIPLIERS)
-  const payRulesRes = await pool.query(`
-    SELECT day_type, multiplier 
-    FROM pay_rules
-  `);
+  const client = await pool.connect();
 
-  const payRulesMap = {};
-  payRulesRes.rows.forEach((rule) => {
-    payRulesMap[rule.day_type] = Number(rule.multiplier);
-  });
+  try {
+    await client.query("BEGIN");
 
-  const DEFAULT_MULTIPLIER = 1;
+    // 1. FETCH PAY RULES (MULTIPLIERS)
+    const payRulesRes = await client.query(`
+      SELECT day_type, multiplier 
+      FROM pay_rules
+    `);
 
-  // 2. FETCH COMPANY SETTINGS
-  const settingsRes = await pool.query(`
-    SELECT conversion_rate, enforce_sil, sil_min_days 
-    FROM company_settings 
-    LIMIT 1
-  `);
+    const payRulesMap = {};
+    payRulesRes.rows.forEach((rule) => {
+      payRulesMap[rule.day_type] = Number(rule.multiplier);
+    });
 
-  const { conversion_rate, enforce_sil, sil_min_days } = settingsRes
-    .rows[0] || { conversion_rate: 1, enforce_sil: false, sil_min_days: 0 };
+    const DEFAULT_MULTIPLIER = 1;
 
-  // 3. GET ACTIVE EMPLOYEES
-  const employees = await pool.query(`
-    SELECT e.*
-    FROM employees e
-    WHERE e.status = 'ACTIVE'
-  `);
+    // 2. FETCH COMPANY SETTINGS
+    const settingsRes = await client.query(`
+      SELECT conversion_rate, enforce_sil, sil_min_days 
+      FROM company_settings 
+      LIMIT 1
+    `);
 
-  for (const emp of employees.rows) {
+    const { conversion_rate, enforce_sil, sil_min_days } = settingsRes
+      .rows[0] || { conversion_rate: 1, enforce_sil: false, sil_min_days: 0 };
+
+    // 3. GET ACTIVE EMPLOYEES
+    const employees = await client.query(`
+      SELECT e.*
+      FROM employees e
+      WHERE e.status = 'ACTIVE'
+    `);
+
+    if (employees.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return { message: "No active employees found" };
+    }
+
+    const employeeIds = employees.rows.map((e) => e.id);
+
     // ============================================
-    // OPTIMIZATION: FETCH ALL LEAVE REQUESTS ONCE PER EMPLOYEE
+    // BATCH 1: FETCH ALL SALARIES (1 query instead of N)
     // ============================================
-    const leaveRequestsRes = await pool.query(
+    const salaryRes = await client.query(
+      `
+      SELECT * FROM employee_salary 
+      WHERE employee_id = ANY($1::int[])
+    `,
+      [employeeIds],
+    );
+
+    const salaryMap = new Map();
+    salaryRes.rows.forEach((row) => {
+      salaryMap.set(row.employee_id, row);
+    });
+
+    // ============================================
+    // BATCH 2: FETCH ALL LEAVE CREDITS (1 query instead of N)
+    // ============================================
+    const leaveCreditsRes = await client.query(
+      `
+      SELECT * FROM leave_credits 
+      WHERE employee_id = ANY($1::int[])
+    `,
+      [employeeIds],
+    );
+
+    const leaveCreditsMap = new Map();
+    leaveCreditsRes.rows.forEach((row) => {
+      leaveCreditsMap.set(row.employee_id, row);
+    });
+
+    // ============================================
+    // BATCH 3: FETCH ALL LEAVE TYPES DEFAULTS (1 query)
+    // ============================================
+    const defaultLeaveTypesRes = await client.query(`
+      SELECT code, default_days FROM leave_types
+    `);
+    const defaultLeaveTypes = {};
+    defaultLeaveTypesRes.rows.forEach((d) => {
+      defaultLeaveTypes[d.code] = d.default_days;
+    });
+
+    // ============================================
+    // BATCH 4: FETCH ALL LEAVE REQUESTS FOR ALL EMPLOYEES (1 query instead of N)
+    // ============================================
+    const leaveRequestsRes = await client.query(
       `
       SELECT 
-        l.id,
-        l.from_date AS start_date,
-        l.to_date AS end_date,
+        l.employee_id,
+        l.from_date,
+        l.to_date,
         lt.is_paid,
         lt.name,
         lt.code
       FROM leaves l
       JOIN leave_types lt ON lt.code = l.type
-      WHERE l.employee_id = $1 
+      WHERE l.employee_id = ANY($1::int[])
         AND l.status = 'APPROVED'
         AND (
           (l.from_date BETWEEN $2::date AND $3::date)
           OR (l.to_date BETWEEN $2::date AND $3::date)
           OR ($2::date BETWEEN l.from_date AND l.to_date)
         )
-      `,
-      [emp.id, cutoff_start, cutoff_end],
+    `,
+      [employeeIds, cutoff_start, cutoff_end],
     );
 
-    // Create a map for quick lookup: date -> leave info
-    const leaveMap = new Map();
+    // Build leave map per employee: employee_id -> Map(date -> leaveInfo)
+    const employeeLeaveMap = new Map();
     for (const leave of leaveRequestsRes.rows) {
-      const startDate = new Date(leave.start_date);
-      const endDate = new Date(leave.end_date);
+      const startDate = new Date(leave.from_date);
+      const endDate = new Date(leave.to_date);
+
+      if (!employeeLeaveMap.has(leave.employee_id)) {
+        employeeLeaveMap.set(leave.employee_id, new Map());
+      }
+
+      const leaveMap = employeeLeaveMap.get(leave.employee_id);
 
       // Mark all dates in the leave range
       for (
@@ -85,419 +145,538 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date) => {
       }
     }
 
-    // GET EMPLOYEE SALARY
-    const salaryRes = await pool.query(
-      `SELECT * FROM employee_salary WHERE employee_id = $1`,
-      [emp.id],
+    // ============================================
+    // BATCH 5: FETCH ALL EMPLOYEE DEDUCTIONS (1 query instead of N)
+    // ============================================
+    const deductionsRes = await client.query(
+      `
+      SELECT * FROM employee_deductions 
+      WHERE employee_id = ANY($1::int[])
+        AND is_active = true
+    `,
+      [employeeIds],
     );
 
-    if (salaryRes.rows.length === 0) continue;
-    const salary = salaryRes.rows[0];
+    // Group deductions by employee_id
+    const deductionsByEmployee = new Map();
+    deductionsRes.rows.forEach((row) => {
+      if (!deductionsByEmployee.has(row.employee_id)) {
+        deductionsByEmployee.set(row.employee_id, []);
+      }
+      deductionsByEmployee.get(row.employee_id).push(row);
+    });
 
-    // GET OVERTIME DATA
-    const overtime = await overtimeModel.getOvertimeHoursForPayroll(
-      emp.id,
-      cutoff_start,
-      cutoff_end,
-    );
+    // Separate government and late deductions
+    const govDeductionsByEmployee = new Map();
+    const lateDeductionsByEmployee = new Map();
 
-    // GET LEAVE CREDITS
-    const leaveCreditsRes = await pool.query(
-      `SELECT * FROM leave_credits WHERE employee_id = $1`,
-      [emp.id],
-    );
-
-    let credits = leaveCreditsRes.rows[0];
-
-    if (!credits) {
-      const defaults = await pool.query(`
-        SELECT code, default_days FROM leave_types
-      `);
-
-      const map = {};
-      defaults.rows.forEach((d) => {
-        map[d.code] = d.default_days;
-      });
-
-      await pool.query(
-        `
-        INSERT INTO leave_credits (
-          employee_id,
-          vacation_leave,
-          used_vacation_leave,
-          last_conversion_year
-        )
-        VALUES ($1, $2, 0, NULL)
-      `,
-        [emp.id, map["VL"] ?? 5],
-      );
-
-      const newCredits = await pool.query(
-        `SELECT * FROM leave_credits WHERE employee_id = $1`,
-        [emp.id],
-      );
-      credits = newCredits.rows[0];
+    for (const [empId, deductions] of deductionsByEmployee) {
+      govDeductionsByEmployee.set(empId, 0);
+      for (const ded of deductions) {
+        if (ded.type.startsWith("LATE")) {
+          if (!lateDeductionsByEmployee.has(empId)) {
+            lateDeductionsByEmployee.set(empId, ded);
+          }
+        } else {
+          govDeductionsByEmployee.set(
+            empId,
+            (govDeductionsByEmployee.get(empId) || 0) + Number(ded.amount),
+          );
+        }
+      }
     }
 
-    // GET ACTIVE ATTENDANCE RULES
-    const rules = await attendanceModel.getRules();
+    // ============================================
+    // BATCH 6: FETCH ALL LEAVE CONVERSIONS (1 query instead of N)
+    // ============================================
+    const currentDate = new Date(pay_date);
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1;
+    const conversionYear = currentYear - 1;
 
-    // Use monthly salary as base
-    const monthly_salary = Number(salary.basic_salary);
-    const working_days_per_month = Number(salary.working_days_per_month || 26);
-    const daily_rate = monthly_salary / working_days_per_month;
-
-    // CALCULATE OVERTIME PAY
-    const overtime_rate = Number(salary.overtime_rate || 0);
-    const overtime_pay = overtime.total_hours * overtime_rate;
-
-    // LEAVE CONVERSION - FETCH FROM leave_conversions TABLE
-    let leave_conversion_cash = 0;
-    const currentYear = new Date(pay_date).getFullYear();
-    const currentMonth = new Date(pay_date).getMonth() + 1;
-
+    let conversionMap = new Map();
     if (currentMonth === 1) {
-      const conversionYear = currentYear - 1;
-      const conversionRes = await pool.query(
-        `SELECT COALESCE(SUM(amount), 0) as total_amount
-         FROM leave_conversions
-         WHERE employee_id = $1 AND year = $2`,
-        [emp.id, conversionYear],
+      const conversionRes = await client.query(
+        `
+        SELECT employee_id, COALESCE(SUM(amount), 0) as total_amount
+        FROM leave_conversions
+        WHERE employee_id = ANY($1::int[]) AND year = $2
+        GROUP BY employee_id
+      `,
+        [employeeIds, conversionYear],
       );
-      leave_conversion_cash = parseFloat(conversionRes.rows[0].total_amount);
+
+      conversionRes.rows.forEach((row) => {
+        conversionMap.set(row.employee_id, parseFloat(row.total_amount));
+      });
     }
 
-    // GET ATTENDANCE WITH CALENDAR DAY TYPES
-    const attendanceFull = await pool.query(
+    // ============================================
+    // BATCH 7: FETCH ALL ATTENDANCE DATA (1 query instead of N)
+    // ============================================
+    // Generate all dates in range once
+    const allDates = [];
+    let startDate = new Date(cutoff_start);
+    let endDate = new Date(cutoff_end);
+    for (
+      let d = new Date(startDate);
+      d <= endDate;
+      d.setDate(d.getDate() + 1)
+    ) {
+      allDates.push(d.toISOString().split("T")[0]);
+    }
+
+    // Fetch all attendance for all employees in one query
+    const attendanceRes = await client.query(
       `
       SELECT 
-        d.date,
-        a.status,
-        a.check_in_time,
-        a.check_out_time,
-        a.work_fraction,
-        COALESCE(c.day_type, 'REGULAR') AS day_type
-      FROM generate_series($1::date, $2::date, interval '1 day') d(date)
-      
-      LEFT JOIN attendance a 
-        ON a.date = d.date AND a.employee_id = $3
-      
-      LEFT JOIN calendar_days c 
-        ON c.date = d.date
-      
-      ORDER BY d.date
-    `,
-      [cutoff_start, cutoff_end, emp.id],
-    );
-
-    // ============================================
-    // CALCULATE WORK UNITS WITH MULTIPLIER & PAID LEAVE
-    // ============================================
-    let total_work_units_with_multiplier = 0;
-    let total_work_units_raw = 0;
-    let late_count = 0;
-    let late_minutes = 0;
-    let working_days_in_cutoff = 0;
-    let paid_leave_days = 0;
-    let unpaid_leave_days = 0;
-
-    // Track breakdown by day type for reporting
-    const breakdown = {
-      REGULAR: {
-        days: 0,
-        units: 0,
-        multiplier: payRulesMap.REGULAR || 1,
-        pay: 0,
-      },
-      SPECIAL_NON_WORKING: {
-        days: 0,
-        units: 0,
-        multiplier: payRulesMap.SPECIAL_NON_WORKING || 1,
-        pay: 0,
-      },
-      SPECIAL_HOLIDAY: {
-        days: 0,
-        units: 0,
-        multiplier: payRulesMap.SPECIAL_HOLIDAY || 1,
-        pay: 0,
-      },
-      REGULAR_HOLIDAY: {
-        days: 0,
-        units: 0,
-        multiplier: payRulesMap.REGULAR_HOLIDAY || 1,
-        pay: 0,
-      },
-      REST_DAY: {
-        days: 0,
-        units: 0,
-        multiplier: payRulesMap.REST_DAY || 1,
-        pay: 0,
-      },
-    };
-
-    for (const row of attendanceFull.rows) {
-      const dateStr = row.date.toISOString().split("T")[0];
-      const dayType = row.day_type;
-
-      // 🔥 FIX: DECLARE BEFORE USING - CORRECT ORDER
-      // First, check if this date has a leave request (from pre-fetched map)
-      const leaveInfo = leaveMap.get(dateStr);
-      const isLeave = row.status === "LEAVE" || !!leaveInfo;
-      const isPaidLeave = isLeave && leaveInfo?.is_paid === true;
-
-      // Get multiplier (will be overridden for leave if needed)
-      let multiplier = payRulesMap[dayType] || DEFAULT_MULTIPLIER;
-
-      // CRITICAL FIX: If on leave, override multiplier to 1.0 (regular pay)
-      // Because paid leave should not get holiday/rest day premiums
-      if (isLeave) {
-        multiplier = 1;
-      }
-
-      // Determine if this day counts as "working day" for absence tracking
-      const isWorkingDay = dayType !== "REST_DAY" && dayType !== "NON_WORKING";
-      const isHoliday =
-        dayType === "REGULAR_HOLIDAY" || dayType === "SPECIAL_HOLIDAY";
-
-      if (isWorkingDay || isHoliday) {
-        working_days_in_cutoff++;
-      }
-
-      // Skip non-working days (they don't contribute to pay)
-      if (!isWorkingDay && !isHoliday && dayType !== "REST_DAY") {
-        continue;
-      }
-
-      // Calculate raw work units (without multiplier)
-      let rawWorkUnits = 0;
-
-      if (row.status === "PRESENT") {
-        rawWorkUnits = 1;
-      } else if (row.status === "LATE") {
-        rawWorkUnits = 1;
-        late_count++;
-
-        if (row.check_in_time) {
-          const checkInTime = new Date(row.check_in_time);
-          const scheduledStart = new Date(row.check_in_time);
-          scheduledStart.setHours(8, 0, 0, 0);
-
-          const rawLateMinutes = (checkInTime - scheduledStart) / 1000 / 60;
-          const threshold = rules?.late_threshold || 0;
-          const grace = rules?.grace_period || 0;
-
-          let penaltyMinutes = rawLateMinutes - threshold - grace;
-
-          if (penaltyMinutes > 0) {
-            const cappedMinutes = Math.min(penaltyMinutes, 30);
-            late_minutes += cappedMinutes;
-          }
-        }
-      } else if (row.status === "HALF_DAY") {
-        rawWorkUnits = row.work_fraction || 0.5;
-      } else if (isLeave) {
-        // PAID LEAVE FIX (from pre-fetched map)
-        if (isPaidLeave) {
-          rawWorkUnits = 1;
-          paid_leave_days++;
-        } else {
-          rawWorkUnits = 0;
-          unpaid_leave_days++;
-        }
-      } else if (!row.status || row.status === "ABSENT") {
-        rawWorkUnits = 0;
-      }
-
-      // Apply multiplier (already overridden to 1 for leave)
-      const weightedWorkUnits = rawWorkUnits * multiplier;
-
-      total_work_units_raw += rawWorkUnits;
-      total_work_units_with_multiplier += weightedWorkUnits;
-
-      // Track breakdown
-      if (breakdown[dayType]) {
-        breakdown[dayType].days += rawWorkUnits > 0 ? 1 : 0;
-        breakdown[dayType].units += weightedWorkUnits;
-        breakdown[dayType].pay += daily_rate * weightedWorkUnits;
-      }
-    }
-
-    // ============================================
-    // LATE DEDUCTION CALCULATION
-    // ============================================
-    const effectiveLateMinutes = rules?.grace_period
-      ? Math.max(0, late_minutes - Number(rules.grace_period))
-      : late_minutes;
-
-    const empLateRes = await pool.query(
-      `
-      SELECT * FROM employee_deductions
-      WHERE employee_id = $1
-        AND type LIKE 'LATE%'
-        AND is_active = true
-      LIMIT 1
-    `,
-      [emp.id],
-    );
-
-    const empLate = empLateRes.rows[0];
-
-    let deductionType = rules?.late_deduction_type;
-    let deductionValue = Number(rules?.late_deduction_value || 0);
-    let lateDeductionEnabled = rules?.late_deduction_enabled;
-
-    if (empLate) {
-      if (empLate.type === "LATE_FIXED") {
-        deductionType = "FIXED";
-        deductionValue = Number(empLate.amount || 0);
-        lateDeductionEnabled = true;
-      } else if (empLate.type === "LATE_PER_MINUTE") {
-        deductionType = "PER_MINUTE";
-        deductionValue = Number(empLate.amount || 0);
-        lateDeductionEnabled = true;
-      } else if (empLate.type === "LATE_SALARY_BASED") {
-        deductionType = "SALARY_BASED";
-        lateDeductionEnabled = true;
-      }
-    }
-
-    let late_deduction = 0;
-
-    if (lateDeductionEnabled) {
-      if (deductionType === "FIXED") {
-        late_deduction = late_count * deductionValue;
-      } else if (deductionType === "PER_MINUTE") {
-        late_deduction = effectiveLateMinutes * deductionValue;
-      } else if (deductionType === "SALARY_BASED") {
-        let workingDays = Number(salary.working_days_per_month);
-        if (!workingDays || workingDays < 20) {
-          workingDays = 26;
-        }
-        const maxHours = rules?.max_work_hours || 8;
-        const totalMinutes = workingDays * maxHours * 60;
-        const perMinuteRate = monthly_salary / totalMinutes;
-        late_deduction = effectiveLateMinutes * perMinuteRate;
-      }
-    }
-
-    // Government deductions
-    const govRes = await pool.query(
-      `
-      SELECT COALESCE(SUM(amount), 0) AS total
-      FROM employee_deductions
-      WHERE employee_id = $1
-        AND is_active = true
-        AND type NOT LIKE 'LATE%'
-      `,
-      [emp.id],
-    );
-
-    const government_deduction = Number(govRes.rows[0].total);
-    const total_deductions = government_deduction + late_deduction;
-
-    // BASIC PAY = Daily Rate × Weighted Work Units (includes multipliers)
-    const basic_pay = daily_rate * total_work_units_with_multiplier;
-
-    const net_salary =
-      Math.max(0, basic_pay - total_deductions) +
-      leave_conversion_cash +
-      overtime_pay;
-
-    // Calculate absent days (raw, not weighted)
-    const absent_days =
-      working_days_in_cutoff - Math.floor(total_work_units_raw);
-
-    await pool.query(
-      `
-      INSERT INTO payroll (
         employee_id,
-        cutoff_start,
-        cutoff_end,
-        pay_date,
-        basic_salary,
-        overtime_pay,
-        deductions,
-        net_salary,
-        late_deduction,
-        absent_deduction,
-        government_deduction,
-        leave_conversion,
-        rule_snapshot
-      )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-      ON CONFLICT (employee_id, cutoff_start, cutoff_end)
-      DO UPDATE SET
-        overtime_pay = EXCLUDED.overtime_pay,
-        deductions = EXCLUDED.deductions,
-        net_salary = EXCLUDED.net_salary,
-        late_deduction = EXCLUDED.late_deduction,
-        absent_deduction = EXCLUDED.absent_deduction,
-        leave_conversion = EXCLUDED.leave_conversion,
-        rule_snapshot = EXCLUDED.rule_snapshot
-      `,
-      [
-        emp.id,
-        cutoff_start,
-        cutoff_end,
-        pay_date,
-        basic_pay,
-        overtime_pay,
-        total_deductions,
-        net_salary,
-        late_deduction,
-        0,
-        government_deduction,
-        leave_conversion_cash,
-        JSON.stringify({
-          attendance_rules: rules,
-          pay_rules: payRulesMap,
-          working_days_per_month,
-          daily_rate,
-          working_days_in_cutoff,
-          total_work_units_raw,
-          total_work_units_weighted: total_work_units_with_multiplier,
-          absent_days,
-          late_count,
-          late_minutes: effectiveLateMinutes,
-          paid_leave_days,
-          unpaid_leave_days,
-          breakdown,
-          late_deduction_config: {
-            type: deductionType,
-            value: deductionValue,
-            enabled: lateDeductionEnabled,
-            has_employee_override: !!empLate,
-          },
-          leave_conversion: {
-            converted: leave_conversion_cash > 0,
-            amount: leave_conversion_cash,
-            conversion_year: currentMonth === 1 ? currentYear - 1 : null,
-          },
-          overtime: {
-            hours: overtime.total_hours,
-            rate: overtime_rate,
-            pay: overtime_pay,
-            request_ids: overtime.request_ids,
-          },
-        }),
-      ],
+        date,
+        status,
+        check_in_time,
+        check_out_time,
+        work_fraction
+      FROM attendance
+      WHERE employee_id = ANY($1::int[])
+        AND date BETWEEN $2::date AND $3::date
+    `,
+      [employeeIds, cutoff_start, cutoff_end],
     );
 
-    // MARK OVERTIME AS PAID
-    if (overtime.total_hours > 0) {
-      await overtimeModel.markOvertimeAsPaid(
-        emp.id,
-        cutoff_start,
-        cutoff_end,
-        null,
-      );
-    }
-  }
+    // Group attendance by employee_id and date
+    const attendanceByEmployee = new Map();
+    attendanceRes.rows.forEach((row) => {
+      if (!attendanceByEmployee.has(row.employee_id)) {
+        attendanceByEmployee.set(row.employee_id, new Map());
+      }
+      const dateStr = row.date.toISOString().split("T")[0];
+      attendanceByEmployee.get(row.employee_id).set(dateStr, row);
+    });
 
-  return {
-    message:
-      "Payroll generated with optimized queries, pay rule multipliers, and proper paid leave handling!",
-  };
+    // Fetch calendar days (day types) for all dates once
+    const calendarDaysRes = await client.query(
+      `
+      SELECT date, day_type
+      FROM calendar_days
+      WHERE date BETWEEN $1::date AND $2::date
+    `,
+      [cutoff_start, cutoff_end],
+    );
+
+    const calendarDayMap = new Map();
+    calendarDaysRes.rows.forEach((row) => {
+      const dateStr = row.date.toISOString().split("T")[0];
+      calendarDayMap.set(dateStr, row.day_type);
+    });
+
+    // ============================================
+    // BATCH 8: GET ACTIVE ATTENDANCE RULES (1 query, cached)
+    // ============================================
+    const rules = await attendanceModel.getRules();
+
+    // ============================================
+    // BATCH 9: FETCH OVERTIME DATA FOR ALL EMPLOYEES (1 query)
+    // ============================================
+    const overtimeRes = await client.query(
+      `
+      SELECT 
+        o.employee_id,
+        COALESCE(SUM(o.hours), 0) as total_hours,
+        array_agg(o.id) as request_ids
+      FROM overtime_requests o
+      WHERE o.employee_id = ANY($1::int[])
+        AND o.status = 'APPROVED'
+        AND o.date BETWEEN $2::date AND $3::date
+      GROUP BY o.employee_id
+    `,
+      [employeeIds, cutoff_start, cutoff_end],
+    );
+
+    const overtimeMap = new Map();
+    overtimeRes.rows.forEach((row) => {
+      overtimeMap.set(row.employee_id, {
+        total_hours: parseFloat(row.total_hours),
+        request_ids: row.request_ids || [],
+      });
+    });
+
+    // For employees with no overtime, provide default
+    for (const empId of employeeIds) {
+      if (!overtimeMap.has(empId)) {
+        overtimeMap.set(empId, { total_hours: 0, request_ids: [] });
+      }
+    }
+
+    // ============================================
+    // PROCESS EACH EMPLOYEE (WITHIN TRANSACTION)
+    // ============================================
+    let processedCount = 0;
+
+    for (const emp of employees.rows) {
+      // Get salary (from memory)
+      const salary = salaryMap.get(emp.id);
+      if (!salary) continue;
+
+      // Get leave credits (from memory)
+      let credits = leaveCreditsMap.get(emp.id);
+
+      // Create leave credits if missing (this still requires DB write)
+      if (!credits) {
+        await client.query(
+          `INSERT INTO leave_credits (employee_id, vacation_leave, used_vacation_leave, last_conversion_year)
+           VALUES ($1, $2, 0, NULL)
+           ON CONFLICT (employee_id) DO NOTHING`,
+          [emp.id, defaultLeaveTypes["VL"] ?? 5],
+        );
+
+        // Re-fetch just this one
+        const newCredits = await client.query(
+          `SELECT * FROM leave_credits WHERE employee_id = $1`,
+          [emp.id],
+        );
+        credits = newCredits.rows[0];
+        leaveCreditsMap.set(emp.id, credits);
+      }
+
+      // Get leave map for this employee (from memory)
+      const leaveMap = employeeLeaveMap.get(emp.id) || new Map();
+
+      // Get overtime data (from memory)
+      const overtime = overtimeMap.get(emp.id) || {
+        total_hours: 0,
+        request_ids: [],
+      };
+
+      // Get attendance for this employee (from memory)
+      const attendanceMap = attendanceByEmployee.get(emp.id) || new Map();
+
+      // Get government deductions (from memory)
+      const government_deduction = govDeductionsByEmployee.get(emp.id) || 0;
+
+      // Get late deduction config (from memory)
+      const empLate = lateDeductionsByEmployee.get(emp.id);
+
+      // Get leave conversion (from memory)
+      let leave_conversion_cash = 0;
+      if (currentMonth === 1) {
+        leave_conversion_cash = conversionMap.get(emp.id) || 0;
+      }
+
+      // Calculate daily rate
+      const monthly_salary = Number(salary.basic_salary);
+      const working_days_per_month = Number(
+        salary.working_days_per_month || 26,
+      );
+      const daily_rate = monthly_salary / working_days_per_month;
+
+      // Calculate overtime pay
+      const overtime_rate = Number(salary.overtime_rate || 0);
+      const overtime_pay = overtime.total_hours * overtime_rate;
+
+      // ============================================
+      // BUILD ATTENDANCE DATA WITH DAY TYPES (from memory)
+      // ============================================
+      const attendanceFull = [];
+      for (const dateStr of allDates) {
+        const attendance = attendanceMap.get(dateStr) || {};
+        const dayType = calendarDayMap.get(dateStr) || "REGULAR";
+
+        attendanceFull.push({
+          date: new Date(dateStr),
+          status: attendance.status || null,
+          check_in_time: attendance.check_in_time,
+          check_out_time: attendance.check_out_time,
+          work_fraction: attendance.work_fraction,
+          day_type: dayType,
+        });
+      }
+
+      // ============================================
+      // CALCULATE WORK UNITS WITH MULTIPLIER & PAID LEAVE
+      // ============================================
+      let total_work_units_with_multiplier = 0;
+      let total_work_units_raw = 0;
+      let late_count = 0;
+      let late_minutes = 0;
+      let working_days_in_cutoff = 0;
+      let paid_leave_days = 0;
+      let unpaid_leave_days = 0;
+
+      // Track breakdown by day type for reporting
+      const breakdown = {
+        REGULAR: {
+          days: 0,
+          units: 0,
+          multiplier: payRulesMap.REGULAR || 1,
+          pay: 0,
+        },
+        SPECIAL_NON_WORKING: {
+          days: 0,
+          units: 0,
+          multiplier: payRulesMap.SPECIAL_NON_WORKING || 1,
+          pay: 0,
+        },
+        SPECIAL_HOLIDAY: {
+          days: 0,
+          units: 0,
+          multiplier: payRulesMap.SPECIAL_HOLIDAY || 1,
+          pay: 0,
+        },
+        REGULAR_HOLIDAY: {
+          days: 0,
+          units: 0,
+          multiplier: payRulesMap.REGULAR_HOLIDAY || 1,
+          pay: 0,
+        },
+        REST_DAY: {
+          days: 0,
+          units: 0,
+          multiplier: payRulesMap.REST_DAY || 1,
+          pay: 0,
+        },
+      };
+
+      for (const row of attendanceFull) {
+        const dateStr = row.date.toISOString().split("T")[0];
+        const dayType = row.day_type;
+
+        const leaveInfo = leaveMap.get(dateStr);
+        const isLeave = row.status === "LEAVE" || !!leaveInfo;
+        const isPaidLeave = isLeave && leaveInfo?.is_paid === true;
+
+        let multiplier = payRulesMap[dayType] || DEFAULT_MULTIPLIER;
+
+        if (isLeave) {
+          multiplier = 1;
+        }
+
+        const isWorkingDay =
+          dayType !== "REST_DAY" && dayType !== "NON_WORKING";
+        const isHoliday =
+          dayType === "REGULAR_HOLIDAY" || dayType === "SPECIAL_HOLIDAY";
+
+        if (isWorkingDay || isHoliday) {
+          working_days_in_cutoff++;
+        }
+
+        if (!isWorkingDay && !isHoliday && dayType !== "REST_DAY") {
+          continue;
+        }
+
+        let rawWorkUnits = 0;
+
+        if (row.status === "PRESENT") {
+          rawWorkUnits = 1;
+        } else if (row.status === "LATE") {
+          rawWorkUnits = 1;
+          late_count++;
+
+          if (row.check_in_time) {
+            const checkInTime = new Date(row.check_in_time);
+            const scheduledStart = new Date(row.check_in_time);
+            scheduledStart.setHours(8, 0, 0, 0);
+
+            const rawLateMinutes = (checkInTime - scheduledStart) / 1000 / 60;
+            const threshold = rules?.late_threshold || 0;
+            const grace = rules?.grace_period || 0;
+
+            let penaltyMinutes = rawLateMinutes - threshold - grace;
+
+            if (penaltyMinutes > 0) {
+              const cappedMinutes = Math.min(penaltyMinutes, 30);
+              late_minutes += cappedMinutes;
+            }
+          }
+        } else if (row.status === "HALF_DAY") {
+          rawWorkUnits = row.work_fraction || 0.5;
+        } else if (isLeave) {
+          if (isPaidLeave) {
+            rawWorkUnits = 1;
+            paid_leave_days++;
+          } else {
+            rawWorkUnits = 0;
+            unpaid_leave_days++;
+          }
+        } else if (!row.status || row.status === "ABSENT") {
+          rawWorkUnits = 0;
+        }
+
+        const weightedWorkUnits = rawWorkUnits * multiplier;
+
+        total_work_units_raw += rawWorkUnits;
+        total_work_units_with_multiplier += weightedWorkUnits;
+
+        if (breakdown[dayType]) {
+          breakdown[dayType].days += rawWorkUnits > 0 ? 1 : 0;
+          breakdown[dayType].units += weightedWorkUnits;
+          breakdown[dayType].pay += daily_rate * weightedWorkUnits;
+        }
+      }
+
+      // ============================================
+      // LATE DEDUCTION CALCULATION
+      // ============================================
+      const effectiveLateMinutes = rules?.grace_period
+        ? Math.max(0, late_minutes - Number(rules.grace_period))
+        : late_minutes;
+
+      let deductionType = rules?.late_deduction_type;
+      let deductionValue = Number(rules?.late_deduction_value || 0);
+      let lateDeductionEnabled = rules?.late_deduction_enabled;
+
+      if (empLate) {
+        if (empLate.type === "LATE_FIXED") {
+          deductionType = "FIXED";
+          deductionValue = Number(empLate.amount || 0);
+          lateDeductionEnabled = true;
+        } else if (empLate.type === "LATE_PER_MINUTE") {
+          deductionType = "PER_MINUTE";
+          deductionValue = Number(empLate.amount || 0);
+          lateDeductionEnabled = true;
+        } else if (empLate.type === "LATE_SALARY_BASED") {
+          deductionType = "SALARY_BASED";
+          lateDeductionEnabled = true;
+        }
+      }
+
+      let late_deduction = 0;
+
+      if (lateDeductionEnabled) {
+        if (deductionType === "FIXED") {
+          late_deduction = late_count * deductionValue;
+        } else if (deductionType === "PER_MINUTE") {
+          late_deduction = effectiveLateMinutes * deductionValue;
+        } else if (deductionType === "SALARY_BASED") {
+          let workingDays = Number(salary.working_days_per_month);
+          if (!workingDays || workingDays < 20) {
+            workingDays = 26;
+          }
+          const maxHours = rules?.max_work_hours || 8;
+          const totalMinutes = workingDays * maxHours * 60;
+          const perMinuteRate = monthly_salary / totalMinutes;
+          late_deduction = effectiveLateMinutes * perMinuteRate;
+        }
+      }
+
+      const total_deductions = government_deduction + late_deduction;
+
+      // BASIC PAY = Daily Rate × Weighted Work Units
+      const basic_pay = daily_rate * total_work_units_with_multiplier;
+
+      const net_salary =
+        Math.max(0, basic_pay - total_deductions) +
+        leave_conversion_cash +
+        overtime_pay;
+
+      const absent_days =
+        working_days_in_cutoff - Math.floor(total_work_units_raw);
+
+      // Insert payroll record (using client instead of pool for transaction)
+      await client.query(
+        `INSERT INTO payroll (
+          employee_id, cutoff_start, cutoff_end, pay_date,
+          basic_salary, overtime_pay, deductions, net_salary,
+          late_deduction, absent_deduction, government_deduction,
+          leave_conversion, rule_snapshot
+        )
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+        ON CONFLICT (employee_id, cutoff_start, cutoff_end)
+        DO UPDATE SET
+          overtime_pay = EXCLUDED.overtime_pay,
+          deductions = EXCLUDED.deductions,
+          net_salary = EXCLUDED.net_salary,
+          late_deduction = EXCLUDED.late_deduction,
+          absent_deduction = EXCLUDED.absent_deduction,
+          leave_conversion = EXCLUDED.leave_conversion,
+          rule_snapshot = EXCLUDED.rule_snapshot`,
+        [
+          emp.id,
+          cutoff_start,
+          cutoff_end,
+          pay_date,
+          basic_pay,
+          overtime_pay,
+          total_deductions,
+          net_salary,
+          late_deduction,
+          0,
+          government_deduction,
+          leave_conversion_cash,
+          JSON.stringify({
+            attendance_rules: rules,
+            pay_rules: payRulesMap,
+            working_days_per_month,
+            daily_rate,
+            working_days_in_cutoff,
+            total_work_units_raw,
+            total_work_units_weighted: total_work_units_with_multiplier,
+            absent_days,
+            late_count,
+            late_minutes: effectiveLateMinutes,
+            paid_leave_days,
+            unpaid_leave_days,
+            breakdown,
+            late_deduction_config: {
+              type: deductionType,
+              value: deductionValue,
+              enabled: lateDeductionEnabled,
+              has_employee_override: !!empLate,
+            },
+            leave_conversion: {
+              converted: leave_conversion_cash > 0,
+              amount: leave_conversion_cash,
+              conversion_year: currentMonth === 1 ? conversionYear : null,
+            },
+            overtime: {
+              hours: overtime.total_hours,
+              rate: overtime_rate,
+              pay: overtime_pay,
+              request_ids: overtime.request_ids,
+            },
+          }),
+        ],
+      );
+
+      // MARK OVERTIME AS PAID
+      if (
+        overtime.total_hours > 0 &&
+        overtime.request_ids &&
+        overtime.request_ids.length > 0
+      ) {
+        await client.query(
+          `UPDATE overtime_requests 
+           SET status = 'PAID' 
+           WHERE id = ANY($1::int[]) 
+           AND employee_id = $2`,
+          [overtime.request_ids, emp.id],
+        );
+      }
+
+      processedCount++;
+    }
+
+    // COMMIT THE TRANSACTION
+    await client.query("COMMIT");
+
+    console.log(
+      `Payroll generated successfully for ${processedCount} employees`,
+    );
+
+    return {
+      message:
+        "Payroll generated with fully optimized batched queries and transaction safety!",
+      employees_processed: processedCount,
+      cutoff_start,
+      cutoff_end,
+      pay_date,
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Payroll generation failed:", error);
+    throw new Error(`Payroll generation failed: ${error.message}`);
+  } finally {
+    client.release();
+  }
 };
 
 // ============================================
