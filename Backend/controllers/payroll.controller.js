@@ -134,12 +134,32 @@ const getQueueStatus = async (req, res) => {
 const markAsPaid = async (req, res) => {
   try {
     const { id } = req.params;
+    const payrollId = Number(id);
+
+    console.log("[Payroll/Pay] PATCH /payroll/:id/pay", {
+      received_id_param: id,
+      parsed_payroll_id: payrollId,
+    });
 
     // Update DB and queue email (async)
-    const data = await payrollService.markAsPaid(id);
+    const data = await payrollService.markAsPaid(payrollId);
+
+    console.log("[Payroll/Pay] markAsPaid result", {
+      payroll_id: payrollId,
+      rows_updated: data ? 1 : 0,
+      employee_id: data?.employee_id ?? null,
+      status: data?.status ?? null,
+    });
+
+    if (!data) {
+      console.log("[Payroll/Pay] No payroll row matched id — lookup failed", {
+        payroll_id: payrollId,
+      });
+      return res.status(404).json({ message: "Payroll not found" });
+    }
 
     // Get payroll details for in-app notification
-    const payroll = await payrollService.getPayrollDetails(id);
+    const payroll = await payrollService.getPayrollDetails(payrollId);
 
     // Send in-app notification (fast)
     await notificationService.notify({
@@ -147,9 +167,9 @@ const markAsPaid = async (req, res) => {
       type: "PAYROLL",
       title: "Salary Released",
       message: `Your salary has been released`,
-      reference_id: id,
+      reference_id: payrollId,
       meta: {
-        payroll_id: id,
+        payroll_id: payrollId,
         net_salary: payroll.net_salary,
         cutoff_start: payroll.cutoff_start,
         cutoff_end: payroll.cutoff_end,

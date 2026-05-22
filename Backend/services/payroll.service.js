@@ -56,6 +56,11 @@ const deleteDeduction = (id) => payrollModel.deleteDeduction(id);
 
 // MARK AS PAID - OPTIMIZED (single query for employee)
 const markAsPaid = async (id) => {
+  console.log("[Payroll/Pay] UPDATE payroll SET status=PAID", {
+    payroll_id: id,
+    sql: "WHERE id = $1 AND status != 'PAID'",
+  });
+
   const result = await pool.query(
     `
     UPDATE payroll 
@@ -65,6 +70,11 @@ const markAsPaid = async (id) => {
     `,
     [id],
   );
+
+  console.log("[Payroll/Pay] UPDATE result", {
+    payroll_id: id,
+    row_count: result.rowCount,
+  });
 
   const payroll = result.rows[0];
   if (payroll) {

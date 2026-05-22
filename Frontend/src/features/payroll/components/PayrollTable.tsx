@@ -22,6 +22,7 @@ import { useState } from "react";
 
 interface PayrollRecord {
   id: number;
+  payroll_id?: number | null;
   employee_id: number;
   employee_code: string;
   name: string;
@@ -82,9 +83,10 @@ const PayrollTable = ({
 }: PayrollTableProps) => {
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
-  const handleMarkPaid = async (id: number) => {
+  const handleMarkPaid = async (payrollId: number) => {
     try {
-      await markPayrollAsPaid(id);
+      console.log("[Payroll/Pay] Mark paid — payroll id sent:", payrollId);
+      await markPayrollAsPaid(payrollId);
       toast.success("Marked as paid");
       onRefresh?.();
     } catch {
@@ -93,13 +95,18 @@ const PayrollTable = ({
   };
 
   const handleDownloadPayslip = async (record: PayrollRecord) => {
+    const payrollId = record.payroll_id;
+    if (!payrollId) {
+      toast.error("Payroll not generated yet");
+      return;
+    }
     try {
-      setDownloadingId(record.id);
-      const blob = await downloadPayslip(record.id);
+      setDownloadingId(payrollId);
+      const blob = await downloadPayslip(payrollId);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `payslip-${record.employee_code}-${record.id}.pdf`;
+      a.download = `payslip-${record.employee_code}-${payrollId}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -173,7 +180,7 @@ const PayrollTable = ({
         <TableBody>
           {data.length > 0 ? (
             data.map((record) => (
-              <TableRow key={record.id}>
+              <TableRow key={record.payroll_id ?? `emp-${record.id}`}>
                 <TableCell className="font-medium">
                   {record.employee_code}
                 </TableCell>
@@ -221,9 +228,9 @@ const PayrollTable = ({
                       onClick={() => handleDownloadPayslip(record)}
                       className="h-8 w-8 p-0"
                       title="Download Payslip"
-                      disabled={downloadingId === record.id}
+                      disabled={!record.payroll_id || downloadingId === record.payroll_id}
                     >
-                      {downloadingId === record.id ? (
+                      {downloadingId === record.payroll_id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <Download className="h-4 w-4" />
@@ -231,8 +238,10 @@ const PayrollTable = ({
                     </Button>
                     <Button
                       size="sm"
-                      disabled={record.status === "PAID"}
-                      onClick={() => handleMarkPaid(record.id)}
+                      disabled={
+                        !record.payroll_id || record.status === "PAID"
+                      }
+                      onClick={() => handleMarkPaid(record.payroll_id!)}
                     >
                       Mark Paid
                     </Button>

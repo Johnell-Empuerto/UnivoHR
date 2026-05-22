@@ -11,6 +11,17 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date) => {
   try {
     await client.query("BEGIN");
 
+    // DELETE OLD UNPAID PAYROLL FIRST
+    await client.query(
+      `
+  DELETE FROM payroll
+  WHERE cutoff_start = $1::date
+  AND cutoff_end = $2::date
+  AND status = 'UNPAID'
+`,
+      [cutoff_start, cutoff_end],
+    );
+
     // 1. FETCH PAY RULES (MULTIPLIERS)
     const payRulesRes = await client.query(`
       SELECT day_type, multiplier 
@@ -286,6 +297,7 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date) => {
       FROM overtime_requests o
       WHERE o.employee_id = ANY($1::int[])
         AND o.status = 'APPROVED'
+        AND o.is_paid = FALSE
         AND o.date BETWEEN $2::date AND $3::date
       GROUP BY o.employee_id
     `,
@@ -571,8 +583,28 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date) => {
       const absent_days =
         working_days_in_cutoff - Math.floor(total_work_units_raw);
 
+      console.log("[PAYROLL DEBUG]", {
+        employee_id: emp.id,
+        employee_code: emp.employee_code,
+        monthly_salary,
+        cutoff_start,
+        cutoff_end,
+        attendance_records_count: attendanceMap.size,
+        working_days_in_cutoff,
+        total_work_units_raw,
+        total_work_units_with_multiplier,
+        daily_rate,
+        basic_pay,
+        late_deduction,
+        government_deduction,
+        total_deductions,
+        overtime_pay,
+        leave_conversion_cash,
+        net_salary,
+      });
+
       // Insert payroll record (using client instead of pool for transaction)
-      await client.query(
+      const payrollInsertResult = await client.query(
         `INSERT INTO payroll (
           employee_id, cutoff_start, cutoff_end, pay_date,
           basic_salary, overtime_pay, deductions, net_salary,
@@ -588,7 +620,8 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date) => {
           late_deduction = EXCLUDED.late_deduction,
           absent_deduction = EXCLUDED.absent_deduction,
           leave_conversion = EXCLUDED.leave_conversion,
-          rule_snapshot = EXCLUDED.rule_snapshot`,
+          rule_snapshot = EXCLUDED.rule_snapshot
+        RETURNING id`,
         [
           emp.id,
           cutoff_start,
@@ -637,18 +670,37 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date) => {
         ],
       );
 
-      // MARK OVERTIME AS PAID
+      // MARK OVERTIME AS PAID (is_paid only — status stays APPROVED per DB constraint)
       if (
         overtime.total_hours > 0 &&
         overtime.request_ids &&
         overtime.request_ids.length > 0
       ) {
+        const payrollId = payrollInsertResult.rows[0]?.id ?? null;
+        const overtimeUpdatePayload = {
+          employee_id: emp.id,
+          payroll_id: payrollId,
+          request_ids: overtime.request_ids,
+          status_unchanged: "APPROVED",
+          is_paid: true,
+        };
+
+        console.log("[Payroll/Overtime] Marking overtime as paid", {
+          employee_id: emp.id,
+          overtime_update: overtimeUpdatePayload,
+          status_before_update: "APPROVED",
+        });
+
         await client.query(
           `UPDATE overtime_requests 
-           SET status = 'PAID' 
+           SET is_paid = TRUE,
+               paid_at = NOW(),
+               paid_in_payroll_id = $3
            WHERE id = ANY($1::int[]) 
-           AND employee_id = $2`,
-          [overtime.request_ids, emp.id],
+             AND employee_id = $2
+             AND status = 'APPROVED'
+             AND is_paid = FALSE`,
+          [overtime.request_ids, emp.id, payrollId],
         );
       }
 
