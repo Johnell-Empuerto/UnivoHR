@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import AttendanceTrendChart from "../components/AttendanceTrendChart";
 import EmployeeGrowthChart from "@/features/dashboard/components/EmployeeGrowthChart";

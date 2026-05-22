@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -90,9 +90,7 @@ const ResetPassword = ({
         onSuccess();
       }
     } catch (error: any) {
-      toast.error(
-        error.response?.data?.message || "Failed to reset password"
-      );
+      toast.error(error.response?.data?.message || "Failed to reset password");
     } finally {
       setIsLoading(false);
     }
@@ -214,10 +212,7 @@ const ResetPassword = ({
             onClick={handleSubmit}
             className="w-full h-11 font-medium"
             disabled={
-              isLoading ||
-              otp.length !== 6 ||
-              !newPassword ||
-              !confirmPassword
+              isLoading || otp.length !== 6 || !newPassword || !confirmPassword
             }
           >
             {isLoading ? (

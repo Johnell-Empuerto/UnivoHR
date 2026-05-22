@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import LeaveDrawer from "./LeaveDrawer";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { formatDate } from "@/utils/formatDate";
 import { Badge } from "@/components/ui/badge";
 

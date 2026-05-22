@@ -2,7 +2,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getPayrollById, downloadPayslip } from "@/services/payrollService";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Loader2, Wallet } from "lucide-react";
 import SalaryBreakdown from "../components/SalaryBreakdown";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

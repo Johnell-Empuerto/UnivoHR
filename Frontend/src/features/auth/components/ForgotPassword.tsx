@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -50,7 +50,7 @@ const ForgotPassword = ({ onBack, onEmailSent }: ForgotPasswordProps) => {
       }
     } catch (error: any) {
       toast.error(
-        error.response?.data?.message || "Failed to send verification code"
+        error.response?.data?.message || "Failed to send verification code",
       );
     } finally {
       setIsLoading(false);

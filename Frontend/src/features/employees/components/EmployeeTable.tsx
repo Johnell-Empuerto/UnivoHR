@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, Pencil, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import EmployeeDrawer from "./EmployeeDrawer";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 type Employee = {
   id: number;

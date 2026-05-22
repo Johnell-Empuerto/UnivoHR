@@ -4,7 +4,7 @@ import { Menu, Moon, Sun, User, Settings, LogOut } from "lucide-react";
 import NotificationDropdown from "./NotificationDropdown";
 
 import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
-import { Button } from "../ui/Button";
+import { Button } from "../ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,

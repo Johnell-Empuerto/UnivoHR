@@ -1,5 +1,21 @@
 require("dotenv").config();
 
+const requiredEnv = [
+  "JWT_SECRET",
+  "DB_HOST",
+  "DB_PORT",
+  "DB_USER",
+  "DB_PASSWORD",
+  "DB_NAME",
+];
+
+for (const key of requiredEnv) {
+  if (!process.env[key]) {
+    console.error(`Missing required environment variable: ${key}`);
+    process.exit(1);
+  }
+}
+
 module.exports = {
   PORT: process.env.PORT,
   DB_HOST: process.env.DB_HOST,

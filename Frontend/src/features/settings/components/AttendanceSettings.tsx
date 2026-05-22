@@ -9,7 +9,7 @@ import {
   activateAttendanceRule,
   deleteAttendanceRule,
 } from "@/services/attendanceService";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,

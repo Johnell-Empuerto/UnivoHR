@@ -483,10 +483,6 @@ const getMaskedEmail = async (userId) => {
 };
 
 const sendOTPEmail = async (email, otp, userName) => {
-  console.log("[OTP] Preparing to send OTP email to:", email);
-  console.log("[OTP] OTP code:", otp);
-  console.log("[OTP] User name:", userName);
-
   const subject = "Login Verification Code - UnivoHR";
 
   //  UPDATED: Complete HTML template with UnivoHR branding
@@ -740,7 +736,6 @@ const sendOTPEmail = async (email, otp, userName) => {
   `;
 
   try {
-    console.log("[OTP] HTML length:", html.length);
     console.log("[OTP] Calling smtpService.sendEmail...");
     const result = await smtpService.sendEmail(email, subject, html);
     console.log(

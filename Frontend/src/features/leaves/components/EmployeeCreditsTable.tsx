@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
 import {
   Select,
@@ -85,7 +85,7 @@ const EmployeeCreditsTable = () => {
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<LeaveCredits | null>(
-    null
+    null,
   );
   const [editData, setEditData] = useState<EditData>({
     sick_leave: 0,
@@ -116,7 +116,7 @@ const EmployeeCreditsTable = () => {
         currentPage,
         rowsPerPage,
         search,
-        departmentFilter
+        departmentFilter,
       );
       setCredits(res.data);
       setTotalPages(res.pagination.totalPages);
@@ -147,7 +147,7 @@ const EmployeeCreditsTable = () => {
       setSaving(true);
       await leaveService.updateEmployeeCredits(
         editingEmployee.employee_id,
-        editData
+        editData,
       );
       toast.success("Credits updated successfully");
       setEditDialogOpen(false);
@@ -347,7 +347,7 @@ const EmployeeCreditsTable = () => {
                           <span
                             className={getRemainingClass(
                               employee.sick_leave_remaining,
-                              employee.sick_leave
+                              employee.sick_leave,
                             )}
                           >
                             {employee.sick_leave_remaining}
@@ -364,7 +364,7 @@ const EmployeeCreditsTable = () => {
                           <span
                             className={getRemainingClass(
                               employee.vacation_leave_remaining,
-                              employee.vacation_leave
+                              employee.vacation_leave,
                             )}
                           >
                             {employee.vacation_leave_remaining}
@@ -381,7 +381,7 @@ const EmployeeCreditsTable = () => {
                           <span
                             className={getRemainingClass(
                               employee.maternity_leave_remaining,
-                              employee.maternity_leave
+                              employee.maternity_leave,
                             )}
                           >
                             {employee.maternity_leave_remaining}
@@ -398,7 +398,7 @@ const EmployeeCreditsTable = () => {
                           <span
                             className={getRemainingClass(
                               employee.emergency_leave_remaining,
-                              employee.emergency_leave
+                              employee.emergency_leave,
                             )}
                           >
                             {employee.emergency_leave_remaining}
@@ -445,7 +445,7 @@ const EmployeeCreditsTable = () => {
               </div>
 
               <div className="text-sm text-muted-foreground">
-                Showing {((currentPage - 1) * rowsPerPage) + 1} to{" "}
+                Showing {(currentPage - 1) * rowsPerPage + 1} to{" "}
                 {Math.min(currentPage * rowsPerPage, totalRecords)} of{" "}
                 {totalRecords} entries
               </div>
@@ -509,7 +509,10 @@ const EmployeeCreditsTable = () => {
                 min="0"
                 value={editData.sick_leave}
                 onChange={(e) =>
-                  setEditData({ ...editData, sick_leave: parseInt(e.target.value) || 0 })
+                  setEditData({
+                    ...editData,
+                    sick_leave: parseInt(e.target.value) || 0,
+                  })
                 }
               />
             </div>
