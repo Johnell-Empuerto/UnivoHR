@@ -237,7 +237,7 @@ Any request follows this exact path:
 
 Browser/Device
     ↓ HTTP
-API Endpoint (Express :3002)
+API Endpoint (Express :3003)
     ↓
 JWT Authentication (authenticate.js)
     ↓

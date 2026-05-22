@@ -24,7 +24,19 @@ import ProfilePage from "@/features/profile/pages/ProfilePage";
 import PrivacyPage from "@/features/legal/pages/PrivacyPage";
 import TermsPage from "@/features/legal/pages/TermsPage";
 import SecurityPage from "@/features/legal/pages/SecurityPage";
-import AdminLeaveCreditsPage from "@/features/leaves/pages/AdminLeaveCreditsPage";
+import DocsLayout from "@/features/docs/pages/DocsLayout";
+import LoginDocs from "@/features/docs/pages/LoginDocs";
+import DashboardDocs from "@/features/docs/pages/DashboardDocs";
+import AttendanceDocs from "@/features/docs/pages/AttendanceDocs";
+import LeavesDocs from "@/features/docs/pages/LeavesDocs";
+import CalendarDocs from "@/features/docs/pages/CalendarDocs";
+import PayrollAdminDocs from "@/features/docs/pages/PayrollAdminDocs";
+import ProfileDocs from "@/features/docs/pages/ProfileDocs";
+import ManHoursDocs from "@/features/docs/pages/ManHoursDocs";
+import OvertimeDocs from "@/features/docs/pages/OvertimeDocs";
+import SettingsDocs from "@/features/docs/pages/SettingsDocs";
+import EmployeesDocs from "@/features/docs/pages/EmployeesDocs";
+import UsersDocs from "@/features/docs/pages/UsersDocs";
 
 const AppRoutes = () => {
   const { isAuth, user } = useAuth();
@@ -95,10 +107,26 @@ const AppRoutes = () => {
           element={isAuth ? <Navigate to="/dashboard" replace /> : <Login />}
         />
 
-        {/* legal */}
+        {/* legal & public docs */}
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/security" element={<SecurityPage />} />
+
+        {/* docs */}
+        <Route path="/docs" element={<DocsLayout />}>
+          <Route path="login" element={<LoginDocs />} />
+          <Route path="dashboard" element={<DashboardDocs />} />
+          <Route path="attendance" element={<AttendanceDocs />} />
+          <Route path="leaves" element={<LeavesDocs />} />
+          <Route path="calendar" element={<CalendarDocs />} />
+          <Route path="man-hours" element={<ManHoursDocs />} />
+          <Route path="overtime" element={<OvertimeDocs />} />
+          <Route path="payroll-admin" element={<PayrollAdminDocs />} />
+          <Route path="employees" element={<EmployeesDocs />} />
+          <Route path="users" element={<UsersDocs />} />
+          <Route path="settings" element={<SettingsDocs />} />
+          <Route path="profile" element={<ProfileDocs />} />
+        </Route>
 
         {/* PROTECTED - WITH LAYOUT */}
         <Route

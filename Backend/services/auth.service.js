@@ -6,6 +6,7 @@ const settingService = require("./setting.service");
 const otpService = require("./otp.service");
 const loginAttemptService = require("./loginAttempt.service");
 const userService = require("./user.service");
+const userCacheService = require("./userCache.service");
 
 // Validate JWT_SECRET
 if (!process.env.JWT_SECRET) {
@@ -18,10 +19,7 @@ const addDelay = async () => {
   await new Promise((resolve) => setTimeout(resolve, 500));
 };
 
-// Normalize username
-const normalizeUsername = (username) => {
-  return username.toLowerCase().trim();
-};
+const normalizeUsername = userCacheService.normalizeUsername;
 
 // Step 1: Initial login - returns if 2FA is required
 const login = async ({ username, password }) => {
@@ -49,14 +47,6 @@ const login = async ({ username, password }) => {
   } else {
     console.log("User from DB");
     user = await authModel.findUserByUsername(normalizedUsername);
-
-    if (user) {
-      await redisClient.setEx(
-        `user:${normalizedUsername}`,
-        300,
-        JSON.stringify(user),
-      );
-    }
   }
 
   // IMPORTANT: Prevent user enumeration - same error message for user not found OR wrong password
@@ -72,6 +62,11 @@ const login = async ({ username, password }) => {
     // Add delay to prevent timing attacks
     await addDelay();
     throw new Error("Invalid credentials");
+  }
+
+  // Cache only after password verified (avoids stale hash after reset / failed logins)
+  if (!cachedUser) {
+    await userCacheService.cacheUserForLogin(normalizedUsername, user);
   }
 
   // Reset login attempts on successful login
@@ -248,6 +243,12 @@ const resetPassword = async ({ user_id, otp, new_password }) => {
 
   // Reset password
   await userService.resetPassword(user_id, new_password);
+
+  // Clear login cache so the new password_hash is loaded from DB on next login
+  const user = await authModel.findUserById(user_id);
+  if (user?.username) {
+    await userCacheService.invalidateUserCache(user.username);
+  }
 
   // Delete the OTP after successful reset
   await otpService.deletePasswordResetOTP(user_id);

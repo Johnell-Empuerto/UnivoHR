@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Menu, Moon, Sun, User, Settings, LogOut } from "lucide-react";
+import { Menu, Moon, Sun, BookOpen, User, Settings, LogOut } from "lucide-react";
 import NotificationDropdown from "./NotificationDropdown";
 
 import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
@@ -94,6 +94,17 @@ const Navbar = ({
 
       {/* RIGHT */}
       <div className="flex items-center gap-3">
+        {/* DOCS */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate("/docs")}
+          aria-label="Open user manual"
+          title="User Manual"
+        >
+          <BookOpen className="h-5 w-5 text-primary" />
+        </Button>
+
         {/* THEME */}
         <Button variant="ghost" size="icon" onClick={toggleTheme}>
           {theme === "dark" ? (

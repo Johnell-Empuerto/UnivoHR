@@ -1,5 +1,6 @@
 const userModel = require("../models/user.model");
 const bcrypt = require("bcrypt");
+const userCacheService = require("./userCache.service");
 
 const getUsers = async (page, limit, search, role) => {
   return await userModel.getUsers(page, limit, search, role);
@@ -31,6 +32,8 @@ const createUser = async (data) => {
 };
 
 const updateUser = async (id, data) => {
+  const existing = await userModel.getUserById(id);
+
   // Check if username already exists (excluding current user)
   const exists = await userModel.usernameExists(data.username, id);
   if (exists) {
@@ -42,13 +45,32 @@ const updateUser = async (id, data) => {
     role: data.role,
   };
 
+  const passwordChanging =
+    data.password && data.password.trim() !== "";
+
   // Only hash and update password if provided
-  if (data.password && data.password.trim() !== "") {
+  if (passwordChanging) {
     const saltRounds = 10;
     updateData.password_hash = await bcrypt.hash(data.password, saltRounds);
   }
 
-  return await userModel.updateUser(id, updateData);
+  const result = await userModel.updateUser(id, updateData);
+
+  if (existing?.username) {
+    const usernameChanging =
+      data.username &&
+      userCacheService.normalizeUsername(data.username) !==
+        userCacheService.normalizeUsername(existing.username);
+
+    if (passwordChanging || usernameChanging) {
+      await userCacheService.invalidateUserCache(existing.username);
+    }
+    if (usernameChanging && data.username) {
+      await userCacheService.invalidateUserCache(data.username);
+    }
+  }
+
+  return result;
 };
 
 const deleteUser = async (id) => {
@@ -68,9 +90,16 @@ const getUserByEmail = async (email) => {
 };
 
 const resetPassword = async (userId, newPassword) => {
+  const existing = await userModel.getUserById(userId);
   const saltRounds = 10;
   const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
-  return await userModel.updatePassword(userId, hashedPassword);
+  const result = await userModel.updatePassword(userId, hashedPassword);
+
+  if (existing?.username) {
+    await userCacheService.invalidateUserCache(existing.username);
+  }
+
+  return result;
 };
 
 module.exports = {

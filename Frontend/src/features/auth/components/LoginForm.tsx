@@ -21,6 +21,7 @@ import {
   DollarSign,
   Moon,
   Sun,
+  BookOpen,
   Users,
   ArrowRight,
   Shield,
@@ -194,18 +195,31 @@ const LoginForm = () => {
 
   return (
     <div className="min-h-screen bg-linear-to-brrom-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex flex-col justify-start md:items-center md:justify-center px-2 py-4 md:p-8 lg:p-10 w-full">
-      {/* Theme Toggle */}
-      <button
-        onClick={toggleTheme}
-        className="fixed top-4 right-4 z-50 p-2.5 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300"
-        aria-label="Toggle theme"
-      >
-        {theme === "dark" ? (
-          <Sun className="h-5 w-5 text-yellow-500" />
-        ) : (
-          <Moon className="h-5 w-5 text-slate-700" />
-        )}
-      </button>
+      {/* Docs + Theme (top-right) */}
+      <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => navigate("/docs")}
+          className="p-2.5 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300"
+          aria-label="Open user manual"
+          title="User Manual"
+        >
+          <BookOpen className="h-5 w-5 text-primary" />
+        </button>
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="p-2.5 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300"
+          aria-label="Toggle theme"
+          title={theme === "dark" ? "Light mode" : "Dark mode"}
+        >
+          {theme === "dark" ? (
+            <Sun className="h-5 w-5 text-yellow-500" />
+          ) : (
+            <Moon className="h-5 w-5 text-slate-700" />
+          )}
+        </button>
+      </div>
 
       <div className="grid lg:grid-cols-2 gap-6 md:gap-10 lg:gap-16 max-w-7xl w-full">
         {/* Left Column - Hero Section - ALWAYS VISIBLE */}
@@ -471,7 +485,17 @@ const LoginForm = () => {
                   </button>
                 </p>
 
-                <div className="flex justify-center gap-4 text-xs text-muted-foreground">
+                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <button
+                    type="button"
+                    className="hover:text-foreground transition-colors inline-flex items-center gap-1"
+                    onClick={() => navigate("/docs")}
+                    title="User Manual"
+                  >
+                    <BookOpen className="h-3.5 w-3.5" />
+                    User Manual
+                  </button>
+                  <span className="hidden sm:inline">•</span>
                   <button
                     type="button"
                     className="hover:text-foreground transition-colors"

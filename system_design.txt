@@ -44,7 +44,7 @@ Legal:
 
 BACKEND SERVICES (Node.js + Express)
 ------------------------------------
-Server: index.js (Port 3002)
+Server: index.js (Port 3003)
 Middleware:
   - authenticate.js         → JWT verification
   - role.middleware.js      → Role-based authorization
@@ -169,7 +169,7 @@ graph TB
         A12[Profile Page]
     end
 
-    subgraph "API GATEWAY - Express.js :3002"
+    subgraph "API GATEWAY - Express.js :3003"
         B1[Auth Routes /api/auth]
         B2[Employee Routes /api/employees]
         B3[Attendance Routes /api/attendance]
@@ -1577,7 +1577,7 @@ BACKEND
 
 INFRASTRUCTURE
 --------------------------------------------------------------------------------
-- Server: HTTP on port 3002
+- Server: HTTP on port 3003
 - CORS: localhost:5173, 192.168.0.104:5173
 - Socket.IO: WebSocket for real-time
 - Scheduler: node-cron (leave conversions)

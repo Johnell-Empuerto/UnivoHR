@@ -36,7 +36,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     if (!isAuth || !user?.id) return;
 
     const socketInstance = io(
-      import.meta.env.VITE_API_URL || "http://localhost:3002",
+      import.meta.env.VITE_API_URL || "http://localhost:3003",
       {
         withCredentials: true,
       },
