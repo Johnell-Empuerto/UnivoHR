@@ -76,7 +76,7 @@ const FinalPayHistoryTable = () => {
     null,
   );
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
   // Debounce search
   useEffect(() => {
@@ -109,7 +109,7 @@ const FinalPayHistoryTable = () => {
 
   const handleDownload = async (record: FinalPayRecord) => {
     try {
-      setDownloading(true);
+      setDownloadingId(record.id);
       const blob = await downloadFinalPaySlip(record.id);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -124,7 +124,7 @@ const FinalPayHistoryTable = () => {
       console.error("Download error:", error);
       toast.error("Failed to download");
     } finally {
-      setDownloading(false);
+      setDownloadingId(null);
     }
   };
 
@@ -280,11 +280,11 @@ const FinalPayHistoryTable = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDownload(record)}
-                            disabled={downloading}
+                            disabled={downloadingId === record.id}
                             className="h-8 w-8 p-0"
                             title="Download"
                           >
-                            {downloading ? (
+                            {downloadingId === record.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               <Download className="h-4 w-4" />

@@ -234,7 +234,7 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date) => {
       d <= endDate;
       d.setDate(d.getDate() + 1)
     ) {
-      allDates.push(d.toISOString().split("T")[0]);
+      allDates.push(d.toLocaleDateString("en-CA"));
     }
 
     // Fetch all attendance for all employees in one query
@@ -260,7 +260,7 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date) => {
       if (!attendanceByEmployee.has(row.employee_id)) {
         attendanceByEmployee.set(row.employee_id, new Map());
       }
-      const dateStr = row.date.toISOString().split("T")[0];
+      const dateStr = row.date.toLocaleDateString("en-CA");
       attendanceByEmployee.get(row.employee_id).set(dateStr, row);
     });
 
@@ -276,7 +276,7 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date) => {
 
     const calendarDayMap = new Map();
     calendarDaysRes.rows.forEach((row) => {
-      const dateStr = row.date.toISOString().split("T")[0];
+      const dateStr = row.date.toLocaleDateString("en-CA");
       calendarDayMap.set(dateStr, row.day_type);
     });
 
@@ -449,7 +449,7 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date) => {
       };
 
       for (const row of attendanceFull) {
-        const dateStr = row.date.toISOString().split("T")[0];
+        const dateStr = row.date.toLocaleDateString("en-CA");
         const dayType = row.day_type;
 
         const leaveInfo = leaveMap.get(dateStr);
@@ -580,8 +580,39 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date) => {
         leave_conversion_cash +
         overtime_pay;
 
+      if (net_salary === 0 && monthly_salary > 0 && attendanceMap.size > 0) {
+        console.warn("[PAYROLL] ZERO NET SALARY despite salary+attendance", {
+          employee_id: emp.id,
+          monthly_salary,
+          daily_rate,
+          total_work_units_raw,
+          basic_pay,
+          deductions: total_deductions,
+        });
+      }
+
       const absent_days =
         working_days_in_cutoff - Math.floor(total_work_units_raw);
+
+      console.log("[PAYROLL] DEBUG:", {
+        employee_id: emp.id,
+        employee_code: emp.employee_code,
+        salary_type: salary.salary_type || "N/A",
+        monthly_salary,
+        working_days_per_month,
+        daily_rate,
+        total_work_units_raw,
+        total_work_units_with_multiplier,
+        basic_pay,
+        overtime_pay,
+        late_deduction,
+        government_deduction,
+        total_deductions,
+        leave_conversion_cash,
+        net_salary,
+        attendanceMap_sample_keys: [...attendanceMap.keys()].slice(0, 3),
+        allDates_sample: allDates.slice(0, 3),
+      });
 
       console.log("[PAYROLL] Processed:", {
         employee_id: emp.id,
