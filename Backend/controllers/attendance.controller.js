@@ -25,6 +25,7 @@ const getAttendance = async (req, res) => {
       search = "",
       status = "",
       date = "",
+      branch_id = "",
     } = req.query;
 
     const data = await attendanceService.getAttendance(
@@ -33,6 +34,7 @@ const getAttendance = async (req, res) => {
       search,
       status,
       date,
+      branch_id,
     );
 
     res.json(data);

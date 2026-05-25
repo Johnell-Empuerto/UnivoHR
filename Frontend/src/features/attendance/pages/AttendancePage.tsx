@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { attendance as attendanceApi } from "@/services/attendanceService";
+import { getActiveBranches } from "@/services/branchService";
 import {
   createTimeModificationRequest,
   getMyTimeModificationRequests,
@@ -31,12 +32,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Calendar as CalendarIcon,
   Clock,
   Search,
   Loader2,
   X,
   FileClock,
+  Building2,
   CheckCircle,
   XCircle,
   AlertCircle,
@@ -78,6 +87,8 @@ const AttendancePage = () => {
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const formattedDate = format(selectedDate, "yyyy-MM-dd");
+  const [branchFilter, setBranchFilter] = useState("");
+  const [branches, setBranches] = useState<{ id: number; name: string }[]>([]);
 
   // ========== TIME REQUEST TAB STATE ==========
   const [activeTab, setActiveTab] = useState("attendance");
@@ -130,6 +141,7 @@ const AttendancePage = () => {
           search,
           statusFilter,
           formattedDate,
+          branchFilter,
         );
         setAttendanceData(result.data);
         setTotalPages(result.pagination.totalPages);
@@ -143,7 +155,7 @@ const AttendancePage = () => {
     };
 
     fetchData();
-  }, [currentPage, rowsPerPage, search, statusFilter, formattedDate]);
+  }, [currentPage, rowsPerPage, search, statusFilter, formattedDate, branchFilter]);
 
   // Fetch time requests when tab changes or pagination changes
   useEffect(() => {
@@ -211,11 +223,18 @@ const AttendancePage = () => {
     setSearchInput("");
     setSearch("");
     setStatusFilter("");
+    setBranchFilter("");
     setSelectedDate(new Date());
     setCurrentPage(1);
   };
 
-  const activeFilterCount = [searchInput, statusFilter].filter(Boolean).length;
+  useEffect(() => {
+    getActiveBranches()
+      .then((data) => setBranches(data))
+      .catch(() => {});
+  }, []);
+
+  const activeFilterCount = [searchInput, statusFilter, branchFilter].filter(Boolean).length;
 
   // ========== TIME REQUEST HANDLERS ==========
   const openRequestForm = (attendance: any) => {
@@ -444,6 +463,30 @@ const AttendancePage = () => {
                     className="border rounded px-3 py-2 text-sm bg-background"
                   />
                 </div>
+
+                {/* Branch Filter */}
+                <Select
+                  value={branchFilter || "all"}
+                  onValueChange={(value) => {
+                    setBranchFilter(value === "all" ? "" : value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-37.5">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      <SelectValue placeholder="All Branches" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Branches</SelectItem>
+                    {branches.map((b) => (
+                      <SelectItem key={b.id} value={String(b.id)}>
+                        {b.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
                 {activeFilterCount > 0 && (
                   <Button variant="ghost" onClick={handleClearFilters}>

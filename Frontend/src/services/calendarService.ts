@@ -1,15 +1,13 @@
-// services/calendarService.ts
 import api from "./api";
 
-//  GET ALL (with optional range)
-export const getCalendar = async (start?: string, end?: string) => {
-  let url = "/calendar";
+//  GET ALL (with optional range and branch filter)
+export const getCalendar = async (start?: string, end?: string, branch_id?: string) => {
+  const params: any = {};
+  if (start) params.start = start;
+  if (end) params.end = end;
+  if (branch_id) params.branch_id = branch_id;
 
-  if (start && end) {
-    url += `?start=${start}&end=${end}`;
-  }
-
-  const res = await api.get(url);
+  const res = await api.get("/calendar", { params });
   return res.data;
 };
 
@@ -37,7 +35,7 @@ export const deleteCalendarDay = async (id: number) => {
   return res.data;
 };
 
-//  BULK UPLOAD (NEW)
+//  BULK UPLOAD
 export const bulkUploadCalendar = async (
   data: any[],
   overwrite: boolean = true,

@@ -1,11 +1,12 @@
 import { employees as employeesAPI } from "@/services/employeeService";
+import { getActiveBranches } from "@/services/branchService";
 import { useEffect, useState } from "react";
 import EmployeeTable from "../components/EmployeeTable";
 import ErrorMessage from "@/components/shared/ErrorMessage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Loader2, RefreshCw, Users } from "lucide-react";
+import { Search, Loader2, RefreshCw, Users, Building2 } from "lucide-react";
 import { useAuth } from "@/app/providers/AuthProvider";
 import {
   Select,
@@ -66,8 +67,16 @@ const EmployeeList = () => {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [branchFilter, setBranchFilter] = useState("");
+  const [branches, setBranches] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    getActiveBranches()
+      .then((data) => setBranches(data))
+      .catch(() => {});
+  }, []);
 
   // Debounce search
   useEffect(() => {
@@ -89,6 +98,7 @@ const EmployeeList = () => {
           rowsPerPage,
           search,
           statusFilter,
+          branchFilter,
         );
 
         setData(res.data);
@@ -102,7 +112,7 @@ const EmployeeList = () => {
     };
 
     fetchData();
-  }, [currentPage, rowsPerPage, search, statusFilter]);
+  }, [currentPage, rowsPerPage, search, statusFilter, branchFilter]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value);
@@ -113,10 +123,16 @@ const EmployeeList = () => {
     setCurrentPage(1);
   };
 
+  const handleBranchChange = (value: string) => {
+    setBranchFilter(value === "all" ? "" : value);
+    setCurrentPage(1);
+  };
+
   const handleClearFilters = () => {
     setSearchInput("");
     setSearch("");
     setStatusFilter("");
+    setBranchFilter("");
     setCurrentPage(1);
   };
 
@@ -125,6 +141,7 @@ const EmployeeList = () => {
     setSearchInput("");
     setSearch("");
     setStatusFilter("");
+    setBranchFilter("");
   };
 
   const handleUpdate = (updated: Employee) => {
@@ -195,8 +212,29 @@ const EmployeeList = () => {
               </SelectContent>
             </Select>
 
+            {/* Branch Filter */}
+            <Select
+              value={branchFilter || "all"}
+              onValueChange={handleBranchChange}
+            >
+              <SelectTrigger className="w-37.5">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  <SelectValue placeholder="All Branches" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Branches</SelectItem>
+                {branches.map((b) => (
+                  <SelectItem key={b.id} value={String(b.id)}>
+                    {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             {/* Clear Filters Button */}
-            {(searchInput || statusFilter) && (
+            {(searchInput || statusFilter || branchFilter) && (
               <Button variant="ghost" onClick={handleClearFilters}>
                 Clear Filters
               </Button>

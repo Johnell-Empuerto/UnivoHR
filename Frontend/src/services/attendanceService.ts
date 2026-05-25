@@ -8,6 +8,7 @@ export const attendance = async (
   search: string = "",
   status: string = "",
   date: string = "",
+  branch_id: string = "",
 ) => {
   const response = await api.get("/attendance", {
     params: {
@@ -16,6 +17,7 @@ export const attendance = async (
       search,
       status,
       date,
+      branch_id,
     },
   });
 

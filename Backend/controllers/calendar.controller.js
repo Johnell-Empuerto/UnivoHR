@@ -3,8 +3,8 @@ const calendarService = require("../services/calendar.service");
 // GET ALL
 const getCalendar = async (req, res) => {
   try {
-    const { start, end } = req.query;
-    const data = await calendarService.getCalendar(start, end);
+    const { start, end, branch_id } = req.query;
+    const data = await calendarService.getCalendar(start, end, branch_id);
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -14,7 +14,8 @@ const getCalendar = async (req, res) => {
 // GET ONE BY DATE
 const getByDate = async (req, res) => {
   try {
-    const data = await calendarService.getByDate(req.params.date);
+    const { branch_id } = req.query;
+    const data = await calendarService.getByDate(req.params.date, branch_id);
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: err.message });

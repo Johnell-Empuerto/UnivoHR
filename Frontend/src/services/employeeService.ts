@@ -5,6 +5,7 @@ export const employees = async (
   limit: number,
   search: string = "",
   status: string = "",
+  branch_id: string = "",
 ) => {
   const response = await api.get("/employees", {
     params: {
@@ -12,6 +13,7 @@ export const employees = async (
       limit,
       search,
       status,
+      branch_id,
     },
   });
 

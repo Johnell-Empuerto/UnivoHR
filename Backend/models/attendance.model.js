@@ -118,6 +118,7 @@ const getAttendance = async (
   search = "",
   status = "",
   date = "",
+  branch_id = "",
 ) => {
   const offset = (page - 1) * limit;
   const searchValue = `%${search}%`;
@@ -137,10 +138,12 @@ const getAttendance = async (
       e.last_name,
       e.middle_name,
       e.suffix,
-      e.employee_code
+      e.employee_code,
+      b.name AS branch_name
     FROM attendance a
     JOIN employees e ON e.id = a.employee_id
     JOIN users u ON u.employee_id = e.id
+    LEFT JOIN branches b ON b.id = e.branch_id
     WHERE
       u.role != 'ADMIN'
       AND (
@@ -151,10 +154,11 @@ const getAttendance = async (
       )
       AND ($4 = '' OR a.status = $4)
       AND ($5 = '' OR a.date = $5::date)
+      AND ($6 = '' OR e.branch_id = $6::int)
     ORDER BY a.date DESC
     LIMIT $1 OFFSET $2
     `,
-    [limit, offset, searchValue, status, date],
+    [limit, offset, searchValue, status, date, branch_id],
   );
 
   const countQuery = await pool.query(
@@ -163,6 +167,7 @@ const getAttendance = async (
     FROM attendance a
     JOIN employees e ON e.id = a.employee_id
     JOIN users u ON u.employee_id = e.id
+    LEFT JOIN branches b ON b.id = e.branch_id
     WHERE
       u.role != 'ADMIN'
       AND (
@@ -173,8 +178,9 @@ const getAttendance = async (
       )
       AND ($2 = '' OR a.status = $2)
       AND ($3 = '' OR a.date = $3::date)
+      AND ($4 = '' OR e.branch_id = $4::int)
     `,
-    [searchValue, status, date],
+    [searchValue, status, date, branch_id],
   );
 
   const total = parseInt(countQuery.rows[0].count);

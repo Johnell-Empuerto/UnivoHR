@@ -45,6 +45,7 @@ import {
   deleteCalendarDay,
   bulkUploadCalendar,
 } from "@/services/calendarService";
+import { getActiveBranches } from "@/services/branchService";
 import { useAuth } from "@/app/providers/AuthProvider";
 
 // Import for date picker
@@ -54,6 +55,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+
+interface Branch {
+  id: number;
+  name: string;
+  code: string;
+}
 
 interface CalendarDay {
   id: number;
@@ -65,6 +72,8 @@ interface CalendarDay {
     | "SPECIAL_HOLIDAY";
   is_paid: boolean;
   description: string | null;
+  branch_id: number | null;
+  branch_name: string | null;
 }
 
 interface CalendarEvent {
@@ -114,7 +123,12 @@ const CalendarPage: React.FC = () => {
     day_type: "REGULAR",
     is_paid: false,
     description: "",
+    branch_id: "",
   });
+
+  // Branch filter state
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchViewFilter, setBranchViewFilter] = useState("");
 
   // Bulk upload states
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
@@ -131,6 +145,13 @@ const CalendarPage: React.FC = () => {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
 
+  // Fetch branches on mount
+  useEffect(() => {
+    getActiveBranches()
+      .then((data) => setBranches(data))
+      .catch(() => {});
+  }, []);
+
   // Fetch calendar days for current month
   useEffect(() => {
     if (selectedDate) {
@@ -138,13 +159,13 @@ const CalendarPage: React.FC = () => {
       const end = format(endOfMonth(selectedDate), "yyyy-MM-dd");
       fetchCalendarDays(start, end);
     }
-  }, [selectedDate]);
+  }, [selectedDate, branchViewFilter]);
 
   // Update events when calendarDays changes
   useEffect(() => {
     const newEvents = calendarDays.map((day) => ({
       id: day.id.toString(),
-      title: getEventTitle(day.day_type, day.is_paid),
+      title: getEventTitle(day.day_type, day.is_paid, day.branch_name),
       start: day.date,
       backgroundColor: getEventColor(day.day_type),
       borderColor: getEventColor(day.day_type),
@@ -161,7 +182,7 @@ const CalendarPage: React.FC = () => {
   const fetchCalendarDays = async (start: string, end: string) => {
     setLoading(true);
     try {
-      const data = await getCalendar(start, end);
+      const data = await getCalendar(start, end, branchViewFilter || undefined);
       setCalendarDays(data);
     } catch (error: any) {
       toast.error(error.message || "Failed to fetch calendar days");
@@ -170,10 +191,11 @@ const CalendarPage: React.FC = () => {
     }
   };
 
-  const getEventTitle = (day_type: string, is_paid: boolean) => {
+  const getEventTitle = (day_type: string, is_paid: boolean, branch_name?: string | null) => {
     const typeLabel = getDayTypeShortLabel(day_type);
     const paidIcon = is_paid ? "💰" : "";
-    return `${typeLabel} ${paidIcon}`;
+    const branchLabel = branch_name ? ` [${branch_name}]` : "";
+    return `${typeLabel}${branchLabel} ${paidIcon}`;
   };
 
   const getEventColor = (day_type: string) => {
@@ -207,6 +229,7 @@ const CalendarPage: React.FC = () => {
         day_type: existingDay.day_type,
         is_paid: existingDay.is_paid,
         description: existingDay.description || "",
+        branch_id: existingDay.branch_id ? String(existingDay.branch_id) : "",
       });
     } else {
       setEditingDay(null);
@@ -215,6 +238,7 @@ const CalendarPage: React.FC = () => {
         day_type: "REGULAR",
         is_paid: false,
         description: "",
+        branch_id: "",
       });
     }
     setDialogOpen(true);
@@ -234,6 +258,7 @@ const CalendarPage: React.FC = () => {
         day_type: existingDay.day_type,
         is_paid: existingDay.is_paid,
         description: existingDay.description || "",
+        branch_id: existingDay.branch_id ? String(existingDay.branch_id) : "",
       });
       setDialogOpen(true);
     }
@@ -269,15 +294,19 @@ const CalendarPage: React.FC = () => {
     if (!canEdit) return;
 
     try {
+      const payload: any = {
+        date: formData.date,
+        day_type: formData.day_type,
+        is_paid: formData.is_paid,
+        description: formData.description,
+        branch_id: formData.branch_id ? parseInt(formData.branch_id) : null,
+      };
+
       if (editingDay) {
-        await updateCalendarDay(editingDay.id, {
-          day_type: formData.day_type,
-          is_paid: formData.is_paid,
-          description: formData.description,
-        });
+        await updateCalendarDay(editingDay.id, payload);
         toast.success("Calendar day updated successfully");
       } else {
-        await createCalendarDay(formData);
+        await createCalendarDay(payload);
         toast.success("Calendar day created successfully");
       }
 
@@ -294,6 +323,7 @@ const CalendarPage: React.FC = () => {
         day_type: "REGULAR",
         is_paid: false,
         description: "",
+        branch_id: "",
       });
     } catch (error: any) {
       toast.error(error.message || "Failed to save calendar day");
@@ -524,6 +554,12 @@ const CalendarPage: React.FC = () => {
           row["description"] ||
           row["Notes"] ||
           row["notes"];
+        const branchValue =
+          row["Branch"] ||
+          row["branch"] ||
+          row["BRANCH"] ||
+          row["Branch Name"] ||
+          row["branch_name"];
 
         if (!dateValue) {
           const error = `Row ${rowNum}: Date is required`;
@@ -564,6 +600,7 @@ const CalendarPage: React.FC = () => {
           day_type,
           is_paid,
           description,
+          branch_value: branchValue ? String(branchValue).trim() : "",
         });
       }
 
@@ -624,19 +661,21 @@ const CalendarPage: React.FC = () => {
         Date: "2026-01-25",
         Type: "REGULAR_HOLIDAY",
         Paid: true,
-        Description: "Sample Holiday",
+        Description: "Sample Holiday (Global)",
       },
       {
         Date: "1/25/2026",
         Type: "SPECIAL_NON_WORKING",
         Paid: false,
-        Description: "Sample Special Day (MM/DD/YYYY format)",
+        Description: "Sample Special Day (MM/DD/YYYY)",
+        Branch: "Main Branch",
       },
       {
         Date: "25/01/2026",
         Type: "REGULAR",
         Paid: true,
-        Description: "Sample Regular Day (DD/MM/YYYY format)",
+        Description: "Sample Regular Day (DD/MM/YYYY)",
+        Branch: "MAIN",
       },
     ];
 
@@ -674,6 +713,13 @@ const CalendarPage: React.FC = () => {
         Description: "Optional description (max 500 chars)",
         Example: "Christmas Day",
       },
+      {
+        Column: "Branch",
+        Format: "Branch name or code",
+        Required: "No",
+        Description: "Leave empty for Global. Supports name or code (case-insensitive). Inactive/nonexistent branches will be rejected.",
+        Example: "Main Branch, MAIN",
+      },
     ];
 
     const instructionsSheet = XLSX.utils.json_to_sheet(instructions);
@@ -700,6 +746,31 @@ const CalendarPage: React.FC = () => {
               : "View holidays, special days, and working days for payroll calculations"}
           </p>
         </div>
+      </div>
+
+      {/* Branch View Filter */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-muted-foreground">
+          Calendar View:
+        </span>
+        <Select
+          value={branchViewFilter || "all"}
+          onValueChange={(value) =>
+            setBranchViewFilter(value === "all" ? "" : value)
+          }
+        >
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="All Branches (Global)" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Branches (Global)</SelectItem>
+            {branches.map((b) => (
+              <SelectItem key={b.id} value={String(b.id)}>
+                {b.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Action Buttons */}
@@ -943,6 +1014,10 @@ const CalendarPage: React.FC = () => {
                           <span className="font-medium">Status:</span>{" "}
                           {dayData.is_paid ? "Paid" : "Unpaid"}
                         </p>
+                        <p>
+                          <span className="font-medium">Applies To:</span>{" "}
+                          {dayData.branch_name || "Global"}
+                        </p>
                         {dayData.description && (
                           <p>
                             <span className="font-medium">Description:</span>{" "}
@@ -989,6 +1064,31 @@ const CalendarPage: React.FC = () => {
                     ? format(new Date(formData.date), "MMMM d, yyyy")
                     : "Select a date"}
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Apply To</Label>
+                <Select
+                  value={formData.branch_id || "global"}
+                  onValueChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      branch_id: value === "global" ? "" : value,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select branch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="global">Global (All Branches)</SelectItem>
+                    {branches.map((b) => (
+                      <SelectItem key={b.id} value={String(b.id)}>
+                        {b.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -1164,7 +1264,7 @@ const CalendarPage: React.FC = () => {
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription className="text-xs">
                     File should have columns: Date, Type, Paid (optional),
-                    Description (optional). Supports any date format.
+                    Description (optional), Branch (optional - leave empty for Global). Supports any date format.
                   </AlertDescription>
                 </Alert>
               </div>
@@ -1194,7 +1294,7 @@ const CalendarPage: React.FC = () => {
               <div className="space-y-4 py-4">
                 {uploadResults && (
                   <>
-                    <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className="grid grid-cols-4 gap-2 text-center">
                       <div className="p-3 bg-green-50 rounded-lg">
                         <p className="text-2xl font-bold text-green-600">
                           {uploadResults.summary.inserted}
@@ -1206,6 +1306,12 @@ const CalendarPage: React.FC = () => {
                           {uploadResults.summary.updated}
                         </p>
                         <p className="text-xs text-gray-600">Updated</p>
+                      </div>
+                      <div className="p-3 bg-yellow-50 rounded-lg">
+                        <p className="text-2xl font-bold text-yellow-600">
+                          {uploadResults.summary.skipped}
+                        </p>
+                        <p className="text-xs text-gray-600">Skipped</p>
                       </div>
                       <div className="p-3 bg-red-50 rounded-lg">
                         <p className="text-2xl font-bold text-red-600">

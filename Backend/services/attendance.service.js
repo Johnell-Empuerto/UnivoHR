@@ -75,8 +75,8 @@ const createAttendance = async ({ employee_id, timestamp }) => {
 };
 
 // Get all
-const getAttendance = async (page, limit, search, status, date) => {
-  return await attendanceModel.getAttendance(page, limit, search, status, date);
+const getAttendance = async (page, limit, search, status, date, branch_id) => {
+  return await attendanceModel.getAttendance(page, limit, search, status, date, branch_id);
 };
 
 // Get by employee

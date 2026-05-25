@@ -1,6 +1,6 @@
 const pool = require("../config/db");
 
-const getEmployees = async (page = 1, limit = 10, search = "", status = "") => {
+const getEmployees = async (page = 1, limit = 10, search = "", status = "", branch_id = "") => {
   const offset = (page - 1) * limit;
 
   const searchValue = `%${search}%`;
@@ -18,10 +18,11 @@ const getEmployees = async (page = 1, limit = 10, search = "", status = "") => {
         CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $3
       )
       AND ($4 = '' OR e.status = $4)
+      AND ($5 = '' OR e.branch_id = $5::int)
     ORDER BY e.id DESC
     LIMIT $1 OFFSET $2
     `,
-    [limit, offset, searchValue, status],
+    [limit, offset, searchValue, status, branch_id],
   );
 
   const countQuery = await pool.query(
@@ -36,8 +37,9 @@ const getEmployees = async (page = 1, limit = 10, search = "", status = "") => {
         CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $1
       )
       AND ($2 = '' OR e.status = $2)
+      AND ($3 = '' OR e.branch_id = $3::int)
     `,
-    [searchValue, status],
+    [searchValue, status, branch_id],
   );
 
   const total = parseInt(countQuery.rows[0].count);

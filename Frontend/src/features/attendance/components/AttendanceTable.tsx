@@ -23,6 +23,7 @@ type Attendance = {
   check_out_time: string;
   date: string;
   status: string;
+  branch_name?: string | null;
 };
 
 type AttendanceTableProps = {
@@ -154,6 +155,7 @@ const AttendanceTable = ({
           <TableRow className="bg-muted">
             <TableHead>Employee Code</TableHead>
             <TableHead>Name</TableHead>
+            <TableHead>Branch</TableHead>
             <TableHead>Check In</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Check Out</TableHead>
@@ -170,6 +172,7 @@ const AttendanceTable = ({
                   {item.employee_code}
                 </TableCell>
                 <TableCell>{getFullName(item)}</TableCell>
+                <TableCell>{item.branch_name || "Main Branch"}</TableCell>
                 <TableCell>
                   <span className="font-mono text-sm">
                     {formatTime(item.check_in_time)}
@@ -208,7 +211,7 @@ const AttendanceTable = ({
           ) : (
             <TableRow>
               <TableCell
-                colSpan={onRequestModification ? 7 : 6}
+                colSpan={onRequestModification ? 8 : 7}
                 className="text-center py-8 text-muted-foreground"
               >
                 No attendance records found

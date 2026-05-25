@@ -19,6 +19,7 @@ const bulkUpload = async (req, res) => {
         totalRows: data.length,
         inserted: results.inserted,
         updated: results.updated,
+        skipped: results.skipped,
         failed: results.failed,
       },
       errors: results.errors,
@@ -38,13 +39,14 @@ const downloadTemplate = async (req, res) => {
         Date: "2024-01-01",
         Type: "REGULAR_HOLIDAY",
         Paid: true,
-        Description: "New Year's Day",
+        Description: "New Year's Day (Global)",
       },
       {
         Date: "2024-01-15",
         Type: "SPECIAL_NON_WORKING",
         Paid: false,
         Description: "Special Non-Working Day",
+        Branch: "Main Branch",
       },
       {
         Date: "2024-02-14",
@@ -57,6 +59,7 @@ const downloadTemplate = async (req, res) => {
         Type: "REGULAR_HOLIDAY",
         Paid: true,
         Description: "Araw ng Kagitingan",
+        Branch: "MAIN",
       },
       {
         Date: "2024-05-01",
@@ -97,6 +100,12 @@ const downloadTemplate = async (req, res) => {
         Format: "Text",
         Description: "Optional. Max 500 characters",
         Example: "Christmas Day",
+      },
+      {
+        Column: "Branch",
+        Format: "Branch name or code",
+        Description: "Optional. Leave empty for Global. Name/code (case-insensitive). Inactive/nonexistent branches rejected.",
+        Example: "Main Branch, MAIN",
       },
     ];
 
