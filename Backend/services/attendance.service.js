@@ -75,13 +75,13 @@ const createAttendance = async ({ employee_id, timestamp }) => {
 };
 
 // Get all
-const getAttendance = async (page, limit, search, status, date, branch_id) => {
-  return await attendanceModel.getAttendance(page, limit, search, status, date, branch_id);
+const getAttendance = async (page, limit, search, status, date, branch_id, allowedBranchIds) => {
+  return await attendanceModel.getAttendance(page, limit, search, status, date, branch_id, allowedBranchIds);
 };
 
 // Get by employee
-const getByEmployee = async (employeeId) => {
-  return await attendanceModel.getByEmployee(employeeId);
+const getByEmployee = async (employeeId, date = "") => {
+  return await attendanceModel.getByEmployee(employeeId, date);
 };
 
 // GET RULES

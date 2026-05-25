@@ -1,9 +1,24 @@
 const pool = require("../config/db");
 
-const getEmployees = async (page = 1, limit = 10, search = "", status = "", branch_id = "") => {
+const getEmployees = async (page = 1, limit = 10, search = "", status = "", allowedBranchIds = null) => {
   const offset = (page - 1) * limit;
-
   const searchValue = `%${search}%`;
+
+  const isUnrestricted = allowedBranchIds === null;
+  let dataBranchClause = "";
+  let countBranchClause = "";
+  let branchParams = [];
+
+  if (!isUnrestricted && Array.isArray(allowedBranchIds)) {
+    if (allowedBranchIds.length === 0) {
+      dataBranchClause = "AND 1=0";
+      countBranchClause = "AND 1=0";
+    } else {
+      branchParams = [allowedBranchIds];
+      dataBranchClause = `AND e.branch_id = ANY($5)`;
+      countBranchClause = `AND e.branch_id = ANY($3)`;
+    }
+  }
 
   const dataQuery = await pool.query(
     `
@@ -18,11 +33,11 @@ const getEmployees = async (page = 1, limit = 10, search = "", status = "", bran
         CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $3
       )
       AND ($4 = '' OR e.status = $4)
-      AND ($5 = '' OR e.branch_id = $5::int)
+      ${dataBranchClause}
     ORDER BY e.id DESC
     LIMIT $1 OFFSET $2
     `,
-    [limit, offset, searchValue, status, branch_id],
+    [limit, offset, searchValue, status, ...branchParams],
   );
 
   const countQuery = await pool.query(
@@ -37,9 +52,9 @@ const getEmployees = async (page = 1, limit = 10, search = "", status = "", bran
         CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $1
       )
       AND ($2 = '' OR e.status = $2)
-      AND ($3 = '' OR e.branch_id = $3::int)
+      ${countBranchClause}
     `,
-    [searchValue, status, branch_id],
+    [searchValue, status, ...branchParams],
   );
 
   const total = parseInt(countQuery.rows[0].count);

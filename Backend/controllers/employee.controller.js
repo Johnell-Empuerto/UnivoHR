@@ -13,14 +13,14 @@ const createEmployee = async (req, res) => {
 //  GET (Pagination + Search + Status Filter)
 const getEmployees = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = "", status = "", branch_id } = req.query;
+    const { page = 1, limit = 10, search = "", status = "" } = req.query;
 
     const data = await employeeService.getEmployees(
       page,
       limit,
       search,
       status,
-      branch_id,
+      req.allowedBranchIds,
     );
 
     res.json(data);

@@ -24,6 +24,13 @@ export const attendance = async (
   return response.data;
 };
 
+export const getAttendanceByEmployee = async (employeeId: number, date: string = "") => {
+  const response = await api.get(`/attendance/${employeeId}`, {
+    params: { date },
+  });
+  return response.data;
+};
+
 // ATTENDANCE RULES (CRUD)
 
 //  GET ALL RULES (table view)

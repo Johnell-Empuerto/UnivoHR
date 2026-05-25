@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { attendance as attendanceApi } from "@/services/attendanceService";
+import {
+  attendance as attendanceApi,
+  getAttendanceByEmployee,
+} from "@/services/attendanceService";
 import { getActiveBranches } from "@/services/branchService";
 import {
   createTimeModificationRequest,
@@ -135,14 +138,30 @@ const AttendancePage = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const result = await attendanceApi(
-          currentPage,
-          rowsPerPage,
-          search,
-          statusFilter,
-          formattedDate,
-          branchFilter,
-        );
+        let result;
+
+        if (user?.role === "EMPLOYEE") {
+          const data = await getAttendanceByEmployee(user.employee_id, formattedDate);
+          result = {
+            data,
+            pagination: {
+              total: data.length,
+              page: 1,
+              limit: data.length,
+              totalPages: 1,
+            },
+          };
+        } else {
+          result = await attendanceApi(
+            currentPage,
+            rowsPerPage,
+            search,
+            statusFilter,
+            formattedDate,
+            branchFilter,
+          );
+        }
+
         setAttendanceData(result.data);
         setTotalPages(result.pagination.totalPages);
         setTotalRecords(result.pagination.total);
@@ -155,7 +174,7 @@ const AttendancePage = () => {
     };
 
     fetchData();
-  }, [currentPage, rowsPerPage, search, statusFilter, formattedDate, branchFilter]);
+  }, [currentPage, rowsPerPage, search, statusFilter, formattedDate, branchFilter, user?.role, user?.employee_id]);
 
   // Fetch time requests when tab changes or pagination changes
   useEffect(() => {

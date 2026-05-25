@@ -1,7 +1,7 @@
 const employeeModel = require("../models/employee.model");
 
-const getEmployees = async (page, limit, search, status, branch_id) => {
-  return await employeeModel.getEmployees(page, limit, search, status, branch_id);
+const getEmployees = async (page, limit, search, status, allowedBranchIds) => {
+  return await employeeModel.getEmployees(page, limit, search, status, allowedBranchIds);
 };
 
 const createEmployee = async (data) => {

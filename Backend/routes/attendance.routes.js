@@ -4,6 +4,7 @@ const router = express.Router();
 const controller = require("../controllers/attendance.controller");
 const authenticate = require("../middleware/auth.middleware");
 const authorize = require("../middleware/role.middleware");
+const { requireBranchAccessFromQuery } = require("../middleware/branchAccess.middleware");
 const validate = require("../middleware/validate.middleware");
 const ROLES = require("../constants/roles");
 
@@ -82,11 +83,12 @@ router.post(
   controller.createAttendance,
 );
 
-// GET ALL
+// GET ALL (HR/Admin with branch filtering)
 router.get(
   "/",
   authenticate,
   authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.EMPLOYEE]),
+  requireBranchAccessFromQuery("branch_id"),
   controller.getAttendance,
 );
 

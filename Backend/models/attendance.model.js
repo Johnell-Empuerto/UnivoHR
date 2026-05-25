@@ -119,9 +119,26 @@ const getAttendance = async (
   status = "",
   date = "",
   branch_id = "",
+  allowedBranchIds = null,
 ) => {
   const offset = (page - 1) * limit;
   const searchValue = `%${search}%`;
+
+  const isUnrestricted = allowedBranchIds === null;
+  let dataBranchClause = "";
+  let countBranchClause = "";
+  let branchParams = [];
+
+  if (!isUnrestricted && Array.isArray(allowedBranchIds)) {
+    if (allowedBranchIds.length === 0) {
+      dataBranchClause = "AND 1=0";
+      countBranchClause = "AND 1=0";
+    } else {
+      branchParams = [allowedBranchIds];
+      dataBranchClause = `AND e.branch_id = ANY($6)`;
+      countBranchClause = `AND e.branch_id = ANY($4)`;
+    }
+  }
 
   const dataQuery = await pool.query(
     `
@@ -154,11 +171,11 @@ const getAttendance = async (
       )
       AND ($4 = '' OR a.status = $4)
       AND ($5 = '' OR a.date = $5::date)
-      AND ($6 = '' OR e.branch_id = $6::int)
+      ${dataBranchClause}
     ORDER BY a.date DESC
     LIMIT $1 OFFSET $2
     `,
-    [limit, offset, searchValue, status, date, branch_id],
+    [limit, offset, searchValue, status, date, ...branchParams],
   );
 
   const countQuery = await pool.query(
@@ -178,9 +195,9 @@ const getAttendance = async (
       )
       AND ($2 = '' OR a.status = $2)
       AND ($3 = '' OR a.date = $3::date)
-      AND ($4 = '' OR e.branch_id = $4::int)
+      ${countBranchClause}
     `,
-    [searchValue, status, date, branch_id],
+    [searchValue, status, date, ...branchParams],
   );
 
   const total = parseInt(countQuery.rows[0].count);
@@ -197,7 +214,7 @@ const getAttendance = async (
 };
 
 // GET BY EMPLOYEE
-const getByEmployee = async (employeeId) => {
+const getByEmployee = async (employeeId, date = "") => {
   const result = await pool.query(
     `
     SELECT
@@ -217,9 +234,10 @@ const getByEmployee = async (employeeId) => {
     FROM attendance a
     JOIN employees e ON e.id = a.employee_id
     WHERE a.employee_id = $1
+    AND ($2 = '' OR a.date = $2::date)
     ORDER BY a.date DESC
   `,
-    [employeeId],
+    [employeeId, date],
   );
 
   return result.rows;

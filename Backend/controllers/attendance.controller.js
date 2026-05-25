@@ -35,6 +35,7 @@ const getAttendance = async (req, res) => {
       status,
       date,
       branch_id,
+      req.allowedBranchIds,
     );
 
     res.json(data);
@@ -46,7 +47,8 @@ const getAttendance = async (req, res) => {
 // Get attendance by employee
 const getByEmployee = async (req, res) => {
   try {
-    const data = await attendanceService.getByEmployee(req.params.id);
+    const { date = "" } = req.query;
+    const data = await attendanceService.getByEmployee(req.params.id, date);
     res.json(data);
   } catch (error) {
     res.status(500).json({ message: error.message });
