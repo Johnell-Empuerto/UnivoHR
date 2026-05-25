@@ -1,5 +1,5 @@
 // features/payroll/pages/PayrollGenerate.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
@@ -12,7 +12,22 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { generatePayroll } from "@/services/payrollService";
+import { getActiveBranches } from "@/services/branchService";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+
+interface Branch {
+  id: number;
+  name: string;
+  code: string;
+}
 
 interface PayrollGenerateProps {
   onGenerateComplete?: () => void;
@@ -22,8 +37,16 @@ const PayrollGenerate = ({ onGenerateComplete }: PayrollGenerateProps) => {
   const [cutoffStart, setCutoffStart] = useState<Date | null>(new Date());
   const [cutoffEnd, setCutoffEnd] = useState<Date | null>(new Date());
   const [payDate, setPayDate] = useState<Date | null>(new Date());
+  const [selectedBranch, setSelectedBranch] = useState("");
+  const [branches, setBranches] = useState<Branch[]>([]);
 
   const [generating, setGenerating] = useState(false);
+
+  useEffect(() => {
+    getActiveBranches()
+      .then((data) => setBranches(data))
+      .catch(() => {});
+  }, []);
 
   const handleGenerate = async () => {
     if (!cutoffStart || !cutoffEnd || !payDate) {
@@ -34,10 +57,13 @@ const PayrollGenerate = ({ onGenerateComplete }: PayrollGenerateProps) => {
     try {
       setGenerating(true);
 
+      const branchId = selectedBranch && selectedBranch !== "all" ? selectedBranch : "";
+
       const payload = {
         cutoff_start: format(cutoffStart, "yyyy-MM-dd"),
         cutoff_end: format(cutoffEnd, "yyyy-MM-dd"),
         pay_date: format(payDate, "yyyy-MM-dd"),
+        branch_id: branchId,
       };
 
       console.log(" Sending payroll generate request:", payload);
@@ -46,6 +72,7 @@ const PayrollGenerate = ({ onGenerateComplete }: PayrollGenerateProps) => {
         payload.cutoff_start,
         payload.cutoff_end,
         payload.pay_date,
+        payload.branch_id,
       );
       console.log(" Backend response:", res);
 
@@ -150,6 +177,27 @@ const PayrollGenerate = ({ onGenerateComplete }: PayrollGenerateProps) => {
               />
             </PopoverContent>
           </Popover>
+        </div>
+
+        {/* BRANCH SELECTOR */}
+        <div className="space-y-2">
+          <Label>Branch</Label>
+          <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Branches" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Branches</SelectItem>
+              {branches.map((b) => (
+                <SelectItem key={b.id} value={String(b.id)}>
+                  {b.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Leave as "All Branches" to generate payroll for all active employees
+          </p>
         </div>
 
         {/* INFO */}

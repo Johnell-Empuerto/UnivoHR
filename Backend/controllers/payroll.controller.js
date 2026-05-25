@@ -5,12 +5,13 @@ const audit = require("../services/audit.service");
 // Generate Payroll
 const generatePayroll = async (req, res) => {
   try {
-    const { cutoff_start, cutoff_end, pay_date } = req.body;
+    const { cutoff_start, cutoff_end, pay_date, branch_id } = req.body;
 
     const data = await payrollService.generatePayroll(
       cutoff_start,
       cutoff_end,
       pay_date,
+      branch_id || null,
     );
 
     res.json(data);
@@ -28,6 +29,7 @@ const getPayroll = async (req, res) => {
       page = 1,
       limit = 10,
       search = "",
+      branch_id = "",
     } = req.query;
 
     const data = await payrollService.getPayroll(
@@ -36,6 +38,7 @@ const getPayroll = async (req, res) => {
       page,
       limit,
       search,
+      branch_id,
     );
 
     res.json(data);
@@ -47,11 +50,12 @@ const getPayroll = async (req, res) => {
 // Get Summary
 const getPayrollSummary = async (req, res) => {
   try {
-    const { cutoff_start, cutoff_end } = req.query;
+    const { cutoff_start, cutoff_end, branch_id = "" } = req.query;
 
     const data = await payrollService.getPayrollSummary(
       cutoff_start,
       cutoff_end,
+      branch_id,
     );
 
     res.json(data);

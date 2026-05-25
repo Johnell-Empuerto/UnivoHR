@@ -244,6 +244,14 @@ const PayrollDetails = () => {
                 </span>
               </p>
             </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Branch</p>
+              <p className="font-medium">
+                {record.branch_name || (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>

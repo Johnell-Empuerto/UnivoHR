@@ -42,6 +42,14 @@ import {
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { formatDate } from "@/utils/formatDate";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getActiveBranches } from "@/services/branchService";
 import FinalPayTable from "../components/FinalPayTable";
 import { getEmployeesForFinalPay } from "@/services/finalPayService";
 
@@ -70,6 +78,17 @@ const PayRollPage = () => {
   // Payroll Records Search state
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+
+  // Branch Filter State
+  const [branches, setBranches] = useState<any[]>([]);
+  const [branchFilter, setBranchFilter] = useState("");
+
+  // Fetch branches on mount
+  useEffect(() => {
+    getActiveBranches()
+      .then((data) => setBranches(data))
+      .catch(() => {});
+  }, []);
 
   // Final Pay Pagination State
   const [pendingCurrentPage, setPendingCurrentPage] = useState(1);
@@ -108,12 +127,15 @@ const PayRollPage = () => {
     try {
       setLoading(true);
 
+      const branchParam = branchFilter && branchFilter !== "all" ? branchFilter : undefined;
+
       const payroll = await getPayroll(
         cutoffStartStr,
         cutoffEndStr,
         currentPage,
         rowsPerPage,
         search,
+        branchParam,
       );
 
       console.log(`Payroll data received: ${payroll.data.length} records`);
@@ -122,7 +144,7 @@ const PayRollPage = () => {
       setTotalPages(payroll.pagination.totalPages);
       setTotalRecords(payroll.pagination.total);
 
-      const summaryData = await getPayrollSummary(cutoffStartStr, cutoffEndStr);
+      const summaryData = await getPayrollSummary(cutoffStartStr, cutoffEndStr, branchParam);
       setSummary(summaryData);
 
       // Restore scroll position after page change
@@ -150,7 +172,7 @@ const PayRollPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [cutoffStartStr, cutoffEndStr, currentPage, rowsPerPage, search]);
+  }, [cutoffStartStr, cutoffEndStr, currentPage, rowsPerPage, search, branchFilter]);
 
   const groupPayroll = (data: any[]) => {
     const groups: Record<string, any[]> = {};
@@ -376,6 +398,23 @@ const PayRollPage = () => {
             <CardContent className="p-4">
               <div className="flex flex-wrap items-center gap-4">
                 <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">Branch:</span>
+                  <Select value={branchFilter} onValueChange={setBranchFilter}>
+                    <SelectTrigger className="w-44">
+                      <SelectValue placeholder="All Branches" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Branches</SelectItem>
+                      {branches.map((b) => (
+                        <SelectItem key={b.id} value={String(b.id)}>
+                          {b.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">Payroll Period:</span>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -472,8 +511,12 @@ const PayRollPage = () => {
                             setMarkPaidDialogOpen(true);
                           }}
                         >
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Mark Batch Paid
+                          {isMarkingBatchPaid ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                          )}
+                          {isMarkingBatchPaid ? "Marking..." : "Mark Batch Paid"}
                         </Button>
 
                         <Button

@@ -5,11 +5,13 @@ export const generatePayroll = async (
   cutoff_start: string,
   cutoff_end: string,
   pay_date: string,
+  branch_id?: string,
 ) => {
   const response = await api.post("/payroll/generate", {
     cutoff_start,
     cutoff_end,
     pay_date,
+    branch_id: branch_id || undefined,
   });
   return response.data;
 };
@@ -21,6 +23,7 @@ export const getPayroll = async (
   page: number,
   limit: number,
   search: string,
+  branch_id?: string,
 ) => {
   const res = await api.get("/payroll", {
     params: {
@@ -29,6 +32,7 @@ export const getPayroll = async (
       page,
       limit,
       search,
+      branch_id: branch_id || undefined,
     },
   });
 
@@ -39,9 +43,10 @@ export const getPayroll = async (
 export const getPayrollSummary = async (
   cutoff_start: string,
   cutoff_end: string,
+  branch_id?: string,
 ) => {
   const response = await api.get("/payroll/summary", {
-    params: { cutoff_start, cutoff_end },
+    params: { cutoff_start, cutoff_end, branch_id: branch_id || undefined },
   });
   return response.data;
 };

@@ -5,21 +5,22 @@ const overtimeModel = require("./overtime.model");
 // ============================================
 // GENERATE PAYROLL (FULLY OPTIMIZED - NO N+1 QUERIES + TRANSACTIONS)
 // ============================================
-const generatePayroll = async (cutoff_start, cutoff_end, pay_date) => {
+const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = null) => {
   const client = await pool.connect();
 
   try {
     await client.query("BEGIN");
 
-    // DELETE OLD UNPAID PAYROLL FIRST
+    // DELETE OLD UNPAID PAYROLL FIRST (optional branch filter)
     await client.query(
       `
-  DELETE FROM payroll
-  WHERE cutoff_start = $1::date
-  AND cutoff_end = $2::date
-  AND status = 'UNPAID'
-`,
-      [cutoff_start, cutoff_end],
+      DELETE FROM payroll
+      WHERE cutoff_start = $1::date
+        AND cutoff_end = $2::date
+        AND status = 'UNPAID'
+        AND ($3::int IS NULL OR branch_id = $3::int)
+    `,
+      [cutoff_start, cutoff_end, branch_id],
     );
 
     // 1. FETCH PAY RULES (MULTIPLIERS)
@@ -45,12 +46,16 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date) => {
     const { conversion_rate, enforce_sil, sil_min_days } = settingsRes
       .rows[0] || { conversion_rate: 1, enforce_sil: false, sil_min_days: 0 };
 
-    // 3. GET ACTIVE EMPLOYEES
-    const employees = await client.query(`
+    // 3. GET ACTIVE EMPLOYEES (optional branch filter)
+    const employees = await client.query(
+      `
       SELECT e.*
       FROM employees e
       WHERE e.status = 'ACTIVE'
-    `);
+        AND ($1::int IS NULL OR e.branch_id = $1::int)
+    `,
+      [branch_id],
+    );
 
     if (employees.rows.length === 0) {
       await client.query("ROLLBACK");
@@ -632,15 +637,18 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date) => {
       );
       if (existingLocked.rows.length > 0) continue;
 
+      // Determine branch_id for this payroll record
+      const empBranchId = branch_id || emp.branch_id || null;
+
       // Insert payroll record (using client instead of pool for transaction)
       const payrollInsertResult = await client.query(
         `INSERT INTO payroll (
           employee_id, cutoff_start, cutoff_end, pay_date,
           basic_salary, overtime_pay, deductions, net_salary,
           late_deduction, absent_deduction, government_deduction,
-          leave_conversion, rule_snapshot
+          leave_conversion, rule_snapshot, branch_id
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
         ON CONFLICT (employee_id, cutoff_start, cutoff_end)
         DO UPDATE SET
           overtime_pay = EXCLUDED.overtime_pay,
@@ -649,7 +657,8 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date) => {
           late_deduction = EXCLUDED.late_deduction,
           absent_deduction = EXCLUDED.absent_deduction,
           leave_conversion = EXCLUDED.leave_conversion,
-          rule_snapshot = EXCLUDED.rule_snapshot
+          rule_snapshot = EXCLUDED.rule_snapshot,
+          branch_id = EXCLUDED.branch_id
         RETURNING id`,
         [
           emp.id,
@@ -695,7 +704,8 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date) => {
               pay: overtime_pay,
               request_ids: overtime.request_ids,
             },
-          }),
+            }),
+          empBranchId,
         ],
       );
 
@@ -771,6 +781,7 @@ const getPayroll = async (
   page = 1,
   limit = 10,
   search = "",
+  branch_id = "",
 ) => {
   const offset = (page - 1) * limit;
 
@@ -797,14 +808,18 @@ const getPayroll = async (
     p.status,
     p.cutoff_start,
     p.cutoff_end,
-    p.pay_date
+    p.pay_date,
+    p.branch_id,
+    b.name AS branch_name
 
   FROM payroll p
   JOIN employees e ON e.id = p.employee_id
   LEFT JOIN employee_salary s ON s.employee_id = e.id
+  LEFT JOIN branches b ON b.id = p.branch_id
 
   WHERE p.cutoff_start::date >= $4::date
     AND p.cutoff_end::date <= $5::date
+    AND ($6 = '' OR p.branch_id = $6::int)
   AND (
     e.first_name ILIKE $3 OR 
     e.last_name ILIKE $3 OR 
@@ -815,7 +830,7 @@ const getPayroll = async (
   ORDER BY e.first_name, e.last_name
   LIMIT $1 OFFSET $2
   `,
-    [limit, offset, `%${search}%`, cutoff_start, cutoff_end],
+    [limit, offset, `%${search}%`, cutoff_start, cutoff_end, branch_id],
   );
 
   const countQuery = await pool.query(
@@ -825,6 +840,7 @@ const getPayroll = async (
     JOIN employees e ON e.id = p.employee_id
     WHERE p.cutoff_start::date >= $2::date
       AND p.cutoff_end::date <= $3::date
+      AND ($4 = '' OR p.branch_id = $4::int)
     AND (
       e.first_name ILIKE $1 OR 
       e.last_name ILIKE $1 OR 
@@ -832,7 +848,7 @@ const getPayroll = async (
       CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $1
     )
     `,
-    [`%${search}%`, cutoff_start, cutoff_end],
+    [`%${search}%`, cutoff_start, cutoff_end, branch_id],
   );
 
   const total = parseInt(countQuery.rows[0].count);
@@ -849,7 +865,7 @@ const getPayroll = async (
 };
 
 // GET PAYROLL SUMMARY
-const getPayrollSummary = async (cutoff_start, cutoff_end) => {
+const getPayrollSummary = async (cutoff_start, cutoff_end, branch_id = "") => {
   const result = await pool.query(
     `
     SELECT 
@@ -858,9 +874,10 @@ const getPayrollSummary = async (cutoff_start, cutoff_end) => {
       COALESCE(SUM(deductions), 0) AS total_deductions
     FROM payroll
     WHERE cutoff_start >= $1 
-    AND cutoff_end <= $2
+      AND cutoff_end <= $2
+      AND ($3 = '' OR branch_id = $3::int)
   `,
-    [cutoff_start, cutoff_end],
+    [cutoff_start, cutoff_end, branch_id],
   );
 
   return result.rows[0];
@@ -920,10 +937,12 @@ const getPayrollDetails = async (id) => {
       e.philhealth_number,
       e.hdmf_number,
       e.tin_number,
-      s.basic_salary AS monthly_salary  
+      s.basic_salary AS monthly_salary,
+      b.name AS branch_name
     FROM payroll p
     JOIN employees e ON e.id = p.employee_id
     LEFT JOIN employee_salary s ON s.employee_id = e.id
+    LEFT JOIN branches b ON b.id = p.branch_id
     WHERE p.id = $1
     `,
     [id],
@@ -1118,6 +1137,7 @@ const getMyPayroll = async (employee_id, cutoff_start, cutoff_end) => {
       e.middle_name,
       e.suffix,
       e.employee_code,
+      b.name AS branch_name,
       COALESCE(
         (
           SELECT json_agg(
@@ -1134,6 +1154,7 @@ const getMyPayroll = async (employee_id, cutoff_start, cutoff_end) => {
       ) AS deductions_list
     FROM payroll p
     JOIN employees e ON e.id = p.employee_id
+    LEFT JOIN branches b ON b.id = p.branch_id
     WHERE p.employee_id = $1
     AND p.cutoff_start >= $2 
     AND p.cutoff_end <= $3

@@ -39,6 +39,8 @@ interface PayrollRecord {
   late_deduction?: number;
   absent_deduction?: number;
   government_deduction?: number;
+  branch_id?: number | null;
+  branch_name?: string | null;
 }
 
 interface PayrollTableProps {
@@ -167,6 +169,7 @@ const PayrollTable = ({
           <TableRow className="bg-muted">
             <TableHead>Employee Code</TableHead>
             <TableHead>Name</TableHead>
+            <TableHead>Branch</TableHead>
             <TableHead>Basic Salary</TableHead>
             <TableHead>Overtime</TableHead>
             <TableHead>Leave Conv.</TableHead>
@@ -185,6 +188,11 @@ const PayrollTable = ({
                   {record.employee_code}
                 </TableCell>
                 <TableCell>{formatEmployeeName(record)}</TableCell>
+                <TableCell>
+                  {record.branch_name || (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
                 <TableCell>₱{formatCurrency(record.basic_salary)}</TableCell>
                 <TableCell>₱{formatCurrency(record.overtime_pay)}</TableCell>
                 {/*  FIXED LEAVE CONVERSION CELL */}
@@ -252,7 +260,7 @@ const PayrollTable = ({
           ) : (
             <TableRow>
               <TableCell
-                colSpan={9}
+                colSpan={10}
                 className="text-center py-8 text-muted-foreground"
               >
                 No payroll records found
