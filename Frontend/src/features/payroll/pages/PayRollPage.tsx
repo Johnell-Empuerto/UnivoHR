@@ -423,12 +423,67 @@ const PayRollPage = () => {
                         {format(date, "MMMM yyyy")}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={(d) => d && setDate(d)}
-                      />
+                    <PopoverContent className="w-72 p-3">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setDate(
+                              new Date(date.getFullYear(), date.getMonth() - 1, 1),
+                            )
+                          }
+                        >
+                          ‹
+                        </Button>
+                        <select
+                          value={date.getMonth()}
+                          onChange={(e) =>
+                            setDate(
+                              new Date(date.getFullYear(), parseInt(e.target.value), 1),
+                            )
+                          }
+                          className="flex-1 border rounded px-2 py-1 text-sm bg-background"
+                        >
+                          {[
+                            "January", "February", "March", "April", "May", "June",
+                            "July", "August", "September", "October", "November", "December",
+                          ].map((m, i) => (
+                            <option key={i} value={i}>
+                              {m}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={date.getFullYear()}
+                          onChange={(e) =>
+                            setDate(
+                              new Date(parseInt(e.target.value), date.getMonth(), 1),
+                            )
+                          }
+                          className="border rounded px-2 py-1 text-sm bg-background"
+                        >
+                          {Array.from(
+                            { length: 5 },
+                            (_, i) => new Date().getFullYear() - 2 + i,
+                          ).map((y) => (
+                            <option key={y} value={y}>
+                              {y}
+                            </option>
+                          ))}
+                        </select>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setDate(
+                              new Date(date.getFullYear(), date.getMonth() + 1, 1),
+                            )
+                          }
+                        >
+                          ›
+                        </Button>
+                      </div>
                     </PopoverContent>
                   </Popover>
                 </div>
