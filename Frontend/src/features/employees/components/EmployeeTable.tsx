@@ -146,6 +146,7 @@ const EmployeeTable = ({
               <TableRow className="bg-muted">
                 <TableHead>Employee Code</TableHead>
                 <TableHead>Name</TableHead>
+                <TableHead>Branch</TableHead>
                 <TableHead>Department</TableHead>
                 <TableHead>Position</TableHead>
                 <TableHead>Status</TableHead>
@@ -165,6 +166,7 @@ const EmployeeTable = ({
                     <TableCell>
                       {`${item.first_name || ""} ${item.middle_name || ""} ${item.last_name || ""}${item.suffix ? `, ${item.suffix}` : ""}`.trim()}
                     </TableCell>
+                    <TableCell>{item.branch_name || "Main Branch"}</TableCell>
                     <TableCell>{item.department || "-"}</TableCell>
                     <TableCell>{item.position || "-"}</TableCell>
                     <TableCell>
@@ -207,7 +209,7 @@ const EmployeeTable = ({
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={6}
+                    colSpan={7}
                     className="text-center py-8 text-muted-foreground"
                   >
                     No employees found

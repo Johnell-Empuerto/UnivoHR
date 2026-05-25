@@ -12,6 +12,7 @@ import { formatDate, formatDateForInput } from "@/utils/formatDate";
 
 import { useState, useEffect } from "react";
 import { updateEmployee, createEmployee } from "@/services/employeeService";
+import { getActiveBranches } from "@/services/branchService";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers/AuthProvider";
 
@@ -50,6 +51,8 @@ type Employee = {
   final_pay_processed?: boolean;
   final_pay_date?: string | null;
   final_pay_amount?: number | null;
+  branch_id?: number | null;
+  branch_name?: string | null;
 };
 
 type Props = {
@@ -137,6 +140,19 @@ const EmployeeDrawer = ({
   useAuth();
   const [form, setForm] = useState<any>({});
   const [loading, setLoading] = useState(false);
+  const [branches, setBranches] = useState<{ id: number; name: string; code: string }[]>([]);
+
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const data = await getActiveBranches();
+        setBranches(data);
+      } catch {
+        // silently fail - branches are optional for the form
+      }
+    };
+    fetchBranches();
+  }, []);
 
   const canEditMode =
     (mode === "edit" && canEdit) || (mode === "create" && canCreate);
@@ -206,11 +222,12 @@ const EmployeeDrawer = ({
         resignation_date: "",
         termination_date: "",
         last_working_date: "",
+        branch_id: branches.length > 0 ? branches[0].id : "",
       });
     } else if (mode === "view" && employee) {
       setForm(employee);
     }
-  }, [employee, mode]);
+  }, [employee, mode, branches]);
 
   const handleChange = (e: any) => {
     if (isViewOnly) return;
@@ -497,6 +514,16 @@ const EmployeeDrawer = ({
 
               <div className="rounded-lg border p-4 space-y-3">
                 <p className="text-xs font-semibold text-muted-foreground uppercase">
+                  Branch
+                </p>
+                <Info
+                  label="Branch"
+                  value={employee?.branch_name || "Main Branch"}
+                />
+              </div>
+
+              <div className="rounded-lg border p-4 space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase">
                   System Information
                 </p>
                 <Info label="RFID Tag" value={employee?.rfid_tag} />
@@ -597,6 +624,23 @@ const EmployeeDrawer = ({
                   placeholder="e.g., Software Engineer"
                   disabled={!canEditMode}
                 />
+
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Branch</p>
+                  <select
+                    name="branch_id"
+                    value={form.branch_id || ""}
+                    onChange={handleChange}
+                    disabled={!canEditMode}
+                    className="w-full border rounded px-2 py-1 bg-background"
+                  >
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} ({b.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
                 <SelectField
                   label="Status"

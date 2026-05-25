@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Clock,
   FileText,
+  Building2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import smallIcon from "@/assets/images/small-icon.png";
@@ -319,6 +320,17 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           >
             <UserCog className="h-5 w-5" />
             {!collapsed && "Accounts"}
+          </NavLink>
+        )}
+
+        {/* Branch Management - ADMIN and HR_ADMIN only */}
+        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && (
+          <NavLink
+            to="/branches"
+            className={({ isActive }) => linkClass(isActive)}
+          >
+            <Building2 className="h-5 w-5" />
+            {!collapsed && "Branches"}
           </NavLink>
         )}
 

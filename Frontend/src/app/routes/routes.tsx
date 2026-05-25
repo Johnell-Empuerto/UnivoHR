@@ -37,6 +37,7 @@ import OvertimeDocs from "@/features/docs/pages/OvertimeDocs";
 import SettingsDocs from "@/features/docs/pages/SettingsDocs";
 import EmployeesDocs from "@/features/docs/pages/EmployeesDocs";
 import UsersDocs from "@/features/docs/pages/UsersDocs";
+import BranchesPage from "@/features/branches/pages/BranchesPage";
 
 const AppRoutes = () => {
   const { isAuth, user } = useAuth();
@@ -197,6 +198,11 @@ const AppRoutes = () => {
 
           {/* Notifications page - Inside layout with sidebar and navbar */}
           <Route path="/notifications" element={<NotificationsPage />} />
+
+          {/* Branch Management - ADMIN and HR_ADMIN only */}
+          {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && (
+            <Route path="/branches" element={<BranchesPage />} />
+          )}
         </Route>
       </Routes>
     </BrowserRouter>

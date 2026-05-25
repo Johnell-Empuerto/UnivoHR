@@ -7,17 +7,18 @@ const getEmployees = async (page = 1, limit = 10, search = "", status = "") => {
 
   const dataQuery = await pool.query(
     `
-    SELECT *
-    FROM employees
+    SELECT e.*, b.name AS branch_name, b.code AS branch_code
+    FROM employees e
+    LEFT JOIN branches b ON b.id = e.branch_id
     WHERE 
       (
-        first_name ILIKE $3 OR 
-        last_name ILIKE $3 OR 
-        employee_code ILIKE $3 OR
-        CONCAT_WS(' ', first_name, middle_name, last_name, suffix) ILIKE $3
+        e.first_name ILIKE $3 OR 
+        e.last_name ILIKE $3 OR 
+        e.employee_code ILIKE $3 OR
+        CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $3
       )
-      AND ($4 = '' OR status = $4)
-    ORDER BY id DESC
+      AND ($4 = '' OR e.status = $4)
+    ORDER BY e.id DESC
     LIMIT $1 OFFSET $2
     `,
     [limit, offset, searchValue, status],
@@ -26,15 +27,15 @@ const getEmployees = async (page = 1, limit = 10, search = "", status = "") => {
   const countQuery = await pool.query(
     `
     SELECT COUNT(*)
-    FROM employees
+    FROM employees e
     WHERE 
       (
-        first_name ILIKE $1 OR 
-        last_name ILIKE $1 OR 
-        employee_code ILIKE $1 OR
-        CONCAT_WS(' ', first_name, middle_name, last_name, suffix) ILIKE $1
+        e.first_name ILIKE $1 OR 
+        e.last_name ILIKE $1 OR 
+        e.employee_code ILIKE $1 OR
+        CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $1
       )
-      AND ($2 = '' OR status = $2)
+      AND ($2 = '' OR e.status = $2)
     `,
     [searchValue, status],
   );
@@ -53,6 +54,8 @@ const getEmployees = async (page = 1, limit = 10, search = "", status = "") => {
 };
 
 const createEmployee = async (data) => {
+  const branchId = data.branch_id || (await getDefaultBranchId());
+
   const query = `
     INSERT INTO employees (
       first_name, middle_name, last_name, suffix,
@@ -62,12 +65,13 @@ const createEmployee = async (data) => {
       emergency_contact_address, emergency_contact_relation,
       marital_status, rfid_tag, fingerprint_id, status,
       sss_number, philhealth_number, hdmf_number, tin_number,
-      hired_date, resignation_date, termination_date, last_working_date
+      hired_date, resignation_date, termination_date, last_working_date,
+      branch_id
     )
     VALUES (
       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
       $12,$13,$14,$15,$16,$17,$18,$19,$20,
-      $21,$22,$23,$24,$25,$26,$27,$28
+      $21,$22,$23,$24,$25,$26,$27,$28,$29
     )
     RETURNING *;
   `;
@@ -100,6 +104,7 @@ const createEmployee = async (data) => {
     data.resignation_date || null,
     data.termination_date || null,
     data.last_working_date || null,
+    branchId,
   ];
 
   const result = await pool.query(query, values);
@@ -107,6 +112,8 @@ const createEmployee = async (data) => {
 };
 
 const updateEmployee = async (id, data) => {
+  const branchId = data.branch_id || (await getDefaultBranchId());
+
   const query = `
     UPDATE employees SET
       first_name = $1,
@@ -135,7 +142,8 @@ const updateEmployee = async (id, data) => {
       hired_date = $24,
       resignation_date = $25,
       termination_date = $26,
-      last_working_date = $27
+      last_working_date = $27,
+      branch_id = $29
     WHERE id = $28
     RETURNING *;
   `;
@@ -169,6 +177,7 @@ const updateEmployee = async (id, data) => {
     data.termination_date || null,
     data.last_working_date || null,
     id,
+    branchId,
   ];
 
   const result = await pool.query(query, values);
@@ -178,10 +187,21 @@ const updateEmployee = async (id, data) => {
 // Helper to get employee by ID
 const getEmployeeById = async (id) => {
   const query = `
-    SELECT * FROM employees WHERE id = $1
+    SELECT e.*, b.name AS branch_name, b.code AS branch_code
+    FROM employees e
+    LEFT JOIN branches b ON b.id = e.branch_id
+    WHERE e.id = $1
   `;
   const result = await pool.query(query, [id]);
   return result.rows[0];
+};
+
+// Helper to get default branch ID (Main Branch)
+const getDefaultBranchId = async () => {
+  const result = await pool.query(
+    `SELECT id FROM branches WHERE code = 'MAIN' LIMIT 1`,
+  );
+  return result.rows[0]?.id || null;
 };
 
 module.exports = {
