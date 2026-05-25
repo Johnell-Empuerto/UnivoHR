@@ -384,11 +384,13 @@ const PayRollPage = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full max-w-md grid-cols-4">
+        <TabsList className={`grid w-full max-w-md ${user?.role === "ADMIN" ? "grid-cols-4" : "grid-cols-3"}`}>
           <TabsTrigger value="records">Payroll Records</TabsTrigger>
           <TabsTrigger value="final-pay">Final Pay</TabsTrigger>
           <TabsTrigger value="generate">Generate Payroll</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+          {user?.role === "ADMIN" && (
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+          )}
         </TabsList>
 
         {/* ============================================ */}
@@ -679,11 +681,13 @@ const PayRollPage = () => {
         </TabsContent>
 
         {/* ============================================ */}
-        {/* SETTINGS TAB */}
+        {/* SETTINGS TAB (ADMIN ONLY) */}
         {/* ============================================ */}
+        {user?.role === "ADMIN" && (
         <TabsContent value="settings">
           <PayrollSettings />
         </TabsContent>
+        )}
       </Tabs>
 
       {/* DELETE CONFIRMATION DIALOG */}

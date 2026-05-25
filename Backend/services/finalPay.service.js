@@ -93,11 +93,17 @@ const calculateWorkUnits = async (employeeId, startDate, endDate) => {
 // ============================================
 // GET EMPLOYEES FOR FINAL PAY (WITH PAGINATION)
 // ============================================
-const getEmployeesForFinalPay = async (page = 1, limit = 10, search = "") => {
+const getEmployeesForFinalPay = async (page = 1, limit = 10, search = "", allowedBranchIds = null) => {
   const offset = (page - 1) * limit;
   const searchValue = `%${search}%`;
 
-  // Data query with pagination
+  const params = [limit, offset, searchValue];
+  let branchClause = "";
+  if (allowedBranchIds && allowedBranchIds.length > 0) {
+    branchClause = `AND e.branch_id = ANY($${params.length + 1}::int[])`;
+    params.push(allowedBranchIds);
+  }
+
   const dataQuery = await pool.query(
     `
     SELECT 
@@ -126,6 +132,7 @@ const getEmployeesForFinalPay = async (page = 1, limit = 10, search = "") => {
     LEFT JOIN leave_credits lc ON e.id = lc.employee_id
     WHERE e.status IN ('RESIGNED', 'TERMINATED')
     AND (e.final_pay_processed IS NULL OR e.final_pay_processed = false)
+    ${branchClause}
     AND (
       $3 = '' OR 
       e.first_name ILIKE $3 OR 
@@ -139,16 +146,23 @@ const getEmployeesForFinalPay = async (page = 1, limit = 10, search = "") => {
       e.termination_date DESC NULLS LAST
     LIMIT $1 OFFSET $2
     `,
-    [limit, offset, searchValue],
+    params,
   );
 
-  // Count query for pagination
+  const countParams = [searchValue];
+  let countBranchClause = "";
+  if (allowedBranchIds && allowedBranchIds.length > 0) {
+    countBranchClause = `AND e.branch_id = ANY($${countParams.length + 1}::int[])`;
+    countParams.push(allowedBranchIds);
+  }
+
   const countQuery = await pool.query(
     `
     SELECT COUNT(*)
     FROM employees e
     WHERE e.status IN ('RESIGNED', 'TERMINATED')
     AND (e.final_pay_processed IS NULL OR e.final_pay_processed = false)
+    ${countBranchClause}
     AND (
       $1 = '' OR 
       e.first_name ILIKE $1 OR 
@@ -157,7 +171,7 @@ const getEmployeesForFinalPay = async (page = 1, limit = 10, search = "") => {
       CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $1
     )
     `,
-    [searchValue],
+    countParams,
   );
 
   const total = parseInt(countQuery.rows[0].count);
@@ -443,8 +457,15 @@ const processFinalPay = async (employeeId, processedBy) => {
 // ============================================
 // GET FINAL PAY HISTORY
 // ============================================
-const getFinalPayHistory = async (page = 1, limit = 10, search = "") => {
+const getFinalPayHistory = async (page = 1, limit = 10, search = "", allowedBranchIds = null) => {
   const offset = (page - 1) * limit;
+
+  const params = [limit, offset, `%${search}%`];
+  let branchClause = "";
+  if (allowedBranchIds && allowedBranchIds.length > 0) {
+    branchClause = `AND e.branch_id = ANY($${params.length + 1}::int[])`;
+    params.push(allowedBranchIds);
+  }
 
   const dataQuery = await pool.query(
     `
@@ -460,27 +481,40 @@ const getFinalPayHistory = async (page = 1, limit = 10, search = "") => {
     FROM final_pay fp
     JOIN employees e ON e.id = fp.employee_id
     LEFT JOIN users u ON u.id = fp.processed_by
-    WHERE 
-      e.first_name ILIKE $3 OR 
-      e.last_name ILIKE $3 OR 
-      e.employee_code ILIKE $3
+    WHERE (1=1)
+      ${branchClause}
+      AND (
+        e.first_name ILIKE $3 OR 
+        e.last_name ILIKE $3 OR 
+        e.employee_code ILIKE $3
+      )
     ORDER BY fp.processed_at DESC
     LIMIT $1 OFFSET $2
     `,
-    [limit, offset, `%${search}%`],
+    params,
   );
+
+  const countParams = [`%${search}%`];
+  let countBranchClause = "";
+  if (allowedBranchIds && allowedBranchIds.length > 0) {
+    countBranchClause = `AND e.branch_id = ANY($${countParams.length + 1}::int[])`;
+    countParams.push(allowedBranchIds);
+  }
 
   const countQuery = await pool.query(
     `
     SELECT COUNT(*)
     FROM final_pay fp
     JOIN employees e ON e.id = fp.employee_id
-    WHERE 
-      e.first_name ILIKE $1 OR 
-      e.last_name ILIKE $1 OR 
-      e.employee_code ILIKE $1
+    WHERE (1=1)
+      ${countBranchClause}
+      AND (
+        e.first_name ILIKE $1 OR 
+        e.last_name ILIKE $1 OR 
+        e.employee_code ILIKE $1
+      )
     `,
-    [`%${search}%`],
+    countParams,
   );
 
   const total = parseInt(countQuery.rows[0].count);

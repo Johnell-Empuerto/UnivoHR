@@ -4,16 +4,22 @@ const notificationService = require("../services/notification.service");
 const audit = require("../services/audit.service");
 const { getUserBranchIds } = require("../utils/branchAccess");
 
-// Generate Payroll
+// Generate Payroll (with branch access)
 const generatePayroll = async (req, res) => {
   try {
-    const { cutoff_start, cutoff_end, pay_date, branch_id } = req.body;
+    const { cutoff_start, cutoff_end, pay_date } = req.body;
+    const branch_id = req.body.branch_id || null;
+
+    // HR_ADMIN must specify a branch (cannot generate for all branches)
+    if (req.user.role !== "ADMIN" && !branch_id) {
+      return res.status(403).json({ message: "You are not allowed to manage this branch." });
+    }
 
     const data = await payrollService.generatePayroll(
       cutoff_start,
       cutoff_end,
       pay_date,
-      branch_id || null,
+      branch_id,
     );
 
     res.json(data);
@@ -157,16 +163,19 @@ const getQueueStatus = async (req, res) => {
   }
 };
 
-// Update markAsPaid - response is instant, emails in background
+// Update markAsPaid (with branch access)
 const markAsPaid = async (req, res) => {
   try {
     const { id } = req.params;
     const payrollId = Number(id);
 
-    console.log("[Payroll/Pay] PATCH /payroll/:id/pay", {
-      received_id_param: id,
-      parsed_payroll_id: payrollId,
-    });
+    if (req.user.role !== "ADMIN") {
+      const existing = await payrollService.getPayrollDetails(payrollId);
+      const branchNum = existing?.branch_id ? Number(existing.branch_id) : null;
+      if (!branchNum || !(await getUserBranchIds(req.user.id)).includes(branchNum)) {
+        return res.status(403).json({ message: "You are not allowed to manage this branch." });
+      }
+    }
 
     // Update DB and queue email (async)
     const data = await payrollService.markAsPaid(payrollId);
@@ -331,6 +340,15 @@ const downloadPayslip = async (req, res) => {
 const lockPayroll = async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (req.user.role !== "ADMIN") {
+      const existing = await payrollService.getPayrollDetails(id);
+      const branchNum = existing?.branch_id ? Number(existing.branch_id) : null;
+      if (!branchNum || !(await getUserBranchIds(req.user.id)).includes(branchNum)) {
+        return res.status(403).json({ message: "You are not allowed to manage this branch." });
+      }
+    }
+
     const data = await payrollService.lockPayroll(id);
     if (!data) return res.status(404).json({ message: "Payroll not found or already locked/paid" });
     audit.log({ actor_id: req.user.id, action: "PAYROLL_LOCKED", entity_type: "payroll", entity_id: Number(id), req });
@@ -343,6 +361,15 @@ const lockPayroll = async (req, res) => {
 const unlockPayroll = async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (req.user.role !== "ADMIN") {
+      const existing = await payrollService.getPayrollDetails(id);
+      const branchNum = existing?.branch_id ? Number(existing.branch_id) : null;
+      if (!branchNum || !(await getUserBranchIds(req.user.id)).includes(branchNum)) {
+        return res.status(403).json({ message: "You are not allowed to manage this branch." });
+      }
+    }
+
     const data = await payrollService.unlockPayroll(id);
     if (!data) return res.status(404).json({ message: "Payroll not found or not locked" });
     audit.log({ actor_id: req.user.id, action: "PAYROLL_UNLOCKED", entity_type: "payroll", entity_id: Number(id), req });
@@ -355,6 +382,15 @@ const unlockPayroll = async (req, res) => {
 const voidPayroll = async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (req.user.role !== "ADMIN") {
+      const existing = await payrollService.getPayrollDetails(id);
+      const branchNum = existing?.branch_id ? Number(existing.branch_id) : null;
+      if (!branchNum || !(await getUserBranchIds(req.user.id)).includes(branchNum)) {
+        return res.status(403).json({ message: "You are not allowed to manage this branch." });
+      }
+    }
+
     const data = await payrollService.voidPayroll(id);
     if (!data) return res.status(404).json({ message: "Payroll not found or already paid/voided" });
     audit.log({ actor_id: req.user.id, action: "PAYROLL_VOIDED", entity_type: "payroll", entity_id: Number(id), req });

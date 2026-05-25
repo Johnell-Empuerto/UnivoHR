@@ -5,7 +5,7 @@ const controller = require("../controllers/payroll.controller");
 const authenticate = require("../middleware/auth.middleware");
 const authorize = require("../middleware/role.middleware");
 const payrollLock = require("../middleware/payrollLock.middleware");
-const { requireBranchAccessFromQuery } = require("../middleware/branchAccess.middleware");
+const { requireBranchAccessFromQuery, requireBranchAccessFromBody } = require("../middleware/branchAccess.middleware");
 const ROLES = require("../constants/roles");
 
 //  LOCK / UNLOCK / VOID PAYROLL
@@ -35,6 +35,7 @@ router.post(
   "/generate",
   authenticate,
   authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  requireBranchAccessFromBody("branch_id"),
   controller.generatePayroll,
 );
 
@@ -56,47 +57,47 @@ router.get(
   controller.getPayrollSummary,
 );
 
-//  SALARY CONFIG (VERY SENSITIVE ❗)
+//  SALARY CONFIG (ADMIN ONLY ❗)
 router.get(
   "/salary",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.ADMIN]),
   controller.getEmployeeSalary,
 );
 
 router.put(
   "/salary/:id",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.ADMIN]),
   controller.updateEmployeeSalary,
 );
 
-//  DEDUCTIONS (VERY SENSITIVE ❗)
+//  DEDUCTIONS (ADMIN ONLY ❗)
 router.get(
   "/deductions/:employee_id",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.ADMIN]),
   controller.getDeductions,
 );
 
 router.post(
   "/deductions",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.ADMIN]),
   controller.createDeduction,
 );
 
 router.put(
   "/deductions/:id",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.ADMIN]),
   controller.updateDeduction,
 );
 
 router.delete(
   "/deductions/:id",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.ADMIN]),
   controller.deleteDeduction,
 );
 
