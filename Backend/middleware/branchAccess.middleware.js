@@ -6,7 +6,7 @@ const requireBranchAccessFromQuery = (paramName = "branch_id") => {
       const rawValue = req.query[paramName];
       const branchId = normalizeBranchId(rawValue);
 
-      if (req.user.role === "ADMIN") {
+      if (req.user.role === "ADMIN" || req.user.role === "HR_ADMIN") {
         req.allowedBranchIds = branchId ? [branchId] : null;
         return next();
       }
@@ -43,7 +43,7 @@ const requireBranchAccessFromBody = (paramName = "branch_id") => {
       const rawValue = req.body[paramName];
       const branchId = normalizeBranchId(rawValue);
 
-      if (req.user.role === "ADMIN") {
+      if (req.user.role === "ADMIN" || req.user.role === "HR_ADMIN") {
         req.allowedBranchIds = branchId ? [branchId] : null;
         return next();
       }

@@ -484,7 +484,7 @@ const AttendancePage = () => {
                 </div>
 
                 {/* Branch Filter */}
-                <Select
+                {user?.role !== "EMPLOYEE" && <Select
                   value={branchFilter || "all"}
                   onValueChange={(value) => {
                     setBranchFilter(value === "all" ? "" : value);
@@ -505,7 +505,7 @@ const AttendancePage = () => {
                       </SelectItem>
                     ))}
                   </SelectContent>
-                </Select>
+                </Select>}
 
                 {activeFilterCount > 0 && (
                   <Button variant="ghost" onClick={handleClearFilters}>

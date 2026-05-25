@@ -57,47 +57,47 @@ router.get(
   controller.getPayrollSummary,
 );
 
-//  SALARY CONFIG (ADMIN ONLY ❗)
+//  SALARY CONFIG
 router.get(
   "/salary",
   authenticate,
-  authorize([ROLES.ADMIN]),
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
   controller.getEmployeeSalary,
 );
 
 router.put(
   "/salary/:id",
   authenticate,
-  authorize([ROLES.ADMIN]),
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
   controller.updateEmployeeSalary,
 );
 
-//  DEDUCTIONS (ADMIN ONLY ❗)
+//  DEDUCTIONS
 router.get(
   "/deductions/:employee_id",
   authenticate,
-  authorize([ROLES.ADMIN]),
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
   controller.getDeductions,
 );
 
 router.post(
   "/deductions",
   authenticate,
-  authorize([ROLES.ADMIN]),
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
   controller.createDeduction,
 );
 
 router.put(
   "/deductions/:id",
   authenticate,
-  authorize([ROLES.ADMIN]),
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
   controller.updateDeduction,
 );
 
 router.delete(
   "/deductions/:id",
   authenticate,
-  authorize([ROLES.ADMIN]),
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
   controller.deleteDeduction,
 );
 

@@ -10,7 +10,7 @@ const getUserBranchIds = async (userId) => {
 
 const canAccessBranch = async (user, branchId) => {
   if (!user) return false;
-  if (user.role === "ADMIN") return true;
+  if (user.role === "ADMIN" || user.role === "HR_ADMIN") return true;
   if (user.role === "EMPLOYEE") return false;
   const branchNum = Number(branchId);
   if (!branchNum) return false;

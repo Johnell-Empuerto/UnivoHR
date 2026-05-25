@@ -8,7 +8,7 @@ const getEmployeesForFinalPay = async (req, res) => {
     const { page = 1, limit = 10, search = "" } = req.query;
 
     let allowedBranchIds = null;
-    if (req.user.role !== "ADMIN") {
+    if (req.user.role !== "ADMIN" && req.user.role !== "HR_ADMIN") {
       allowedBranchIds = await getUserBranchIds(req.user.id);
       if (allowedBranchIds.length === 0) {
         return res.status(403).json({ message: "You are not allowed to manage this branch." });
@@ -36,7 +36,7 @@ const calculateFinalPay = async (req, res) => {
   try {
     const { employeeId } = req.params;
 
-    if (req.user.role !== "ADMIN") {
+    if (req.user.role !== "ADMIN" && req.user.role !== "HR_ADMIN") {
       const assigned = await getUserBranchIds(req.user.id);
       const empResult = await pool.query(`SELECT branch_id FROM employees WHERE id = $1`, [employeeId]);
       if (empResult.rows.length === 0) {
@@ -60,7 +60,7 @@ const processFinalPay = async (req, res) => {
   try {
     const { employeeId } = req.params;
 
-    if (req.user.role !== "ADMIN") {
+    if (req.user.role !== "ADMIN" && req.user.role !== "HR_ADMIN") {
       const assigned = await getUserBranchIds(req.user.id);
       const empResult = await pool.query(`SELECT branch_id FROM employees WHERE id = $1`, [employeeId]);
       if (empResult.rows.length === 0) {
@@ -86,7 +86,7 @@ const getFinalPayHistory = async (req, res) => {
     const { page = 1, limit = 10, search = "" } = req.query;
 
     let allowedBranchIds = null;
-    if (req.user.role !== "ADMIN") {
+    if (req.user.role !== "ADMIN" && req.user.role !== "HR_ADMIN") {
       allowedBranchIds = await getUserBranchIds(req.user.id);
       if (allowedBranchIds.length === 0) {
         return res.status(403).json({ message: "You are not allowed to manage this branch." });
@@ -111,7 +111,7 @@ const getFinalPayById = async (req, res) => {
     const { id } = req.params;
     const result = await finalPayService.getFinalPayById(id);
 
-    if (req.user.role !== "ADMIN") {
+    if (req.user.role !== "ADMIN" && req.user.role !== "HR_ADMIN") {
       const assigned = await getUserBranchIds(req.user.id);
       const empResult = await pool.query(`SELECT branch_id FROM employees WHERE id = $1`, [result.employee_id]);
       const empBranch = empResult.rows[0]?.branch_id;
@@ -133,7 +133,7 @@ const downloadFinalPaySlip = async (req, res) => {
 
     const record = await finalPayService.getFinalPayById(id);
 
-    if (req.user.role !== "ADMIN") {
+    if (req.user.role !== "ADMIN" && req.user.role !== "HR_ADMIN") {
       const assigned = await getUserBranchIds(req.user.id);
       const empResult = await pool.query(`SELECT branch_id FROM employees WHERE id = $1`, [record.employee_id]);
       const empBranch = empResult.rows[0]?.branch_id;

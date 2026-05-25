@@ -26,7 +26,7 @@ const getByDate = async (req, res) => {
 const create = async (req, res) => {
   try {
     // 1. Validate branch permission FIRST
-    if (req.user.role !== "ADMIN") {
+    if (req.user.role !== "ADMIN" && req.user.role !== "HR_ADMIN") {
       const branchNum = req.body.branch_id ? Number(req.body.branch_id) : null;
       if (!branchNum) {
         return res.status(403).json({ message: "You are not allowed to manage this branch." });
@@ -50,7 +50,7 @@ const update = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (req.user.role !== "ADMIN") {
+    if (req.user.role !== "ADMIN" && req.user.role !== "HR_ADMIN") {
       const assigned = await getUserBranchIds(req.user.id);
 
       // 1a. Validate existing record's branch
@@ -83,7 +83,7 @@ const remove = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (req.user.role !== "ADMIN") {
+    if (req.user.role !== "ADMIN" && req.user.role !== "HR_ADMIN") {
       const assigned = await getUserBranchIds(req.user.id);
       const existing = await calendarService.getById(id);
       if (!existing) {

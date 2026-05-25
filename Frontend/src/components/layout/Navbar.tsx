@@ -137,7 +137,7 @@ const Navbar = ({
               Profile
             </DropdownMenuItem>
 
-            {user?.role === "ADMIN" && (
+            {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && (
               <DropdownMenuItem
                 className="flex items-center gap-2"
                 onClick={() => navigate("/settings")}

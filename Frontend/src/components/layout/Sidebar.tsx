@@ -283,8 +283,8 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           </>
         )}
 
-        {/* Employees - ADMIN only */}
-        {user?.role === "ADMIN" && (
+        {/* Employees - ADMIN and HR_ADMIN */}
+        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && (
           <NavLink
             to="/employees"
             className={({ isActive }) => linkClass(isActive)}
@@ -313,7 +313,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
         </NavLink>
 
         {/* Accounts - ADMIN only */}
-        {user?.role === "ADMIN" && (
+        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && (
           <NavLink
             to="/users"
             className={({ isActive }) => linkClass(isActive)}
