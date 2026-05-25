@@ -128,8 +128,7 @@ const deletePasswordResetOTP = async (userId) => {
 
 // Send password reset email
 const sendPasswordResetEmail = async (email, otp, userName) => {
-  console.log("[PWD RESET] Preparing to send reset email to:", email);
-  console.log("[PWD RESET] OTP code:", otp);
+  console.log("[PWD RESET] Preparing to send reset email to:", email.replace(/(.{2}).+@/, "$1***@"));
   console.log("[PWD RESET] User name:", userName);
 
   const subject = "Password Reset Verification - UnivoHR";

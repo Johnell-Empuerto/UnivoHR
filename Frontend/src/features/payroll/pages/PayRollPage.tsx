@@ -65,6 +65,7 @@ const PayRollPage = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [markPaidDialogOpen, setMarkPaidDialogOpen] = useState(false);
   const [selectedBatch, setSelectedBatch] = useState<any>(null);
+  const [isMarkingBatchPaid, setIsMarkingBatchPaid] = useState(false);
 
   // Payroll Records Search state
   const [search, setSearch] = useState("");
@@ -201,6 +202,8 @@ const PayRollPage = () => {
 
   const handleMarkBatchPaid = async () => {
     if (!selectedBatch) return;
+    if (isMarkingBatchPaid) return;
+    setIsMarkingBatchPaid(true);
 
     try {
       await markAllPayrollAsPaid(
@@ -219,6 +222,8 @@ const PayRollPage = () => {
       } else {
         toast.error("Failed to mark batch as paid");
       }
+    } finally {
+      setIsMarkingBatchPaid(false);
     }
   };
 
@@ -424,7 +429,7 @@ const PayRollPage = () => {
                   <p>
                     {search
                       ? "No payroll records found matching your search"
-                      : "No payroll data found"}
+                      : "No payroll generated yet. Please generate payroll first."}
                   </p>
                   <Button
                     onClick={() => setActiveTab("generate")}
@@ -457,7 +462,7 @@ const PayRollPage = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled={allPaid}
+                          disabled={allPaid || isMarkingBatchPaid}
                           onClick={() => {
                             setSelectedBatch({
                               cutoff_start: first.cutoff_start,
@@ -610,7 +615,9 @@ const PayRollPage = () => {
       {/* MARK BATCH PAID CONFIRMATION DIALOG */}
       <AlertDialog
         open={markPaidDialogOpen}
-        onOpenChange={setMarkPaidDialogOpen}
+        onOpenChange={(open) => {
+          if (!isMarkingBatchPaid) setMarkPaidDialogOpen(open);
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -629,13 +636,25 @@ const PayRollPage = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isMarkingBatchPaid}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
+              disabled={isMarkingBatchPaid}
               onClick={handleMarkBatchPaid}
               className="bg-green-600 text-white hover:bg-green-700"
             >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Yes, Mark as Paid
+              {isMarkingBatchPaid ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Marking all as paid...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Yes, Mark as Paid
+                </>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,10 +1,13 @@
 const authService = require("../services/auth.service");
+const audit = require("../services/audit.service");
 
 const login = async (req, res) => {
   try {
     const result = await authService.login(req.body);
+    audit.log({ action: "LOGIN_SUCCESS", entity_type: "user", entity_id: result.user?.id, new_values: { username: req.body.username }, req });
     res.json(result);
   } catch (error) {
+    audit.log({ action: "LOGIN_FAILED", entity_type: "user", new_values: { username: req.body.username }, req });
     res.status(401).json({ message: error.message });
   }
 };
@@ -52,6 +55,7 @@ const resetPassword = async (req, res) => {
       });
     }
     const result = await authService.resetPassword({ user_id, otp, new_password });
+    audit.log({ action: "PASSWORD_RESET", entity_type: "user", entity_id: user_id, req });
     res.json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });

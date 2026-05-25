@@ -583,25 +583,23 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date) => {
       const absent_days =
         working_days_in_cutoff - Math.floor(total_work_units_raw);
 
-      console.log("[PAYROLL DEBUG]", {
+      console.log("[PAYROLL] Processed:", {
         employee_id: emp.id,
         employee_code: emp.employee_code,
-        monthly_salary,
         cutoff_start,
         cutoff_end,
         attendance_records_count: attendanceMap.size,
         working_days_in_cutoff,
-        total_work_units_raw,
-        total_work_units_with_multiplier,
-        daily_rate,
-        basic_pay,
-        late_deduction,
-        government_deduction,
-        total_deductions,
-        overtime_pay,
-        leave_conversion_cash,
-        net_salary,
+        paid_leave_days,
+        unpaid_leave_days,
       });
+
+      // Skip employees with LOCKED payroll for this cutoff
+      const existingLocked = await client.query(
+        `SELECT id FROM payroll WHERE employee_id = $1 AND cutoff_start = $2 AND cutoff_end = $3 AND status = 'LOCKED'`,
+        [emp.id, cutoff_start, cutoff_end],
+      );
+      if (existingLocked.rows.length > 0) continue;
 
       // Insert payroll record (using client instead of pool for transaction)
       const payrollInsertResult = await client.query(
@@ -748,21 +746,19 @@ const getPayroll = async (
   const dataQuery = await pool.query(
     `
   SELECT 
-    e.id,
+    p.id AS payroll_id,
+    p.employee_id AS id,
     e.first_name,
     e.last_name,
     e.middle_name,
     e.suffix,
     e.employee_code,
 
-   
     s.basic_salary,
     s.daily_rate,
     s.overtime_rate,
     s.working_days_per_month,
 
-  
-    p.id AS payroll_id,
     p.net_salary,
     p.overtime_pay,
     p.deductions,
@@ -772,18 +768,12 @@ const getPayroll = async (
     p.cutoff_end,
     p.pay_date
 
-  FROM employees e
+  FROM payroll p
+  JOIN employees e ON e.id = p.employee_id
+  LEFT JOIN employee_salary s ON s.employee_id = e.id
 
-  LEFT JOIN employee_salary s 
-    ON s.employee_id = e.id
-
-  
-  LEFT JOIN payroll p 
-    ON p.employee_id = e.id
-    AND p.cutoff_start::date >= $4::date
+  WHERE p.cutoff_start::date >= $4::date
     AND p.cutoff_end::date <= $5::date
-
-  WHERE e.status = 'ACTIVE'
   AND (
     e.first_name ILIKE $3 OR 
     e.last_name ILIKE $3 OR 
@@ -799,9 +789,11 @@ const getPayroll = async (
 
   const countQuery = await pool.query(
     `
-    SELECT COUNT(*) 
-    FROM employees e
-    WHERE e.status = 'ACTIVE'
+    SELECT COUNT(*)
+    FROM payroll p
+    JOIN employees e ON e.id = p.employee_id
+    WHERE p.cutoff_start::date >= $2::date
+      AND p.cutoff_end::date <= $3::date
     AND (
       e.first_name ILIKE $1 OR 
       e.last_name ILIKE $1 OR 
@@ -809,7 +801,7 @@ const getPayroll = async (
       CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $1
     )
     `,
-    [`%${search}%`],
+    [`%${search}%`, cutoff_start, cutoff_end],
   );
 
   const total = parseInt(countQuery.rows[0].count);
@@ -849,7 +841,7 @@ const markAsPaid = async (id) => {
     `
     UPDATE payroll 
     SET status = 'PAID' 
-    WHERE id = $1 AND status != 'PAID' 
+    WHERE id = $1 AND status NOT IN ('PAID', 'LOCKED', 'VOID')
     RETURNING *
     `,
     [id],
@@ -865,14 +857,14 @@ const markAllAsPaid = async (cutoff_start, cutoff_end) => {
     SET status = 'PAID'
     WHERE cutoff_start::date = $1::date
     AND cutoff_end::date = $2::date
-    AND status != 'PAID'   
+    AND status NOT IN ('PAID', 'LOCKED', 'VOID')
     RETURNING *
     `,
     [cutoff_start, cutoff_end],
   );
 
   if (result.rowCount === 0) {
-    throw new Error("No payroll found for this cutoff");
+    throw new Error("No payable (unpaid) payroll found for this cutoff");
   }
 
   return {
@@ -1071,13 +1063,14 @@ const deletePayrollByCutoff = async (cutoff_start, cutoff_end, pay_date) => {
     WHERE cutoff_start::date = $1::date
     AND cutoff_end::date = $2::date
     AND pay_date::date = $3::date
+    AND status NOT IN ('PAID', 'LOCKED', 'VOID')
     RETURNING *
   `,
     [cutoff_start, cutoff_end, pay_date],
   );
 
   if (result.rowCount === 0) {
-    throw new Error("No matching payroll found to delete");
+    throw new Error("No deletable payroll found for this cutoff");
   }
 
   return { message: "Payroll deleted successfully" };
@@ -1142,6 +1135,34 @@ const getMySalaryDetails = async (employee_id) => {
 };
 
 // ============================================
+// PAYROLL LOCKING & STATUS MANAGEMENT
+// ============================================
+
+const lockPayroll = async (id) => {
+  const result = await pool.query(
+    `UPDATE payroll SET status = 'LOCKED' WHERE id = $1 AND status NOT IN ('LOCKED', 'PAID', 'VOID') RETURNING *`,
+    [id],
+  );
+  return result.rows[0];
+};
+
+const unlockPayroll = async (id) => {
+  const result = await pool.query(
+    `UPDATE payroll SET status = 'UNPAID' WHERE id = $1 AND status = 'LOCKED' RETURNING *`,
+    [id],
+  );
+  return result.rows[0];
+};
+
+const voidPayroll = async (id) => {
+  const result = await pool.query(
+    `UPDATE payroll SET status = 'VOID' WHERE id = $1 AND status NOT IN ('PAID', 'VOID') RETURNING *`,
+    [id],
+  );
+  return result.rows[0];
+};
+
+// ============================================
 // MODULE EXPORTS (UNCHANGED)
 // ============================================
 module.exports = {
@@ -1160,4 +1181,7 @@ module.exports = {
   getMyPayroll,
   getMySalaryDetails,
   getPayrollDetails,
+  lockPayroll,
+  unlockPayroll,
+  voidPayroll,
 };

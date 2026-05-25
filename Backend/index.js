@@ -85,26 +85,26 @@ app.use("/api/leave-conversion", authenticate, leaveConversionRoutes);
 
 app.use("/api/history-leave", authenticate, historyLeaveRoutes);
 
-app.use("/api/overtime", overtimeRoutes);
+app.use("/api/overtime", authenticate, overtimeRoutes);
 
-app.use("/api/notifications", notificationRoutes);
+app.use("/api/notifications", authenticate, notificationRoutes);
 
-app.use("/api/users", userRoutes);
+app.use("/api/users", authenticate, userRoutes);
 
-app.use("/api/smtp", smtpRoutes);
+app.use("/api/smtp", authenticate, smtpRoutes);
 
 app.use("/api/final-pay", authenticate, finalPayRoutes);
 
-// Public (if needed)
+// Device API uses API key auth (middleware in route file)
 app.use("/api/device", deviceRoutes);
 
-app.use("/api/settings", settingRoutes);
+app.use("/api/settings", authenticate, settingRoutes);
 
-app.use("/api/email-templates", emailTemplateRoutes);
+app.use("/api/email-templates", authenticate, emailTemplateRoutes);
 
-app.use("/api/man-hour-reports", manHourReportRoutes);
+app.use("/api/man-hour-reports", authenticate, manHourReportRoutes);
 
-app.use("/api/profile", profileRoutes);
+app.use("/api/profile", authenticate, profileRoutes);
 
 const queueService = require("./services/queue.service");
 

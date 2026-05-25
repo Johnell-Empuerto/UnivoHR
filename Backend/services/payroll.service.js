@@ -96,21 +96,51 @@ const markAsPaid = async (id) => {
 
 // MARK ALL AS PAID - FULLY OPTIMIZED (NO N+1!)
 const markAllAsPaid = async (cutoff_start, cutoff_end) => {
+  // Pre-check: determine state of payroll records for this cutoff
+  const statusCheck = await pool.query(
+    `SELECT status, COUNT(*)::int AS cnt
+     FROM payroll
+     WHERE cutoff_start::date = $1::date AND cutoff_end::date = $2::date
+     GROUP BY status`,
+    [cutoff_start, cutoff_end],
+  );
+
+  if (statusCheck.rows.length === 0) {
+    throw new Error("Please generate payroll first.");
+  }
+
+  const statusMap = {};
+  for (const row of statusCheck.rows) {
+    statusMap[row.status] = row.cnt;
+  }
+
+  const hasUnpaid = statusMap['UNPAID'] > 0;
+  const allPaid = !hasUnpaid && statusMap['PAID'] > 0 && !statusMap['LOCKED'] && !statusMap['VOID'];
+  const allLocked = !hasUnpaid && statusMap['LOCKED'] > 0 && !statusMap['PAID'] && !statusMap['VOID'];
+  const allVoid = !hasUnpaid && !statusMap['PAID'] && !statusMap['LOCKED'] && statusMap['VOID'] > 0;
+
+  if (allPaid) {
+    throw new Error("Payroll is already paid.");
+  }
+  if (allLocked) {
+    throw new Error("Payroll is locked and cannot be marked as paid.");
+  }
+  if (allVoid) {
+    throw new Error("Payroll is voided and cannot be marked as paid.");
+  }
+
+  // Update only UNPAID records
   const result = await pool.query(
     `
     UPDATE payroll
     SET status = 'PAID'
     WHERE cutoff_start::date = $1::date
     AND cutoff_end::date = $2::date
-    AND status != 'PAID'   
+    AND status NOT IN ('PAID', 'LOCKED', 'VOID')
     RETURNING *
     `,
     [cutoff_start, cutoff_end],
   );
-
-  if (result.rowCount === 0) {
-    throw new Error("No payroll found for this cutoff");
-  }
 
   // OPTIMIZATION: Batch fetch all employees in ONE query instead of N queries
   const employeeIds = result.rows.map((p) => p.employee_id);
@@ -174,6 +204,18 @@ const getPayrollDetails = async (id) => {
   return await payrollModel.getPayrollDetails(id);
 };
 
+const lockPayroll = async (id) => {
+  return await payrollModel.lockPayroll(id);
+};
+
+const unlockPayroll = async (id) => {
+  return await payrollModel.unlockPayroll(id);
+};
+
+const voidPayroll = async (id) => {
+  return await payrollModel.voidPayroll(id);
+};
+
 module.exports = {
   generatePayroll,
   getPayroll,
@@ -192,4 +234,7 @@ module.exports = {
   getPayrollDetails,
   getEmployeesWithPayrollForCutoff,
   getQueueStatus,
+  lockPayroll,
+  unlockPayroll,
+  voidPayroll,
 };

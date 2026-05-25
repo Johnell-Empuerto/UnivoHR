@@ -1,5 +1,6 @@
 const payrollService = require("../services/payroll.service");
 const notificationService = require("../services/notification.service");
+const audit = require("../services/audit.service");
 
 // Generate Payroll
 const generatePayroll = async (req, res) => {
@@ -176,6 +177,15 @@ const markAsPaid = async (req, res) => {
       },
     });
 
+    // Audit log
+    audit.log({
+      actor_id: req.user.id,
+      action: "PAYROLL_PAID",
+      entity_type: "payroll",
+      entity_id: payrollId,
+      req,
+    });
+
     // Return immediately (email is queued in background)
     res.json({
       message: "Payroll marked as paid. Payslip will be sent shortly.",
@@ -187,19 +197,28 @@ const markAsPaid = async (req, res) => {
 };
 
 // Update markAllAsPaid
+const VALIDATION_ERRORS = [
+  "Please generate payroll first.",
+  "Payroll is already paid.",
+  "Payroll is locked and cannot be marked as paid.",
+  "Payroll is voided and cannot be marked as paid.",
+];
+
 const markAllAsPaid = async (req, res) => {
   try {
     const { cutoff_start, cutoff_end } = req.body;
 
     const data = await payrollService.markAllAsPaid(cutoff_start, cutoff_end);
 
-    // Return immediately (emails are queued in background)
+    audit.log({ actor_id: req.user.id, action: "PAYROLL_MARK_ALL_PAID", entity_type: "payroll", req });
+
     res.json({
       message: `All payroll marked as paid. ${data.emailsQueued} payslips queued for sending.`,
       data,
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    const status = VALIDATION_ERRORS.includes(err.message) ? 400 : 500;
+    res.status(status).json({ message: err.message });
   }
 };
 
@@ -213,6 +232,8 @@ const deletePayrollByCutoff = async (req, res) => {
       cutoff_end,
       pay_date,
     );
+
+    audit.log({ actor_id: req.user.id, action: "PAYROLL_DELETED", entity_type: "payroll", req });
 
     res.json(data);
   } catch (err) {
@@ -267,6 +288,42 @@ const downloadPayslip = async (req, res) => {
   }
 };
 
+const lockPayroll = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = await payrollService.lockPayroll(id);
+    if (!data) return res.status(404).json({ message: "Payroll not found or already locked/paid" });
+    audit.log({ actor_id: req.user.id, action: "PAYROLL_LOCKED", entity_type: "payroll", entity_id: Number(id), req });
+    res.json({ message: "Payroll locked successfully", data });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+const unlockPayroll = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = await payrollService.unlockPayroll(id);
+    if (!data) return res.status(404).json({ message: "Payroll not found or not locked" });
+    audit.log({ actor_id: req.user.id, action: "PAYROLL_UNLOCKED", entity_type: "payroll", entity_id: Number(id), req });
+    res.json({ message: "Payroll unlocked successfully", data });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+const voidPayroll = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = await payrollService.voidPayroll(id);
+    if (!data) return res.status(404).json({ message: "Payroll not found or already paid/voided" });
+    audit.log({ actor_id: req.user.id, action: "PAYROLL_VOIDED", entity_type: "payroll", entity_id: Number(id), req });
+    res.json({ message: "Payroll voided successfully", data });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 const getPayrollById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -297,4 +354,7 @@ module.exports = {
   downloadPayslip,
   getPayrollById,
   getQueueStatus,
+  lockPayroll,
+  unlockPayroll,
+  voidPayroll,
 };

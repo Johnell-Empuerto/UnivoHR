@@ -4,7 +4,30 @@ const router = express.Router();
 const controller = require("../controllers/payroll.controller");
 const authenticate = require("../middleware/auth.middleware");
 const authorize = require("../middleware/role.middleware");
+const payrollLock = require("../middleware/payrollLock.middleware");
 const ROLES = require("../constants/roles");
+
+//  LOCK / UNLOCK / VOID PAYROLL
+router.patch(
+  "/:id/lock",
+  authenticate,
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  controller.lockPayroll,
+);
+
+router.patch(
+  "/:id/unlock",
+  authenticate,
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  controller.unlockPayroll,
+);
+
+router.patch(
+  "/:id/void",
+  authenticate,
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  controller.voidPayroll,
+);
 
 //  GENERATE PAYROLL
 router.post(
@@ -79,6 +102,7 @@ router.patch(
   "/:id/pay",
   authenticate,
   authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  payrollLock,
   controller.markAsPaid,
 );
 

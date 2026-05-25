@@ -42,7 +42,7 @@ const testSmtpConnection = async (id, testEmail) => {
     host: smtp.host,
     port: smtp.port,
     encryption: smtp.encryption,
-    username: smtp.username,
+    username: smtp.username ? `${smtp.username.substring(0, 3)}...` : null,
     from_email: smtp.from_email,
   });
 
