@@ -26,23 +26,23 @@ const getEmployeesWithPayrollForCutoff = async (cutoff_start, cutoff_end) => {
 const generatePayroll = (cutoff_start, cutoff_end, pay_date, branch_id) =>
   payrollModel.generatePayroll(cutoff_start, cutoff_end, pay_date, branch_id);
 
-const getPayroll = async (cutoff_start, cutoff_end, page, limit, search, branch_id) => {
+const getPayroll = async (cutoff_start, cutoff_end, page, limit, search, allowedBranchIds) => {
   return await payrollModel.getPayroll(
     cutoff_start,
     cutoff_end,
     page,
     limit,
     search,
-    branch_id,
+    allowedBranchIds,
   );
 };
 
-const getPayrollSummary = async (cutoff_start, cutoff_end, branch_id) => {
-  return await payrollModel.getPayrollSummary(cutoff_start, cutoff_end, branch_id);
+const getPayrollSummary = async (cutoff_start, cutoff_end, allowedBranchIds) => {
+  return await payrollModel.getPayrollSummary(cutoff_start, cutoff_end, allowedBranchIds);
 };
 
-const getEmployeeSalary = (page, limit, search) =>
-  payrollModel.getEmployeeSalary(page, limit, search);
+const getEmployeeSalary = (page, limit, search, allowedBranchIds) =>
+  payrollModel.getEmployeeSalary(page, limit, search, allowedBranchIds);
 
 const updateEmployeeSalary = (id, data) =>
   payrollModel.updateEmployeeSalary(id, data);

@@ -1,6 +1,8 @@
+const pool = require("../config/db");
 const payrollService = require("../services/payroll.service");
 const notificationService = require("../services/notification.service");
 const audit = require("../services/audit.service");
+const { getUserBranchIds } = require("../utils/branchAccess");
 
 // Generate Payroll
 const generatePayroll = async (req, res) => {
@@ -20,7 +22,7 @@ const generatePayroll = async (req, res) => {
   }
 };
 
-// Get Payroll
+// Get Payroll (with branch access)
 const getPayroll = async (req, res) => {
   try {
     const {
@@ -29,7 +31,6 @@ const getPayroll = async (req, res) => {
       page = 1,
       limit = 10,
       search = "",
-      branch_id = "",
     } = req.query;
 
     const data = await payrollService.getPayroll(
@@ -38,7 +39,7 @@ const getPayroll = async (req, res) => {
       page,
       limit,
       search,
-      branch_id,
+      req.allowedBranchIds,
     );
 
     res.json(data);
@@ -47,15 +48,15 @@ const getPayroll = async (req, res) => {
   }
 };
 
-// Get Summary
+// Get Summary (with branch access)
 const getPayrollSummary = async (req, res) => {
   try {
-    const { cutoff_start, cutoff_end, branch_id = "" } = req.query;
+    const { cutoff_start, cutoff_end } = req.query;
 
     const data = await payrollService.getPayrollSummary(
       cutoff_start,
       cutoff_end,
-      branch_id,
+      req.allowedBranchIds,
     );
 
     res.json(data);
@@ -64,12 +65,20 @@ const getPayrollSummary = async (req, res) => {
   }
 };
 
-// Employee Salary
+// Employee Salary (with branch access)
 const getEmployeeSalary = async (req, res) => {
   try {
     const { page = 1, limit = 10, search = "" } = req.query;
 
-    const data = await payrollService.getEmployeeSalary(page, limit, search);
+    let allowedBranchIds = null;
+    if (req.user.role !== "ADMIN") {
+      allowedBranchIds = await getUserBranchIds(req.user.id);
+      if (allowedBranchIds.length === 0) {
+        return res.status(403).json({ message: "You are not allowed to view this data." });
+      }
+    }
+
+    const data = await payrollService.getEmployeeSalary(page, limit, search, allowedBranchIds);
 
     res.json(data);
   } catch (err) {
@@ -87,10 +96,23 @@ const updateEmployeeSalary = async (req, res) => {
   }
 };
 
-// Deductions
+// Deductions (with branch access)
 const getDeductions = async (req, res) => {
   try {
     const { employee_id } = req.params;
+
+    if (req.user.role !== "ADMIN") {
+      const assigned = await getUserBranchIds(req.user.id);
+      const empResult = await pool.query(`SELECT branch_id FROM employees WHERE id = $1`, [employee_id]);
+      if (empResult.rows.length === 0) {
+        return res.status(404).json({ message: "Employee not found" });
+      }
+      const empBranch = empResult.rows[0].branch_id;
+      if (!empBranch || !assigned.includes(empBranch)) {
+        return res.status(403).json({ message: "You are not allowed to manage this branch." });
+      }
+    }
+
     const data = await payrollService.getDeductions(employee_id);
     res.json(data);
   } catch (err) {
@@ -274,11 +296,25 @@ const getMySalaryDetails = async (req, res) => {
   }
 };
 
-// Download Payslip
+// Download Payslip (with branch access)
 const downloadPayslip = async (req, res) => {
   try {
     const id = req.params.id;
     const payroll = await payrollService.getPayrollDetails(id);
+
+    // Branch/ownership check
+    if (req.user.role === "EMPLOYEE") {
+      if (payroll.employee_id !== req.user.employee_id) {
+        return res.status(403).json({ message: "You can only download your own payslip." });
+      }
+    } else if (req.user.role !== "ADMIN") {
+      const assigned = await getUserBranchIds(req.user.id);
+      const branchNum = payroll?.branch_id ? Number(payroll.branch_id) : null;
+      if (!branchNum || !assigned.includes(branchNum)) {
+        return res.status(403).json({ message: "You are not allowed to manage this branch." });
+      }
+    }
+
     const companyService = require("../services/company.service");
     const company = await companyService.getCompany();
     const { generatePayslip } = require("../utils/payslipGenerator");
@@ -333,6 +369,14 @@ const getPayrollById = async (req, res) => {
     const { id } = req.params;
 
     const data = await payrollService.getPayrollDetails(id);
+
+    if (req.user.role !== "ADMIN") {
+      const assigned = await getUserBranchIds(req.user.id);
+      const branchNum = data?.branch_id ? Number(data.branch_id) : null;
+      if (!branchNum || !assigned.includes(branchNum)) {
+        return res.status(403).json({ message: "You are not allowed to manage this branch." });
+      }
+    }
 
     res.json(data);
   } catch (err) {

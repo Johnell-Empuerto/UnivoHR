@@ -5,6 +5,7 @@ const controller = require("../controllers/payroll.controller");
 const authenticate = require("../middleware/auth.middleware");
 const authorize = require("../middleware/role.middleware");
 const payrollLock = require("../middleware/payrollLock.middleware");
+const { requireBranchAccessFromQuery } = require("../middleware/branchAccess.middleware");
 const ROLES = require("../constants/roles");
 
 //  LOCK / UNLOCK / VOID PAYROLL
@@ -42,6 +43,7 @@ router.get(
   "/",
   authenticate,
   authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR]),
+  requireBranchAccessFromQuery("branch_id"),
   controller.getPayroll,
 );
 
@@ -50,6 +52,7 @@ router.get(
   "/summary",
   authenticate,
   authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  requireBranchAccessFromQuery("branch_id"),
   controller.getPayrollSummary,
 );
 

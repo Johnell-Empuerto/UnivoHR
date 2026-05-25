@@ -774,16 +774,24 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
 // ALL EXISTING FUNCTIONS BELOW (UNCHANGED)
 // ============================================
 
-// GET PAYROLL - NO NAME
+// GET PAYROLL - NO NAME (with branch access)
 const getPayroll = async (
   cutoff_start,
   cutoff_end,
   page = 1,
   limit = 10,
   search = "",
-  branch_id = "",
+  allowedBranchIds = null,
 ) => {
   const offset = (page - 1) * limit;
+
+  // Build dynamic branch clause
+  let branchClause = "";
+  const params = [limit, offset, `%${search}%`, cutoff_start, cutoff_end];
+  if (allowedBranchIds && allowedBranchIds.length > 0) {
+    branchClause = `AND p.branch_id = ANY($${params.length + 1}::int[])`;
+    params.push(allowedBranchIds);
+  }
 
   const dataQuery = await pool.query(
     `
@@ -819,7 +827,7 @@ const getPayroll = async (
 
   WHERE p.cutoff_start::date >= $4::date
     AND p.cutoff_end::date <= $5::date
-    AND ($6 = '' OR p.branch_id = $6::int)
+    ${branchClause}
   AND (
     e.first_name ILIKE $3 OR 
     e.last_name ILIKE $3 OR 
@@ -830,8 +838,15 @@ const getPayroll = async (
   ORDER BY e.first_name, e.last_name
   LIMIT $1 OFFSET $2
   `,
-    [limit, offset, `%${search}%`, cutoff_start, cutoff_end, branch_id],
+    params,
   );
+
+  const countParams = [`%${search}%`, cutoff_start, cutoff_end];
+  let countBranchClause = "";
+  if (allowedBranchIds && allowedBranchIds.length > 0) {
+    countBranchClause = `AND p.branch_id = ANY($${countParams.length + 1}::int[])`;
+    countParams.push(allowedBranchIds);
+  }
 
   const countQuery = await pool.query(
     `
@@ -840,7 +855,7 @@ const getPayroll = async (
     JOIN employees e ON e.id = p.employee_id
     WHERE p.cutoff_start::date >= $2::date
       AND p.cutoff_end::date <= $3::date
-      AND ($4 = '' OR p.branch_id = $4::int)
+      ${countBranchClause}
     AND (
       e.first_name ILIKE $1 OR 
       e.last_name ILIKE $1 OR 
@@ -848,7 +863,7 @@ const getPayroll = async (
       CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $1
     )
     `,
-    [`%${search}%`, cutoff_start, cutoff_end, branch_id],
+    countParams,
   );
 
   const total = parseInt(countQuery.rows[0].count);
@@ -864,8 +879,15 @@ const getPayroll = async (
   };
 };
 
-// GET PAYROLL SUMMARY
-const getPayrollSummary = async (cutoff_start, cutoff_end, branch_id = "") => {
+// GET PAYROLL SUMMARY (with branch access)
+const getPayrollSummary = async (cutoff_start, cutoff_end, allowedBranchIds = null) => {
+  const params = [cutoff_start, cutoff_end];
+  let branchClause = "";
+  if (allowedBranchIds && allowedBranchIds.length > 0) {
+    branchClause = `AND branch_id = ANY($${params.length + 1}::int[])`;
+    params.push(allowedBranchIds);
+  }
+
   const result = await pool.query(
     `
     SELECT 
@@ -875,9 +897,9 @@ const getPayrollSummary = async (cutoff_start, cutoff_end, branch_id = "") => {
     FROM payroll
     WHERE cutoff_start >= $1 
       AND cutoff_end <= $2
-      AND ($3 = '' OR branch_id = $3::int)
+      ${branchClause}
   `,
-    [cutoff_start, cutoff_end, branch_id],
+    params,
   );
 
   return result.rows[0];
@@ -980,9 +1002,16 @@ AND type NOT LIKE 'LATE%'
   return payroll;
 };
 
-// GET EMPLOYEE SALARY
-const getEmployeeSalary = async (page = 1, limit = 10, search = "") => {
+// GET EMPLOYEE SALARY (with branch access)
+const getEmployeeSalary = async (page = 1, limit = 10, search = "", allowedBranchIds = null) => {
   const offset = (page - 1) * limit;
+
+  const params = [limit, offset, `%${search}%`];
+  let branchClause = "";
+  if (allowedBranchIds && allowedBranchIds.length > 0) {
+    branchClause = `AND e.branch_id = ANY($${params.length + 1}::int[])`;
+    params.push(allowedBranchIds);
+  }
 
   const dataQuery = await pool.query(
     `
@@ -999,28 +1028,41 @@ const getEmployeeSalary = async (page = 1, limit = 10, search = "") => {
       s.working_days_per_month
     FROM employees e
     LEFT JOIN employee_salary s ON s.employee_id = e.id
-    WHERE 
-      e.first_name ILIKE $3 OR 
-      e.last_name ILIKE $3 OR 
-      e.employee_code ILIKE $3 OR
-      CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $3
+    WHERE (1=1)
+      ${branchClause}
+      AND (
+        e.first_name ILIKE $3 OR 
+        e.last_name ILIKE $3 OR 
+        e.employee_code ILIKE $3 OR
+        CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $3
+      )
     ORDER BY e.first_name, e.last_name
     LIMIT $1 OFFSET $2
     `,
-    [limit, offset, `%${search}%`],
+    params,
   );
+
+  const countParams = [`%${search}%`];
+  let countBranchClause = "";
+  if (allowedBranchIds && allowedBranchIds.length > 0) {
+    countBranchClause = `AND e.branch_id = ANY($${countParams.length + 1}::int[])`;
+    countParams.push(allowedBranchIds);
+  }
 
   const countQuery = await pool.query(
     `
     SELECT COUNT(*) 
     FROM employees e
-    WHERE 
-      e.first_name ILIKE $1 OR 
-      e.last_name ILIKE $1 OR 
-      e.employee_code ILIKE $1 OR
-      CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $1
+    WHERE (1=1)
+      ${countBranchClause}
+      AND (
+        e.first_name ILIKE $1 OR 
+        e.last_name ILIKE $1 OR 
+        e.employee_code ILIKE $1 OR
+        CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $1
+      )
     `,
-    [`%${search}%`],
+    countParams,
   );
 
   const total = parseInt(countQuery.rows[0].count);

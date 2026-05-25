@@ -50,6 +50,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getActiveBranches } from "@/services/branchService";
+import { useAuth } from "@/app/providers/AuthProvider";
 import FinalPayTable from "../components/FinalPayTable";
 import { getEmployeesForFinalPay } from "@/services/finalPayService";
 
@@ -57,6 +58,7 @@ const PayRollPage = () => {
   console.log("PayRollPage component RENDERED");
 
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Payroll Records Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -397,6 +399,7 @@ const PayRollPage = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex flex-wrap items-center gap-4">
+                {user?.role !== "EMPLOYEE" && (
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">Branch:</span>
                   <Select value={branchFilter} onValueChange={setBranchFilter}>
@@ -413,6 +416,7 @@ const PayRollPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                )}
 
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">Payroll Period:</span>

@@ -1,4 +1,5 @@
 const branchService = require("../services/branch.service");
+const { getUserBranchIds } = require("../utils/branchAccess");
 
 const getAll = async (req, res) => {
   try {
@@ -11,7 +12,18 @@ const getAll = async (req, res) => {
 
 const getActive = async (req, res) => {
   try {
-    const branches = await branchService.getActive();
+    let branches = await branchService.getActive();
+
+    // Non-ADMIN users only see assigned branches
+    if (req.user && req.user.role !== "ADMIN") {
+      const allowed = await getUserBranchIds(req.user.id);
+      if (allowed.length > 0) {
+        branches = branches.filter((b) => allowed.includes(b.id));
+      } else {
+        branches = [];
+      }
+    }
+
     res.json(branches);
   } catch (error) {
     res.status(500).json({ message: error.message });
