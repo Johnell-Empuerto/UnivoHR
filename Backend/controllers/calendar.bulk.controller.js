@@ -1,5 +1,7 @@
 // controllers/calendar.bulk.controller.js
 const calendarBulkService = require("../services/calendar.bulk.service");
+const { getUserBranchIds } = require("../utils/branchAccess");
+const branchModel = require("../models/branch.model");
 const fs = require("fs");
 const path = require("path");
 
@@ -9,6 +11,35 @@ const bulkUpload = async (req, res) => {
 
     if (!data || data.length === 0) {
       return res.status(400).json({ message: "No data provided" });
+    }
+
+    // HR_ADMIN branch validation: every row must belong to an assigned branch
+    if (req.user.role !== "ADMIN") {
+      const assigned = await getUserBranchIds(req.user.id);
+      const allBranches = await branchModel.getAll();
+      const branchLookup = {};
+      for (const b of allBranches) {
+        branchLookup[b.name.toLowerCase()] = b;
+        if (b.code) branchLookup[b.code.toLowerCase()] = b;
+      }
+
+      for (const row of data) {
+        const branchValue = row.branch_value;
+        if (branchValue) {
+          const trimmed = branchValue.toString().trim();
+          if (trimmed) {
+            const key = trimmed.toLowerCase();
+            const match = branchLookup[key];
+            if (match) {
+              if (!assigned.includes(match.id)) {
+                return res.status(403).json({
+                  message: "Bulk upload contains calendar entries for branches you are not allowed to manage.",
+                });
+              }
+            }
+          }
+        }
+      }
     }
 
     const results = await calendarBulkService.bulkUpsert(data, overwrite);

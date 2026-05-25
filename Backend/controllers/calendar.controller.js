@@ -1,30 +1,43 @@
 const calendarService = require("../services/calendar.service");
+const { getUserBranchIds } = require("../utils/branchAccess");
 
-// GET ALL
+// GET ALL (no branch filter — all users see all events)
 const getCalendar = async (req, res) => {
   try {
-    const { start, end, branch_id } = req.query;
-    const data = await calendarService.getCalendar(start, end, branch_id);
+    const { start, end } = req.query;
+    const data = await calendarService.getCalendar(start, end);
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// GET ONE BY DATE
+// GET ONE BY DATE (no branch filter — all users see all events)
 const getByDate = async (req, res) => {
   try {
-    const { branch_id } = req.query;
-    const data = await calendarService.getByDate(req.params.date, branch_id);
+    const data = await calendarService.getByDate(req.params.date);
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// CREATE
+// CREATE (with branch validation)
 const create = async (req, res) => {
   try {
+    // 1. Validate branch permission FIRST
+    if (req.user.role !== "ADMIN") {
+      const branchNum = req.body.branch_id ? Number(req.body.branch_id) : null;
+      if (!branchNum) {
+        return res.status(403).json({ message: "You are not allowed to manage this branch." });
+      }
+      const assigned = await getUserBranchIds(req.user.id);
+      if (!assigned.includes(branchNum)) {
+        return res.status(403).json({ message: "You are not allowed to manage this branch." });
+      }
+    }
+
+    // 2. Then duplicate check + insert
     const data = await calendarService.create(req.body);
     res.json(data);
   } catch (err) {
@@ -32,20 +45,57 @@ const create = async (req, res) => {
   }
 };
 
-// UPDATE
+// UPDATE (with branch validation)
 const update = async (req, res) => {
   try {
-    const data = await calendarService.update(req.params.id, req.body);
+    const { id } = req.params;
+
+    if (req.user.role !== "ADMIN") {
+      const assigned = await getUserBranchIds(req.user.id);
+
+      // 1a. Validate existing record's branch
+      const existing = await calendarService.getById(id);
+      if (!existing) {
+        return res.status(404).json({ message: "Calendar record not found" });
+      }
+      const existingBranchNum = existing.branch_id ? Number(existing.branch_id) : null;
+      if (!existingBranchNum || !assigned.includes(existingBranchNum)) {
+        return res.status(403).json({ message: "You are not allowed to manage this branch." });
+      }
+
+      // 1b. Validate new branch_id if changing branch
+      const newBranchNum = req.body.branch_id !== undefined ? Number(req.body.branch_id) : null;
+      if (newBranchNum && !assigned.includes(newBranchNum)) {
+        return res.status(403).json({ message: "You are not allowed to manage this branch." });
+      }
+    }
+
+    // 2. Then update
+    const data = await calendarService.update(id, req.body);
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// DELETE
+// DELETE (with branch validation)
 const remove = async (req, res) => {
   try {
-    const data = await calendarService.remove(req.params.id);
+    const { id } = req.params;
+
+    if (req.user.role !== "ADMIN") {
+      const assigned = await getUserBranchIds(req.user.id);
+      const existing = await calendarService.getById(id);
+      if (!existing) {
+        return res.status(404).json({ message: "Calendar record not found" });
+      }
+      const existingBranchNum = existing.branch_id ? Number(existing.branch_id) : null;
+      if (!existingBranchNum || !assigned.includes(existingBranchNum)) {
+        return res.status(403).json({ message: "You are not allowed to manage this branch." });
+      }
+    }
+
+    const data = await calendarService.remove(id);
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: err.message });

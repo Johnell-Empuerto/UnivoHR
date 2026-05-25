@@ -1,7 +1,7 @@
 const pool = require("../config/db");
 
-// GET ALL (range + branch optional)
-const getCalendar = async (start, end, branch_id = "") => {
+// GET ALL — all events, no branch filter
+const getCalendar = async (start, end) => {
   let query;
   let values;
 
@@ -11,53 +11,37 @@ const getCalendar = async (start, end, branch_id = "") => {
       FROM calendar_days cd
       LEFT JOIN branches b ON b.id = cd.branch_id
       WHERE cd.date BETWEEN $1 AND $2
-        AND ($3 = '' OR cd.branch_id IS NULL OR cd.branch_id = $3::int)
       ORDER BY cd.date
     `;
-    values = [start, end, branch_id];
+    values = [start, end];
   } else {
     query = `
       SELECT cd.*, b.name AS branch_name
       FROM calendar_days cd
       LEFT JOIN branches b ON b.id = cd.branch_id
-      WHERE $1 = '' OR cd.branch_id IS NULL OR cd.branch_id = $1::int
+      WHERE 1=1
       ORDER BY cd.date
     `;
-    values = [branch_id];
+    values = [];
   }
 
   const result = await pool.query(query, values);
   return result.rows;
 };
 
-// GET ONE - now checks branch_id too
-const getByDate = async (date, branch_id = "") => {
-  let query;
-  let values;
-
-  if (branch_id) {
-    query = `
-      SELECT cd.*, b.name AS branch_name
-      FROM calendar_days cd
-      LEFT JOIN branches b ON b.id = cd.branch_id
-      WHERE cd.date = $1 AND (cd.branch_id IS NULL OR cd.branch_id = $2::int)
-      ORDER BY cd.branch_id NULLS LAST
-      LIMIT 1
-    `;
-    values = [date, branch_id];
-  } else {
-    query = `
-      SELECT cd.*, b.name AS branch_name
-      FROM calendar_days cd
-      LEFT JOIN branches b ON b.id = cd.branch_id
-      WHERE cd.date = $1
-      ORDER BY cd.branch_id NULLS LAST
-      LIMIT 1
-    `;
-    values = [date];
-  }
-
-  const result = await pool.query(query, values);
+// GET ONE — all events for date, no branch filter
+const getByDate = async (date) => {
+  const result = await pool.query(
+    `
+    SELECT cd.*, b.name AS branch_name
+    FROM calendar_days cd
+    LEFT JOIN branches b ON b.id = cd.branch_id
+    WHERE cd.date = $1
+    ORDER BY cd.branch_id NULLS LAST
+    LIMIT 1
+    `,
+    [date],
+  );
   return result.rows[0];
 };
 
@@ -107,6 +91,18 @@ const remove = async (id) => {
   return result.rows[0];
 };
 
+// GET ONE by ID
+const getById = async (id) => {
+  const result = await pool.query(
+    `SELECT cd.*, b.name AS branch_name
+     FROM calendar_days cd
+     LEFT JOIN branches b ON b.id = cd.branch_id
+     WHERE cd.id = $1`,
+    [id],
+  );
+  return result.rows[0];
+};
+
 // GET ONE by date + branch_id (null = global) — for duplicate checking
 const getByDateAndBranch = async (date, branch_id) => {
   const result = await pool.query(
@@ -125,6 +121,7 @@ module.exports = {
   getCalendar,
   getByDate,
   getByDateAndBranch,
+  getById,
   create,
   update,
   remove,

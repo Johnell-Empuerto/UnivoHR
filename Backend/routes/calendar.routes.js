@@ -18,11 +18,11 @@ router.get(
   controller.getCalendar,
 );
 
-// GET BY DATE (restricted)
+// GET BY DATE (all authenticated users)
 router.get(
   "/:date",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.EMPLOYEE]),
   controller.getByDate,
 );
 
@@ -42,19 +42,19 @@ router.put(
   controller.update,
 );
 
-// DELETE (STRICT)
+// DELETE
 router.delete(
   "/:id",
   authenticate,
-  authorize([ROLES.ADMIN]),
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
   controller.remove,
 );
 
-//  BULK UPLOAD (VERY SENSITIVE)
+//  BULK UPLOAD
 router.post(
   "/bulk",
   authenticate,
-  authorize([ROLES.ADMIN]),
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
   bulkController.bulkUpload,
 );
 

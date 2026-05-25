@@ -1,18 +1,23 @@
 const calendarModel = require("../models/calendar.model");
 
-// GET ALL
-const getCalendar = async (start, end, branch_id) => {
-  return await calendarModel.getCalendar(start, end, branch_id);
+// GET ALL (no branch filter)
+const getCalendar = async (start, end) => {
+  return await calendarModel.getCalendar(start, end);
 };
 
-// GET ONE BY DATE (with branch context)
-const getByDate = async (date, branch_id) => {
-  return await calendarModel.getByDate(date, branch_id);
+// GET ONE BY DATE (no branch filter)
+const getByDate = async (date) => {
+  return await calendarModel.getByDate(date);
+};
+
+// GET BY ID
+const getById = async (id) => {
+  return await calendarModel.getById(id);
 };
 
 // CREATE (with duplicate protection per date+branch)
 const create = async (data) => {
-  const existing = await calendarModel.getByDate(data.date, data.branch_id);
+  const existing = await calendarModel.getByDateAndBranch(data.date, data.branch_id);
 
   if (existing) {
     throw new Error("Record already exists for this date and branch. Use update instead.");
@@ -34,6 +39,7 @@ const remove = async (id) => {
 module.exports = {
   getCalendar,
   getByDate,
+  getById,
   create,
   update,
   remove,

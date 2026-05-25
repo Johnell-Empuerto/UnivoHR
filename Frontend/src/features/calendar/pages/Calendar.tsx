@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Plus,
   Edit,
@@ -114,6 +114,21 @@ const CalendarPage: React.FC = () => {
     new Date(),
   );
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
+
+  // Branch filter state
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchViewFilter, setBranchViewFilter] = useState("");
+
+  // Client-side branch filter (backend returns all events)
+  const visibleCalendarDays = useMemo(() => {
+    if (!branchViewFilter) return calendarDays;
+    const branchId = parseInt(branchViewFilter);
+    if (isNaN(branchId)) return calendarDays;
+    return calendarDays.filter(
+      (day) => day.branch_id === null || day.branch_id === branchId,
+    );
+  }, [calendarDays, branchViewFilter]);
+
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -125,10 +140,6 @@ const CalendarPage: React.FC = () => {
     description: "",
     branch_id: "",
   });
-
-  // Branch filter state
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [branchViewFilter, setBranchViewFilter] = useState("");
 
   // Bulk upload states
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
@@ -161,9 +172,9 @@ const CalendarPage: React.FC = () => {
     }
   }, [selectedDate, branchViewFilter]);
 
-  // Update events when calendarDays changes
+  // Update events when visibleCalendarDays changes
   useEffect(() => {
-    const newEvents = calendarDays.map((day) => ({
+    const newEvents = visibleCalendarDays.map((day) => ({
       id: day.id.toString(),
       title: getEventTitle(day.day_type, day.is_paid, day.branch_name),
       start: day.date,
@@ -177,7 +188,7 @@ const CalendarPage: React.FC = () => {
       },
     }));
     setEvents(newEvents);
-  }, [calendarDays]);
+  }, [visibleCalendarDays]);
 
   const fetchCalendarDays = async (start: string, end: string) => {
     setLoading(true);
@@ -185,7 +196,7 @@ const CalendarPage: React.FC = () => {
       const data = await getCalendar(start, end, branchViewFilter || undefined);
       setCalendarDays(data);
     } catch (error: any) {
-      toast.error(error.message || "Failed to fetch calendar days");
+      toast.error(error.response?.data?.message || "Unable to fetch calendar data.");
     } finally {
       setLoading(false);
     }
@@ -326,7 +337,7 @@ const CalendarPage: React.FC = () => {
         branch_id: "",
       });
     } catch (error: any) {
-      toast.error(error.message || "Failed to save calendar day");
+      toast.error(error.response?.data?.message || "Unable to complete calendar action.");
     }
   };
 
@@ -348,7 +359,7 @@ const CalendarPage: React.FC = () => {
       setDialogOpen(false);
       setEditingDay(null);
     } catch (error: any) {
-      toast.error(error.message || "Failed to delete calendar day");
+      toast.error(error.response?.data?.message || "Unable to complete calendar action.");
     }
   };
 
@@ -628,7 +639,7 @@ const CalendarPage: React.FC = () => {
         `Upload completed: ${results.summary.inserted} inserted, ${results.summary.updated} updated`,
       );
     } catch (error: any) {
-      toast.error(error.message || "Failed to process file");
+      toast.error(error.response?.data?.message || "Unable to complete calendar action.");
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -1000,7 +1011,7 @@ const CalendarPage: React.FC = () => {
                   Selected Date: {format(selectedDate, "MMMM d, yyyy")}
                 </h3>
                 {(() => {
-                  const dayData = calendarDays.find((day) =>
+                  const dayData = visibleCalendarDays.find((day) =>
                     isSameDay(new Date(day.date), selectedDate),
                   );
                   if (dayData) {
