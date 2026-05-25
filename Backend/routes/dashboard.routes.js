@@ -7,15 +7,13 @@ const authorize = require("../middleware/role.middleware");
 
 const ROLES = require("../constants/roles");
 
-// Admin / HR Admin dashboard (company-wide)
 router.get(
   "/summary",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR]),
   controller.getSummary,
 );
 
-//  Employee / all users (personal dashboard)
 router.get(
   "/me/summary",
   authenticate,
@@ -30,11 +28,10 @@ router.get(
   controller.getTodayStatus,
 );
 
-// Analytics (sensitive)
 router.get(
   "/analytics",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR]),
   controller.getAdminAnalytics,
 );
 
@@ -43,6 +40,13 @@ router.get(
   authenticate,
   authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.EMPLOYEE]),
   controller.getMyAnalytics,
+);
+
+router.get(
+  "/kpis",
+  authenticate,
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR]),
+  controller.getExecutiveKpis,
 );
 
 module.exports = router;
