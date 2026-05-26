@@ -14,6 +14,7 @@ import {
   Clock,
   FileText,
   Building2,
+  ShieldAlert,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import smallIcon from "@/assets/images/small-icon.png";
@@ -152,6 +153,17 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           <CalendarCheck className="h-5 w-5" />
           {!collapsed && "Attendance"}
         </NavLink>
+
+        {/* Anomaly Detection - ADMIN and HR_ADMIN only */}
+        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN" || user?.role === "HR") && (
+          <NavLink
+            to="/anomalies"
+            className={({ isActive }) => linkClass(isActive)}
+          >
+            <ShieldAlert className="h-5 w-5" />
+            {!collapsed && "Anomalies"}
+          </NavLink>
+        )}
 
         {/* Leaves - Everyone (different text based on role) */}
         <NavLink to="/leaves" className={({ isActive }) => linkClass(isActive)}>

@@ -174,12 +174,74 @@ attendanceNotificationQueue.on("error", (err) => {
   console.error("[Worker] Attendance notification queue error:", err);
 });
 
+// ============================================
+// ANOMALY DETECTION QUEUE
+// ============================================
+const anomalyQueue = new Queue("anomaly-scans", {
+  redis: {
+    host: process.env.REDIS_HOST || "localhost",
+    port: process.env.REDIS_PORT || 6379,
+  },
+  defaultJobOptions: {
+    attempts: 2,
+    backoff: { type: "exponential", delay: 10000 },
+    removeOnComplete: true,
+    removeOnFail: false,
+  },
+});
+
+const anomalyService = require("./services/anomaly.service");
+const auditService = require("./services/audit.service");
+
+anomalyQueue.process("daily-scan", async (job) => {
+  console.log("[Worker] Processing daily anomaly scan...");
+  const results = await anomalyService.runDailyAnomalyScan();
+  console.log(`[Worker] Daily anomaly scan complete: ${results.total_detected} anomalies`);
+  return results;
+});
+
+anomalyQueue.process("weekly-scan", async (job) => {
+  console.log("[Worker] Processing weekly anomaly scan...");
+  const results = await anomalyService.runWeeklyAnomalyScan();
+  console.log(`[Worker] Weekly anomaly scan complete: ${results.total_detected} anomalies`);
+  return results;
+});
+
+anomalyQueue.on("completed", (job, result) => {
+  console.log(`[Worker] Anomaly scan job ${job.id} completed:`, result);
+});
+
+anomalyQueue.on("failed", (job, err) => {
+  console.error(`[Worker] Anomaly scan job ${job.id} failed:`, err.message);
+});
+
+// Schedule daily anomaly scan at 2:00 AM
+anomalyQueue.add(
+  "daily-scan",
+  {},
+  {
+    repeat: { cron: "0 2 * * *" },
+  },
+);
+
+// Schedule weekly anomaly scan on Monday at 3:00 AM
+anomalyQueue.add(
+  "weekly-scan",
+  {},
+  {
+    repeat: { cron: "0 3 * * 1" },
+  },
+);
+
+console.log("[Worker] Scheduled daily anomaly scan at 2:00 AM");
+console.log("[Worker] Scheduled weekly anomaly scan on Monday at 3:00 AM");
+
 // Schedule daily checks (run at 6 PM every day)
 attendanceNotificationQueue.add(
   "check-late-notices",
   { threshold: 3 },
   {
-    repeat: { cron: "0 18 * * *" }, // Every day at 6 PM
+    repeat: { cron: "0 18 * * *" },
   },
 );
 
@@ -187,7 +249,7 @@ attendanceNotificationQueue.add(
   "check-absent-without-leave",
   {},
   {
-    repeat: { cron: "0 18 * * *" }, // Every day at 6 PM
+    repeat: { cron: "0 18 * * *" },
   },
 );
 
@@ -206,6 +268,8 @@ console.log("[Worker] Queue: payslip-emails");
 process.on("SIGTERM", async () => {
   console.log("SIGTERM received, closing worker...");
   await payslipQueue.close();
+  await attendanceNotificationQueue.close();
+  await anomalyQueue.close();
   await pool.end();
   process.exit(0);
 });
@@ -213,6 +277,8 @@ process.on("SIGTERM", async () => {
 process.on("SIGINT", async () => {
   console.log("SIGINT received, closing worker...");
   await payslipQueue.close();
+  await attendanceNotificationQueue.close();
+  await anomalyQueue.close();
   await pool.end();
   process.exit(0);
 });

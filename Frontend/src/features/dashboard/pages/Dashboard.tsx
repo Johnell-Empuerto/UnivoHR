@@ -7,6 +7,7 @@ import {
   getAdminAnalytics,
   getMyAnalytics,
 } from "@/services/dashboardService";
+import { getAnomalySummary } from "@/services/anomalyService";
 import { leaveService } from "@/services/leaveService";
 import StatsCard from "../components/StatsCard";
 import AttendanceChart from "../components/AttendanceChart";
@@ -27,6 +28,7 @@ import {
   BarChart3,
   LayoutDashboard,
   Wallet,
+  ShieldAlert,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -61,7 +63,7 @@ interface RecentLeave {
 
 // Extract Admin Dashboard to separate memoized component
 const AdminDashboardContent = React.memo(
-  ({ summary, adminAnalytics, metrics }: any) => {
+  ({ summary, adminAnalytics, metrics, anomalySummary, onNavigate }: any) => {
     //  MEMOIZE all data transformations - CRITICAL FIX
     const dailyBreakdownData = useMemo(() => {
       return (
@@ -155,6 +157,42 @@ const AdminDashboardContent = React.memo(
             trend={trends.leave}
           />
         </div>
+
+        {/* Anomaly Summary Card */}
+        {anomalySummary && (
+          <Card
+            className="border-border/50 shadow-sm hover:shadow-md transition-all cursor-pointer bg-linear-to-br from-orange-50 to-red-50/50 dark:from-orange-950/20 dark:to-red-950/20"
+            onClick={() => onNavigate?.("/anomalies")}
+          >
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="h-5 w-5 text-orange-600" />
+                  <h3 className="font-semibold">Anomaly Alerts</h3>
+                </div>
+                <span className="text-xs text-muted-foreground">Click to view all</span>
+              </div>
+              <div className="grid grid-cols-4 gap-4">
+                <div>
+                  <p className="text-xs text-muted-foreground">Open</p>
+                  <p className="text-xl font-bold">{anomalySummary.open_count}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">High Severity</p>
+                  <p className="text-xl font-bold text-destructive">{anomalySummary.high_severity_count}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Detected Today</p>
+                  <p className="text-xl font-bold">{anomalySummary.today_detected_count}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Resolved</p>
+                  <p className="text-xl font-bold text-green-600">{anomalySummary.resolved_count}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Weekly Attendance Trend */}
         <div className="grid grid-cols-1 gap-6">
@@ -604,6 +642,7 @@ const Dashboard = () => {
   const [leaveCredits, setLeaveCredits] = useState<LeaveCredits | null>(null);
   const [recentLeaves, setRecentLeaves] = useState<RecentLeave[]>([]);
   const [adminAnalytics, setAdminAnalytics] = useState<any>(null);
+  const [anomalySummary, setAnomalySummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [employeeTrends, setEmployeeTrends] = useState<any>(null);
 
@@ -617,12 +656,14 @@ const Dashboard = () => {
       setLoading(true);
 
       if (isAdminLevel) {
-        const [summaryData, analyticsData] = await Promise.all([
+        const [summaryData, analyticsData, anomalyData] = await Promise.all([
           getDashboardSummary(),
           getAdminAnalytics(),
+          getAnomalySummary(),
         ]);
         setSummary(summaryData);
         setAdminAnalytics(analyticsData);
+        setAnomalySummary(anomalyData);
       } else {
         const [analyticsData, todayData, creditsData, leavesData] =
           await Promise.all([
@@ -706,6 +747,8 @@ const Dashboard = () => {
       summary={summary}
       adminAnalytics={adminAnalytics}
       metrics={metrics}
+      anomalySummary={anomalySummary}
+      onNavigate={navigate}
     />
   ) : (
     <EmployeeDashboardContent

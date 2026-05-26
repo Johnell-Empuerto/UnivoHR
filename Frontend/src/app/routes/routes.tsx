@@ -38,6 +38,7 @@ import SettingsDocs from "@/features/docs/pages/SettingsDocs";
 import EmployeesDocs from "@/features/docs/pages/EmployeesDocs";
 import UsersDocs from "@/features/docs/pages/UsersDocs";
 import BranchesPage from "@/features/branches/pages/BranchesPage";
+import AnomalyPage from "@/features/anomalies/pages/AnomalyPage";
 
 const AppRoutes = () => {
   const { isAuth, user } = useAuth();
@@ -203,6 +204,18 @@ const AppRoutes = () => {
           {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && (
             <Route path="/branches" element={<BranchesPage />} />
           )}
+
+          {/* Anomaly Detection - ADMIN, HR_ADMIN, HR */}
+          <Route
+            path="/anomalies"
+            element={
+              user?.role === "ADMIN" || user?.role === "HR_ADMIN" || user?.role === "HR" ? (
+                <AnomalyPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
         </Route>
       </Routes>
     </BrowserRouter>

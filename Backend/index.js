@@ -33,6 +33,7 @@ const manHourReportRoutes = require("./routes/man_hour_report.routes");
 const finalPayRoutes = require("./routes/finalPay.routes");
 const profileRoutes = require("./routes/profile.routes");
 const branchRoutes = require("./routes/branch.routes");
+const anomalyRoutes = require("./routes/anomaly.routes");
 
 // Middleware
 const authenticate = require("./middleware/auth.middleware");
@@ -109,6 +110,8 @@ app.use("/api/profile", authenticate, profileRoutes);
 
 app.use("/api/branches", authenticate, branchRoutes);
 
+app.use("/api/anomalies", authenticate, anomalyRoutes);
+
 const queueService = require("./services/queue.service");
 
 // Start the leave conversion scheduler
@@ -139,6 +142,8 @@ process.on("SIGINT", async () => {
   await queueService.payslipQueue.close();
   process.exit(0);
 });
+
+
 
 // =====================
 // DB CONNECTION
