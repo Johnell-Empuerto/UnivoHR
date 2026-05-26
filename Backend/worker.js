@@ -236,6 +236,112 @@ anomalyQueue.add(
 console.log("[Worker] Scheduled daily anomaly scan at 2:00 AM");
 console.log("[Worker] Scheduled weekly anomaly scan on Monday at 3:00 AM");
 
+// ============================================
+// STATISTICAL ANOMALY SCAN QUEUE
+// ============================================
+const statAnomalyQueue = new Queue("stat-anomaly-scans", {
+  redis: {
+    host: process.env.REDIS_HOST || "localhost",
+    port: process.env.REDIS_PORT || 6379,
+  },
+  defaultJobOptions: {
+    attempts: 2,
+    backoff: { type: "exponential", delay: 10000 },
+    removeOnComplete: true,
+    removeOnFail: false,
+  },
+});
+
+const statAnomalyService = require("./services/statisticalAnomaly.service");
+
+statAnomalyQueue.process("daily-stat-scan", async (job) => {
+  console.log("[Worker] Processing daily statistical anomaly scan...");
+  const results = await statAnomalyService.runDailyStatisticalScan();
+  console.log(`[Worker] Daily stat scan complete: ${results.total_detected} anomalies`);
+  return results;
+});
+
+statAnomalyQueue.process("weekly-stat-scan", async (job) => {
+  console.log("[Worker] Processing weekly statistical anomaly scan...");
+  const results = await statAnomalyService.runWeeklyStatisticalScan();
+  console.log(`[Worker] Weekly stat scan complete: ${results.total_detected} anomalies`);
+  return results;
+});
+
+statAnomalyQueue.on("completed", (job, result) => {
+  console.log(`[Worker] Stat anomaly job ${job.id} completed:`, result);
+});
+
+statAnomalyQueue.on("failed", (job, err) => {
+  console.error(`[Worker] Stat anomaly job ${job.id} failed:`, err.message);
+});
+
+// Schedule daily statistical scan at 2:30 AM
+statAnomalyQueue.add("daily-stat-scan", {}, {
+  repeat: { cron: "30 2 * * *" },
+});
+
+// Schedule weekly statistical scan on Monday at 3:30 AM
+statAnomalyQueue.add("weekly-stat-scan", {}, {
+  repeat: { cron: "30 3 * * 1" },
+});
+
+console.log("[Worker] Scheduled daily statistical anomaly scan at 2:30 AM");
+console.log("[Worker] Scheduled weekly statistical anomaly scan on Monday at 3:30 AM");
+
+// ============================================
+// FORECAST GENERATION QUEUE
+// ============================================
+const forecastQueue = new Queue("forecast-generation", {
+  redis: {
+    host: process.env.REDIS_HOST || "localhost",
+    port: process.env.REDIS_PORT || 6379,
+  },
+  defaultJobOptions: {
+    attempts: 2,
+    backoff: { type: "exponential", delay: 10000 },
+    removeOnComplete: true,
+    removeOnFail: false,
+  },
+});
+
+const forecastService = require("./services/forecast.service");
+
+forecastQueue.process("generate-forecasts", async (job) => {
+  console.log("[Worker] Generating all forecasts...");
+  const results = await forecastService.runAllForecasts();
+  console.log(`[Worker] Forecast generation complete`);
+  return results;
+});
+
+forecastQueue.process("generate-branch-forecasts", async (job) => {
+  console.log("[Worker] Generating branch-level forecasts...");
+  const results = await forecastService.forecastByBranch();
+  console.log(`[Worker] Branch forecast generation complete`);
+  return results;
+});
+
+forecastQueue.on("completed", (job, result) => {
+  console.log(`[Worker] Forecast job ${job.id} completed`);
+});
+
+forecastQueue.on("failed", (job, err) => {
+  console.error(`[Worker] Forecast job ${job.id} failed:`, err.message);
+});
+
+// Schedule daily forecast at 4:00 AM
+forecastQueue.add("generate-forecasts", {}, {
+  repeat: { cron: "0 4 * * *" },
+});
+
+// Schedule weekly branch forecasts on Monday at 4:30 AM
+forecastQueue.add("generate-branch-forecasts", {}, {
+  repeat: { cron: "30 4 * * 1" },
+});
+
+console.log("[Worker] Scheduled daily forecast generation at 4:00 AM");
+console.log("[Worker] Scheduled weekly branch forecast generation on Monday at 4:30 AM");
+
 // Schedule daily checks (run at 6 PM every day)
 attendanceNotificationQueue.add(
   "check-late-notices",
@@ -270,6 +376,8 @@ process.on("SIGTERM", async () => {
   await payslipQueue.close();
   await attendanceNotificationQueue.close();
   await anomalyQueue.close();
+  await statAnomalyQueue.close();
+  await forecastQueue.close();
   await pool.end();
   process.exit(0);
 });
@@ -279,6 +387,8 @@ process.on("SIGINT", async () => {
   await payslipQueue.close();
   await attendanceNotificationQueue.close();
   await anomalyQueue.close();
+  await statAnomalyQueue.close();
+  await forecastQueue.close();
   await pool.end();
   process.exit(0);
 });

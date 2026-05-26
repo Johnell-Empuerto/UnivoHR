@@ -34,6 +34,10 @@ const finalPayRoutes = require("./routes/finalPay.routes");
 const profileRoutes = require("./routes/profile.routes");
 const branchRoutes = require("./routes/branch.routes");
 const anomalyRoutes = require("./routes/anomaly.routes");
+const drilldownRoutes = require("./routes/drilldown.routes");
+const forecastRoutes = require("./routes/forecast.routes");
+const statisticalAnomalyRoutes = require("./routes/statisticalAnomaly.routes");
+const analyticsRoutes = require("./routes/analytics.routes");
 
 // Middleware
 const authenticate = require("./middleware/auth.middleware");
@@ -111,6 +115,10 @@ app.use("/api/profile", authenticate, profileRoutes);
 app.use("/api/branches", authenticate, branchRoutes);
 
 app.use("/api/anomalies", authenticate, anomalyRoutes);
+app.use("/api/drilldown", authenticate, drilldownRoutes);
+app.use("/api/forecast", authenticate, forecastRoutes);
+app.use("/api/stats-anomaly", authenticate, statisticalAnomalyRoutes);
+app.use("/api/analytics", authenticate, analyticsRoutes);
 
 const queueService = require("./services/queue.service");
 

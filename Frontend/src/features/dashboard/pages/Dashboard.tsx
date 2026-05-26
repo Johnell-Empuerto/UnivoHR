@@ -39,6 +39,9 @@ import EmployeeGrowthChart from "@/features/dashboard/components/EmployeeGrowthC
 import AbsentTrendChart from "@/features/dashboard/components/AbsentTrendChart";
 import DailyBreakdownStackedBar from "../components/DailyBreakdownStackedBar";
 import InsightsPanel from "../components/InsightsPanel";
+import StatInsightCard from "../components/StatInsightCard";
+import ForecastCard from "../components/ForecastCard";
+import DrilldownDrawer from "@/components/drilldown/DrilldownDrawer";
 import React from "react";
 
 interface LeaveCredits {
@@ -194,6 +197,9 @@ const AdminDashboardContent = React.memo(
           </Card>
         )}
 
+        {/* Statistical Anomaly Insight Card */}
+        <StatInsightCard />
+
         {/* Weekly Attendance Trend */}
         <div className="grid grid-cols-1 gap-6">
           <Card className="border-border/50 shadow-sm">
@@ -226,8 +232,10 @@ const AdminDashboardContent = React.memo(
           )}
         </div>
 
+        {/* Forecast Predictions */}
+        <ForecastCard />
+
         {/* Insights Panel */}
-        {/* Insights Panel - NOW SIMPLER */}
         {summary && metrics && adminAnalytics?.insights && (
           <InsightsPanel insights={adminAnalytics.insights} />
         )}

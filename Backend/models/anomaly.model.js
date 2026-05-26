@@ -41,11 +41,15 @@ const createAnomaly = async ({
   detected_value,
   expected_value,
   metadata,
+  anomaly_score,
+  confidence,
+  baseline_value,
+  statistical_method,
 }) => {
   const query = `
     INSERT INTO anomaly_logs
-      (employee_id, branch_id, anomaly_type, source_module, severity, title, description, detected_value, expected_value, metadata)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      (employee_id, branch_id, anomaly_type, source_module, severity, title, description, detected_value, expected_value, metadata, anomaly_score, confidence, baseline_value, statistical_method)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
     RETURNING *;
   `;
 
@@ -60,6 +64,10 @@ const createAnomaly = async ({
     detected_value ? String(detected_value) : null,
     expected_value ? String(expected_value) : null,
     metadata ? JSON.stringify(metadata) : "{}",
+    anomaly_score || null,
+    confidence || null,
+    baseline_value || null,
+    statistical_method || null,
   ];
 
   const result = await pool.query(query, values);
