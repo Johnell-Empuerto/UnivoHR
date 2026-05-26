@@ -60,6 +60,14 @@ const setActive = async (id, is_active, updated_by) => {
   return result.rows[0];
 };
 
+const remove = async (id) => {
+  const result = await pool.query(
+    `DELETE FROM hr_policy_documents WHERE id = $1 RETURNING *`,
+    [id],
+  );
+  return result.rows[0];
+};
+
 const search = async (question, category) => {
   const q = question.toLowerCase().trim();
 
@@ -136,5 +144,6 @@ module.exports = {
   create,
   update,
   setActive,
+  remove,
   search,
 };

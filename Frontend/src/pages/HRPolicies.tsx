@@ -568,8 +568,8 @@ const HRPolicies = () => {
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             Are you sure you want to delete{" "}
-            <strong>{deleteTarget?.title}</strong>? This will deactivate the
-            policy.
+            <strong>{deleteTarget?.title}</strong>? This action cannot be
+            undone.
           </p>
           <DialogFooter>
             <Button

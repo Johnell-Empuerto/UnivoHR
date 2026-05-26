@@ -38,7 +38,6 @@ const drilldownRoutes = require("./routes/drilldown.routes");
 const forecastRoutes = require("./routes/forecast.routes");
 const statisticalAnomalyRoutes = require("./routes/statisticalAnomaly.routes");
 const analyticsRoutes = require("./routes/analytics.routes");
-const aiRoutes = require("./routes/ai.routes");
 const hrPolicyRoutes = require("./routes/hrPolicy.routes");
 
 // Middleware
@@ -121,7 +120,6 @@ app.use("/api/drilldown", authenticate, drilldownRoutes);
 app.use("/api/forecast", authenticate, forecastRoutes);
 app.use("/api/stats-anomaly", authenticate, statisticalAnomalyRoutes);
 app.use("/api/analytics", authenticate, analyticsRoutes);
-app.use("/api/ai", authenticate, aiRoutes);
 app.use("/api/hr-policies", authenticate, hrPolicyRoutes);
 
 const queueService = require("./services/queue.service");

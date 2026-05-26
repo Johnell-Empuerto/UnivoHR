@@ -362,7 +362,7 @@ export const RichTextEditor = ({
         </MenuButton>
       </div>
 
-      <EditorContent editor={editor} className="min-h-[300px]" />
+      <EditorContent editor={editor} className="min-h-75" />
     </div>
   );
 };

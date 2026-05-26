@@ -174,7 +174,9 @@ const setActive = async (id, is_active, user) => {
 };
 
 const remove = async (id, user) => {
-  return await setActive(id, false, user);
+  const existing = await hrPolicyModel.getById(id);
+  if (!existing) throw new Error("Policy not found");
+  return await hrPolicyModel.remove(id);
 };
 
 const isListRequest = (question) => {
