@@ -59,6 +59,19 @@ const isFollowUpQuestion = (question, context) => {
   if (!context || !context.lastIntent) return false;
   const q = question.toLowerCase().trim();
 
+  if (context.lastIntent === "hr_policy_qa") {
+    // If it mentions specific employee data terms with personal pronouns, it's not a policy follow-up
+    const isEmployeeSelfQuery = /\b(my|me|mine|myself)\b/i.test(q) || (context.entities && context.entities.employeeName);
+    if (isEmployeeSelfQuery && /\b(attendance|payroll|salary|payslip|deduction|overtime|leave)\b/i.test(q)) {
+      return false;
+    }
+    // Check if the query has question words/pronouns/determinants/demonstratives indicating follow-up on a topic
+    if (/^(?:how about|what about|and|also|why|how|does|is|can|who|where|when|what|any|do|should|must)\s/i.test(q)) return true;
+    if (/\b(?:it|they|that|this|them|policy|rule|rules|guideline|procedure|process|request|approval|approve|require|needed)\b/i.test(q)) return true;
+    // A short question in a policy context is likely a follow-up
+    if (q.split(/\s+/).length <= 5) return true;
+  }
+
   if (/^(?:how about|what about|and|also)\s/i.test(q)) return true;
   if (/^(?:and\s+)?(?:deductions?|net|gross|bonuses?|allowances?|lates|absences|hours|overtime|undertime|details)\??$/i.test(q)) return true;
   if (/^(?:show\s+)?(?:details?|deductions?|overtime|salary|payroll|late\s+records?|leave|absences?)\s*\??$/i.test(q)) return true;
@@ -161,6 +174,10 @@ const inferFollowUpIntent = (question, lastIntent) => {
   // If no subject matched, stay with last intent category but allow entity shifts
   if (lastIntent.startsWith("employee_")) {
     return lastIntent;
+  }
+
+  if (lastIntent === "hr_policy_qa") {
+    return "hr_policy_qa";
   }
 
   return null;
@@ -968,12 +985,17 @@ const applyEntityContext = (intent, entities, scope, context, question) => {
   // Rule: hr_policy_qa - preserve original question and detect category
   if (intent === "hr_policy_qa") {
     result._question = question;
-    if (!result.category) {
-      const hrPolicyService = require("./hrPolicy.service");
-      const detectedCategory = hrPolicyService.isCategoryQuestion(question);
-      if (detectedCategory) {
-        result.category = detectedCategory;
-      }
+    const hrPolicyService = require("./hrPolicy.service");
+    let detectedCategory = hrPolicyService.isCategoryQuestion(question);
+
+    // If no category detected in question, inherit category from previous policy context
+    if (!detectedCategory && context && context.lastIntent === "hr_policy_qa" && context.entities && context.entities.category) {
+      detectedCategory = context.entities.category;
+      console.log(`[AI Context] Inheriting category from previous policy context: ${detectedCategory}`);
+    }
+
+    if (detectedCategory) {
+      result.category = detectedCategory;
     }
     delete result.employeeId;
     delete result.employeeName;
@@ -1010,6 +1032,10 @@ const applyEntityContext = (intent, entities, scope, context, question) => {
 // ========== MAIN CHAT HANDLER ==========
 
 const processChat = async ({ user, question, sessionId }) => {
+  if (process.env.AI_CHATBOT_ENABLED !== "true") {
+    throw new Error("AI Assistant is currently disabled.");
+  }
+
   const startTime = Date.now();
 
   // 1. Get or create session
@@ -1084,13 +1110,16 @@ const processChat = async ({ user, question, sessionId }) => {
   // 4b. Post-process: override local AI intent if rule-based detects policy question
   const isPolicyQuestion =
     (/\b(?:policy|rule|rules|regulation|guideline|concern)\b/i.test(question) &&
-     !/\b(?:my\s+)?(payroll|salary|payslip|deduction|overtime|attendance|leave)\s+(details|summary|records?|history)\b/i.test(question) &&
+     !/\b(?:my\s+)?(payroll|salary|payslip|deduction|overtime|leave|attendance)\s+(details|summary|records?|history)\b/i.test(question) &&
      !/\b(?:show|view|list)\s+(?:payroll|salary|overtime|attendance|leave)\b/i.test(question)) ||
     /\b(?:what\s+is|how\s+(?:does|do))\s+(?:the\s+)?(?:company|leave|attendance|overtime|security|payroll|privacy)\b/i.test(question) ||
     /\b(?:can\s+i\s+share|tell\s+me\s+(?:about|the))\s+(?:my\s+)?(?:password|credential|policy|rule)\b/i.test(question);
-  if (intent !== "hr_policy_qa" && isPolicyQuestion) {
+  
+  const isPolicyFollowUp = context && context.lastIntent === "hr_policy_qa" && isFollowUpQuestion(question, context);
+
+  if (intent !== "hr_policy_qa" && (isPolicyQuestion || isPolicyFollowUp)) {
     intent = "hr_policy_qa";
-    console.log("[AI Parser] Override to hr_policy_qa (rule-based detected policy question)");
+    console.log("[AI Parser] Override to hr_policy_qa (rule-based or follow-up detected)");
   }
 
   // 5. Apply intent-aware entity context

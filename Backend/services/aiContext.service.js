@@ -3,11 +3,13 @@
 const contextStore = new Map();
 
 const getContext = (sessionId) => {
-  return contextStore.get(sessionId) || null;
+  if (sessionId === null || sessionId === undefined) return null;
+  return contextStore.get(String(sessionId)) || null;
 };
 
 const setContext = (sessionId, context) => {
-  contextStore.set(sessionId, {
+  if (sessionId === null || sessionId === undefined) return;
+  contextStore.set(String(sessionId), {
     entities: context.entities || {},
     lastIntent: context.lastIntent || null,
     lastQuestion: context.lastQuestion || null,
@@ -19,7 +21,9 @@ const setContext = (sessionId, context) => {
 };
 
 const updateContext = (sessionId, updates) => {
-  const existing = getContext(sessionId) || { entities: {}, lastIntent: null, lastQuestion: null, lastModule: null, lastCutoffDates: null, lastQuestionType: null };
+  if (sessionId === null || sessionId === undefined) return null;
+  const key = String(sessionId);
+  const existing = getContext(key) || { entities: {}, lastIntent: null, lastQuestion: null, lastModule: null, lastCutoffDates: null, lastQuestionType: null };
   const merged = {
     entities: { ...existing.entities, ...(updates.entities || {}) },
     lastIntent: updates.lastIntent !== undefined ? updates.lastIntent : existing.lastIntent,
@@ -29,12 +33,13 @@ const updateContext = (sessionId, updates) => {
     lastQuestionType: updates.lastQuestionType !== undefined ? updates.lastQuestionType : existing.lastQuestionType,
     updatedAt: new Date().toISOString(),
   };
-  contextStore.set(sessionId, merged);
+  contextStore.set(key, merged);
   return merged;
 };
 
 const clearContext = (sessionId) => {
-  contextStore.delete(sessionId);
+  if (sessionId === null || sessionId === undefined) return;
+  contextStore.delete(String(sessionId));
 };
 
 // Cleanup old entries periodically (optional)

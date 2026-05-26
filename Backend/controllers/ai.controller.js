@@ -2,6 +2,10 @@ const aiService = require("../services/ai.service");
 
 const chat = async (req, res) => {
   try {
+    if (process.env.AI_CHATBOT_ENABLED !== "true") {
+      return res.status(404).json({ message: "AI Assistant is currently disabled." });
+    }
+
     const { question, sessionId } = req.body;
 
     if (!question || typeof question !== "string" || question.trim().length === 0) {

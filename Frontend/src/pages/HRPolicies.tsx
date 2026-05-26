@@ -33,15 +33,19 @@ import {
   PowerOff,
   Trash2,
   Search,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers/AuthProvider";
+import { RichTextEditor } from "@/features/hr-policies/components/RichTextEditor";
+import { PolicyViewer } from "@/features/hr-policies/components/PolicyViewer";
 
 interface HrPolicy {
   id: number;
   title: string;
   category: string;
   content: string;
+  content_format?: string;
   is_active: boolean;
   created_by: number | null;
   updated_by: number | null;
@@ -66,13 +70,14 @@ const emptyForm = {
 
 const HRPolicies = () => {
   const { user } = useAuth();
-  const isAdmin =
-    user?.role === "ADMIN" || user?.role === "HR_ADMIN";
+  const isAdmin = user?.role === "ADMIN" || user?.role === "HR_ADMIN";
 
   const [policies, setPolicies] = useState<HrPolicy[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewPolicy, setViewPolicy] = useState<HrPolicy | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<HrPolicy | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
@@ -113,10 +118,19 @@ const HRPolicies = () => {
     setDialogOpen(true);
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+  const handleOpenView = (policy: HrPolicy) => {
+    setViewPolicy(policy);
+    setViewDialogOpen(true);
+  };
+
+  const handleTextChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleContentChange = (html: string) => {
+    setForm({ ...form, content: html });
   };
 
   const handleSave = async () => {
@@ -186,7 +200,9 @@ const HRPolicies = () => {
     }
   };
 
-  const filteredPolicies = policies.filter((p) => {
+  const activePolicies = policies.filter((p) => p.is_active);
+
+  const filteredPolicies = (isAdmin ? policies : activePolicies).filter((p) => {
     const matchesSearch =
       !search ||
       p.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -199,6 +215,134 @@ const HRPolicies = () => {
       (statusFilter === "inactive" && !p.is_active);
     return matchesSearch && matchesCategory && matchesStatus;
   });
+
+  if (!isAdmin) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <FileText className="h-5 w-5 text-primary dark:text-black" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-muted-foreground">
+              HR Policies
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              View company policies and HR documents
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search policies..."
+              className="w-full border rounded pl-8 pr-3 py-2 bg-background text-sm"
+            />
+          </div>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="border rounded px-3 py-2 bg-background text-sm"
+          >
+            <option value="">All Categories</option>
+            {CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
+            <span className="text-sm text-muted-foreground">
+              Loading policies...
+            </span>
+          </div>
+        ) : filteredPolicies.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            No policies found.
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {filteredPolicies.map((policy) => (
+              <Card
+                key={policy.id}
+                className="shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => handleOpenView(policy)}
+              >
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1.5 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge
+                          variant="outline"
+                          className={`${
+                            policy.category === "attendance"
+                              ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                              : policy.category === "leave"
+                                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                : policy.category === "overtime"
+                                  ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
+                                  : policy.category === "security"
+                                    ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                                    : policy.category === "payroll"
+                                      ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
+                                      : "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400"
+                          }`}
+                        >
+                          {policy.category.charAt(0).toUpperCase() +
+                            policy.category.slice(1)}
+                        </Badge>
+                      </div>
+                      <h3 className="font-semibold text-base">
+                        {policy.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {policy.content.replace(/<[^>]*>/g, "").trim()}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 mt-1" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+          <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="sr-only">
+                {viewPolicy?.title}
+              </DialogTitle>
+            </DialogHeader>
+            {viewPolicy && (
+              <PolicyViewer
+                title={viewPolicy.title}
+                category={viewPolicy.category}
+                content={viewPolicy.content}
+                updatedAt={viewPolicy.updated_at}
+              />
+            )}
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setViewDialogOpen(false)}
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -219,15 +363,13 @@ const HRPolicies = () => {
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
           <CardTitle>All Policies</CardTitle>
-          {isAdmin && (
-            <Button
-              onClick={handleOpenCreate}
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Policy
-            </Button>
-          )}
+          <Button
+            onClick={handleOpenCreate}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Policy
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap items-center gap-3 mb-4">
@@ -252,17 +394,15 @@ const HRPolicies = () => {
                 </option>
               ))}
             </select>
-            {isAdmin && (
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="border rounded px-3 py-2 bg-background text-sm"
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            )}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="border rounded px-3 py-2 bg-background text-sm"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
           </div>
 
           {loading ? (
@@ -285,7 +425,7 @@ const HRPolicies = () => {
                     <TableHead>Category</TableHead>
                     <TableHead>Content</TableHead>
                     <TableHead>Status</TableHead>
-                    {isAdmin && <TableHead>Actions</TableHead>}
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -300,7 +440,7 @@ const HRPolicies = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="max-w-xs truncate">
-                        {policy.content}
+                        {policy.content.replace(/<[^>]*>/g, "").trim()}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -316,41 +456,39 @@ const HRPolicies = () => {
                           {policy.is_active ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
-                      {isAdmin && (
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <button
-                              className="p-1 rounded hover:bg-muted transition"
-                              title="Edit"
-                              onClick={() => handleOpenEdit(policy)}
-                            >
-                              <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                            </button>
-                            <button
-                              className="p-1 rounded hover:bg-muted transition"
-                              title={
-                                policy.is_active
-                                  ? "Deactivate"
-                                  : "Activate"
-                              }
-                              onClick={() => handleToggleActive(policy)}
-                            >
-                              {policy.is_active ? (
-                                <PowerOff className="h-4 w-4 text-red-500 hover:text-red-700" />
-                              ) : (
-                                <Power className="h-4 w-4 text-green-500 hover:text-green-700" />
-                              )}
-                            </button>
-                            <button
-                              className="p-1 rounded hover:bg-muted transition"
-                              title="Delete"
-                              onClick={() => handleDeleteClick(policy)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
-                            </button>
-                          </div>
-                        </TableCell>
-                      )}
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="p-1 rounded hover:bg-muted transition"
+                            title="Edit"
+                            onClick={() => handleOpenEdit(policy)}
+                          >
+                            <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                          </button>
+                          <button
+                            className="p-1 rounded hover:bg-muted transition"
+                            title={
+                              policy.is_active
+                                ? "Deactivate"
+                                : "Activate"
+                            }
+                            onClick={() => handleToggleActive(policy)}
+                          >
+                            {policy.is_active ? (
+                              <PowerOff className="h-4 w-4 text-red-500 hover:text-red-700" />
+                            ) : (
+                              <Power className="h-4 w-4 text-green-500 hover:text-green-700" />
+                            )}
+                          </button>
+                          <button
+                            className="p-1 rounded hover:bg-muted transition"
+                            title="Delete"
+                            onClick={() => handleDeleteClick(policy)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
+                          </button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -361,53 +499,52 @@ const HRPolicies = () => {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editId ? "Edit Policy" : "Add Policy"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">
-                Title <span className="text-red-500">*</span>
-              </p>
-              <input
-                name="title"
-                value={form.title}
-                onChange={handleChange}
-                className="w-full border rounded px-2 py-1 bg-background"
-                placeholder="e.g., Attendance Policy"
-              />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">
-                Category <span className="text-red-500">*</span>
-              </p>
-              <select
-                name="category"
-                value={form.category}
-                onChange={handleChange}
-                className="w-full border rounded px-2 py-1 bg-background"
-              >
-                <option value="">Select category</option>
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">
+                  Title <span className="text-red-500">*</span>
+                </p>
+                <input
+                  name="title"
+                  value={form.title}
+                  onChange={handleTextChange}
+                  className="w-full border rounded px-2 py-1 bg-background"
+                  placeholder="e.g., Attendance Policy"
+                />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">
+                  Category <span className="text-red-500">*</span>
+                </p>
+                <select
+                  name="category"
+                  value={form.category}
+                  onChange={handleTextChange}
+                  className="w-full border rounded px-2 py-1 bg-background"
+                >
+                  <option value="">Select category</option>
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div>
               <p className="text-xs text-muted-foreground mb-1">
                 Content <span className="text-red-500">*</span>
               </p>
-              <textarea
-                name="content"
-                value={form.content}
-                onChange={handleChange}
-                rows={5}
-                className="w-full border rounded px-2 py-1 bg-background resize-y"
+              <RichTextEditor
+                content={form.content}
+                onChange={handleContentChange}
                 placeholder="Enter policy content..."
               />
             </div>

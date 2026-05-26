@@ -30,24 +30,24 @@ const getByCategory = async (category) => {
 };
 
 const create = async (data) => {
-  const { title, category, content, created_by } = data;
+  const { title, category, content, content_format, created_by } = data;
   const result = await pool.query(
-    `INSERT INTO hr_policy_documents (title, category, content, created_by)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO hr_policy_documents (title, category, content, content_format, created_by)
+     VALUES ($1, $2, $3, $4, $5)
      RETURNING *`,
-    [title, category, content, created_by || null],
+    [title, category, content, content_format || "html", created_by || null],
   );
   return result.rows[0];
 };
 
 const update = async (id, data) => {
-  const { title, category, content, updated_by } = data;
+  const { title, category, content, content_format, updated_by } = data;
   const result = await pool.query(
     `UPDATE hr_policy_documents
-     SET title = $1, category = $2, content = $3, updated_by = $4, updated_at = NOW()
-     WHERE id = $5
+     SET title = $1, category = $2, content = $3, content_format = $4, updated_by = $5, updated_at = NOW()
+     WHERE id = $6
      RETURNING *`,
-    [title, category, content, updated_by || null, id],
+    [title, category, content, content_format || "html", updated_by || null, id],
   );
   return result.rows[0];
 };
@@ -61,47 +61,72 @@ const setActive = async (id, is_active, updated_by) => {
 };
 
 const search = async (question, category) => {
-  const q = question.toLowerCase();
-  const words = q
-    .split(/\s+/)
-    .filter((w) => w.length > 2)
-    .map((w) => `%${w}%`);
+  const q = question.toLowerCase().trim();
 
-  let conditions = [`is_active = true`];
+  // Clean punctuation and split into words
+  const cleanQ = q.replace(/[^\w\s]/g, ' ');
+  const words = cleanQ
+    .split(/\s+/)
+    .filter((w) => w.length > 2);
+
+  // Retrieve active policies under the category
+  // If no category (or category is "company"), retrieve all active policies
+  let query = `SELECT * FROM hr_policy_documents WHERE is_active = true`;
   const params = [];
   let idx = 1;
 
   if (category && category !== "company") {
-    conditions.push(`category = $${idx++}`);
+    query += ` AND category = $${idx++}`;
     params.push(category);
   }
 
-  const keywordConditions = [];
-  if (words.length > 0) {
-    for (const word of words) {
-      keywordConditions.push(
-        `(LOWER(title) LIKE $${idx} OR LOWER(content) LIKE $${idx})`,
-      );
-      params.push(word);
-      idx++;
+  const result = await pool.query(query, params);
+  const policies = result.rows;
+
+  if (policies.length === 0) {
+    return [];
+  }
+
+  // Score policies
+  const scored = policies.map((policy) => {
+    let score = 0;
+    const titleLower = policy.title.toLowerCase();
+    const contentLower = policy.content.toLowerCase();
+    const catLower = (policy.category || "").toLowerCase();
+
+    // Category match bonus
+    if (category && catLower === category.toLowerCase()) {
+      score += 10;
     }
-  }
 
-  if (keywordConditions.length > 0) {
-    conditions.push(`(${keywordConditions.join(" OR ")})`);
-  }
+    // Title matching (exact title matches or title contains query)
+    if (titleLower.includes(q)) {
+      score += 20;
+    }
 
-  const result = await pool.query(
-    `SELECT * FROM hr_policy_documents
-     WHERE ${conditions.join(" AND ")}
-     ORDER BY
-       CASE WHEN category = $${idx} THEN 0 ELSE 1 END,
-       CASE WHEN LOWER(title) LIKE $${idx + 1} THEN 0 ELSE 1 END,
-       LENGTH(title) ASC
-     LIMIT 3`,
-    [...params, category || "", `%${q}%`],
-  );
-  return result.rows;
+    // Word matching
+    words.forEach((word) => {
+      if (titleLower.includes(word)) {
+        score += 5;
+      }
+      if (contentLower.includes(word)) {
+        score += 2;
+      }
+    });
+
+    return { policy, score };
+  });
+
+  // Sort by score descending, and then by title length (shorter titles first)
+  scored.sort((a, b) => {
+    if (b.score !== a.score) {
+      return b.score - a.score;
+    }
+    return a.policy.title.length - b.policy.title.length;
+  });
+
+  // Return the top 3
+  return scored.map((s) => s.policy).slice(0, 3);
 };
 
 module.exports = {
