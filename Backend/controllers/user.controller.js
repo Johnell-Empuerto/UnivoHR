@@ -1,4 +1,5 @@
 const userService = require("../services/user.service");
+const audit = require("../services/audit.service");
 
 const getUsers = async (req, res) => {
   try {
@@ -29,6 +30,14 @@ const getUserById = async (req, res) => {
 const createUser = async (req, res) => {
   try {
     const user = await userService.createUser(req.body);
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "users",
+      record_id: user.id,
+      employee_id: user.employee_id,
+      new_values: { username: user.username, role: user.role, employee_id: user.employee_id },
+      description: `User created: ${user.username}`,
+    });
     res.status(201).json({ message: "User created successfully", user });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -38,7 +47,17 @@ const createUser = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
+    const oldValues = await audit.fetchOldValues("users", id);
     const user = await userService.updateUser(id, req.body);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "users",
+      record_id: Number(id),
+      employee_id: user?.employee_id,
+      old_values: oldValues ? { username: oldValues.username, role: oldValues.role } : null,
+      new_values: { username: user.username, role: user.role },
+      description: `User updated: ${user.username}`,
+    });
     res.json({ message: "User updated successfully", user });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -48,7 +67,15 @@ const updateUser = async (req, res) => {
 const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
+    const oldValues = await audit.fetchOldValues("users", id);
     await userService.deleteUser(id);
+    audit.auditLog(req, {
+      action: "DELETE",
+      table_name: "users",
+      record_id: Number(id),
+      old_values: oldValues ? { username: oldValues.username, role: oldValues.role, employee_id: oldValues.employee_id } : null,
+      description: oldValues ? `User deleted: ${oldValues.username}` : `User deleted (id: ${id})`,
+    });
     res.json({ message: "User deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });

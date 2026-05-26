@@ -7,7 +7,7 @@ const initSocket = (server) => {
 
   io = new Server(server, {
     cors: {
-      origin: ["http://localhost:5173", "http://192.168.0.104:5173"],
+      origin: ["http://localhost:5173", "http://192.168.0.110:5173"],
       methods: ["GET", "POST"],
       credentials: true,
     },
@@ -36,7 +36,11 @@ const initSocket = (server) => {
 
   io.on("connection", (socket) => {
     const userId = socket.user?.id;
-    console.log("Client connected:", socket.id, userId ? `(user ${userId})` : "(unauthenticated)");
+    console.log(
+      "Client connected:",
+      socket.id,
+      userId ? `(user ${userId})` : "(unauthenticated)",
+    );
 
     socket.on("join", (targetUserId) => {
       if (targetUserId) {
@@ -45,7 +49,9 @@ const initSocket = (server) => {
           socket.join(`user_${targetUserId}`);
           console.log(`User ${targetUserId} joined room user_${targetUserId}`);
         } else if (!socket.user) {
-          console.warn(`[Socket] Unauthenticated user attempted to join room ${targetUserId}`);
+          console.warn(
+            `[Socket] Unauthenticated user attempted to join room ${targetUserId}`,
+          );
         }
       }
     });

@@ -1,5 +1,6 @@
 const overtimeService = require("../services/overtime.service");
 const notificationService = require("../services/notification.service");
+const audit = require("../services/audit.service");
 
 // Helper function to format date
 const formatDateForMeta = (dateString) => {
@@ -56,6 +57,15 @@ const createOvertime = async (req, res) => {
         },
       });
     }
+
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "overtime_requests",
+      record_id: data.id,
+      employee_id,
+      new_values: { employee_id, date: req.body.date, hours: req.body.hours, reason: req.body.reason, status: "PENDING" },
+      description: `Overtime request created: ${req.body.hours}h on ${req.body.date}`,
+    });
 
     res.json({ message: "Overtime request submitted successfully", data });
   } catch (error) {
@@ -170,6 +180,16 @@ const approveOvertime = async (req, res) => {
       },
     });
 
+    audit.auditLog(req, {
+      action: "APPROVE",
+      table_name: "overtime_requests",
+      record_id: Number(id),
+      employee_id: overtimeRequest.employee_id,
+      old_values: { status: "PENDING" },
+      new_values: { status: "APPROVED", approved_by: approver_id, approved_at: new Date().toISOString() },
+      description: `Overtime ${id} approved`,
+    });
+
     res.json({ message: "Overtime request approved", data });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -208,6 +228,16 @@ const rejectOvertime = async (req, res) => {
         hours: overtimeRequest.hours,
         reason: reason,
       },
+    });
+
+    audit.auditLog(req, {
+      action: "REJECT",
+      table_name: "overtime_requests",
+      record_id: Number(id),
+      employee_id: overtimeRequest.employee_id,
+      old_values: { status: "PENDING" },
+      new_values: { status: "REJECTED", rejected_by: approver_id, rejected_at: new Date().toISOString(), rejected_reason: reason },
+      description: `Overtime ${id} rejected: ${reason}`,
     });
 
     res.json({ message: "Overtime request rejected", data });

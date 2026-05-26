@@ -4,10 +4,22 @@ const audit = require("../services/audit.service");
 const login = async (req, res) => {
   try {
     const result = await authService.login(req.body);
-    audit.log({ action: "LOGIN_SUCCESS", entity_type: "user", entity_id: result.user?.id, new_values: { username: req.body.username }, req });
+    audit.auditLog(req, {
+      action: "LOGIN",
+      table_name: "users",
+      record_id: result.user?.id,
+      employee_id: result.user?.employee_id,
+      new_values: { username: req.body.username },
+      description: `User login: ${req.body.username}`,
+    });
     res.json(result);
   } catch (error) {
-    audit.log({ action: "LOGIN_FAILED", entity_type: "user", new_values: { username: req.body.username }, req });
+    audit.auditLog(req, {
+      action: "LOGIN",
+      table_name: "users",
+      new_values: { username: req.body.username },
+      description: `Failed login attempt: ${req.body.username}`,
+    });
     res.status(401).json({ message: error.message });
   }
 };
@@ -55,7 +67,12 @@ const resetPassword = async (req, res) => {
       });
     }
     const result = await authService.resetPassword({ user_id, otp, new_password });
-    audit.log({ action: "PASSWORD_RESET", entity_type: "user", entity_id: user_id, req });
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "users",
+      record_id: Number(user_id),
+      description: `Password reset for user ${user_id}`,
+    });
     res.json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });

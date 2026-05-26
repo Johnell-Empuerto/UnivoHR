@@ -1,4 +1,5 @@
 const leaveService = require("../services/leave.service");
+const audit = require("../services/audit.service");
 
 // Helper function to format leave type display name
 const getLeaveTypeDisplay = (type) => {
@@ -151,6 +152,15 @@ const createLeave = async (req, res) => {
     });
 
     // 🚀 OPTIMIZATION 3: Send response IMMEDIATELY (don't wait for notifications)
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "leaves",
+      record_id: leave.id,
+      employee_id: employeeId,
+      new_values: { employee_id: employeeId, type, from_date, to_date, reason, day_fraction, half_day_type: half_day_type ? half_day_type.toUpperCase() : null, status: "PENDING" },
+      description: `Leave request created: ${type} from ${from_date} to ${to_date}`,
+    });
+
     res.status(201).json(leave);
   } catch (error) {
     console.error("❌ Create leave error:", error);
@@ -278,6 +288,16 @@ const updateStatus = async (req, res) => {
       status,
       rejection_reason,
     );
+
+    audit.auditLog(req, {
+      action: status === "APPROVED" ? "APPROVE" : "REJECT",
+      table_name: "leaves",
+      record_id: Number(leaveId),
+      employee_id: existing.employee_id,
+      old_values: { status: existing.status },
+      new_values: { status, rejection_reason: rejection_reason || null },
+      description: `Leave ${leaveId} ${status.toLowerCase()}${rejection_reason ? `: ${rejection_reason}` : ""}`,
+    });
 
     console.log(`Leave ${leaveId} updated to ${status}`);
     res.json(result);

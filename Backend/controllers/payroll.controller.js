@@ -22,6 +22,14 @@ const generatePayroll = async (req, res) => {
       branch_id,
     );
 
+    audit.auditLog(req, {
+      action: "GENERATE_PAYROLL",
+      table_name: "payroll",
+      branch_id: branch_id || null,
+      new_values: { cutoff_start, cutoff_end, pay_date, branch_id: branch_id || null },
+      description: `Payroll generated: ${cutoff_start} to ${cutoff_end}, pay date ${pay_date}${branch_id ? `, branch ${branch_id}` : ""}`,
+    });
+
     res.json(data);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -95,7 +103,17 @@ const getEmployeeSalary = async (req, res) => {
 const updateEmployeeSalary = async (req, res) => {
   try {
     const id = req.params.id;
+    const oldValues = await audit.fetchOldValues("employee_salary", id);
     const data = await payrollService.updateEmployeeSalary(id, req.body);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "employee_salary",
+      record_id: data.id,
+      employee_id: Number(id),
+      old_values: oldValues ? { basic_salary: oldValues.basic_salary, daily_rate: oldValues.daily_rate, overtime_rate: oldValues.overtime_rate, working_days_per_month: oldValues.working_days_per_month } : null,
+      new_values: { basic_salary: data.basic_salary, daily_rate: data.daily_rate, overtime_rate: data.overtime_rate, working_days_per_month: data.working_days_per_month },
+      description: `Salary updated for employee ${id}`,
+    });
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -129,6 +147,14 @@ const getDeductions = async (req, res) => {
 const createDeduction = async (req, res) => {
   try {
     const data = await payrollService.createDeduction(req.body);
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "employee_deductions",
+      record_id: data.id,
+      employee_id: data.employee_id,
+      new_values: { employee_id: data.employee_id, type: data.type, amount: data.amount, is_active: data.is_active },
+      description: `Deduction created: ${data.type} ${data.amount} for employee ${data.employee_id}`,
+    });
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -137,7 +163,17 @@ const createDeduction = async (req, res) => {
 
 const updateDeduction = async (req, res) => {
   try {
+    const oldValues = await audit.fetchOldValues("employee_deductions", req.params.id);
     const data = await payrollService.updateDeduction(req.params.id, req.body);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "employee_deductions",
+      record_id: Number(req.params.id),
+      employee_id: data.employee_id,
+      old_values: oldValues ? { type: oldValues.type, amount: oldValues.amount, is_active: oldValues.is_active } : null,
+      new_values: { type: data.type, amount: data.amount, is_active: data.is_active },
+      description: `Deduction ${req.params.id} updated: ${data.type} ${data.amount}`,
+    });
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -146,7 +182,16 @@ const updateDeduction = async (req, res) => {
 
 const deleteDeduction = async (req, res) => {
   try {
+    const oldValues = await audit.fetchOldValues("employee_deductions", req.params.id);
     await payrollService.deleteDeduction(req.params.id);
+    audit.auditLog(req, {
+      action: "DELETE",
+      table_name: "employee_deductions",
+      record_id: Number(req.params.id),
+      employee_id: oldValues?.employee_id,
+      old_values: oldValues ? { type: oldValues.type, amount: oldValues.amount, employee_id: oldValues.employee_id } : null,
+      description: oldValues ? `Deduction deleted: ${oldValues.type} ${oldValues.amount} for employee ${oldValues.employee_id}` : `Deduction ${req.params.id} deleted`,
+    });
     res.json({ message: "Deleted" });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -214,12 +259,15 @@ const markAsPaid = async (req, res) => {
     });
 
     // Audit log
-    audit.log({
-      actor_id: req.user.id,
-      action: "PAYROLL_PAID",
-      entity_type: "payroll",
-      entity_id: payrollId,
-      req,
+    audit.auditLog(req, {
+      action: "MARK_PAID",
+      table_name: "payroll",
+      record_id: payrollId,
+      employee_id: payroll?.employee_id,
+      branch_id: payroll?.branch_id,
+      old_values: { status: "UNPAID" },
+      new_values: { status: "PAID", pay_date: payroll?.pay_date },
+      description: `Payroll ${payrollId} marked as paid`,
     });
 
     // Return immediately (email is queued in background)
@@ -246,7 +294,12 @@ const markAllAsPaid = async (req, res) => {
 
     const data = await payrollService.markAllAsPaid(cutoff_start, cutoff_end);
 
-    audit.log({ actor_id: req.user.id, action: "PAYROLL_MARK_ALL_PAID", entity_type: "payroll", req });
+    audit.auditLog(req, {
+      action: "MARK_PAID",
+      table_name: "payroll",
+      new_values: { status: "PAID", cutoff_start, cutoff_end },
+      description: `All payroll marked as paid: ${cutoff_start} to ${cutoff_end} (${data.count} records)`,
+    });
 
     res.json({
       message: `All payroll marked as paid. ${data.emailsQueued} payslips queued for sending.`,
@@ -269,7 +322,11 @@ const deletePayrollByCutoff = async (req, res) => {
       pay_date,
     );
 
-    audit.log({ actor_id: req.user.id, action: "PAYROLL_DELETED", entity_type: "payroll", req });
+    audit.auditLog(req, {
+      action: "DELETE",
+      table_name: "payroll",
+      description: `Payroll deleted: ${cutoff_start} to ${cutoff_end}`,
+    });
 
     res.json(data);
   } catch (err) {
@@ -329,6 +386,15 @@ const downloadPayslip = async (req, res) => {
     const company = await companyService.getCompany();
     const { generatePayslip } = require("../utils/payslipGenerator");
 
+    audit.auditLog(req, {
+      action: "EXPORT",
+      table_name: "payroll",
+      record_id: Number(id),
+      employee_id: payroll?.employee_id,
+      branch_id: payroll?.branch_id,
+      description: `Payslip ${id} downloaded by ${req.user.role} ${req.user.id}`,
+    });
+
     generatePayslip(res, {
       ...payroll,
       company,
@@ -352,7 +418,7 @@ const lockPayroll = async (req, res) => {
 
     const data = await payrollService.lockPayroll(id);
     if (!data) return res.status(404).json({ message: "Payroll not found or already locked/paid" });
-    audit.log({ actor_id: req.user.id, action: "PAYROLL_LOCKED", entity_type: "payroll", entity_id: Number(id), req });
+    audit.auditLog(req, { action: "UPDATE", table_name: "payroll", record_id: Number(id), employee_id: data?.employee_id, old_values: { status: "UNPAID" }, new_values: { status: "LOCKED" }, description: `Payroll ${id} locked` });
     res.json({ message: "Payroll locked successfully", data });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -373,7 +439,7 @@ const unlockPayroll = async (req, res) => {
 
     const data = await payrollService.unlockPayroll(id);
     if (!data) return res.status(404).json({ message: "Payroll not found or not locked" });
-    audit.log({ actor_id: req.user.id, action: "PAYROLL_UNLOCKED", entity_type: "payroll", entity_id: Number(id), req });
+    audit.auditLog(req, { action: "UPDATE", table_name: "payroll", record_id: Number(id), employee_id: data?.employee_id, old_values: { status: "LOCKED" }, new_values: { status: "UNPAID" }, description: `Payroll ${id} unlocked` });
     res.json({ message: "Payroll unlocked successfully", data });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -394,7 +460,7 @@ const voidPayroll = async (req, res) => {
 
     const data = await payrollService.voidPayroll(id);
     if (!data) return res.status(404).json({ message: "Payroll not found or already paid/voided" });
-    audit.log({ actor_id: req.user.id, action: "PAYROLL_VOIDED", entity_type: "payroll", entity_id: Number(id), req });
+    audit.auditLog(req, { action: "UPDATE", table_name: "payroll", record_id: Number(id), employee_id: data?.employee_id, old_values: { status: data?.status === "LOCKED" ? "LOCKED" : "UNPAID" }, new_values: { status: "VOID" }, description: `Payroll ${id} voided` });
     res.json({ message: "Payroll voided successfully", data });
   } catch (err) {
     res.status(500).json({ message: err.message });

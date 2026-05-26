@@ -1,5 +1,6 @@
 const branchService = require("../services/branch.service");
 const { getUserBranchIds } = require("../utils/branchAccess");
+const audit = require("../services/audit.service");
 
 const getAll = async (req, res) => {
   try {
@@ -42,6 +43,14 @@ const getById = async (req, res) => {
 const create = async (req, res) => {
   try {
     const branch = await branchService.create(req.body);
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "branches",
+      record_id: branch.id,
+      branch_id: branch.id,
+      new_values: { code: branch.code, name: branch.name, address: branch.address, city: branch.city, province: branch.province, phone: branch.phone, is_active: branch.is_active },
+      description: `Branch created: ${branch.name} (${branch.code})`,
+    });
     res.status(201).json(branch);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -50,7 +59,17 @@ const create = async (req, res) => {
 
 const update = async (req, res) => {
   try {
+    const oldValues = await audit.fetchOldValues("branches", req.params.id);
     const branch = await branchService.update(req.params.id, req.body);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "branches",
+      record_id: branch.id,
+      branch_id: branch.id,
+      old_values: oldValues ? { code: oldValues.code, name: oldValues.name, address: oldValues.address, city: oldValues.city, province: oldValues.province, phone: oldValues.phone, is_active: oldValues.is_active } : null,
+      new_values: { code: branch.code, name: branch.name, address: branch.address, city: branch.city, province: branch.province, phone: branch.phone, is_active: branch.is_active },
+      description: `Branch updated: ${branch.name} (${branch.code})`,
+    });
     res.json(branch);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -60,7 +79,17 @@ const update = async (req, res) => {
 const setActive = async (req, res) => {
   try {
     const { is_active } = req.body;
+    const oldValues = await audit.fetchOldValues("branches", req.params.id);
     const branch = await branchService.setActive(req.params.id, is_active);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "branches",
+      record_id: branch.id,
+      branch_id: branch.id,
+      old_values: oldValues ? { is_active: oldValues.is_active } : null,
+      new_values: { is_active: branch.is_active },
+      description: `Branch ${branch.name} ${is_active ? "activated" : "deactivated"}`,
+    });
     res.json(branch);
   } catch (error) {
     res.status(400).json({ message: error.message });
