@@ -145,7 +145,7 @@ const LoginForm = () => {
         if (!res.token) {
           throw new Error("Token missing from server response");
         }
-        login({ token: res.token });
+        login({ token: res.token, refreshToken: res.refreshToken });
         toast.success("Welcome back!");
         navigate("/dashboard");
       }
@@ -158,12 +158,12 @@ const LoginForm = () => {
     }
   };
 
-  const handleVerifyOTP = (token: string) => {
+  const handleVerifyOTP = (token: string, _user: any, refreshToken?: string) => {
     if (!token) {
       toast.error("Invalid verification response");
       return;
     }
-    login({ token });
+    login({ token, refreshToken });
     toast.success("Welcome back!");
     navigate("/dashboard");
   };

@@ -17,7 +17,7 @@ import { verifyOTP, resendOTP } from "@/services/authService";
 interface OTPVerificationProps {
   userId: number;
   maskedEmail?: string;
-  onVerify: (token: string, user: any) => void;
+  onVerify: (token: string, user: any, refreshToken?: string) => void;
   onBack: () => void;
 }
 
@@ -62,7 +62,7 @@ const OTPVerification = ({
       setIsLoading(true);
       const response = await verifyOTP({ user_id: userId, otp });
       toast.success("Verification successful!");
-      onVerify(response.token, response.user);
+      onVerify(response.token, response.user, response.refreshToken);
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Invalid OTP");
     } finally {

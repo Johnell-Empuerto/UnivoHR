@@ -1,8 +1,8 @@
-// services/authService.ts
 import api from "./api";
 
 export interface LoginResponse {
   token?: string;
+  refreshToken?: string;
   user?: any;
   requires_2fa: boolean;
   user_id?: number;
@@ -12,8 +12,14 @@ export interface LoginResponse {
 
 export interface VerifyOTPResponse {
   token: string;
+  refreshToken: string;
   user: any;
   requires_2fa: boolean;
+}
+
+export interface RefreshResponse {
+  token: string;
+  refreshToken: string;
 }
 
 export const login = async (data: {
@@ -41,7 +47,12 @@ export const resendOTP = async (data: {
 
 export const forgotPassword = async (data: {
   username: string;
-}): Promise<{ success: boolean; message: string; user_id?: number; masked_email?: string }> => {
+}): Promise<{
+  success: boolean;
+  message: string;
+  user_id?: number;
+  masked_email?: string;
+}> => {
   const response = await api.post("/auth/forgot-password", data);
   return response.data;
 };
@@ -52,5 +63,19 @@ export const resetPassword = async (data: {
   new_password: string;
 }): Promise<{ success: boolean; message: string }> => {
   const response = await api.post("/auth/reset-password", data);
+  return response.data;
+};
+
+export const refreshTokenAPI = async (
+  refreshToken: string,
+): Promise<RefreshResponse> => {
+  const response = await api.post("/auth/refresh", { refreshToken });
+  return response.data;
+};
+
+export const logoutAPI = async (
+  refreshToken: string,
+): Promise<{ message: string }> => {
+  const response = await api.post("/auth/logout", { refreshToken });
   return response.data;
 };

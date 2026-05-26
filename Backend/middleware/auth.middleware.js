@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
+const { isTokenBlacklisted } = require("../services/tokenBlacklist.service");
 
-const authenticate = (req, res, next) => {
+const authenticate = async (req, res, next) => {
   try {
     const header = req.headers.authorization;
 
@@ -12,14 +13,27 @@ const authenticate = (req, res, next) => {
 
     const token = header.split(" ")[1];
 
-    // Verify token
     if (!process.env.JWT_SECRET) {
       throw new Error("JWT_SECRET is not configured");
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Attach user to request
+    if (decoded.type && decoded.type !== "access") {
+      return res.status(401).json({
+        message: "Invalid token type",
+      });
+    }
+
+    if (decoded.jti) {
+      const blacklisted = await isTokenBlacklisted(decoded.jti);
+      if (blacklisted) {
+        return res.status(401).json({
+          message: "Token revoked",
+        });
+      }
+    }
+
     req.user = decoded;
 
     next();

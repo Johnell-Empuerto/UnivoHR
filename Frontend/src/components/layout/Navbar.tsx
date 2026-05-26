@@ -28,8 +28,8 @@ const Navbar = ({
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
     toast.success("Logged out successfully", { position: "top-center" });
   };
