@@ -11,30 +11,30 @@ import { Progress } from "@/components/ui/progress";
 import { TrendingUp, DollarSign, Clock, UserX } from "lucide-react";
 import { getLatestForecasts } from "@/services/forecastService";
 
-const metricConfig: Record<string, { label: string; icon: React.ReactNode; color: string; format: (v: number) => string }> = {
+const metricConfig: Record<string, { label: string; icon: React.ReactNode; color: string; format: (v: number | string) => string }> = {
   attendance_rate: {
     label: "Attendance Rate",
     icon: <TrendingUp className="h-4 w-4" />,
     color: "text-green-600",
-    format: (v) => `${v.toFixed(1)}%`,
+    format: (v) => `${Number(v).toFixed(1)}%`,
   },
   absenteeism_rate: {
     label: "Absenteeism Rate",
     icon: <UserX className="h-4 w-4" />,
     color: "text-red-600",
-    format: (v) => `${v.toFixed(1)}%`,
+    format: (v) => `${Number(v).toFixed(1)}%`,
   },
   payroll_cost: {
     label: "Payroll Cost",
     icon: <DollarSign className="h-4 w-4" />,
     color: "text-blue-600",
-    format: (v) => `₱${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    format: (v) => `₱${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
   },
   overtime_hours: {
     label: "Overtime Hours",
     icon: <Clock className="h-4 w-4" />,
     color: "text-purple-600",
-    format: (v) => `${v.toFixed(1)}h`,
+    format: (v) => `${Number(v).toFixed(1)}h`,
   },
 };
 

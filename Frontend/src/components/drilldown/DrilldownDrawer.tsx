@@ -25,8 +25,8 @@ import {
   getDrillDownAnomalies,
   getDrillDownBranches,
   exportDrillDown,
-  DrillDownParams,
 } from "@/services/drilldownService";
+import type { DrillDownParams } from "@/services/drilldownService";
 
 const FETCHERS: Record<string, (params?: DrillDownParams) => Promise<any>> = {
   attendance: getDrillDownAttendance,

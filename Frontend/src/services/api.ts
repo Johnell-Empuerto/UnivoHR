@@ -8,6 +8,7 @@ const api = axios.create({
 });
 
 let isRefreshing = false;
+let isSessionExpired = false;
 let failedQueue: Array<{
   resolve: (token: string) => void;
   reject: (error: unknown) => void;
@@ -22,6 +23,16 @@ const processQueue = (error: unknown, token: string | null = null) => {
     }
   });
   failedQueue = [];
+};
+
+const triggerSessionExpired = () => {
+  if (isSessionExpired) return;
+  isSessionExpired = true;
+  window.dispatchEvent(new CustomEvent("auth:session-expired"));
+};
+
+export const clearSessionExpiredFlag = () => {
+  isSessionExpired = false;
 };
 
 api.interceptors.request.use((config) => {
@@ -46,9 +57,13 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    if (isSessionExpired) {
+      return Promise.reject(error);
+    }
+
     const refreshToken = localStorage.getItem("refreshToken");
     if (!refreshToken) {
-      forceLogout();
+      triggerSessionExpired();
       return Promise.reject(error);
     }
 
@@ -86,7 +101,7 @@ api.interceptors.response.use(
       return api(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError, null);
-      forceLogout();
+      triggerSessionExpired();
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;
@@ -98,12 +113,6 @@ let onTokenRefreshed: ((token: string, refreshToken: string) => void) | null = n
 
 export const setOnTokenRefreshed = (cb: typeof onTokenRefreshed) => {
   onTokenRefreshed = cb;
-};
-
-const forceLogout = () => {
-  localStorage.removeItem("token");
-  localStorage.removeItem("refreshToken");
-  window.dispatchEvent(new CustomEvent("auth:force-logout"));
 };
 
 export default api;

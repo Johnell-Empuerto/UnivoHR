@@ -1,7 +1,16 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { jwtDecode } from "jwt-decode";
-import { setOnTokenRefreshed } from "@/services/api";
+import { setOnTokenRefreshed, clearSessionExpiredFlag } from "@/services/api";
 import { logoutAPI } from "@/services/authService";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 type User = {
   id: number;
@@ -51,6 +60,9 @@ export const AuthProvider = ({ children }: any) => {
     setIsAuth(true);
   };
 
+  const [showSessionExpired, setShowSessionExpired] = useState(false);
+  const sessionExpiredRef = useRef(false);
+
   const logout = useCallback(async () => {
     const storedRefreshToken = localStorage.getItem("refreshToken");
     if (storedRefreshToken) {
@@ -66,6 +78,17 @@ export const AuthProvider = ({ children }: any) => {
     setIsAuth(false);
   }, []);
 
+  const handleSessionExpiredOk = useCallback(() => {
+    setShowSessionExpired(false);
+    sessionExpiredRef.current = false;
+    clearSessionExpiredFlag();
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    setUser(null);
+    setIsAuth(false);
+    window.location.href = "/login";
+  }, []);
+
   useEffect(() => {
     setOnTokenRefreshed((newToken: string, newRefreshToken: string) => {
       localStorage.setItem("token", newToken);
@@ -75,6 +98,17 @@ export const AuthProvider = ({ children }: any) => {
     });
   }, []);
 
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      if (sessionExpiredRef.current) return;
+      sessionExpiredRef.current = true;
+      setShowSessionExpired(true);
+    };
+    window.addEventListener("auth:session-expired", handleSessionExpired);
+    return () => window.removeEventListener("auth:session-expired", handleSessionExpired);
+  }, []);
+
+  // Keep old event as fallback
   useEffect(() => {
     const handleForceLogout = () => {
       setUser(null);
@@ -87,6 +121,22 @@ export const AuthProvider = ({ children }: any) => {
   return (
     <AuthContext.Provider value={{ isAuth, user, login, logout }}>
       {children}
+
+      <Dialog open={showSessionExpired} onOpenChange={() => {}}>
+        <DialogContent showCloseButton={false} className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Session Expired</DialogTitle>
+            <DialogDescription>
+              Your session has expired. Please login again.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={handleSessionExpiredOk}>
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AuthContext.Provider>
   );
 };
