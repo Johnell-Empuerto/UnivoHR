@@ -1,6 +1,8 @@
 import { Outlet } from "react-router-dom";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
+import { useAuth } from "@/app/providers/AuthProvider";
+import { AiChatButton } from "@/features/ai/components/AiChatButton";
 
 const MainLayout = ({
   collapsed,
@@ -9,6 +11,8 @@ const MainLayout = ({
   collapsed: boolean;
   setCollapsed: (val: boolean) => void;
 }) => {
+  const { isAuth } = useAuth();
+
   return (
     <div className="flex h-dvh overflow-hidden">
       {/* SIDEBAR */}
@@ -30,6 +34,9 @@ const MainLayout = ({
           <Outlet />
         </main>
       </div>
+
+      {/* AI ASSISTANT */}
+      {isAuth && <AiChatButton />}
     </div>
   );
 };
