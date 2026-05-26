@@ -165,6 +165,15 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           </NavLink>
         )}
 
+        {/* HR Policies - Everyone */}
+        <NavLink
+          to="/hr-policies"
+          className={({ isActive }) => linkClass(isActive)}
+        >
+          <FileText className="h-5 w-5" />
+          {!collapsed && "HR Policies"}
+        </NavLink>
+
         {/* Leaves - Everyone (different text based on role) */}
         <NavLink to="/leaves" className={({ isActive }) => linkClass(isActive)}>
           <CalendarDays className="h-5 w-5" />

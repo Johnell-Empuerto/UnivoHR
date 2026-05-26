@@ -380,6 +380,17 @@ const detectCutoff = async (timePeriod) => {
   return null;
 };
 
+// ========== SUMMARY QUERY DETECTION ==========
+
+const SUMMARY_QUERY_PATTERNS = [
+  /^who\b/i,
+  /\b(summary|rate|overview|dashboard|forecast)\b/i,
+  /\b(absent rate|absence rate|attendance rate)\b/i,
+  /\blate employees?\b/i,
+  /\bpayroll\s+(for|this|last|summary)\b/i,
+  /\b(attendance|absent)\s+(today|yesterday|this|last|summary)\b/i,
+];
+
 // ========== MAIN ENTITY EXTRACTION ==========
 
 const extractEntities = async (question, context) => {
@@ -436,11 +447,16 @@ const extractEntities = async (question, context) => {
   // NEW entities ALWAYS take priority over old context
   if (context) {
     if (entities.employeeId === undefined && context.employeeId) {
-      entities.employeeId = context.employeeId;
-      entities.employeeName = context.employeeName;
-      entities.employeeCode = context.employeeCode;
-      entities.employeeDepartment = context.employeeDepartment;
-      entities.employeeBranchId = context.employeeBranchId;
+      const q = question.toLowerCase().trim();
+      const isSelfQuery = /\b(my|me|mine|myself)\b/i.test(q);
+      const isSummary = SUMMARY_QUERY_PATTERNS.some(pattern => pattern.test(q));
+      if (!isSelfQuery && !isSummary) {
+        entities.employeeId = context.employeeId;
+        entities.employeeName = context.employeeName;
+        entities.employeeCode = context.employeeCode;
+        entities.employeeDepartment = context.employeeDepartment;
+        entities.employeeBranchId = context.employeeBranchId;
+      }
     }
     if (entities.branchId === undefined && context.branchId) {
       entities.branchId = context.branchId;
@@ -466,5 +482,6 @@ module.exports = {
   findBranchByName,
   findDepartmentByName,
   detectTimePeriod,
+  detectCutoff,
   normalizeName,
 };

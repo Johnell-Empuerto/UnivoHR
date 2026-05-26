@@ -39,6 +39,7 @@ import EmployeesDocs from "@/features/docs/pages/EmployeesDocs";
 import UsersDocs from "@/features/docs/pages/UsersDocs";
 import BranchesPage from "@/features/branches/pages/BranchesPage";
 import AnomalyPage from "@/features/anomalies/pages/AnomalyPage";
+import HRPolicies from "@/pages/HRPolicies";
 
 const AppRoutes = () => {
   const { isAuth, user } = useAuth();
@@ -199,6 +200,9 @@ const AppRoutes = () => {
 
           {/* Notifications page - Inside layout with sidebar and navbar */}
           <Route path="/notifications" element={<NotificationsPage />} />
+
+          {/* HR Policies - Everyone can view, admin gets management controls */}
+          <Route path="/hr-policies" element={<HRPolicies />} />
 
           {/* Branch Management - ADMIN and HR_ADMIN only */}
           {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && (

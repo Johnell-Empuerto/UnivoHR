@@ -69,6 +69,15 @@ const RESTRICTED_INTENTS = [
   "employee_payroll",
   "employee_anomalies",
   "employee_forecast",
+  "employee_attendance",
+  "employee_overtime",
+  "employee_leave",
+  "employee_late_records",
+  "employee_profile",
+  "attendance_summary",
+  "absence_summary",
+  "late_employees",
+  "dashboard_summary",
 ];
 
 const canAccessIntent = (user, intent) => {
@@ -81,6 +90,27 @@ const canAccessIntent = (user, intent) => {
     if (RESTRICTED_INTENTS.includes(intent)) return false;
     return true;
   }
+  return false;
+};
+
+const isEmployeeSelfServiceAllowed = (user, intent, entities, scope) => {
+  if (user.role !== "EMPLOYEE") return false;
+  if (!entities || !entities.isSelf) return false;
+  if (!entities.employeeId) return false;
+  if (!scope || !scope.employeeId) return false;
+  if (Number(entities.employeeId) !== Number(scope.employeeId)) return false;
+
+  // Direct self-service intents
+  // NOTE: Per HR policy, EMPLOYEE can only use hr_policy_qa, system_help, faq_qa
+  const selfServiceIntents = [];
+
+  if (selfServiceIntents.includes(intent)) return true;
+
+  // Map summary intents to self-service when isSelf=true
+  const summaryToSelfMap = {};
+
+  if (summaryToSelfMap[intent]) return true;
+
   return false;
 };
 
@@ -105,5 +135,6 @@ module.exports = {
   canAccessBranch,
   canAccessDepartment,
   canAccessIntent,
+  isEmployeeSelfServiceAllowed,
   getDeniedReason,
 };

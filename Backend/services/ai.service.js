@@ -2,6 +2,7 @@ const aiModel = require("../models/ai.model");
 const aiEntity = require("./aiEntity.service");
 const aiSecurity = require("./aiSecurity.service");
 const aiContext = require("./aiContext.service");
+const localAiParser = require("./localAiParser.service");
 const analyticsService = require("./analytics.service");
 const drilldownService = require("./drilldown.service");
 const forecastService = require("./forecast.service");
@@ -35,6 +36,45 @@ const INTENT_KEYWORDS = {
   employee_forecast: ["my forecast"],
   department_summary: ["department summary", "department overview", "per department"],
   branch_summary: ["branch summary", "branch overview", "per branch", "by branch"],
+  hr_policy_qa: [
+    "policy", "company policy", "leave policy", "attendance policy",
+    "overtime policy", "security policy", "payroll policy",
+    "privacy policy", "company rules", "company regulation",
+    "how does leave", "how does attendance", "how does overtime",
+    "can i share", "what about payroll", "what is company",
+    "what is the policy", "data privacy policy", "system security",
+    "hr policy", "company guideline", "overtime rule",
+    "leave rule", "attendance rule", "how does it work",
+    "company rule", "company policy", "tell me about",
+  ],
+};
+
+const SUMMARY_INTENTS = new Set([
+  "payroll_summary", "attendance_summary", "absence_summary",
+  "late_employees", "dashboard_summary", "forecast_summary",
+  "anomaly_summary", "branch_summary", "department_summary",
+]);
+
+const isFollowUpQuestion = (question, context) => {
+  if (!context || !context.lastIntent) return false;
+  const q = question.toLowerCase().trim();
+
+  if (/^(?:how about|what about|and|also)\s/i.test(q)) return true;
+  if (/^(?:and\s+)?(?:deductions?|net|gross|bonuses?|allowances?|lates|absences|hours|overtime|undertime|details)\??$/i.test(q)) return true;
+  if (/^(?:show\s+)?(?:details?|deductions?|overtime|salary|payroll|late\s+records?|leave|absences?)\s*\??$/i.test(q)) return true;
+  if (/\b(?:yesterday|this cutoffs?|last cutoffs?|next cutoffs?|previous cutoffs?)\b/i.test(q)) return true;
+  if (/^(?:salary|payroll)\s+details?\s*$/i.test(q)) return true;
+
+  const words = q.split(/\s+/).filter(Boolean);
+  if (words.length <= 4) {
+    const detailWords = ['details', 'deductions', 'overtime', 'salary', 'payroll', 'leave', 'lates', 'absences', 'hours', 'net', 'gross', 'bonus', 'allowance', 'undertime'];
+    const summaryWords = ['summary', 'rate', 'report', 'overview', 'dashboard', 'forecast'];
+    const hasDetail = words.some(w => detailWords.includes(w));
+    const hasSummary = words.some(w => summaryWords.includes(w));
+    if (hasDetail && !hasSummary) return true;
+  }
+
+  return false;
 };
 
 const classifyIntent = (question) => {
@@ -136,6 +176,15 @@ const classifyWithEntities = (question, entities, lastIntent) => {
   if (lastIntent) {
     const followUp = inferFollowUpIntent(question, lastIntent);
     if (followUp) return followUp;
+  }
+
+  // Policy QA check (safe for all roles)
+  if (
+    /\b(?:policy|rule|rules|regulation|guideline)\b/i.test(q) &&
+    !/\b(my\s+)?(payroll|salary|payslip|deduction|overtime|leave|attendance)\s+(details|summary|records?|history)\b/i.test(q) &&
+    !/\b(?:show|my|view|list)\s+(?:payroll|salary|overtime|attendance|leave)\b/i.test(q)
+  ) {
+    return "hr_policy_qa";
   }
 
   // Entity-aware classification
@@ -254,6 +303,13 @@ const SUGGESTIONS = {
     "Summarize payroll this cutoff",
     "Show attendance issues today",
   ],
+  hr_policy_qa: [
+    "What is the leave policy?",
+    "How does attendance work?",
+    "What is the overtime rule?",
+    "Can I share my password?",
+    "What is the data privacy policy?",
+  ],
 };
 
 const generateSuggestions = (intent) => {
@@ -280,6 +336,7 @@ const INTENT_MODULES = {
   employee_forecast: ["forecast"],
   department_summary: ["dashboard", "attendance"],
   branch_summary: ["dashboard", "attendance"],
+  hr_policy_qa: ["hr_policy"],
 };
 
 const getUsedModules = (intent) => {
@@ -727,6 +784,14 @@ const getBranchSummary = async (scope, entities) => {
   };
 };
 
+const handleHrPolicyQA = async (scope, entities) => {
+  const hrPolicyService = require("./hrPolicy.service");
+  const question = entities._question || "";
+  const category = entities.category || null;
+  const result = await hrPolicyService.answerPolicyQuestion(question, category);
+  return result;
+};
+
 const handleUnknown = async () => {
   return {
     answer: "I can help with dashboard, attendance, payroll, anomalies, and forecasts. Try asking about a specific employee, department, or branch.",
@@ -751,7 +816,195 @@ const HANDLERS = {
   employee_profile: getEmployeeProfile,
   department_summary: getDepartmentSummary,
   branch_summary: getBranchSummary,
+  hr_policy_qa: handleHrPolicyQA,
   unknown: handleUnknown,
+};
+
+// ========== NORMALIZE LOCAL AI ENTITIES ==========
+
+const toDateStr = (d) => d.toISOString().split("T")[0];
+
+const normalizeLocalAiEntities = async (aiEntities, scope, question) => {
+  const entities = {};
+
+  // Resolve isSelf / employeeName
+  if (aiEntities.isSelf) {
+    entities.isSelf = true;
+    if (scope.employeeId) {
+      entities.employeeId = scope.employeeId;
+    }
+    if (aiEntities.employeeName && scope.employeeId) {
+      const employee = await pool.query(
+        `SELECT id, employee_code, first_name, middle_name, last_name, suffix FROM employees WHERE id = $1`,
+        [scope.employeeId]
+      );
+      if (employee.rows[0]) {
+        const e = employee.rows[0];
+        const mid = e.middle_name ? ` ${e.middle_name}` : "";
+        const suf = e.suffix ? `, ${e.suffix}` : "";
+        entities.employeeName = `${e.first_name}${mid} ${e.last_name}${suf}`;
+        entities.employeeCode = e.employee_code;
+      }
+    }
+  } else if (aiEntities.employeeName) {
+    entities.isSelf = false;
+    const detected =
+      (await aiEntity.findEmployeeByExactName(aiEntities.employeeName)) ||
+      (await aiEntity.findEmployeeByFuzzyName(aiEntities.employeeName))?.[0] ||
+      null;
+    if (detected) {
+      entities.employeeId = detected.id;
+      const mid = detected.middle_name ? ` ${detected.middle_name}` : "";
+      const suf = detected.suffix ? `, ${detected.suffix}` : "";
+      entities.employeeName = `${detected.first_name}${mid} ${detected.last_name}${suf}`;
+      entities.employeeCode = detected.employee_code;
+    }
+  } else {
+    entities.isSelf = false;
+  }
+
+  // Resolve timePeriod
+  if (aiEntities.timePeriod) {
+    entities.timePeriod = aiEntities.timePeriod;
+    const now = new Date();
+    switch (aiEntities.timePeriod) {
+      case "today":
+        entities.date_from = toDateStr(now);
+        entities.date_to = toDateStr(now);
+        break;
+      case "yesterday": {
+        const d = new Date(now);
+        d.setDate(d.getDate() - 1);
+        entities.date_from = toDateStr(d);
+        entities.date_to = toDateStr(d);
+        break;
+      }
+      case "this_week": {
+        const day = now.getDay();
+        const start = new Date(now);
+        start.setDate(now.getDate() - day);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        entities.date_from = toDateStr(start);
+        entities.date_to = toDateStr(end);
+        break;
+      }
+      case "last_week": {
+        const end = new Date(now);
+        end.setDate(now.getDate() - now.getDay() - 1);
+        const start = new Date(end);
+        start.setDate(end.getDate() - 6);
+        entities.date_from = toDateStr(start);
+        entities.date_to = toDateStr(end);
+        break;
+      }
+      case "this_month": {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        entities.date_from = toDateStr(start);
+        entities.date_to = toDateStr(end);
+        break;
+      }
+      case "last_month": {
+        const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const end = new Date(now.getFullYear(), now.getMonth(), 0);
+        entities.date_from = toDateStr(start);
+        entities.date_to = toDateStr(end);
+        break;
+      }
+      case "this_cutoff":
+      case "last_cutoff": {
+        const cutoff = await aiEntity.detectCutoff(aiEntities.timePeriod);
+        if (cutoff) {
+          entities.date_from = cutoff.date_from;
+          entities.date_to = cutoff.date_to;
+          entities.cutoff_label = cutoff.cutoff_label;
+        }
+        break;
+      }
+    }
+  }
+
+  // Only use explicit dates if question contains a date pattern
+  if (question && /\d{4}-\d{2}-\d{2}/.test(question)) {
+    if (aiEntities.dateFrom) entities.date_from = aiEntities.dateFrom;
+    if (aiEntities.dateTo) entities.date_to = aiEntities.dateTo;
+  }
+
+  // Copy other fields
+  if (aiEntities.branchName) entities.branchName = aiEntities.branchName;
+  if (aiEntities.department) entities.department = aiEntities.department;
+  if (aiEntities.employeeCode) entities.employeeCode = aiEntities.employeeCode;
+  if (aiEntities.category) entities.category = aiEntities.category;
+
+  return entities;
+};
+
+// ========== INTENT-AWARE ENTITY CONTEXT ==========
+
+const applyEntityContext = (intent, entities, scope, context, question) => {
+  const result = { ...entities };
+  const q = question.toLowerCase().trim();
+  const isSelfQuery = /\b(my|me|mine|myself)\b/i.test(q);
+
+  // Rule 5: Self query takes priority
+  if (isSelfQuery && scope.employeeId) {
+    result.employeeId = scope.employeeId;
+    result.isSelf = true;
+    console.log("[AI Context] Self query detected");
+    return result;
+  }
+
+  // Rule 3: Summary intents - clear employee context
+  if (SUMMARY_INTENTS.has(intent)) {
+    delete result.employeeId;
+    delete result.employeeName;
+    delete result.employeeCode;
+    delete result.department;
+    console.log("[AI Context] Clearing employee context for summary intent");
+    return result;
+  }
+
+  // Rule: hr_policy_qa - preserve original question and detect category
+  if (intent === "hr_policy_qa") {
+    result._question = question;
+    if (!result.category) {
+      const hrPolicyService = require("./hrPolicy.service");
+      const detectedCategory = hrPolicyService.isCategoryQuestion(question);
+      if (detectedCategory) {
+        result.category = detectedCategory;
+      }
+    }
+    delete result.employeeId;
+    delete result.employeeName;
+    delete result.employeeCode;
+    console.log("[AI Context] Policy QA - preserving question");
+    return result;
+  }
+
+  // Rule 4: New employee detected in current question
+  if (entities.employeeId) {
+    console.log("[AI Context] New employee detected");
+    return result;
+  }
+
+  // Rule 1+2: Reuse previous employee only for follow-up questions
+  if (context && context.entities && context.entities.employeeId) {
+    const isFollowUp = isFollowUpQuestion(question, context);
+    const isEmployeeIntent = intent.startsWith("employee_");
+
+    if (isFollowUp && isEmployeeIntent) {
+      result.employeeId = context.entities.employeeId;
+      result.employeeName = context.entities.employeeName;
+      result.employeeCode = context.entities.employeeCode;
+      if (scope.employeeId && Number(context.entities.employeeId) === Number(scope.employeeId)) {
+        result.isSelf = true;
+      }
+      console.log("[AI Context] Reusing previous employee");
+    }
+  }
+
+  return result;
 };
 
 // ========== MAIN CHAT HANDLER ==========
@@ -782,27 +1035,117 @@ const processChat = async ({ user, question, sessionId }) => {
   // 3. Load conversation context
   const context = aiContext.getContext(sessionId);
 
-  // 4. Extract entities with context
-  const entities = await aiEntity.extractEntities(question, context ? context.entities : null);
+  // 4. Try local AI parser, fallback to rule-based parser
+  let intent;
+  let entities;
+  const isLocalAiEnabled = process.env.LOCAL_AI_ENABLED === "true";
 
-  // 5. Classify intent (entity-aware, follow-up aware)
-  const intent = classifyWithEntities(question, entities, context ? context.lastIntent : null);
+  if (isLocalAiEnabled) {
+    console.log(`[AI Parser] Using Ollama ${process.env.OLLAMA_MODEL || "qwen2.5:0.5b"}`);
+    const localAiResult = await localAiParser.parseWithOllama(
+      question,
+      context || {}
+    );
+
+    if (localAiResult) {
+      console.log(`[AI Parser] Intent: ${localAiResult.intent}`);
+      console.log("[AI Parser] Entities:", JSON.stringify(localAiResult.entities));
+
+      intent = localAiResult.intent;
+      entities = await normalizeLocalAiEntities(
+        localAiResult.entities,
+        scope,
+        question
+      );
+    } else {
+      console.log("[AI Parser] Fallback to rule parser");
+      entities = await aiEntity.extractEntities(
+        question,
+        context ? context.entities : null
+      );
+      intent = classifyWithEntities(
+        question,
+        entities,
+        context ? context.lastIntent : null
+      );
+    }
+  } else {
+    entities = await aiEntity.extractEntities(
+      question,
+      context ? context.entities : null
+    );
+    intent = classifyWithEntities(
+      question,
+      entities,
+      context ? context.lastIntent : null
+    );
+  }
+
+  // 4b. Post-process: override local AI intent if rule-based detects policy question
+  const isPolicyQuestion =
+    (/\b(?:policy|rule|rules|regulation|guideline|concern)\b/i.test(question) &&
+     !/\b(?:my\s+)?(payroll|salary|payslip|deduction|overtime|attendance|leave)\s+(details|summary|records?|history)\b/i.test(question) &&
+     !/\b(?:show|view|list)\s+(?:payroll|salary|overtime|attendance|leave)\b/i.test(question)) ||
+    /\b(?:what\s+is|how\s+(?:does|do))\s+(?:the\s+)?(?:company|leave|attendance|overtime|security|payroll|privacy)\b/i.test(question) ||
+    /\b(?:can\s+i\s+share|tell\s+me\s+(?:about|the))\s+(?:my\s+)?(?:password|credential|policy|rule)\b/i.test(question);
+  if (intent !== "hr_policy_qa" && isPolicyQuestion) {
+    intent = "hr_policy_qa";
+    console.log("[AI Parser] Override to hr_policy_qa (rule-based detected policy question)");
+  }
+
+  // 5. Apply intent-aware entity context
+  entities = applyEntityContext(
+    intent,
+    entities,
+    scope,
+    context,
+    question
+  );
+
   const usedModules = getUsedModules(intent);
 
   // 6. Security check
   let permissionResult = "GRANTED";
   let deniedReason = null;
 
-  if (!aiSecurity.canAccessIntent(user, intent)) {
-    permissionResult = "DENIED";
-    deniedReason = aiSecurity.getDeniedReason(user, intent, entities);
-  } else if (entities.employeeId && !aiSecurity.canAccessEmployee(user, entities.employeeId, scope)) {
-    permissionResult = "DENIED";
-    deniedReason = aiSecurity.getDeniedReason(user, intent, entities);
-  } else if (entities.branchId && !aiSecurity.canAccessBranch(user, entities.branchId, scope)) {
-    permissionResult = "DENIED";
-    deniedReason = "You do not have access to this branch.";
+  // A. EMPLOYEE self-service allowed?
+  if (aiSecurity.isEmployeeSelfServiceAllowed(user, intent, entities, scope)) {
+    permissionResult = "GRANTED";
+    console.log("[AI Security] Employee self-service allowed");
+  } else {
+    // B. Check intent access
+    if (!aiSecurity.canAccessIntent(user, intent)) {
+      permissionResult = "DENIED";
+      deniedReason = aiSecurity.getDeniedReason(user, intent, entities);
+      if (user.role === "EMPLOYEE") {
+        console.log("[AI Security] Employee self-service denied");
+      }
+    // C. Check employee access
+    } else if (entities.employeeId && !aiSecurity.canAccessEmployee(user, entities.employeeId, scope)) {
+      permissionResult = "DENIED";
+      deniedReason = aiSecurity.getDeniedReason(user, intent, entities);
+    // D. Check branch access
+    } else if (entities.branchId && !aiSecurity.canAccessBranch(user, entities.branchId, scope)) {
+      permissionResult = "DENIED";
+      deniedReason = "You do not have access to this branch.";
+    }
+
+    // Handle ADMIN/HR_ADMIN self-service without linked employee
+    if (
+      permissionResult === "DENIED" &&
+      intent.startsWith("employee_") &&
+      entities.isSelf &&
+      !entities.employeeId &&
+      !scope.employeeId &&
+      (user.role === "ADMIN" || user.role === "HR_ADMIN")
+    ) {
+      permissionResult = "GRANTED";
+      deniedReason = null;
+      console.log("[AI Security] Employee self-service allowed");
+    }
   }
+
+  console.log(`[AI Security] Permission result: ${permissionResult}`);
 
   // 7. Save user message
   await aiModel.createMessage({
@@ -822,6 +1165,14 @@ const processChat = async ({ user, question, sessionId }) => {
   if (permissionResult === "DENIED") {
     responseStatus = "REJECTED";
     handlerResult = { answer: deniedReason };
+  } else if (
+    intent.startsWith("employee_") &&
+    entities.isSelf &&
+    !entities.employeeId &&
+    !scope.employeeId &&
+    (user.role === "ADMIN" || user.role === "HR_ADMIN")
+  ) {
+    handlerResult = { answer: "Please specify an employee name." };
   } else {
     try {
       const handler = HANDLERS[intent] || handleUnknown;
