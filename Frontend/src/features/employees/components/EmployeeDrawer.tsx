@@ -206,7 +206,7 @@ const EmployeeDrawer = ({
         department: "",
         position: "",
         status: "ACTIVE",
-        employment_status: "Probationary",
+        employment_status: "Regular",
         rfid_tag: "",
         fingerprint_id: "",
         birthday: "",
@@ -665,14 +665,12 @@ const EmployeeDrawer = ({
                   disabled={!canEditMode}
                 />
 
-                <SelectField
-                  label="Employment Status"
-                  name="employment_status"
-                  value={form.employment_status}
-                  onChange={handleChange}
-                  options={["Probationary", "Regular"]}
-                  disabled={!canEditMode}
-                />
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Employment Status</p>
+                  <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${form.employment_status === "Regular" ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}`}>
+                    {form.employment_status || "Regular"}
+                  </span>
+                </div>
 
                 {/* Show separation date fields when status is RESIGNED or TERMINATED */}
 

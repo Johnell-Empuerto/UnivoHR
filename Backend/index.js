@@ -42,6 +42,8 @@ const hrPolicyRoutes = require("./routes/hrPolicy.routes");
 const jobPositionRoutes = require("./routes/jobPosition.routes");
 const applicantRoutes = require("./routes/applicant.routes");
 const applicantRequirementRoutes = require("./routes/applicantRequirement.routes");
+const kpiTemplateRoutes = require("./routes/kpiTemplate.routes");
+const kpiEvaluationRoutes = require("./routes/kpiEvaluation.routes");
 
 // Middleware
 const authenticate = require("./middleware/auth.middleware");
@@ -127,6 +129,9 @@ app.use("/api/hr-policies", authenticate, hrPolicyRoutes);
 
 app.use("/api/job-positions", authenticate, jobPositionRoutes);
 app.use("/api/applicants", authenticate, applicantRoutes);
+
+app.use("/api/kpi/templates", authenticate, kpiTemplateRoutes);
+app.use("/api/kpi/evaluations", authenticate, kpiEvaluationRoutes);
 app.use("/api/applicants", authenticate, applicantRequirementRoutes);
 
 

@@ -44,6 +44,11 @@ import JobPositionsPage from "@/features/recruitment/pages/JobPositionsPage";
 import ApplicantsPage from "@/features/recruitment/pages/ApplicantsPage";
 import ApplicantDetailPage from "@/features/recruitment/pages/ApplicantDetailPage";
 import ApplicantFormPage from "@/features/recruitment/pages/ApplicantFormPage";
+import KpiTemplatesPage from "@/features/kpi/pages/KpiTemplatesPage";
+import KpiEvaluationPage from "@/features/kpi/pages/KpiEvaluationPage";
+import EmployeeEvaluationPage from "@/features/kpi/pages/EmployeeEvaluationPage";
+import SelfEvaluationPage from "@/features/kpi/pages/SelfEvaluationPage";
+
 
 const AppRoutes = () => {
   const { isAuth, user } = useAuth();
@@ -261,6 +266,48 @@ const AppRoutes = () => {
             element={
               user?.role === "ADMIN" || user?.role === "HR_ADMIN" || user?.role === "HR" ? (
                 <ApplicantDetailPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+
+          {/* KPI / Performance Management */}
+          <Route
+            path="/kpi/templates"
+            element={
+              user?.role === "ADMIN" || user?.role === "HR_ADMIN" ? (
+                <KpiTemplatesPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/kpi/evaluations"
+            element={
+              user?.role === "ADMIN" || user?.role === "HR_ADMIN" ? (
+                <KpiEvaluationPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/kpi/my-evaluations"
+            element={
+              user?.employee_id ? (
+                <EmployeeEvaluationPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/kpi/self-evaluation"
+            element={
+              user?.employee_id ? (
+                <SelfEvaluationPage />
               ) : (
                 <Navigate to="/dashboard" replace />
               )

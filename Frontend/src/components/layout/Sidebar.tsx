@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+﻿import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   CalendarCheck,
@@ -182,6 +182,78 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           <CalendarDays className="h-5 w-5" />
           {!collapsed && (canApprove() ? "Manage Leaves" : "My Leaves")}
         </NavLink>
+
+        {/* Performance Dropdown - ADMIN / HR_ADMIN only */}
+        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && !collapsed && (
+          <div>
+            <button
+              onClick={() => toggleMenu("performance")}
+              className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all dark:text-gray-300 dark:hover:text-white"
+            >
+              <div className="flex items-center gap-3">
+                <ClipboardList className="h-5 w-5" />
+                <span>Performance</span>
+              </div>
+              {openMenus["performance"] ? (<ChevronDown className="h-4 w-4" />) : (<ChevronRight className="h-4 w-4" />)}
+            </button>
+            {openMenus["performance"] && (
+              <div className="mt-1 space-y-1">
+                <NavLink to="/kpi/templates" className={({ isActive }) => dropdownLinkClass(isActive)}>
+                  <FileText className="h-4 w-4" /> KPI Templates
+                </NavLink>
+                <NavLink to="/kpi/evaluations" className={({ isActive }) => dropdownLinkClass(isActive)}>
+                  <ClipboardList className="h-4 w-4" /> KPI Evaluations
+                </NavLink>
+              </div>
+            )}
+          </div>
+        )}
+        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && collapsed && (
+          <>
+            <NavLink to="/kpi/templates" className={({ isActive }) => linkClass(isActive)} title="KPI Templates">
+              <FileText className="h-5 w-5" />
+            </NavLink>
+            <NavLink to="/kpi/evaluations" className={({ isActive }) => linkClass(isActive)} title="KPI Evaluations">
+              <ClipboardList className="h-5 w-5" />
+            </NavLink>
+          </>
+        )}
+
+        {/* My Performance Dropdown - Users linked to an employee */}
+        {user?.employee_id && !collapsed && (
+          <div>
+            <button
+              onClick={() => toggleMenu("myPerformance")}
+              className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all dark:text-gray-300 dark:hover:text-white"
+            >
+              <div className="flex items-center gap-3">
+                <ClipboardList className="h-5 w-5" />
+                <span>My Performance</span>
+              </div>
+              {openMenus["myPerformance"] ? (<ChevronDown className="h-4 w-4" />) : (<ChevronRight className="h-4 w-4" />)}
+            </button>
+            {openMenus["myPerformance"] && (
+              <div className="mt-1 space-y-1">
+                <NavLink to="/kpi/my-evaluations" className={({ isActive }) => dropdownLinkClass(isActive)}>
+                  <ClipboardList className="h-4 w-4" /> Employee Evaluations
+                </NavLink>
+                <NavLink to="/kpi/self-evaluation" className={({ isActive }) => dropdownLinkClass(isActive)}>
+                  <FileText className="h-4 w-4" /> Self Evaluation
+                </NavLink>
+              </div>
+            )}
+          </div>
+        )}
+        {user?.employee_id && collapsed && (
+          <>
+            <NavLink to="/kpi/my-evaluations" className={({ isActive }) => linkClass(isActive)} title="Employee Evaluations">
+              <ClipboardList className="h-5 w-5" />
+            </NavLink>
+            <NavLink to="/kpi/self-evaluation" className={({ isActive }) => linkClass(isActive)} title="Self Evaluation">
+              <FileText className="h-5 w-5" />
+            </NavLink>
+          </>
+        )}
 
         {/* Overtime Dropdown Menu - For all employees */}
         {showOvertimeDropdown() && !collapsed && (

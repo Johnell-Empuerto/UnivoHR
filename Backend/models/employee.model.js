@@ -124,7 +124,7 @@ const createEmployee = async (data) => {
     data.termination_reason || null,
     data.last_working_date || null,
     branchId,
-    data.employment_status || null,
+    data.employment_status || "Regular",
   ];
 
   const result = await pool.query(query, values);
@@ -229,9 +229,23 @@ const getDefaultBranchId = async () => {
   return result.rows[0]?.id || null;
 };
 
+const updateEmploymentStatus = async (id, employmentStatus) => {
+  const query = "UPDATE employees SET employment_status = $1 WHERE id = $2 RETURNING *;";
+  const result = await pool.query(query, [employmentStatus, id]);
+  return result.rows[0];
+};
+
+const updateEmployeeStatusToTerminated = async (id, terminationDate, terminationReason) => {
+  const query = "UPDATE employees SET status = 'TERMINATED', termination_date = $1, termination_reason = $2 WHERE id = $3 RETURNING *;";
+  const result = await pool.query(query, [terminationDate, terminationReason || null, id]);
+  return result.rows[0];
+};
+
 module.exports = {
   getEmployees,
   createEmployee,
   updateEmployee,
   getEmployeeById,
+  updateEmploymentStatus,
+  updateEmployeeStatusToTerminated,
 };
