@@ -31,6 +31,8 @@ import {
   BarChart3,
   Search,
   RefreshCw,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   getEmployeeReport,
@@ -83,6 +85,44 @@ const ReportsPage = () => {
   const [dateTo, setDateTo] = useState("");
 
   const rows = Array.isArray(data) ? data : [];
+  const [pageSize, setPageSize] = useState(10);
+
+  const totalPages = pagination.totalPages || 1;
+  const currentPage = pagination.page || 1;
+  const totalRecords = pagination.total || 0;
+  const startRow = (currentPage - 1) * pageSize + 1;
+  const endRow = Math.min(currentPage * pageSize, totalRecords);
+
+  const goToPage = (page: number) => fetchData(Math.max(1, Math.min(page, totalPages)));
+
+  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newRows = Number(e.target.value);
+    setPageSize(newRows);
+    fetchData(1);
+  };
+
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxPages = 5;
+    if (totalPages <= maxPages) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else if (currentPage <= 3) {
+      for (let i = 1; i <= 4; i++) pages.push(i);
+      pages.push("...");
+      pages.push(totalPages);
+    } else if (currentPage >= totalPages - 2) {
+      pages.push(1);
+      pages.push("...");
+      for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      pages.push("...");
+      for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+      pages.push("...");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
 
   const getReportType = useCallback(() => {
     if (activeTab === "employees") return reportTypeFilter || "master_list";
@@ -100,7 +140,7 @@ const ReportsPage = () => {
       department: departmentFilter || undefined,
       search: search || undefined,
       page,
-      limit: 20,
+      limit: pageSize,
     };
     if (activeTab === "payroll") {
       base.status = statusFilter || undefined;
@@ -116,7 +156,7 @@ const ReportsPage = () => {
       base.endDate = dateTo || undefined;
     }
     return base;
-  }, [getReportType, statusFilter, departmentFilter, dateFrom, dateTo, search, activeTab]);
+  }, [getReportType, statusFilter, departmentFilter, dateFrom, dateTo, search, activeTab, pageSize]);
 
   const fetchData = useCallback(async (page = 1) => {
     try {
@@ -145,8 +185,6 @@ const ReportsPage = () => {
   }, [activeTab, reportTypeFilter]);
 
   const handleSearch = () => fetchData(1);
-
-  const handlePageChange = (page: number) => fetchData(page);
 
   const resetFilters = () => {
     setSearch("");
@@ -897,57 +935,61 @@ const ReportsPage = () => {
 
         <Card className="border-border/50 shadow-sm mt-4">
           <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <CardTitle className="text-lg font-semibold">
-                  {activeTab === "employees" && "Employee Reports"}
-                  {activeTab === "leaves" && "Leave Reports"}
-                  {activeTab === "attendance" && "Attendance Reports"}
-                  {activeTab === "payroll" && "Payroll Reports"}
-                  {activeTab === "benefits" && "Benefits Reports"}
-                  {activeTab === "performance" && "Performance Reports"}
-                </CardTitle>
-                <Select value={reportTypeFilter} onValueChange={(v) => { setReportTypeFilter(v); setData([]); }}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select report" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(activeTab === "employees" ? employeeReportOptions :
-                      activeTab === "leaves" ? leaveReportOptions :
-                      activeTab === "attendance" ? attendanceReportOptions :
-                      activeTab === "payroll" ? payrollReportOptions :
-                      activeTab === "benefits" ? benefitsReportOptions :
-                      performanceReportOptions).map((opt: any) => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <ExportButton
-                reportCategory={activeTab}
-                reportType={getReportType()}
-                filters={{
-                  status: statusFilter || undefined,
-                  department: departmentFilter || undefined,
-                  cutoffStart: activeTab === "payroll" ? (dateFrom || undefined) : undefined,
-                  cutoffEnd: activeTab === "payroll" ? (dateTo || undefined) : undefined,
-                  startDate: activeTab !== "payroll" ? (dateFrom || undefined) : undefined,
-                  endDate: activeTab !== "payroll" ? (dateTo || undefined) : undefined,
-                  search: search || undefined,
-                }}
-                disabled={rows.length === 0}
-              />
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-lg font-semibold">
+                {activeTab === "employees" && "Employee Reports"}
+                {activeTab === "leaves" && "Leave Reports"}
+                {activeTab === "attendance" && "Attendance Reports"}
+                {activeTab === "payroll" && "Payroll Reports"}
+                {activeTab === "benefits" && "Benefits Reports"}
+                {activeTab === "performance" && "Performance Reports"}
+              </CardTitle>
+              <Select value={reportTypeFilter} onValueChange={(v) => { setReportTypeFilter(v); setData([]); }}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select report" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(activeTab === "employees" ? employeeReportOptions :
+                    activeTab === "leaves" ? leaveReportOptions :
+                    activeTab === "attendance" ? attendanceReportOptions :
+                    activeTab === "payroll" ? payrollReportOptions :
+                    activeTab === "benefits" ? benefitsReportOptions :
+                    performanceReportOptions).map((opt: any) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {renderFilters()}
+            <Card className="border-border/50 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex flex-wrap items-center gap-4">
+                  {renderFilters()}
+                  <ExportButton
+                    reportCategory={activeTab}
+                    reportType={getReportType()}
+                    filters={{
+                      status: statusFilter || undefined,
+                      department: departmentFilter || undefined,
+                      cutoffStart: activeTab === "payroll" ? (dateFrom || undefined) : undefined,
+                      cutoffEnd: activeTab === "payroll" ? (dateTo || undefined) : undefined,
+                      startDate: activeTab !== "payroll" ? (dateFrom || undefined) : undefined,
+                      endDate: activeTab !== "payroll" ? (dateTo || undefined) : undefined,
+                      search: search || undefined,
+                    }}
+                    disabled={rows.length === 0}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
             {loading ? (
               <Loader message={`Loading ${activeTab} report...`} />
             ) : rows.length === 0 ? (
               <EmptyState message={`No ${activeTab} report data found. Select a report type and adjust filters.`} />
             ) : (
-              <div className="rounded-md border shadow-sm">
+              <div className="rounded-md border">
                 {activeTab === "employees" && renderEmployeeTable()}
                 {activeTab === "leaves" && renderLeaveTable()}
                 {activeTab === "attendance" && renderAttendanceTable()}
@@ -957,30 +999,54 @@ const ReportsPage = () => {
               </div>
             )}
 
-            {pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between pt-2">
-                <p className="text-sm text-muted-foreground">
-                  Showing {rows.length} of {pagination.total} results
-                </p>
+            {rows.length > 0 && (
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-t pt-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Rows per page:</span>
+                  <select
+                    value={pageSize}
+                    onChange={handleRowsPerPageChange}
+                    className="border rounded px-2 py-1 text-sm bg-background"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Showing {startRow} to {endRow} of {totalRecords} entries
+                </div>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={pagination.page <= 1}
-                    onClick={() => handlePageChange(pagination.page - 1)}
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="h-8 w-8 p-0"
                   >
-                    Previous
+                    <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Page {pagination.page} of {pagination.totalPages}
-                  </span>
+                  {getPageNumbers().map((page, index) => (
+                    <Button
+                      key={index}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => typeof page === "number" && goToPage(page)}
+                      disabled={page === "..."}
+                      className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
+                    >
+                      {page}
+                    </Button>
+                  ))}
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={pagination.page >= pagination.totalPages}
-                    onClick={() => handlePageChange(pagination.page + 1)}
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="h-8 w-8 p-0"
                   >
-                    Next
+                    <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
