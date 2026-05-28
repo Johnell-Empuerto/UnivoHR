@@ -158,7 +158,9 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
         </NavLink>
 
         {/* Anomaly Detection - ADMIN and HR_ADMIN only */}
-        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN" || user?.role === "HR") && (
+        {(user?.role === "ADMIN" ||
+          user?.role === "HR_ADMIN" ||
+          user?.role === "HR") && (
           <NavLink
             to="/anomalies"
             className={({ isActive }) => linkClass(isActive)}
@@ -183,43 +185,101 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           {!collapsed && (canApprove() ? "Manage Leaves" : "My Leaves")}
         </NavLink>
 
-        {/* Performance Dropdown - ADMIN / HR_ADMIN only */}
-        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && !collapsed && (
-          <div>
-            <button
-              onClick={() => toggleMenu("performance")}
-              className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all dark:text-gray-300 dark:hover:text-white"
-            >
-              <div className="flex items-center gap-3">
-                <ClipboardList className="h-5 w-5" />
-                <span>Performance</span>
-              </div>
-              {openMenus["performance"] ? (<ChevronDown className="h-4 w-4" />) : (<ChevronRight className="h-4 w-4" />)}
-            </button>
-            {openMenus["performance"] && (
-              <div className="mt-1 space-y-1">
-                <NavLink to="/kpi/templates" className={({ isActive }) => dropdownLinkClass(isActive)}>
-                  <FileText className="h-4 w-4" /> KPI Templates
-                </NavLink>
-                <NavLink to="/kpi/evaluations" className={({ isActive }) => dropdownLinkClass(isActive)}>
-                  <ClipboardList className="h-4 w-4" /> KPI Evaluations
-                </NavLink>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Performance Management Dropdown - ADMIN / HR_ADMIN only */}
+        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") &&
+          !collapsed && (
+            <div>
+              <button
+                onClick={() => toggleMenu("performance")}
+                className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all dark:text-gray-300 dark:hover:text-white"
+              >
+                <div className="flex items-center gap-3">
+                  <ClipboardList className="h-5 w-5" />
+                  <span>Performance</span>
+                </div>
+                {openMenus["performance"] ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </button>
+              {openMenus["performance"] && (
+                <div className="mt-1 space-y-1">
+                  <NavLink
+                    to="/kpi/templates"
+                    className={({ isActive }) => dropdownLinkClass(isActive)}
+                  >
+                    <FileText className="h-4 w-4" /> KPI Templates
+                  </NavLink>
+                  <NavLink
+                    to="/kpi/evaluations"
+                    className={({ isActive }) => dropdownLinkClass(isActive)}
+                  >
+                    <ClipboardList className="h-4 w-4" /> KPI Evaluations
+                  </NavLink>
+                  <NavLink
+                    to="/hr-forms"
+                    className={({ isActive }) => dropdownLinkClass(isActive)}
+                  >
+                    <FileText className="h-4 w-4" /> Form Builder
+                  </NavLink>
+                  <NavLink
+                    to="/hr-forms/assignments"
+                    className={({ isActive }) => dropdownLinkClass(isActive)}
+                  >
+                    <ClipboardList className="h-4 w-4" /> Assignments
+                  </NavLink>
+                  <NavLink
+                    to="/hr-forms/submissions"
+                    className={({ isActive }) => dropdownLinkClass(isActive)}
+                  >
+                    <ClipboardList className="h-4 w-4" /> Submissions
+                  </NavLink>
+                </div>
+              )}
+            </div>
+          )}
         {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && collapsed && (
           <>
-            <NavLink to="/kpi/templates" className={({ isActive }) => linkClass(isActive)} title="KPI Templates">
+            <NavLink
+              to="/kpi/templates"
+              className={({ isActive }) => linkClass(isActive)}
+              title="KPI Templates"
+            >
               <FileText className="h-5 w-5" />
             </NavLink>
-            <NavLink to="/kpi/evaluations" className={({ isActive }) => linkClass(isActive)} title="KPI Evaluations">
+            <NavLink
+              to="/kpi/evaluations"
+              className={({ isActive }) => linkClass(isActive)}
+              title="KPI Evaluations"
+            >
+              <ClipboardList className="h-5 w-5" />
+            </NavLink>
+            <NavLink
+              to="/hr-forms"
+              className={({ isActive }) => linkClass(isActive)}
+              title="Form Builder"
+            >
+              <FileText className="h-5 w-5" />
+            </NavLink>
+            <NavLink
+              to="/hr-forms/assignments"
+              className={({ isActive }) => linkClass(isActive)}
+              title="Assignments"
+            >
+              <ClipboardList className="h-5 w-5" />
+            </NavLink>
+            <NavLink
+              to="/hr-forms/submissions"
+              className={({ isActive }) => linkClass(isActive)}
+              title="Submissions"
+            >
               <ClipboardList className="h-5 w-5" />
             </NavLink>
           </>
         )}
 
-        {/* My Performance Dropdown - Users linked to an employee */}
+        {/* My Reviews Dropdown - Users linked to an employee */}
         {user?.employee_id && !collapsed && (
           <div>
             <button
@@ -228,30 +288,52 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             >
               <div className="flex items-center gap-3">
                 <ClipboardList className="h-5 w-5" />
-                <span>My Performance</span>
+                <span>My Reviews</span>
               </div>
-              {openMenus["myPerformance"] ? (<ChevronDown className="h-4 w-4" />) : (<ChevronRight className="h-4 w-4" />)}
+              {openMenus["myPerformance"] ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
             </button>
             {openMenus["myPerformance"] && (
               <div className="mt-1 space-y-1">
-                <NavLink to="/kpi/my-evaluations" className={({ isActive }) => dropdownLinkClass(isActive)}>
+                <NavLink
+                  to="/kpi/my-evaluations"
+                  className={({ isActive }) => dropdownLinkClass(isActive)}
+                >
                   <ClipboardList className="h-4 w-4" /> Employee Evaluations
                 </NavLink>
-                <NavLink to="/kpi/self-evaluation" className={({ isActive }) => dropdownLinkClass(isActive)}>
-                  <FileText className="h-4 w-4" /> Self Evaluation
-                </NavLink>
+                {user?.role === "EMPLOYEE" && (
+                  <NavLink
+                    to="/my-forms"
+                    className={({ isActive }) => dropdownLinkClass(isActive)}
+                  >
+                    <FileText className="h-4 w-4" /> My Forms
+                  </NavLink>
+                )}
               </div>
             )}
           </div>
         )}
         {user?.employee_id && collapsed && (
           <>
-            <NavLink to="/kpi/my-evaluations" className={({ isActive }) => linkClass(isActive)} title="Employee Evaluations">
+            <NavLink
+              to="/kpi/my-evaluations"
+              className={({ isActive }) => linkClass(isActive)}
+              title="Employee Evaluations"
+            >
               <ClipboardList className="h-5 w-5" />
             </NavLink>
-            <NavLink to="/kpi/self-evaluation" className={({ isActive }) => linkClass(isActive)} title="Self Evaluation">
-              <FileText className="h-5 w-5" />
-            </NavLink>
+            {user?.role === "EMPLOYEE" && (
+              <NavLink
+                to="/my-forms"
+                className={({ isActive }) => linkClass(isActive)}
+                title="My Forms"
+              >
+                <FileText className="h-5 w-5" />
+              </NavLink>
+            )}
           </>
         )}
 
@@ -391,62 +473,68 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
         )}
 
         {/* Recruitment Dropdown - HR roles only */}
-        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN" || user?.role === "HR") && !collapsed && (
-          <div>
-            <button
-              onClick={() => toggleMenu("recruitment")}
-              className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all dark:text-gray-300 dark:hover:text-white"
-            >
-              <div className="flex items-center gap-3">
-                <UserPlus className="h-5 w-5" />
-                <span>Recruitment</span>
-              </div>
-              {openMenus["recruitment"] ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
+        {(user?.role === "ADMIN" ||
+          user?.role === "HR_ADMIN" ||
+          user?.role === "HR") &&
+          !collapsed && (
+            <div>
+              <button
+                onClick={() => toggleMenu("recruitment")}
+                className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all dark:text-gray-300 dark:hover:text-white"
+              >
+                <div className="flex items-center gap-3">
+                  <UserPlus className="h-5 w-5" />
+                  <span>Recruitment</span>
+                </div>
+                {openMenus["recruitment"] ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </button>
+              {openMenus["recruitment"] && (
+                <div className="mt-1 space-y-1">
+                  <NavLink
+                    to="/recruitment/job-positions"
+                    className={({ isActive }) => dropdownLinkClass(isActive)}
+                  >
+                    <Briefcase className="h-4 w-4" />
+                    Job Positions
+                  </NavLink>
+                  <NavLink
+                    to="/recruitment/applicants"
+                    className={({ isActive }) => dropdownLinkClass(isActive)}
+                  >
+                    <UsersIcon className="h-4 w-4" />
+                    Applicants
+                  </NavLink>
+                </div>
               )}
-            </button>
-            {openMenus["recruitment"] && (
-              <div className="mt-1 space-y-1">
-                <NavLink
-                  to="/recruitment/job-positions"
-                  className={({ isActive }) => dropdownLinkClass(isActive)}
-                >
-                  <Briefcase className="h-4 w-4" />
-                  Job Positions
-                </NavLink>
-                <NavLink
-                  to="/recruitment/applicants"
-                  className={({ isActive }) => dropdownLinkClass(isActive)}
-                >
-                  <UsersIcon className="h-4 w-4" />
-                  Applicants
-                </NavLink>
-              </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
 
         {/* Collapsed Recruitment Icons */}
-        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN" || user?.role === "HR") && collapsed && (
-          <>
-            <NavLink
-              to="/recruitment/job-positions"
-              className={({ isActive }) => linkClass(isActive)}
-              title="Job Positions"
-            >
-              <Briefcase className="h-5 w-5" />
-            </NavLink>
-            <NavLink
-              to="/recruitment/applicants"
-              className={({ isActive }) => linkClass(isActive)}
-              title="Applicants"
-            >
-              <UsersIcon className="h-5 w-5" />
-            </NavLink>
-          </>
-        )}
+        {(user?.role === "ADMIN" ||
+          user?.role === "HR_ADMIN" ||
+          user?.role === "HR") &&
+          collapsed && (
+            <>
+              <NavLink
+                to="/recruitment/job-positions"
+                className={({ isActive }) => linkClass(isActive)}
+                title="Job Positions"
+              >
+                <Briefcase className="h-5 w-5" />
+              </NavLink>
+              <NavLink
+                to="/recruitment/applicants"
+                className={({ isActive }) => linkClass(isActive)}
+                title="Applicants"
+              >
+                <UsersIcon className="h-5 w-5" />
+              </NavLink>
+            </>
+          )}
 
         {/* Payroll - Everyone */}
         <NavLink

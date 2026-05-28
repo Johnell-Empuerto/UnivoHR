@@ -48,6 +48,13 @@ import KpiTemplatesPage from "@/features/kpi/pages/KpiTemplatesPage";
 import KpiEvaluationPage from "@/features/kpi/pages/KpiEvaluationPage";
 import EmployeeEvaluationPage from "@/features/kpi/pages/EmployeeEvaluationPage";
 import SelfEvaluationPage from "@/features/kpi/pages/SelfEvaluationPage";
+import HrFormsPage from "@/features/hr-forms/pages/HrFormsPage";
+import HrFormBuilderPage from "@/features/hr-forms/pages/HrFormBuilderPage";
+import HrFormAssignmentsPage from "@/features/hr-forms/pages/HrFormAssignmentsPage";
+import HrFormSubmissionsPage from "@/features/hr-forms/pages/HrFormSubmissionsPage";
+import HrFormSubmissionViewPage from "@/features/hr-forms/pages/HrFormSubmissionViewPage";
+import MyFormsPage from "@/features/hr-forms/pages/MyFormsPage";
+import MyFormFillPage from "@/features/hr-forms/pages/MyFormFillPage";
 
 
 const AppRoutes = () => {
@@ -308,6 +315,78 @@ const AppRoutes = () => {
             element={
               user?.employee_id ? (
                 <SelfEvaluationPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+
+          {/* HR Dynamic Forms */}
+          <Route
+            path="/hr-forms"
+            element={
+              user?.role === "ADMIN" || user?.role === "HR_ADMIN" ? (
+                <HrFormsPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/hr-forms/:id/builder"
+            element={
+              user?.role === "ADMIN" || user?.role === "HR_ADMIN" ? (
+                <HrFormBuilderPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/hr-forms/assignments"
+            element={
+              user?.role === "ADMIN" || user?.role === "HR_ADMIN" ? (
+                <HrFormAssignmentsPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/hr-forms/submissions"
+            element={
+              user?.role === "ADMIN" || user?.role === "HR_ADMIN" ? (
+                <HrFormSubmissionsPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/hr-forms/submissions/:submissionId"
+            element={
+              user?.role === "ADMIN" || user?.role === "HR_ADMIN" ? (
+                <HrFormSubmissionViewPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/my-forms"
+            element={
+              user?.employee_id ? (
+                <MyFormsPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/my-forms/:assignmentId"
+            element={
+              user?.employee_id ? (
+                <MyFormFillPage />
               ) : (
                 <Navigate to="/dashboard" replace />
               )

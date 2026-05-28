@@ -44,6 +44,7 @@ const applicantRoutes = require("./routes/applicant.routes");
 const applicantRequirementRoutes = require("./routes/applicantRequirement.routes");
 const kpiTemplateRoutes = require("./routes/kpiTemplate.routes");
 const kpiEvaluationRoutes = require("./routes/kpiEvaluation.routes");
+const hrFormRoutes = require("./routes/hrForm.routes");
 
 // Middleware
 const authenticate = require("./middleware/auth.middleware");
@@ -132,6 +133,7 @@ app.use("/api/applicants", authenticate, applicantRoutes);
 
 app.use("/api/kpi/templates", authenticate, kpiTemplateRoutes);
 app.use("/api/kpi/evaluations", authenticate, kpiEvaluationRoutes);
+app.use("/api/hr-forms", authenticate, hrFormRoutes);
 app.use("/api/applicants", authenticate, applicantRequirementRoutes);
 
 
@@ -171,7 +173,15 @@ process.on("SIGINT", async () => {
 // =====================
 pool
   .connect()
-  .then(() => console.log("PostgreSQL Connected"))
+  .then(async () => {
+    console.log("PostgreSQL Connected");
+    try {
+      await require("./models/hrForm.model").init();
+      console.log("HR Forms tables initialized");
+    } catch (err) {
+      console.error("HR Forms init error:", err.message);
+    }
+  })
   .catch((err) => console.error("DB Error:", err));
 
 // =====================
