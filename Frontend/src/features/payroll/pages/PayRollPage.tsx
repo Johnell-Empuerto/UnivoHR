@@ -398,7 +398,7 @@ const PayRollPage = () => {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className={`grid w-full max-w-md ${user?.role === "ADMIN" || user?.role === "HR_ADMIN" ? "grid-cols-4" : "grid-cols-3"}`}>
           <TabsTrigger value="records">Payroll Records</TabsTrigger>
           <TabsTrigger value="final-pay">Final Pay</TabsTrigger>
@@ -725,7 +725,7 @@ const PayRollPage = () => {
         {/* ============================================ */}
         {/* GENERATE PAYROLL TAB */}
         {/* ============================================ */}
-        <TabsContent value="generate">
+        <TabsContent value="generate" className="mt-6">
           <PayrollGenerate onGenerateComplete={handleGeneratePayroll} />
         </TabsContent>
 
@@ -733,7 +733,7 @@ const PayRollPage = () => {
         {/* SETTINGS TAB */}
         {/* ============================================ */}
         {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && (
-          <TabsContent value="settings">
+          <TabsContent value="settings" className="mt-6">
             <PayrollSettings />
           </TabsContent>
         )}
