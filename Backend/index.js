@@ -45,6 +45,7 @@ const applicantRequirementRoutes = require("./routes/applicantRequirement.routes
 const kpiTemplateRoutes = require("./routes/kpiTemplate.routes");
 const kpiEvaluationRoutes = require("./routes/kpiEvaluation.routes");
 const hrFormRoutes = require("./routes/hrForm.routes");
+const reportRoutes = require("./routes/report.routes");
 
 // Middleware
 const authenticate = require("./middleware/auth.middleware");
@@ -135,6 +136,8 @@ app.use("/api/kpi/templates", authenticate, kpiTemplateRoutes);
 app.use("/api/kpi/evaluations", authenticate, kpiEvaluationRoutes);
 app.use("/api/hr-forms", authenticate, hrFormRoutes);
 app.use("/api/applicants", authenticate, applicantRequirementRoutes);
+
+app.use("/api/reports", authenticate, reportRoutes);
 
 
 const queueService = require("./services/queue.service");

@@ -56,6 +56,7 @@ import HrFormSubmissionViewPage from "@/features/hr-forms/pages/HrFormSubmission
 import MyFormsPage from "@/features/hr-forms/pages/MyFormsPage";
 import MyFormFillPage from "@/features/hr-forms/pages/MyFormFillPage";
 import MyBenefitsPage from "@/features/benefits/pages/MyBenefitsPage";
+import ReportsPage from "@/features/reports/pages/ReportsPage";
 
 
 const AppRoutes = () => {
@@ -180,6 +181,13 @@ const AppRoutes = () => {
 
           <Route path="/payroll/details/:id" element={<PayrollDetails />} />
           <Route path="/my-benefits" element={<MyBenefitsPage />} />
+          <Route path="/reports" element={
+            user?.role === "ADMIN" || user?.role === "HR_ADMIN" || user?.role === "HR" ? (
+              <ReportsPage />
+            ) : (
+              <Navigate to="/dashboard" replace />
+            )
+          } />
 
           <Route path="/calendar" element={<CalendarPage />} />
 

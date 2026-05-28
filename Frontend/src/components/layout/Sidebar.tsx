@@ -19,6 +19,7 @@ import {
   Users as UsersIcon,
   Briefcase,
   HeartHandshake,
+  BarChart3,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import smallIcon from "@/assets/images/small-icon.png";
@@ -536,6 +537,19 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
               </NavLink>
             </>
           )}
+
+        {/* Reports - ADMIN/HR_ADMIN/HR */}
+        {(user?.role === "ADMIN" ||
+          user?.role === "HR_ADMIN" ||
+          user?.role === "HR") && (
+          <NavLink
+            to="/reports"
+            className={({ isActive }) => linkClass(isActive)}
+          >
+            <BarChart3 className="h-5 w-5" />
+            {!collapsed && "Reports"}
+          </NavLink>
+        )}
 
         {/* Payroll - Everyone */}
         <NavLink
