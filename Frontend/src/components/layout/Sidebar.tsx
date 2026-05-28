@@ -15,6 +15,9 @@ import {
   FileText,
   Building2,
   ShieldAlert,
+  UserPlus,
+  Users as UsersIcon,
+  Briefcase,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import smallIcon from "@/assets/images/small-icon.png";
@@ -313,6 +316,64 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             <IdCard className="h-5 w-5" />
             {!collapsed && "Employees"}
           </NavLink>
+        )}
+
+        {/* Recruitment Dropdown - HR roles only */}
+        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN" || user?.role === "HR") && !collapsed && (
+          <div>
+            <button
+              onClick={() => toggleMenu("recruitment")}
+              className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all dark:text-gray-300 dark:hover:text-white"
+            >
+              <div className="flex items-center gap-3">
+                <UserPlus className="h-5 w-5" />
+                <span>Recruitment</span>
+              </div>
+              {openMenus["recruitment"] ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </button>
+            {openMenus["recruitment"] && (
+              <div className="mt-1 space-y-1">
+                <NavLink
+                  to="/recruitment/job-positions"
+                  className={({ isActive }) => dropdownLinkClass(isActive)}
+                >
+                  <Briefcase className="h-4 w-4" />
+                  Job Positions
+                </NavLink>
+                <NavLink
+                  to="/recruitment/applicants"
+                  className={({ isActive }) => dropdownLinkClass(isActive)}
+                >
+                  <UsersIcon className="h-4 w-4" />
+                  Applicants
+                </NavLink>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Collapsed Recruitment Icons */}
+        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN" || user?.role === "HR") && collapsed && (
+          <>
+            <NavLink
+              to="/recruitment/job-positions"
+              className={({ isActive }) => linkClass(isActive)}
+              title="Job Positions"
+            >
+              <Briefcase className="h-5 w-5" />
+            </NavLink>
+            <NavLink
+              to="/recruitment/applicants"
+              className={({ isActive }) => linkClass(isActive)}
+              title="Applicants"
+            >
+              <UsersIcon className="h-5 w-5" />
+            </NavLink>
+          </>
         )}
 
         {/* Payroll - Everyone */}

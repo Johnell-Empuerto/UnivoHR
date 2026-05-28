@@ -53,6 +53,7 @@ type Employee = {
   final_pay_amount?: number | null;
   branch_id?: number | null;
   branch_name?: string | null;
+  employment_status?: string | null;
 };
 
 type Props = {
@@ -203,6 +204,7 @@ const EmployeeDrawer = ({
         department: "",
         position: "",
         status: "ACTIVE",
+        employment_status: "Probationary",
         rfid_tag: "",
         fingerprint_id: "",
         birthday: "",
@@ -378,6 +380,7 @@ const EmployeeDrawer = ({
                 )}
                 <Info label="Department" value={employee?.department} />
                 <Info label="Position" value={employee?.position} />
+                <Info label="Employment Status" value={employee?.employment_status} />
                 <div>
                   <p className="text-xs text-muted-foreground">Status</p>
                   <span
@@ -648,6 +651,15 @@ const EmployeeDrawer = ({
                   value={form.status}
                   onChange={handleChange}
                   options={["ACTIVE", "RESIGNED", "TERMINATED"]}
+                  disabled={!canEditMode}
+                />
+
+                <SelectField
+                  label="Employment Status"
+                  name="employment_status"
+                  value={form.employment_status}
+                  onChange={handleChange}
+                  options={["Probationary", "Regular"]}
                   disabled={!canEditMode}
                 />
 

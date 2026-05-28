@@ -39,6 +39,9 @@ const forecastRoutes = require("./routes/forecast.routes");
 const statisticalAnomalyRoutes = require("./routes/statisticalAnomaly.routes");
 const analyticsRoutes = require("./routes/analytics.routes");
 const hrPolicyRoutes = require("./routes/hrPolicy.routes");
+const jobPositionRoutes = require("./routes/jobPosition.routes");
+const applicantRoutes = require("./routes/applicant.routes");
+const applicantRequirementRoutes = require("./routes/applicantRequirement.routes");
 
 // Middleware
 const authenticate = require("./middleware/auth.middleware");
@@ -50,7 +53,7 @@ const errorHandler = require("./middleware/errorHandler");
 // =====================
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://192.168.0.110:5173"],
+    origin: ["http://localhost:5173", "http://192.168.2.59:5173"],
     credentials: true,
   }),
 );
@@ -122,6 +125,11 @@ app.use("/api/stats-anomaly", authenticate, statisticalAnomalyRoutes);
 app.use("/api/analytics", authenticate, analyticsRoutes);
 app.use("/api/hr-policies", authenticate, hrPolicyRoutes);
 
+app.use("/api/job-positions", authenticate, jobPositionRoutes);
+app.use("/api/applicants", authenticate, applicantRoutes);
+app.use("/api/applicants", authenticate, applicantRequirementRoutes);
+
+
 const queueService = require("./services/queue.service");
 
 // Start the leave conversion scheduler
@@ -152,8 +160,6 @@ process.on("SIGINT", async () => {
   await queueService.payslipQueue.close();
   process.exit(0);
 });
-
-
 
 // =====================
 // DB CONNECTION

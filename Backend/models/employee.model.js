@@ -83,12 +83,12 @@ const createEmployee = async (data) => {
       marital_status, rfid_tag, fingerprint_id, status,
       sss_number, philhealth_number, hdmf_number, tin_number,
       hired_date, resignation_date, termination_date, last_working_date,
-      branch_id
+      branch_id, employment_status
     )
     VALUES (
       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
       $12,$13,$14,$15,$16,$17,$18,$19,$20,
-      $21,$22,$23,$24,$25,$26,$27,$28
+      $21,$22,$23,$24,$25,$26,$27,$28,$29
     )
     RETURNING *;
   `;
@@ -122,6 +122,7 @@ const createEmployee = async (data) => {
     data.termination_date || null,
     data.last_working_date || null,
     branchId,
+    data.employment_status || null,
   ];
 
   const result = await pool.query(query, values);
@@ -161,6 +162,7 @@ const updateEmployee = async (id, data, client = null) => {
       resignation_date = $25,
       termination_date = $26,
       last_working_date = $27,
+      employment_status = $30,
       branch_id = $29
     WHERE id = $28
     RETURNING *;
@@ -196,6 +198,7 @@ const updateEmployee = async (id, data, client = null) => {
     data.last_working_date || null,
     id,
     branchId,
+    data.employment_status || null,
   ];
 
   const result = await db.query(query, values);

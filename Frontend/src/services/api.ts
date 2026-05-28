@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://192.168.0.110:3003/api",
+  baseURL: "http://192.168.2.59:3003/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -109,7 +109,8 @@ api.interceptors.response.use(
   },
 );
 
-let onTokenRefreshed: ((token: string, refreshToken: string) => void) | null = null;
+let onTokenRefreshed: ((token: string, refreshToken: string) => void) | null =
+  null;
 
 export const setOnTokenRefreshed = (cb: typeof onTokenRefreshed) => {
   onTokenRefreshed = cb;

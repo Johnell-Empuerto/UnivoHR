@@ -6,6 +6,9 @@ const ALLOWED_TABLES = new Set([
   "branches", "user_branch_access", "payroll_settings", "attendance_rules",
   "audit_logs",
   "hr_policy_documents",
+  "job_positions", "applicants", "applicant_documents",
+  "applicant_interviews", "applicant_approvals",
+  "employee_onboarding", "employee_requirements",
 ]);
 
 const sanitizeTableName = (name) => {

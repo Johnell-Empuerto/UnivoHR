@@ -40,6 +40,10 @@ import UsersDocs from "@/features/docs/pages/UsersDocs";
 import BranchesPage from "@/features/branches/pages/BranchesPage";
 import AnomalyPage from "@/features/anomalies/pages/AnomalyPage";
 import HRPolicies from "@/pages/HRPolicies";
+import JobPositionsPage from "@/features/recruitment/pages/JobPositionsPage";
+import ApplicantsPage from "@/features/recruitment/pages/ApplicantsPage";
+import ApplicantDetailPage from "@/features/recruitment/pages/ApplicantDetailPage";
+import ApplicantFormPage from "@/features/recruitment/pages/ApplicantFormPage";
 
 const AppRoutes = () => {
   const { isAuth, user } = useAuth();
@@ -215,6 +219,48 @@ const AppRoutes = () => {
             element={
               user?.role === "ADMIN" || user?.role === "HR_ADMIN" || user?.role === "HR" ? (
                 <AnomalyPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+
+          {/* Recruitment Routes - HR roles only */}
+          <Route
+            path="/recruitment/job-positions"
+            element={
+              user?.role === "ADMIN" || user?.role === "HR_ADMIN" || user?.role === "HR" ? (
+                <JobPositionsPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/recruitment/applicants"
+            element={
+              user?.role === "ADMIN" || user?.role === "HR_ADMIN" || user?.role === "HR" ? (
+                <ApplicantsPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/recruitment/applicants/new"
+            element={
+              user?.role === "ADMIN" || user?.role === "HR_ADMIN" || user?.role === "HR" ? (
+                <ApplicantFormPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/recruitment/applicants/:id"
+            element={
+              user?.role === "ADMIN" || user?.role === "HR_ADMIN" || user?.role === "HR" ? (
+                <ApplicantDetailPage />
               ) : (
                 <Navigate to="/dashboard" replace />
               )

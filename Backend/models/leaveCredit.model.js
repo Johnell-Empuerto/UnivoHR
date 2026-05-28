@@ -10,8 +10,9 @@ const getByEmployee = async (employeeId) => {
 };
 
 // CREATE DEFAULT (when employee created)
-const createDefault = async (employeeId) => {
-  const result = await pool.query(
+const createDefault = async (employeeId, client = null) => {
+  const db = client || pool;
+  const result = await db.query(
     `INSERT INTO leave_credits (employee_id, sick_leave, vacation_leave, maternity_leave,emergency_leave) VALUES ($1, 15, 15, 60, 5)
      RETURNING *`,
     [employeeId],
