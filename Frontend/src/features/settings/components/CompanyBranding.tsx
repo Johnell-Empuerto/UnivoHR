@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Building, Palette, Eye } from "lucide-react";
+import { Loader2, Building } from "lucide-react";
 import {
   getAllSettings,
   updateSetting,
@@ -115,18 +115,9 @@ const CompanyBranding = () => {
           className="space-y-6"
         >
           <TabsList className="grid w-full max-w-md grid-cols-3">
-            <TabsTrigger value="general" className="flex items-center gap-2">
-              <Building className="h-4 w-4" />
-              General
-            </TabsTrigger>
-            <TabsTrigger value="colors" className="flex items-center gap-2">
-              <Palette className="h-4 w-4" />
-              Colors
-            </TabsTrigger>
-            <TabsTrigger value="preview" className="flex items-center gap-2">
-              <Eye className="h-4 w-4" />
-              Preview
-            </TabsTrigger>
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="colors">Colors</TabsTrigger>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
           </TabsList>
 
           {/* General Tab */}

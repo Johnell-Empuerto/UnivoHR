@@ -23,12 +23,6 @@ import {
 } from "@/components/ui/table";
 import {
   FileText,
-  Users,
-  CalendarDays,
-  Clock,
-  Banknote,
-  ShieldCheck,
-  BarChart3,
   Search,
   RefreshCw,
   ChevronLeft,
@@ -912,25 +906,13 @@ const ReportsPage = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={(tab) => { setActiveTab(tab); setReportTypeFilter(""); }}>
-        <TabsList className="flex flex-wrap">
-          <TabsTrigger value="employees" className="flex items-center gap-2">
-            <Users className="h-4 w-4" /> Employee
-          </TabsTrigger>
-          <TabsTrigger value="leaves" className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4" /> Leave
-          </TabsTrigger>
-          <TabsTrigger value="attendance" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" /> Attendance
-          </TabsTrigger>
-          <TabsTrigger value="payroll" className="flex items-center gap-2">
-            <Banknote className="h-4 w-4" /> Payroll
-          </TabsTrigger>
-          <TabsTrigger value="benefits" className="flex items-center gap-2">
-            <ShieldCheck className="h-4 w-4" /> Benefits
-          </TabsTrigger>
-          <TabsTrigger value="performance" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" /> Performance
-          </TabsTrigger>
+        <TabsList className="flex w-full gap-2 overflow-x-auto">
+          <TabsTrigger value="employees">Employee</TabsTrigger>
+          <TabsTrigger value="leaves">Leave</TabsTrigger>
+          <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          <TabsTrigger value="payroll">Payroll</TabsTrigger>
+          <TabsTrigger value="benefits">Benefits</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
         </TabsList>
 
         <Card className="border-border/50 shadow-sm mt-4">

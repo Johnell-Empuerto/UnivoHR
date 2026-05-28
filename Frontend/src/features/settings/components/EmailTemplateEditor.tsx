@@ -308,15 +308,11 @@ const EmailTemplateEditor = () => {
           onValueChange={setSelectedType}
           className="space-y-6"
         >
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 gap-2">
+          <TabsList className="flex w-full gap-2 overflow-x-auto">
             {TEMPLATE_TYPES.map((type) => {
               const status = getTemplateStatus(type.value);
               return (
-                <TabsTrigger
-                  key={type.value}
-                  value={type.value}
-                  className="flex items-center gap-2"
-                >
+                <TabsTrigger key={type.value} value={type.value}>
                   {type.label}
                   {getStatusBadge(status)}
                 </TabsTrigger>

@@ -399,9 +399,7 @@ const PayRollPage = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList
-          className={`grid w-full max-w-md ${user?.role === "ADMIN" || user?.role === "HR_ADMIN" ? "grid-cols-4" : "grid-cols-3"}`}
-        >
+        <TabsList className={`grid w-full max-w-md ${user?.role === "ADMIN" || user?.role === "HR_ADMIN" ? "grid-cols-4" : "grid-cols-3"}`}>
           <TabsTrigger value="records">Payroll Records</TabsTrigger>
           <TabsTrigger value="final-pay">Final Pay</TabsTrigger>
           <TabsTrigger value="generate">Generate Payroll</TabsTrigger>

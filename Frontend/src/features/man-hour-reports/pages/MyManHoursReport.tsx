@@ -291,7 +291,7 @@ const MyManHoursReport = () => {
       </div>
 
       <Tabs defaultValue="reports" className="space-y-4">
-        <TabsList>
+        <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="reports">Man Hour Reports</TabsTrigger>
           <TabsTrigger value="missing">No Manhour Reports</TabsTrigger>
         </TabsList>

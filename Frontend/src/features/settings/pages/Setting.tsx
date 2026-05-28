@@ -38,34 +38,14 @@ const Setting = () => {
         onValueChange={setActiveTab}
         className="space-y-6"
       >
-        <TabsList className="grid w-full max-w-4xl grid-cols-7">
-          <TabsTrigger value="attendance" className="flex items-center gap-2">
-            Attendance
-          </TabsTrigger>
-          <TabsTrigger value="payrules" className="flex items-center gap-2">
-            Pay Rules
-          </TabsTrigger>
-          <TabsTrigger value="approvals" className="flex items-center gap-2">
-            Approvals
-          </TabsTrigger>
-          <TabsTrigger value="smtp" className="flex items-center gap-2">
-            SMTP
-          </TabsTrigger>
-          <TabsTrigger
-            value="notifications"
-            className="flex items-center gap-2"
-          >
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger
-            value="email-templates"
-            className="flex items-center gap-2"
-          >
-            Email Templates
-          </TabsTrigger>
-          <TabsTrigger value="branding" className="flex items-center gap-2">
-            Branding
-          </TabsTrigger>
+        <TabsList className="flex w-full gap-2 overflow-x-auto">
+          <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          <TabsTrigger value="payrules">Pay Rules</TabsTrigger>
+          <TabsTrigger value="approvals">Approvals</TabsTrigger>
+          <TabsTrigger value="smtp">SMTP</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          <TabsTrigger value="email-templates">Email Templates</TabsTrigger>
+          <TabsTrigger value="branding">Branding</TabsTrigger>
         </TabsList>
 
         <TabsContent value="attendance" className="mt-0">

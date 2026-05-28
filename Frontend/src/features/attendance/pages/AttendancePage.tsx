@@ -435,7 +435,7 @@ const AttendancePage = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="attendance">Attendance Records</TabsTrigger>
           <TabsTrigger value="time-requests">Time Requests</TabsTrigger>
         </TabsList>
