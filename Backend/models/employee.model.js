@@ -82,13 +82,14 @@ const createEmployee = async (data) => {
       emergency_contact_address, emergency_contact_relation,
       marital_status, rfid_tag, fingerprint_id, status,
       sss_number, philhealth_number, hdmf_number, tin_number,
-      hired_date, resignation_date, termination_date, last_working_date,
+      hired_date, resignation_date, termination_date,
+      termination_reason, last_working_date,
       branch_id, employment_status
     )
     VALUES (
       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
       $12,$13,$14,$15,$16,$17,$18,$19,$20,
-      $21,$22,$23,$24,$25,$26,$27,$28,$29
+      $21,$22,$23,$24,$25,$26,$27,$28,$29,$30
     )
     RETURNING *;
   `;
@@ -120,6 +121,7 @@ const createEmployee = async (data) => {
     data.hired_date || null,
     data.resignation_date || null,
     data.termination_date || null,
+    data.termination_reason || null,
     data.last_working_date || null,
     branchId,
     data.employment_status || null,
@@ -161,10 +163,11 @@ const updateEmployee = async (id, data, client = null) => {
       hired_date = $24,
       resignation_date = $25,
       termination_date = $26,
-      last_working_date = $27,
-      employment_status = $30,
-      branch_id = $29
-    WHERE id = $28
+      termination_reason = $27,
+      last_working_date = $28,
+      employment_status = $31,
+      branch_id = $30
+    WHERE id = $29
     RETURNING *;
   `;
 
@@ -195,6 +198,7 @@ const updateEmployee = async (id, data, client = null) => {
     data.hired_date || null,
     data.resignation_date || null,
     data.termination_date || null,
+    data.termination_reason || null,
     data.last_working_date || null,
     id,
     branchId,

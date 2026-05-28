@@ -47,6 +47,7 @@ type Employee = {
   tin_number?: string | null;
   resignation_date?: string | null;
   termination_date?: string | null;
+  termination_reason?: string | null;
   last_working_date?: string | null;
   final_pay_processed?: boolean;
   final_pay_date?: string | null;
@@ -190,6 +191,7 @@ const EmployeeDrawer = ({
         termination_date: employee.termination_date
           ? formatDateForInput(employee.termination_date)
           : "",
+        termination_reason: employee.termination_reason || "",
         last_working_date: employee.last_working_date
           ? formatDateForInput(employee.last_working_date)
           : "",
@@ -223,6 +225,7 @@ const EmployeeDrawer = ({
         tin_number: "",
         resignation_date: "",
         termination_date: "",
+        termination_reason: "",
         last_working_date: "",
         branch_id: branches.length > 0 ? branches[0].id : "",
       });
@@ -420,6 +423,14 @@ const EmployeeDrawer = ({
                       <Info
                         label="Termination Date"
                         value={formatDate(employee.termination_date)}
+                      />
+                    )}
+
+                  {employee?.status === "TERMINATED" &&
+                    employee?.termination_reason && (
+                      <Info
+                        label="Termination Reason"
+                        value={employee.termination_reason}
                       />
                     )}
 
@@ -698,28 +709,43 @@ const EmployeeDrawer = ({
                     )}
 
                     {form.status === "TERMINATED" && (
-                      <div className="space-y-2">
-                        <p className="text-xs text-muted-foreground">
-                          Termination Date
-                        </p>
-                        <input
-                          type="date"
-                          name="termination_date"
-                          value={form.termination_date || ""}
-                          onChange={handleChange}
-                          disabled={!canEditMode}
-                          className="w-full border rounded px-2 py-1 bg-background cursor-pointer"
-                          style={{ position: "relative", zIndex: 10000 }}
-                          onClick={(e) => {
-                            const input = e.currentTarget;
-                            if (input && (input as any).showPicker) {
-                              try {
-                                (input as any).showPicker();
-                              } catch (err) {}
-                            }
-                          }}
-                        />
-                      </div>
+                      <>
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            Termination Date
+                          </p>
+                          <input
+                            type="date"
+                            name="termination_date"
+                            value={form.termination_date || ""}
+                            onChange={handleChange}
+                            disabled={!canEditMode}
+                            className="w-full border rounded px-2 py-1 bg-background cursor-pointer"
+                            style={{ position: "relative", zIndex: 10000 }}
+                            onClick={(e) => {
+                              const input = e.currentTarget;
+                              if (input && (input as any).showPicker) {
+                                try {
+                                  (input as any).showPicker();
+                                } catch (err) {}
+                              }
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            Termination Reason
+                          </p>
+                          <textarea
+                            name="termination_reason"
+                            value={form.termination_reason || ""}
+                            onChange={handleChange}
+                            disabled={!canEditMode}
+                            className="w-full border rounded px-2 py-1 bg-background min-h-[60px]"
+                            placeholder="e.g., Failed probationary, Violation of company policy"
+                          />
+                        </div>
+                      </>
                     )}
 
                     <div className="space-y-2">
