@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, ArrowLeft, Plus, Pencil, Trash2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 
 const FIELD_TYPES = [
   { value: "text", label: "Short Text" },
@@ -100,7 +102,7 @@ const HrFormBuilderPage = () => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin mr-2" /><span>Loading form builder...</span></div>;
+    return <Loader message="Loading form builder..." fullPage />;
   }
 
   return (
@@ -119,12 +121,7 @@ const HrFormBuilderPage = () => {
       </div>
 
       {fields.length === 0 ? (
-        <Card className="shadow-sm">
-          <CardContent className="py-12 text-center text-muted-foreground">
-            <p className="text-lg mb-2">No questions yet</p>
-            <p className="text-sm">Click "Add Question" to start building your form.</p>
-          </CardContent>
-        </Card>
+        <EmptyState message="No questions yet" description='Click "Add Question" to start building your form.' action={{ label: "Add Question", onClick: handleOpenAdd }} />
       ) : (
         <div className="space-y-3">
           {fields.map((f, idx) => (
@@ -150,12 +147,12 @@ const HrFormBuilderPage = () => {
                     )}
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    <button className="p-1.5 rounded hover:bg-muted" title="Edit" onClick={() => handleOpenEdit(f)}>
-                      <Pencil className="h-4 w-4 text-muted-foreground" />
-                    </button>
-                    <button className="p-1.5 rounded hover:bg-muted" title="Delete" onClick={() => handleDeleteField(f.id)}>
+                    <Button variant="ghost" size="icon-sm" title="Edit" onClick={() => handleOpenEdit(f)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon-sm" title="Delete" onClick={() => handleDeleteField(f.id)}>
                       <Trash2 className="h-4 w-4 text-red-500" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </CardContent>

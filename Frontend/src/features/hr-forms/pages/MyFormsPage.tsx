@@ -6,6 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ClipboardList, Loader2, Eye } from "lucide-react";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
@@ -33,15 +35,15 @@ const MyFormsPage = () => {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><ClipboardList className="h-5 w-5 text-primary" /></div>
+        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><ClipboardList className="h-5 w-5 text-primary dark:text-black" /></div>
         <div><h1 className="text-2xl font-bold text-muted-foreground">My Forms</h1><p className="text-sm text-muted-foreground">View and fill assigned forms</p></div>
       </div>
       <Card className="shadow-sm">
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin mr-2" /><span>Loading...</span></div>
+            <Loader message="Loading forms..." />
           ) : assignments.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No forms assigned to you yet.</div>
+            <EmptyState message="No forms assigned" description="No forms have been assigned to you yet." />
           ) : (
             <div className="rounded-md border">
               <Table>

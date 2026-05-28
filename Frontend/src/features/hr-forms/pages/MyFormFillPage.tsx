@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, ArrowLeft, Send } from "lucide-react";
 import { toast } from "sonner";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 
 const MyFormFillPage = () => {
   const { assignmentId } = useParams<{ assignmentId: string }>();
@@ -139,7 +141,7 @@ const MyFormFillPage = () => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin mr-2" /><span>Loading form...</span></div>;
+    return <Loader message="Loading form..." fullPage />;
   }
 
   return (
@@ -153,7 +155,7 @@ const MyFormFillPage = () => {
           </div>
         </div>
         {!submitted && (
-          <Button onClick={handleSubmit} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={handleSubmit} disabled={saving}>
             {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
             <Send className="h-4 w-4 mr-1" /> Submit
           </Button>
@@ -164,7 +166,7 @@ const MyFormFillPage = () => {
         <CardHeader><CardTitle className="text-base">Questions</CardTitle></CardHeader>
         <CardContent className="divide-y">
           {fields.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No questions in this form.</p>
+            <EmptyState message="No questions in this form" />
           ) : (
             fields.map((field, idx) => (
               <div key={field.id} className="py-4 first:pt-0 last:pb-0">

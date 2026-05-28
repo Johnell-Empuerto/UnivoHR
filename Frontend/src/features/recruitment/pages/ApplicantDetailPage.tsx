@@ -21,6 +21,8 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 import {
   ArrowLeft, Loader2, UserPlus, Plus, Pencil, Trash2,
 } from "lucide-react";
@@ -42,21 +44,21 @@ interface Requirement {
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
-    Initial: "bg-blue-100 text-blue-800",
-    Pending: "bg-purple-100 text-purple-800",
-    "Final Interview": "bg-amber-100 text-amber-800",
-    "Exam Interview": "bg-indigo-100 text-indigo-800",
-    Completed: "bg-green-100 text-green-800",
-    Fail: "bg-red-100 text-red-800",
+    Initial: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    Pending: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+    "Final Interview": "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+    "Exam Interview": "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400",
+    Completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    Fail: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
   };
   return <Badge className={map[status] || ""}>{status}</Badge>;
 };
 
 const reqStatusBadge = (status: string) => {
   const map: Record<string, string> = {
-    Pending: "bg-gray-100 text-gray-800",
-    Completed: "bg-green-100 text-green-800",
-    Rejected: "bg-red-100 text-red-800",
+    Pending: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
+    Completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    Rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
   };
   return <Badge className={map[status] || ""}>{status}</Badge>;
 };
@@ -234,16 +236,16 @@ const ApplicantDetailPage = () => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+    return <Loader fullPage />;
   }
   if (!applicant) return null;
 
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate("/recruitment/applicants")} className="p-1 rounded hover:bg-muted transition">
+        <Button variant="ghost" size="sm" onClick={() => navigate("/recruitment/applicants")}>
           <ArrowLeft className="h-5 w-5" />
-        </button>
+        </Button>
         <div>
           <h1 className="text-2xl font-bold text-muted-foreground">
             {applicant.first_name} {applicant.last_name}
@@ -295,8 +297,8 @@ const ApplicantDetailPage = () => {
           </Button>
         </CardHeader>
         <CardContent>
-          {requirements.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No requirements added yet.</p>
+            {requirements.length === 0 ? (
+            <EmptyState message="No requirements added yet." />
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -318,15 +320,15 @@ const ApplicantDetailPage = () => {
                       <TableCell className="text-sm">{r.verified_date ? new Date(r.verified_date).toLocaleDateString() : "-"}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 flex-wrap">
-                          <button className="p-1 rounded hover:bg-muted" title="Edit" onClick={() => handleOpenEditReq(r)}>
-                            <Pencil className="h-4 w-4 text-muted-foreground" />
-                          </button>
-                          <button className="p-1 rounded hover:bg-muted" title="Delete" onClick={() => handleDeleteReq(r.id)}>
+                          <Button variant="ghost" size="sm" title="Edit" onClick={() => handleOpenEditReq(r)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" title="Delete" onClick={() => handleDeleteReq(r.id)}>
                             <Trash2 className="h-4 w-4 text-red-500" />
-                          </button>
-                          <button className="px-2 py-0.5 text-xs rounded border hover:bg-muted" onClick={() => handleReqStatus(r, "Pending")}>Pending</button>
-                          <button className="px-2 py-0.5 text-xs rounded border text-green-600 hover:bg-green-50" onClick={() => handleReqStatus(r, "Completed")}>Complete</button>
-                          <button className="px-2 py-0.5 text-xs rounded border text-red-600 hover:bg-red-50" onClick={() => handleReqStatus(r, "Rejected")}>Reject</button>
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleReqStatus(r, "Pending")}>Pending</Button>
+                          <Button variant="outline" size="sm" className="text-green-600" onClick={() => handleReqStatus(r, "Completed")}>Complete</Button>
+                          <Button variant="outline" size="sm" className="text-red-600" onClick={() => handleReqStatus(r, "Rejected")}>Reject</Button>
                         </div>
                       </TableCell>
                     </TableRow>

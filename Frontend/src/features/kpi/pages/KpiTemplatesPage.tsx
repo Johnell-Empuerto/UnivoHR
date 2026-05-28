@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 import { FileText, Plus, Loader2, Pencil, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import { toast } from "sonner";
 
@@ -131,7 +133,7 @@ const KpiTemplatesPage = () => {
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <FileText className="h-5 w-5 text-primary" />
+          <FileText className="h-5 w-5 text-primary dark:text-black" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-muted-foreground">KPI Templates</h1>
@@ -152,9 +154,9 @@ const KpiTemplatesPage = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin mr-2" /><span className="text-sm text-muted-foreground">Loading...</span></div>
+            <Loader message="Loading templates..." />
           ) : templates.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No templates found.</div>
+            <EmptyState message="No templates found." />
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -176,10 +178,10 @@ const KpiTemplatesPage = () => {
                       <TableCell><Badge className={t.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>{t.is_active ? "Active" : "Inactive"}</Badge></TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <button className="p-1 rounded hover:bg-muted" title="Manage Items" onClick={() => handleOpenItems(t)}><FileText className="h-4 w-4 text-muted-foreground" /></button>
-                          <button className="p-1 rounded hover:bg-muted" title="Toggle Active" onClick={() => handleToggle(t.id)}>{t.is_active ? <ToggleRight className="h-4 w-4 text-green-600" /> : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}</button>
-                          <button className="p-1 rounded hover:bg-muted" title="Edit" onClick={() => handleOpenEdit(t)}><Pencil className="h-4 w-4 text-muted-foreground" /></button>
-                          <button className="p-1 rounded hover:bg-muted" title="Delete" onClick={() => handleDelete(t.id)}><Trash2 className="h-4 w-4 text-red-500" /></button>
+                          <Button variant="ghost" size="sm" title="Manage Items" onClick={() => handleOpenItems(t)}><FileText className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="sm" title="Toggle Active" onClick={() => handleToggle(t.id)}>{t.is_active ? <ToggleRight className="h-4 w-4 text-green-600" /> : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}</Button>
+                          <Button variant="ghost" size="sm" title="Edit" onClick={() => handleOpenEdit(t)}><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="sm" title="Delete" onClick={() => handleDelete(t.id)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -230,7 +232,7 @@ const KpiTemplatesPage = () => {
             <Button size="sm" onClick={handleOpenAddItem}><Plus className="h-4 w-4 mr-1" /> Add Item</Button>
           </div>
           {items.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No KPI items yet.</p>
+            <EmptyState message="No KPI items yet." />
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -248,8 +250,8 @@ const KpiTemplatesPage = () => {
                       <TableCell>{item.weight}%</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <button className="p-1 rounded hover:bg-muted" onClick={() => handleOpenEditItem(item)}><Pencil className="h-4 w-4 text-muted-foreground" /></button>
-                          <button className="p-1 rounded hover:bg-muted" onClick={() => handleDeleteItem(item.id)}><Trash2 className="h-4 w-4 text-red-500" /></button>
+                          <Button variant="ghost" size="sm" onClick={() => handleOpenEditItem(item)}><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteItem(item.id)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>

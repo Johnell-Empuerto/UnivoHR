@@ -16,6 +16,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { Button } from "@/components/ui/button";
+import Loader from "@/components/shared/Loader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -130,7 +131,7 @@ const CalendarPage: React.FC = () => {
   }, [calendarDays, branchViewFilter]);
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingDay, setEditingDay] = useState<CalendarDay | null>(null);
   const [formData, setFormData] = useState({
@@ -819,6 +820,8 @@ const CalendarPage: React.FC = () => {
         )}
       </div>
 
+      {loading && <Loader message="Loading calendar..." />}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Calendar */}
         <Card className="lg:col-span-2">
@@ -943,7 +946,7 @@ const CalendarPage: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <h3 className="font-semibold text-sm text-gray-700">Day Types</h3>
+              <h3 className="font-semibold text-sm text-muted-foreground">Day Types</h3>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 rounded bg-emerald-500"></div>
@@ -965,7 +968,7 @@ const CalendarPage: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <h3 className="font-semibold text-sm text-gray-700">
+              <h3 className="font-semibold text-sm text-muted-foreground">
                 Indicators
               </h3>
               <div className="space-y-1">
@@ -978,10 +981,10 @@ const CalendarPage: React.FC = () => {
 
             {/* Actions / Information based on role */}
             <div className="space-y-2">
-              <h3 className="font-semibold text-sm text-gray-700">
+              <h3 className="font-semibold text-sm text-muted-foreground">
                 {canEdit ? "Actions" : "Information"}
               </h3>
-              <div className="space-y-1 text-sm text-gray-600">
+              <div className="space-y-1 text-sm text-muted-foreground">
                 {canEdit ? (
                   <>
                     <p>• Click on any date to add/edit</p>
@@ -1007,7 +1010,7 @@ const CalendarPage: React.FC = () => {
 
             {selectedDate && (
               <div className="border-t pt-4 mt-4">
-                <h3 className="font-semibold text-sm text-gray-700 mb-2">
+                <h3 className="font-semibold text-sm text-muted-foreground mb-2">
                   Selected Date: {format(selectedDate, "MMMM d, yyyy")}
                 </h3>
                 {(() => {
@@ -1039,7 +1042,7 @@ const CalendarPage: React.FC = () => {
                     );
                   }
                   return (
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {canEdit
                         ? "Click on any date to add or edit calendar information"
                         : "No special day configured for this date"}
@@ -1070,7 +1073,7 @@ const CalendarPage: React.FC = () => {
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label>Date</Label>
-                <div className="p-2 bg-gray-50 rounded-md border">
+                <div className="p-2 bg-muted rounded-md border">
                   {formData.date
                     ? format(new Date(formData.date), "MMMM d, yyyy")
                     : "Select a date"}
@@ -1241,15 +1244,15 @@ const CalendarPage: React.FC = () => {
                       htmlFor="file-upload"
                       className={`cursor-pointer block ${uploading ? "opacity-50 cursor-not-allowed" : ""}`}
                     >
-                      <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-                      <p className="text-sm text-gray-600">
+                      <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">
                         {dragging
                           ? "Drop your file here 👇"
                           : uploading
                             ? "Processing..."
                             : "Click to upload or drag and drop"}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         Excel or CSV files only (max 1000 rows)
                       </p>
                     </label>
@@ -1265,7 +1268,7 @@ const CalendarPage: React.FC = () => {
                       disabled={uploading}
                     />
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     If enabled, existing dates will be updated. If disabled,
                     existing dates will be skipped.
                   </p>
@@ -1310,25 +1313,25 @@ const CalendarPage: React.FC = () => {
                         <p className="text-2xl font-bold text-green-600">
                           {uploadResults.summary.inserted}
                         </p>
-                        <p className="text-xs text-gray-600">Inserted</p>
+                        <p className="text-xs text-muted-foreground">Inserted</p>
                       </div>
                       <div className="p-3 bg-blue-50 rounded-lg">
                         <p className="text-2xl font-bold text-blue-600">
                           {uploadResults.summary.updated}
                         </p>
-                        <p className="text-xs text-gray-600">Updated</p>
+                        <p className="text-xs text-muted-foreground">Updated</p>
                       </div>
                       <div className="p-3 bg-yellow-50 rounded-lg">
                         <p className="text-2xl font-bold text-yellow-600">
                           {uploadResults.summary.skipped}
                         </p>
-                        <p className="text-xs text-gray-600">Skipped</p>
+                        <p className="text-xs text-muted-foreground">Skipped</p>
                       </div>
                       <div className="p-3 bg-red-50 rounded-lg">
                         <p className="text-2xl font-bold text-red-600">
                           {uploadResults.summary.failed}
                         </p>
-                        <p className="text-xs text-gray-600">Failed</p>
+                        <p className="text-xs text-muted-foreground">Failed</p>
                       </div>
                     </div>
 
@@ -1346,7 +1349,7 @@ const CalendarPage: React.FC = () => {
                         </div>
                       )}
 
-                    <p className="text-sm text-gray-600 text-center">
+                    <p className="text-sm text-muted-foreground text-center">
                       Total rows processed: {uploadResults.summary.totalRows}
                     </p>
                   </>

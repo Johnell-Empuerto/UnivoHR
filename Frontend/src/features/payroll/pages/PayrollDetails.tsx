@@ -8,6 +8,8 @@ import SalaryBreakdown from "../components/SalaryBreakdown";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { formatDate } from "@/utils/formatDate";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 
 // Helper to format employee name from structured fields
 const formatEmployeeName = (record: any) => {
@@ -79,41 +81,7 @@ const PayrollDetails = () => {
   if (loading) {
     return (
       <div className="space-y-6 p-6">
-        {/* Header with back button and loading state */}
-        <div className="flex items-center gap-4">
-          <div className="h-8 w-8 bg-muted rounded animate-pulse"></div>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-muted/50 animate-pulse"></div>
-            <div>
-              <div className="h-8 w-48 bg-muted rounded animate-pulse"></div>
-              <div className="h-4 w-64 bg-muted rounded mt-2 animate-pulse"></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="border rounded-lg shadow-sm p-6">
-          <div className="h-6 w-40 bg-muted rounded animate-pulse mb-4"></div>
-          <div className="grid grid-cols-2 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i}>
-                <div className="h-4 w-20 bg-muted rounded animate-pulse"></div>
-                <div className="h-5 w-32 bg-muted rounded mt-2 animate-pulse"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="border rounded-lg shadow-sm p-6">
-          <div className="h-6 w-40 bg-muted rounded animate-pulse mb-4"></div>
-          <div className="space-y-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex justify-between">
-                <div className="h-4 w-24 bg-muted rounded animate-pulse"></div>
-                <div className="h-4 w-20 bg-muted rounded animate-pulse"></div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <Loader message="Loading payroll data..." />
       </div>
     );
   }
@@ -124,9 +92,8 @@ const PayrollDetails = () => {
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={() => navigate("/payroll")}
-            className="h-8 w-8 p-0"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -144,16 +111,10 @@ const PayrollDetails = () => {
             </div>
           </div>
         </div>
-        <div className="text-center">
-          <div className="max-w-md mx-auto">
-            <p className="text-muted-foreground mb-4">
-              {error || "No payroll record found"}
-            </p>
-            <Button onClick={() => navigate("/payroll")}>
-              Back to Payroll
-            </Button>
-          </div>
-        </div>
+        <EmptyState
+          message={error || "No payroll record found"}
+          action={{ label: "Back to Payroll", onClick: () => navigate("/payroll") }}
+        />
       </div>
     );
   }
@@ -164,9 +125,8 @@ const PayrollDetails = () => {
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
           onClick={() => navigate("/payroll")}
-          className="h-8 w-8 p-0"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>

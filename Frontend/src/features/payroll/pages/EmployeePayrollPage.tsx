@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import EmptyState from "@/components/shared/EmptyState";
+import Loader from "@/components/shared/Loader";
 import {
   Calendar as CalendarIcon,
   RefreshCw,
@@ -301,13 +303,9 @@ const EmployeePayrollPage = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">Loading payroll data...</div>
+            <Loader message="Loading payroll data..." />
           ) : payrollData.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">
-                No payroll records found for this period
-              </p>
-            </div>
+            <EmptyState message="No payroll records found for this period" />
           ) : (
             <div className="rounded-md border shadow-sm">
               <Table>
@@ -336,8 +334,10 @@ const EmployeePayrollPage = () => {
                       <TableCell className="text-red-600">
                         -₱{Number(record.deductions || 0).toLocaleString()}
                       </TableCell>
-                      <TableCell className="font-semibold text-green-600">
-                        ₱{Number(record.net_salary || 0).toLocaleString()}
+                      <TableCell>
+                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                          ₱{Number(record.net_salary || 0).toLocaleString()}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -357,9 +357,8 @@ const EmployeePayrollPage = () => {
                         <div className="flex items-center gap-2">
                           <Button
                             variant="ghost"
-                            size="sm"
+                            size="icon"
                             onClick={() => handleViewDetails(record)}
-                            className="h-8 w-8 p-0"
                             title="View Details"
                           >
                             <Eye className="h-4 w-4" />
@@ -367,10 +366,9 @@ const EmployeePayrollPage = () => {
 
                           <Button
                             variant="ghost"
-                            size="sm"
+                            size="icon"
                             onClick={() => handleDownloadPayslip(record)}
                             disabled={downloadingId === record.id}
-                            className="h-8 w-8 p-0"
                             title={
                               downloadingId === record.id
                                 ? "Downloading..."

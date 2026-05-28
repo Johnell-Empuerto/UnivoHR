@@ -1,18 +1,21 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import EmptyState from "@/components/shared/EmptyState";
 import { Input } from "@/components/ui/Input";
 import {
   Calendar as CalendarIcon,
   RefreshCw,
-  Plus,
+  // Plus,
   CheckCircle,
   Search,
   Wallet,
-  Loader2,
 } from "lucide-react";
+
+import Loader from "@/components/shared/Loader";
+import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
+// import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
@@ -129,7 +132,8 @@ const PayRollPage = () => {
     try {
       setLoading(true);
 
-      const branchParam = branchFilter && branchFilter !== "all" ? branchFilter : undefined;
+      const branchParam =
+        branchFilter && branchFilter !== "all" ? branchFilter : undefined;
 
       const payroll = await getPayroll(
         cutoffStartStr,
@@ -146,7 +150,11 @@ const PayRollPage = () => {
       setTotalPages(payroll.pagination.totalPages);
       setTotalRecords(payroll.pagination.total);
 
-      const summaryData = await getPayrollSummary(cutoffStartStr, cutoffEndStr, branchParam);
+      const summaryData = await getPayrollSummary(
+        cutoffStartStr,
+        cutoffEndStr,
+        branchParam,
+      );
       setSummary(summaryData);
 
       // Restore scroll position after page change
@@ -174,7 +182,14 @@ const PayRollPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [cutoffStartStr, cutoffEndStr, currentPage, rowsPerPage, search, branchFilter]);
+  }, [
+    cutoffStartStr,
+    cutoffEndStr,
+    currentPage,
+    rowsPerPage,
+    search,
+    branchFilter,
+  ]);
 
   const groupPayroll = (data: any[]) => {
     const groups: Record<string, any[]> = {};
@@ -384,7 +399,9 @@ const PayRollPage = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className={`grid w-full max-w-md ${user?.role === "ADMIN" || user?.role === "HR_ADMIN" ? "grid-cols-4" : "grid-cols-3"}`}>
+        <TabsList
+          className={`grid w-full max-w-md ${user?.role === "ADMIN" || user?.role === "HR_ADMIN" ? "grid-cols-4" : "grid-cols-3"}`}
+        >
           <TabsTrigger value="records">Payroll Records</TabsTrigger>
           <TabsTrigger value="final-pay">Final Pay</TabsTrigger>
           <TabsTrigger value="generate">Generate Payroll</TabsTrigger>
@@ -402,22 +419,25 @@ const PayRollPage = () => {
             <CardContent className="p-4">
               <div className="flex flex-wrap items-center gap-4">
                 {user?.role !== "EMPLOYEE" && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Branch:</span>
-                  <Select value={branchFilter} onValueChange={setBranchFilter}>
-                    <SelectTrigger className="w-44">
-                      <SelectValue placeholder="All Branches" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Branches</SelectItem>
-                      {branches.map((b) => (
-                        <SelectItem key={b.id} value={String(b.id)}>
-                          {b.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Branch:</span>
+                    <Select
+                      value={branchFilter}
+                      onValueChange={setBranchFilter}
+                    >
+                      <SelectTrigger className="w-44">
+                        <SelectValue placeholder="All Branches" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Branches</SelectItem>
+                        {branches.map((b) => (
+                          <SelectItem key={b.id} value={String(b.id)}>
+                            {b.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )}
 
                 <div className="flex items-center gap-2">
@@ -436,7 +456,11 @@ const PayRollPage = () => {
                           size="sm"
                           onClick={() =>
                             setDate(
-                              new Date(date.getFullYear(), date.getMonth() - 1, 1),
+                              new Date(
+                                date.getFullYear(),
+                                date.getMonth() - 1,
+                                1,
+                              ),
                             )
                           }
                         >
@@ -446,14 +470,28 @@ const PayRollPage = () => {
                           value={date.getMonth()}
                           onChange={(e) =>
                             setDate(
-                              new Date(date.getFullYear(), parseInt(e.target.value), 1),
+                              new Date(
+                                date.getFullYear(),
+                                parseInt(e.target.value),
+                                1,
+                              ),
                             )
                           }
                           className="flex-1 border rounded px-2 py-1 text-sm bg-background"
                         >
                           {[
-                            "January", "February", "March", "April", "May", "June",
-                            "July", "August", "September", "October", "November", "December",
+                            "January",
+                            "February",
+                            "March",
+                            "April",
+                            "May",
+                            "June",
+                            "July",
+                            "August",
+                            "September",
+                            "October",
+                            "November",
+                            "December",
                           ].map((m, i) => (
                             <option key={i} value={i}>
                               {m}
@@ -464,7 +502,11 @@ const PayRollPage = () => {
                           value={date.getFullYear()}
                           onChange={(e) =>
                             setDate(
-                              new Date(parseInt(e.target.value), date.getMonth(), 1),
+                              new Date(
+                                parseInt(e.target.value),
+                                date.getMonth(),
+                                1,
+                              ),
                             )
                           }
                           className="border rounded px-2 py-1 text-sm bg-background"
@@ -483,7 +525,11 @@ const PayRollPage = () => {
                           size="sm"
                           onClick={() =>
                             setDate(
-                              new Date(date.getFullYear(), date.getMonth() + 1, 1),
+                              new Date(
+                                date.getFullYear(),
+                                date.getMonth() + 1,
+                                1,
+                              ),
                             )
                           }
                         >
@@ -519,25 +565,28 @@ const PayRollPage = () => {
           {/* Payroll Records Container */}
           <div ref={tableContainerRef} className="space-y-6">
             {loading ? (
-              <div className="text-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                <p className="mt-2 text-muted-foreground">Loading...</p>
-              </div>
+              <Loader message="Loading payroll data..." />
             ) : payrollData.length === 0 ? (
               <Card>
-                <CardContent className="text-center py-8">
-                  <p>
-                    {search
-                      ? "No payroll records found matching your search"
-                      : "No payroll generated yet. Please generate payroll first."}
-                  </p>
-                  <Button
-                    onClick={() => setActiveTab("generate")}
-                    className="mt-4"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Generate Payroll
-                  </Button>
+                <CardContent>
+                  <EmptyState
+                    message={
+                      search
+                        ? "No payroll records found matching your search"
+                        : "No payroll generated yet"
+                    }
+                    description={
+                      !search ? "Please generate payroll first." : undefined
+                    }
+                    action={
+                      !search
+                        ? {
+                            label: "Generate Payroll",
+                            onClick: () => setActiveTab("generate"),
+                          }
+                        : undefined
+                    }
+                  />
                 </CardContent>
               </Card>
             ) : (
@@ -577,7 +626,9 @@ const PayRollPage = () => {
                           ) : (
                             <CheckCircle className="h-4 w-4 mr-2" />
                           )}
-                          {isMarkingBatchPaid ? "Marking..." : "Mark Batch Paid"}
+                          {isMarkingBatchPaid
+                            ? "Marking..."
+                            : "Mark Batch Paid"}
                         </Button>
 
                         <Button
@@ -684,9 +735,9 @@ const PayRollPage = () => {
         {/* SETTINGS TAB */}
         {/* ============================================ */}
         {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && (
-        <TabsContent value="settings">
-          <PayrollSettings />
-        </TabsContent>
+          <TabsContent value="settings">
+            <PayrollSettings />
+          </TabsContent>
         )}
       </Tabs>
 

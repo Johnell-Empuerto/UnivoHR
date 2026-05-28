@@ -11,7 +11,9 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Users, Plus, Loader2, Eye, Trash2 } from "lucide-react";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
+import { Users, Plus, Eye, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Applicant {
@@ -145,12 +147,9 @@ const ApplicantsPage = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-              <span className="text-sm text-muted-foreground">Loading...</span>
-            </div>
+            <Loader message="Loading applicants..." />
           ) : applicants.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No applicants found.</div>
+            <EmptyState message="No applicants found." />
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -176,12 +175,12 @@ const ApplicantsPage = () => {
                       <TableCell>{a.rating || "-"}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <button className="p-1 rounded hover:bg-muted transition" title="View" onClick={() => navigate(`/recruitment/applicants/${a.id}`)}>
-                            <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                          </button>
-                          <button className="p-1 rounded hover:bg-muted transition" title="Delete" onClick={() => handleDelete(a.id)}>
-                            <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
-                          </button>
+                          <Button variant="ghost" size="sm" title="View" onClick={() => navigate(`/recruitment/applicants/${a.id}`)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" title="Delete" onClick={() => handleDelete(a.id)}>
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

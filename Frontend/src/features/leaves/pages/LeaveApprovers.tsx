@@ -1,6 +1,8 @@
 // features/leaves/pages/LeaveApprovers.tsx
 import { useEffect, useState } from "react";
 import ErrorMessage from "@/components/shared/ErrorMessage";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -286,7 +288,7 @@ const LeaveApprovers = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <CalendarDays className="h-5 w-5 text-primary dark:text-black" />
+            <CalendarDays className="h-5 w-5 text-primary" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-muted-foreground">
@@ -332,15 +334,7 @@ const LeaveApprovers = () => {
         </CardContent>
       </Card>
 
-      {/* Loading Indicator */}
-      {loading && (
-        <div className="flex items-center justify-center py-4">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-          <span className="text-sm text-muted-foreground">
-            Loading leave approver mappings...
-          </span>
-        </div>
-      )}
+      {loading && <Loader message="Loading leave approver mappings..." />}
 
       {/* Approvers Table */}
       <Card className="shadow-sm">
@@ -360,10 +354,7 @@ const LeaveApprovers = () => {
               <TableBody>
                 {data.length > 0 ? (
                   data.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      className="border-b border-gray-400/50 dark:border-gray-400/50"
-                    >
+                    <TableRow key={item.id}>
                       <TableCell className="font-medium">
                         {item.employee_name}
                       </TableCell>
@@ -375,29 +366,29 @@ const LeaveApprovers = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <button
-                            className="p-1 rounded hover:bg-muted transition"
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
                             onClick={() => handleEdit(item)}
                           >
-                            <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                          </button>
-                          <button
-                            className="p-1 rounded hover:bg-red-100 transition"
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
                             onClick={() => handleDelete(item.id)}
+                            className="hover:text-red-600"
                           >
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          </button>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="text-center py-8 text-muted-foreground"
-                    >
-                      No leave approver mappings found
+                    <TableCell colSpan={6}>
+                      <EmptyState message="No leave approver mappings found" />
                     </TableCell>
                   </TableRow>
                 )}

@@ -13,7 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { ClipboardList, Loader2, Plus, Trash2, CheckCircle, Eye } from "lucide-react";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
+import { ClipboardList, Plus, Loader2, Trash2, CheckCircle, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 interface Onboarding {
@@ -181,12 +183,9 @@ const OnboardingPage = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-              <span className="text-sm text-muted-foreground">Loading...</span>
-            </div>
+            <Loader message="Loading onboarding records..." />
           ) : onboardings.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No onboarding records found.</div>
+            <EmptyState message="No onboarding records found." />
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -210,18 +209,18 @@ const OnboardingPage = () => {
                       <TableCell>{statusBadge(o.status)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <button className="p-1 rounded hover:bg-muted" title="View Requirements" onClick={() => openDetail(o)}>
-                            <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                          </button>
+                          <Button variant="ghost" size="sm" title="View Requirements" onClick={() => openDetail(o)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           {o.status === "PENDING" && (
-                            <button className="p-1 rounded hover:bg-muted" title="Start Onboarding" onClick={() => handleStatusChange(o.id, "IN_PROGRESS")}>
+                            <Button variant="ghost" size="sm" title="Start Onboarding" onClick={() => handleStatusChange(o.id, "IN_PROGRESS")}>
                               <CheckCircle className="h-4 w-4 text-green-500" />
-                            </button>
+                            </Button>
                           )}
                           {o.status === "IN_PROGRESS" && (
-                            <button className="p-1 rounded hover:bg-muted" title="Complete" onClick={() => handleStatusChange(o.id, "COMPLETED")}>
+                            <Button variant="ghost" size="sm" title="Complete" onClick={() => handleStatusChange(o.id, "COMPLETED")}>
                               <CheckCircle className="h-4 w-4 text-green-500" />
-                            </button>
+                            </Button>
                           )}
                         </div>
                       </TableCell>
@@ -266,7 +265,7 @@ const OnboardingPage = () => {
               </div>
 
               {requirements.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No requirements added yet.</p>
+                <EmptyState message="No requirements added yet." />
               ) : (
                 <div className="space-y-2">
                   {requirements.map((r) => (
@@ -286,9 +285,9 @@ const OnboardingPage = () => {
                             <Button size="sm" variant="outline" className="text-red-600" onClick={() => handleReqStatus(r.id, "REJECTED")}>Reject</Button>
                           </>
                         )}
-                        <button className="p-1 rounded hover:bg-muted" onClick={() => handleDeleteReq(r.id)}>
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteReq(r.id)}>
                           <Trash2 className="h-4 w-4 text-red-500" />
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ))}

@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ClipboardList, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
@@ -72,7 +74,7 @@ const HrFormAssignmentsPage = () => {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><ClipboardList className="h-5 w-5 text-primary" /></div>
+        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><ClipboardList className="h-5 w-5 text-primary dark:text-black" /></div>
         <div><h1 className="text-2xl font-bold text-muted-foreground">Form Assignments</h1><p className="text-sm text-muted-foreground">Assign forms to employees</p></div>
       </div>
       <Card className="shadow-sm">
@@ -86,9 +88,9 @@ const HrFormAssignmentsPage = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin mr-2" /><span>Loading...</span></div>
+            <Loader message="Loading assignments..." />
           ) : assignments.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No assignments found.</div>
+            <EmptyState message="No assignments found" description="Assign a form to an employee to get started." action={{ label: "Assign Form", onClick: handleOpenAssign }} />
           ) : (
             <div className="rounded-md border">
               <Table>

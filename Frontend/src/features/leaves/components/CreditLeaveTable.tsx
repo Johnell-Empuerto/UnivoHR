@@ -11,6 +11,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { leaveService } from "@/services/leaveService";
 import { Loader2, Calendar, Clock, CheckCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import EmptyState from "@/components/shared/EmptyState";
 
 interface LeaveCredits {
   id: number;
@@ -78,30 +80,70 @@ const CreditLeaveTable = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "APPROVED":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+        return (
+          <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+            APPROVED
+          </Badge>
+        );
       case "REJECTED":
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+        return (
+          <Badge variant="destructive" className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+            REJECTED
+          </Badge>
+        );
       case "PENDING":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
+        return (
+          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+            PENDING
+          </Badge>
+        );
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
+        return (
+          <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400">
+            {status}
+          </Badge>
+        );
     }
   };
 
   const getTypeBadge = (type: string) => {
     switch (type) {
       case "SICK":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
+        return (
+          <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800">
+            SICK
+          </Badge>
+        );
       case "ANNUAL":
-        return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400";
+        return (
+          <Badge variant="outline" className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800">
+            VACATION
+          </Badge>
+        );
       case "MATERNITY":
-        return "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400";
+        return (
+          <Badge variant="outline" className="bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400 border-pink-200 dark:border-pink-800">
+            MATERNITY
+          </Badge>
+        );
       case "EMERGENCY":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
+        return (
+          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800">
+            EMERGENCY
+          </Badge>
+        );
       case "NO_PAY":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
+        return (
+          <Badge variant="outline" className="bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400 border-gray-200 dark:border-gray-800">
+            NO PAY
+          </Badge>
+        );
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
+        return (
+          <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400">
+            {type}
+          </Badge>
+        );
     }
   };
 
@@ -285,14 +327,12 @@ const CreditLeaveTable = () => {
         </CardHeader>
         <CardContent>
           {transactions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No leave transactions found
-            </div>
+            <EmptyState message="No leave transactions found" />
           ) : (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="bg-muted">
                     <TableHead>Type</TableHead>
                     <TableHead>From Date</TableHead>
                     <TableHead>To Date</TableHead>
@@ -312,15 +352,7 @@ const CreditLeaveTable = () => {
 
                     return (
                       <TableRow key={transaction.id}>
-                        <TableCell>
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-semibold ${getTypeBadge(
-                              transaction.type,
-                            )}`}
-                          >
-                            {transaction.type}
-                          </span>
-                        </TableCell>
+                        <TableCell>{getTypeBadge(transaction.type)}</TableCell>
                         <TableCell>
                           {formatDate(transaction.from_date)}
                         </TableCell>
@@ -328,15 +360,7 @@ const CreditLeaveTable = () => {
                         <TableCell>
                           <span className="font-medium">{days}</span> days
                         </TableCell>
-                        <TableCell>
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-semibold ${getStatusBadge(
-                              transaction.status,
-                            )}`}
-                          >
-                            {transaction.status}
-                          </span>
-                        </TableCell>
+                        <TableCell>{getStatusBadge(transaction.status)}</TableCell>
                         <TableCell className="max-w-xs truncate">
                           {transaction.reason || "-"}
                         </TableCell>

@@ -11,6 +11,8 @@ import { Eye, Pencil, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import EmployeeDrawer from "./EmployeeDrawer";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import EmptyState from "@/components/shared/EmptyState";
 
 type Employee = {
   id: number;
@@ -108,21 +110,49 @@ const EmployeeTable = ({
     return pageNumbers;
   };
 
-  const getStatusBadgeClass = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "ACTIVE":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+        return (
+          <Badge
+            variant="default"
+            className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
+          >
+            ACTIVE
+          </Badge>
+        );
       case "RESIGNED":
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+        return (
+          <Badge
+            variant="destructive"
+            className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
+          >
+            RESIGNED
+          </Badge>
+        );
       case "TERMINATED":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400"
+          >
+            TERMINATED
+          </Badge>
+        );
       default:
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+          >
+            {status}
+          </Badge>
+        );
     }
   };
 
   return (
-    <Card className="shadow-sm">
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>{title}</CardTitle>
         {canCreate && (
@@ -169,38 +199,38 @@ const EmployeeTable = ({
                     <TableCell>{item.branch_name || "Main Branch"}</TableCell>
                     <TableCell>{item.department || "-"}</TableCell>
                     <TableCell>{item.position || "-"}</TableCell>
-                    <TableCell>
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-semibold ${getStatusBadgeClass(item.status)}`}
-                      >
-                        {item.status}
-                      </span>
-                    </TableCell>
+                    <TableCell>{getStatusBadge(item.status)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {canView && (
-                          <button
-                            className="p-1 rounded hover:bg-muted transition"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => {
                               setSelectedEmployee(item);
                               setMode("view");
                               setOpen(true);
                             }}
+                            title="View Details"
                           >
-                            <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                          </button>
+                            <Eye className="h-4 w-4" />
+                          </Button>
                         )}
                         {canEdit && (
-                          <button
-                            className="p-1 rounded hover:bg-muted transition"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => {
                               setSelectedEmployee(item);
                               setMode("edit");
                               setOpen(true);
                             }}
+                            title="Edit"
                           >
-                            <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                          </button>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                         )}
                       </div>
                     </TableCell>
@@ -208,11 +238,8 @@ const EmployeeTable = ({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="text-center py-8 text-muted-foreground"
-                  >
-                    No employees found
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <EmptyState message="No employees found" />
                   </TableCell>
                 </TableRow>
               )}

@@ -3,6 +3,8 @@ import { getActiveBranches } from "@/services/branchService";
 import { useEffect, useState } from "react";
 import EmployeeTable from "../components/EmployeeTable";
 import ErrorMessage from "@/components/shared/ErrorMessage";
+import EmptyState from "@/components/shared/EmptyState";
+import Loader from "@/components/shared/Loader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -249,14 +251,7 @@ const EmployeeList = () => {
       </Card>
 
       {/* Loading Indicator */}
-      {loading && (
-        <div className="flex items-center justify-center py-4">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-          <span className="text-sm text-muted-foreground">
-            Loading employees...
-          </span>
-        </div>
-      )}
+      {loading && <Loader message="Loading employees..." />}
 
       {/* Employee Table */}
       <EmployeeTable

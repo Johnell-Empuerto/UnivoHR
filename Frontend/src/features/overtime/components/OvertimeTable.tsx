@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/utils/formatDate";
+import EmptyState from "@/components/shared/EmptyState";
 
 type OvertimeStatus = "PENDING" | "APPROVED" | "REJECTED";
 
@@ -59,8 +60,8 @@ const getStatusBadge = (status: OvertimeStatus) => {
     case "PENDING":
       return (
         <Badge
-          variant="outline"
-          className="bg-yellow-50 text-yellow-700 border-yellow-200"
+          variant="secondary"
+          className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/30"
         >
           <Clock className="h-3 w-3 mr-1" />
           PENDING
@@ -69,8 +70,8 @@ const getStatusBadge = (status: OvertimeStatus) => {
     case "APPROVED":
       return (
         <Badge
-          variant="outline"
-          className="bg-green-50 text-green-700 border-green-200"
+          variant="default"
+          className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
         >
           <CheckCircle className="h-3 w-3 mr-1" />
           APPROVED
@@ -79,15 +80,22 @@ const getStatusBadge = (status: OvertimeStatus) => {
     case "REJECTED":
       return (
         <Badge
-          variant="outline"
-          className="bg-red-50 text-red-700 border-red-200"
+          variant="destructive"
+          className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
         >
           <XCircle className="h-3 w-3 mr-1" />
           REJECTED
         </Badge>
       );
     default:
-      return <Badge variant="outline">{status}</Badge>;
+      return (
+        <Badge
+          variant="secondary"
+          className="bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400"
+        >
+          {status}
+        </Badge>
+      );
   }
 };
 
@@ -152,7 +160,7 @@ const OvertimeTable = ({
   };
 
   return (
-    <Card className="shadow-sm">
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>{title}</CardTitle>
       </CardHeader>
@@ -195,27 +203,36 @@ const OvertimeTable = ({
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {onView && (
-                          <button
-                            className="p-1 rounded hover:bg-muted transition"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => onView(item)}
+                            title="View Details"
                           >
-                            <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                          </button>
+                            <Eye className="h-4 w-4" />
+                          </Button>
                         )}
                         {canApprove && item.status === "PENDING" && (
                           <>
-                            <button
-                              className="p-1 rounded hover:bg-green-100 transition"
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
                               onClick={() => onApprove?.(item.id)}
+                              title="Approve"
                             >
-                              <CheckCircle className="h-4 w-4 text-green-600" />
-                            </button>
-                            <button
-                              className="p-1 rounded hover:bg-red-100 transition"
+                              <CheckCircle className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                               onClick={() => onReject?.(item.id)}
+                              title="Reject"
                             >
-                              <XCircle className="h-4 w-4 text-red-600" />
-                            </button>
+                              <XCircle className="h-4 w-4" />
+                            </Button>
                           </>
                         )}
                       </div>
@@ -224,11 +241,8 @@ const OvertimeTable = ({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell
-                    colSpan={data[0]?.employee_name ? 7 : 6}
-                    className="text-center py-8 text-muted-foreground"
-                  >
-                    No overtime requests found
+                  <TableCell colSpan={data[0]?.employee_name ? 7 : 6} className="text-center py-8">
+                    <EmptyState message="No overtime requests found" />
                   </TableCell>
                 </TableRow>
               )}

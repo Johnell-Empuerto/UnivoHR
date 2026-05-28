@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 import {
   Briefcase, Plus, Loader2, Pencil, Trash2,
 } from "lucide-react";
@@ -187,12 +189,9 @@ const JobPositionsPage = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-              <span className="text-sm text-muted-foreground">Loading...</span>
-            </div>
+            <Loader message="Loading job positions..." />
           ) : positions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No job positions found.</div>
+            <EmptyState message="No job positions found." />
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -218,12 +217,12 @@ const JobPositionsPage = () => {
                       <TableCell>{statusBadge(pos.status)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <button className="p-1 rounded hover:bg-muted transition" title="Edit" onClick={() => handleOpenEdit(pos)}>
-                            <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                          </button>
-                          <button className="p-1 rounded hover:bg-muted transition" title="Delete" onClick={() => handleDelete(pos.id)}>
-                            <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
-                          </button>
+                          <Button variant="ghost" size="sm" title="Edit" onClick={() => handleOpenEdit(pos)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" title="Delete" onClick={() => handleDelete(pos.id)}>
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

@@ -9,6 +9,8 @@ import EmployeeCreditsTable from "../components/EmployeeCreditsTable";
 import { leaveService } from "@/services/leaveService";
 import { toast } from "sonner";
 import { CalendarDays, Loader2 } from "lucide-react";
+import EmptyState from "@/components/shared/EmptyState";
+import Loader from "@/components/shared/Loader";
 import { isApprover as checkIsApprover } from "@/services/overtimeService";
 
 type Leave = {
@@ -217,28 +219,7 @@ const LeavePage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="space-y-6 p-6">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <CalendarDays className="h-5 w-5 text-primary dark:text-black" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-muted-foreground">
-              {canManageAllLeaves() ? "Leave Management" : "My Leaves"}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {canManageAllLeaves()
-                ? "Review, approve, and manage all employee leave requests."
-                : "Request leave, track your applications, and view your leave balance."}
-            </p>
-          </div>
-        </div>
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </div>
-    );
+    return <Loader message="Loading..." fullPage />;
   }
 
   return (

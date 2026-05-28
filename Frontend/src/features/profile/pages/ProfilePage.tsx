@@ -16,6 +16,8 @@ import { getProfile, type Profile } from "@/services/profileService";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 
 const ProfilePage = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -77,26 +79,22 @@ const ProfilePage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <Loader fullPage />;
   }
 
   if (!profile) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <User className="h-12 w-12 text-muted-foreground" />
-        <p className="text-muted-foreground">Profile not found</p>
-      </div>
+      <EmptyState
+        icon={<User className="h-6 w-6" />}
+        message="Profile not found"
+      />
     );
   }
 
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
           <User className="h-10 w-10 text-primary" />
         </div>

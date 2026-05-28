@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { History, Loader2, Eye } from "lucide-react";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
+import { History, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers/AuthProvider";
 
@@ -49,7 +51,7 @@ const EvaluationHistoryPage = () => {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><History className="h-5 w-5 text-primary" /></div>
+        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><History className="h-5 w-5 text-primary dark:text-black" /></div>
         <div><h1 className="text-2xl font-bold text-muted-foreground">Evaluation History</h1><p className="text-sm text-muted-foreground">View completed performance evaluations</p></div>
       </div>
 
@@ -67,9 +69,9 @@ const EvaluationHistoryPage = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin mr-2" /><span>Loading...</span></div>
+            <Loader message="Loading evaluation history..." />
           ) : records.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No completed evaluations found.</div>
+            <EmptyState message="No completed evaluations found." />
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -94,7 +96,7 @@ const EvaluationHistoryPage = () => {
                       <TableCell>{statusBadge(r.status)}</TableCell>
                       <TableCell className="text-sm">{r.updated_at ? new Date(r.updated_at).toLocaleDateString() : "-"}</TableCell>
                       <TableCell>
-                        <button className="p-1 rounded hover:bg-muted" title="View" onClick={() => handleViewDetail(r.id)}><Eye className="h-4 w-4" /></button>
+                        <Button variant="ghost" size="sm" title="View" onClick={() => handleViewDetail(r.id)}><Eye className="h-4 w-4" /></Button>
                       </TableCell>
                     </TableRow>
                   ))}

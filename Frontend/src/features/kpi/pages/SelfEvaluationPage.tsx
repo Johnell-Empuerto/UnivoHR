@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 import { FileText, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers/AuthProvider";
@@ -65,16 +67,16 @@ const SelfEvaluationPage = () => {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><FileText className="h-5 w-5 text-primary" /></div>
+        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><FileText className="h-5 w-5 text-primary dark:text-black" /></div>
         <div><h1 className="text-2xl font-bold text-muted-foreground">Self Evaluation</h1><p className="text-sm text-muted-foreground">Submit your own performance assessment</p></div>
       </div>
 
       <Card className="shadow-sm">
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin mr-2" /><span>Loading...</span></div>
+            <Loader message="Loading evaluations..." />
           ) : evaluations.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No evaluations assigned to you.</div>
+            <EmptyState message="No evaluations assigned to you." />
           ) : (
             <div className="rounded-md border">
               <Table>

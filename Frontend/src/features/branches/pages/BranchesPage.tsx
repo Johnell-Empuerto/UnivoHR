@@ -23,6 +23,10 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/label";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 import {
   Building2,
   Plus,
@@ -168,16 +172,9 @@ const BranchesPage = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-              <span className="text-sm text-muted-foreground">
-                Loading branches...
-              </span>
-            </div>
+            <Loader message="Loading branches..." />
           ) : branches.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No branches found. Create your first branch.
-            </div>
+            <EmptyState message="No branches found" description="Create your first branch." action={{ label: "Add Branch", onClick: handleOpenCreate }} />
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -216,24 +213,26 @@ const BranchesPage = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <button
-                            className="p-1 rounded hover:bg-muted transition"
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
                             title="Edit"
                             onClick={() => handleOpenEdit(branch)}
                           >
-                            <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                          </button>
-                          <button
-                            className="p-1 rounded hover:bg-muted transition"
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
                             title={branch.is_active ? "Deactivate" : "Activate"}
                             onClick={() => handleToggleActive(branch)}
                           >
                             {branch.is_active ? (
-                              <PowerOff className="h-4 w-4 text-red-500 hover:text-red-700" />
+                              <PowerOff className="h-4 w-4 text-red-500" />
                             ) : (
-                              <Power className="h-4 w-4 text-green-500 hover:text-green-700" />
+                              <Power className="h-4 w-4 text-green-500" />
                             )}
-                          </button>
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -253,69 +252,63 @@ const BranchesPage = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">
+            <div className="space-y-2">
+              <Label>
                 Branch Code <span className="text-red-500">*</span>
-              </p>
-              <input
+              </Label>
+              <Input
                 name="code"
                 value={form.code}
                 onChange={handleChange}
-                className="w-full border rounded px-2 py-1 bg-background"
                 placeholder="e.g., BRN-001"
               />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">
+            <div className="space-y-2">
+              <Label>
                 Branch Name <span className="text-red-500">*</span>
-              </p>
-              <input
+              </Label>
+              <Input
                 name="name"
                 value={form.name}
                 onChange={handleChange}
-                className="w-full border rounded px-2 py-1 bg-background"
                 placeholder="e.g., Makati Branch"
               />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Address</p>
-              <input
+            <div className="space-y-2">
+              <Label>Address</Label>
+              <Input
                 name="address"
                 value={form.address}
                 onChange={handleChange}
-                className="w-full border rounded px-2 py-1 bg-background"
                 placeholder="Street address"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">City</p>
-                <input
+              <div className="space-y-2">
+                <Label>City</Label>
+                <Input
                   name="city"
                   value={form.city}
                   onChange={handleChange}
-                  className="w-full border rounded px-2 py-1 bg-background"
                   placeholder="City"
                 />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Province</p>
-                <input
+              <div className="space-y-2">
+                <Label>Province</Label>
+                <Input
                   name="province"
                   value={form.province}
                   onChange={handleChange}
-                  className="w-full border rounded px-2 py-1 bg-background"
                   placeholder="Province"
                 />
               </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Phone</p>
-              <input
+            <div className="space-y-2">
+              <Label>Phone</Label>
+              <Input
                 name="phone"
                 value={form.phone}
                 onChange={handleChange}
-                className="w-full border rounded px-2 py-1 bg-background"
                 placeholder="Contact number"
               />
             </div>

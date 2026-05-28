@@ -30,7 +30,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/Input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import AnomalyDetailDrawer from "../components/AnomalyDetailDrawer";
 import {
@@ -39,6 +38,8 @@ import {
   Clock,
   CheckCircle2,
   Activity,
+  ChevronLeft,
+  ChevronRight,
   FileText,
   RefreshCw,
   Scan,
@@ -46,6 +47,8 @@ import {
   Search,
 } from "lucide-react";
 import { useAuth } from "@/app/providers/AuthProvider";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 
 const severityConfig: Record<string, { label: string; variant: "destructive" | "default" | "secondary" }> = {
   HIGH: { label: "HIGH", variant: "destructive" },
@@ -359,17 +362,15 @@ const AnomalyPage = () => {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  [...Array(5)].map((_, i) => (
-                    <TableRow key={i}>
-                      {[...Array(8)].map((_, j) => (
-                        <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                      ))}
-                    </TableRow>
-                  ))
+                  <TableRow>
+                    <TableCell colSpan={8}>
+                      <Loader message="Loading anomalies..." />
+                    </TableCell>
+                  </TableRow>
                 ) : anomalies.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      No anomalies found
+                    <TableCell colSpan={8}>
+                      <EmptyState message="No anomalies found" />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -456,7 +457,7 @@ const AnomalyPage = () => {
                   onClick={() => goToPage(page - 1)}
                   disabled={page <= 1}
                 >
-                  Prev
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
                 {getPageNumbers().map((p, i) =>
                   typeof p === "string" ? (
@@ -479,7 +480,7 @@ const AnomalyPage = () => {
                   onClick={() => goToPage(page + 1)}
                   disabled={page >= totalPages}
                 >
-                  Next
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>

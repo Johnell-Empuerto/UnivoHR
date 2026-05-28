@@ -34,6 +34,7 @@ import {
   downloadFinalPaySlip,
 } from "@/services/finalPayService";
 import { formatDate } from "@/utils/formatDate";
+import EmptyState from "@/components/shared/EmptyState";
 
 interface FinalPayEmployee {
   id: number;
@@ -384,7 +385,7 @@ const FinalPayTable = ({
             {pendingPagination?.total || data.length}
           </Badge>
         </div>
-        <div className="rounded-md border shadow-sm">
+        <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted">
@@ -407,11 +408,8 @@ const FinalPayTable = ({
                 </TableRow>
               ) : data.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="text-center py-8 text-muted-foreground"
-                  >
-                    No pending final pay records
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <EmptyState message="No pending final pay records" />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -560,7 +558,7 @@ const FinalPayTable = ({
           </div>
         </div>
 
-        <div className="rounded-md border shadow-sm">
+        <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted">
@@ -585,11 +583,8 @@ const FinalPayTable = ({
                 </TableRow>
               ) : historyData.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="text-center py-8 text-muted-foreground"
-                  >
-                    No processed final pay records found
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <EmptyState message="No processed final pay records found" />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -600,15 +595,16 @@ const FinalPayTable = ({
                     </TableCell>
                     <TableCell>{formatEmployeeName(record)}</TableCell>
                     <TableCell>
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-semibold ${
+                      <Badge
+                        variant={record.status === "RESIGNED" ? "destructive" : "secondary"}
+                        className={
                           record.status === "RESIGNED"
                             ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                            : "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
-                        }`}
+                            : "bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400"
+                        }
                       >
                         {record.status}
-                      </span>
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       {formatDate(record.last_working_date)}

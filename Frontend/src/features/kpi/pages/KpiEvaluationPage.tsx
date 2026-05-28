@@ -11,6 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 import { ClipboardList, Plus, Loader2, Eye, CheckCircle, XCircle, CheckSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers/AuthProvider";
@@ -199,7 +201,7 @@ const KpiEvaluationPage = () => {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><ClipboardList className="h-5 w-5 text-primary" /></div>
+        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><ClipboardList className="h-5 w-5 text-primary dark:text-black" /></div>
         <div><h1 className="text-2xl font-bold text-muted-foreground">KPI Evaluations</h1><p className="text-sm text-muted-foreground">Manage performance evaluations and approvals</p></div>
       </div>
 
@@ -220,9 +222,9 @@ const KpiEvaluationPage = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin mr-2" /><span>Loading...</span></div>
+            <Loader message="Loading evaluations..." />
           ) : evaluations.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No evaluations found.</div>
+            <EmptyState message="No evaluations found." />
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -248,11 +250,11 @@ const KpiEvaluationPage = () => {
                       <TableCell>{statusBadge(ev.status)}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <button className="p-1 rounded hover:bg-muted" title="View" onClick={() => handleViewDetail(ev.id)}><Eye className="h-4 w-4" /></button>
+                          <Button variant="ghost" size="sm" title="View" onClick={() => handleViewDetail(ev.id)}><Eye className="h-4 w-4" /></Button>
                           {isHr && ev.status === "Submitted" && (
                             <>
-                              <button className="p-1 rounded hover:bg-green-50 text-green-600" title="Approve" onClick={() => handleOpenApprove(ev)}><CheckCircle className="h-4 w-4" /></button>
-                              <button className="p-1 rounded hover:bg-red-50 text-red-600" title="Reject" onClick={() => handleOpenReject(ev)}><XCircle className="h-4 w-4" /></button>
+                              <Button variant="ghost" size="sm" className="text-green-600" title="Approve" onClick={() => handleOpenApprove(ev)}><CheckCircle className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="sm" className="text-red-600" title="Reject" onClick={() => handleOpenReject(ev)}><XCircle className="h-4 w-4" /></Button>
                             </>
                           )}
                         </div>
@@ -359,7 +361,7 @@ const KpiEvaluationPage = () => {
                 <input placeholder="Search name/code/department..." value={bulkEmpSearch} onChange={(e) => { setBulkEmpSearch(e.target.value); setSelectAllPage(false); }} className="border rounded px-3 py-1.5 text-sm bg-background w-64" />
               </div>
               {bulkLoading ? (
-                <div className="flex items-center justify-center py-4"><Loader2 className="h-5 w-5 animate-spin mr-2" /><span>Loading employees...</span></div>
+                <Loader message="Loading employees..." />
               ) : (
                 <div className="rounded-md border max-h-64 overflow-y-auto">
                   <Table>

@@ -21,6 +21,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { formatDate } from "@/utils/formatDate";
+import EmptyState from "@/components/shared/EmptyState";
 
 type ManHourReport = {
   id: number;
@@ -162,7 +163,7 @@ const ManHourReportTable = ({
   };
 
   return (
-    <Card className="shadow-sm">
+    <Card>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
@@ -183,11 +184,8 @@ const ManHourReportTable = ({
             <TableBody>
               {data.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={canApprove || canEdit ? 6 : 5}
-                    className="text-center py-8 text-muted-foreground"
-                  >
-                    No man hour reports found
+                  <TableCell colSpan={canApprove || canEdit ? 6 : 5} className="text-center py-8">
+                    <EmptyState message="No man hour reports found" />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -231,20 +229,24 @@ const ManHourReportTable = ({
                           <div className="flex items-center gap-2">
                             {isPending ? (
                               <>
-                                <button
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
                                   onClick={() => onApprove(report.id)}
-                                  className="p-1 rounded hover:bg-green-100 transition"
                                   title="Approve"
                                 >
-                                  <CheckCircle className="h-4 w-4 text-green-600" />
-                                </button>
-                                <button
+                                  <CheckCircle className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                                   onClick={() => onReject(report.id)}
-                                  className="p-1 rounded hover:bg-red-100 transition"
                                   title="Reject"
                                 >
-                                  <XCircle className="h-4 w-4 text-red-600" />
-                                </button>
+                                  <XCircle className="h-4 w-4" />
+                                </Button>
                               </>
                             ) : (
                               <span className="text-xs text-muted-foreground">
@@ -258,30 +260,36 @@ const ManHourReportTable = ({
                       {/* Action Buttons (View/Edit/Delete) */}
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <button
-                            className="p-1 rounded hover:bg-muted transition"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => onView(report)}
                             title="View Details"
                           >
-                            <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                          </button>
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           {canEdit && isPending && onEdit && (
-                            <button
-                              className="p-1 rounded hover:bg-muted transition"
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
                               onClick={() => onEdit(report)}
                               title="Edit"
                             >
-                              <Edit className="h-4 w-4 text-blue-600 hover:text-blue-700" />
-                            </button>
+                              <Edit className="h-4 w-4" />
+                            </Button>
                           )}
                           {canEdit && isPending && onDelete && (
-                            <button
-                              className="p-1 rounded hover:bg-muted transition"
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                               onClick={() => onDelete(report.id)}
                               title="Delete"
                             >
-                              <Trash2 className="h-4 w-4 text-red-600 hover:text-red-700" />
-                            </button>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           )}
                         </div>
                       </TableCell>

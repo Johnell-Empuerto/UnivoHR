@@ -7,6 +7,8 @@ import LeaveConversionSettings from "../components/LeaveConversionSettings";
 import LeaveConversionHistory from "../components/LeaveConversionHistory";
 import EmployeeCreditsTable from "../components/EmployeeCreditsTable";
 import { CalendarDays } from "lucide-react";
+import EmptyState from "@/components/shared/EmptyState";
+import Loader from "@/components/shared/Loader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,

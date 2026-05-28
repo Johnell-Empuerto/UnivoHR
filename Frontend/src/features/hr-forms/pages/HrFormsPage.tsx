@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { FileText, Plus, Loader2, Pencil, Trash2, Eye, ClipboardList, ListChecks } from "lucide-react";
 import { toast } from "sonner";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 
 interface HrForm { id: number; title: string; description: string | null; is_active: boolean; created_by_name: string; field_count: string; }
 
@@ -61,7 +63,7 @@ const HrFormsPage = () => {
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <FileText className="h-5 w-5 text-primary" />
+          <FileText className="h-5 w-5 text-primary dark:text-black" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-muted-foreground">HR Forms</h1>
@@ -90,9 +92,9 @@ const HrFormsPage = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin mr-2" /><span>Loading...</span></div>
+            <Loader message="Loading forms..." />
           ) : forms.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No forms found.</div>
+            <EmptyState message="No forms found" description="Create your first form to get started." action={{ label: "Create Form", onClick: handleOpenCreate }} />
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -112,15 +114,15 @@ const HrFormsPage = () => {
                       <TableCell>{f.created_by_name || "-"}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <button className="p-1 rounded hover:bg-muted" title="Manage Questions" onClick={() => navigate(`/hr-forms/${f.id}/builder`)}>
-                            <ListChecks className="h-4 w-4 text-muted-foreground" />
-                          </button>
-                          <button className="p-1 rounded hover:bg-muted" title="Edit" onClick={() => handleOpenEdit(f)}>
-                            <Pencil className="h-4 w-4 text-muted-foreground" />
-                          </button>
-                          <button className="p-1 rounded hover:bg-muted" title="Delete" onClick={() => handleDelete(f.id)}>
+                          <Button variant="ghost" size="icon-sm" title="Manage Questions" onClick={() => navigate(`/hr-forms/${f.id}/builder`)}>
+                            <ListChecks className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon-sm" title="Edit" onClick={() => handleOpenEdit(f)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon-sm" title="Delete" onClick={() => handleDelete(f.id)}>
                             <Trash2 className="h-4 w-4 text-red-500" />
-                          </button>
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

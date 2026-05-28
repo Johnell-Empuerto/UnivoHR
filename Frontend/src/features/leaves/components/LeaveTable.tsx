@@ -25,6 +25,7 @@ import LeaveDrawer from "./LeaveDrawer";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/utils/formatDate";
 import { Badge } from "@/components/ui/badge";
+import EmptyState from "@/components/shared/EmptyState";
 
 type Leave = {
   id: number;
@@ -342,7 +343,7 @@ const LeaveTable = ({
     : data.length;
 
   return (
-    <Card className="shadow-sm">
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
         <CardTitle>{title}</CardTitle>
         {onCreate && (
@@ -405,11 +406,8 @@ const LeaveTable = ({
                 <TableBody>
                   {leaves.length === 0 ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={isAdmin ? 8 : 7}
-                        className="text-center py-8 text-muted-foreground"
-                      >
-                        No leave requests found
+                      <TableCell colSpan={isAdmin ? 8 : 7} className="text-center py-8">
+                        <EmptyState message="No leave requests found" />
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -466,24 +464,24 @@ const LeaveTable = ({
                             <div className="flex items-center gap-2">
                               {leave.status === "PENDING" ? (
                                 <>
-                                  <button
-                                    onClick={() =>
-                                      handleStatusUpdate(leave.id, "APPROVED")
-                                    }
-                                    className="p-1 rounded hover:bg-green-100 transition"
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                                    onClick={() => handleStatusUpdate(leave.id, "APPROVED")}
                                     title="Approve"
                                   >
-                                    <CheckCircle className="h-4 w-4 text-green-600" />
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleStatusUpdate(leave.id, "REJECTED")
-                                    }
-                                    className="p-1 rounded hover:bg-red-100 transition"
+                                    <CheckCircle className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                                    onClick={() => handleStatusUpdate(leave.id, "REJECTED")}
                                     title="Reject"
                                   >
-                                    <XCircle className="h-4 w-4 text-red-600" />
-                                  </button>
+                                    <XCircle className="h-4 w-4" />
+                                  </Button>
                                 </>
                               ) : (
                                 <span className="text-xs text-muted-foreground">
@@ -495,16 +493,19 @@ const LeaveTable = ({
                         )}
 
                         <TableCell>
-                          <button
-                            className="p-1 rounded hover:bg-muted transition"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => {
                               setSelectedLeave(leave);
                               setMode("view");
                               setOpen(true);
                             }}
+                            title="View Details"
                           >
-                            <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                          </button>
+                            <Eye className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))

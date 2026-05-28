@@ -9,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, FileClock } from "lucide-react";
+import EmptyState from "@/components/shared/EmptyState";
 import { formatDate, formatTime } from "@/utils/formatDate";
 
 type Attendance = {
@@ -149,7 +150,7 @@ const AttendanceTable = ({
   };
 
   return (
-    <div className="rounded-md border shadow-sm">
+    <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted">
@@ -210,11 +211,8 @@ const AttendanceTable = ({
             ))
           ) : (
             <TableRow>
-              <TableCell
-                colSpan={onRequestModification ? 8 : 7}
-                className="text-center py-8 text-muted-foreground"
-              >
-                No attendance records found
+              <TableCell colSpan={onRequestModification ? 8 : 7} className="text-center py-8">
+                <EmptyState message="No attendance records found" />
               </TableCell>
             </TableRow>
           )}

@@ -191,7 +191,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             <div>
               <button
                 onClick={() => toggleMenu("performance")}
-                className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all dark:text-gray-300 dark:hover:text-white"
+                className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
               >
                 <div className="flex items-center gap-3">
                   <ClipboardList className="h-5 w-5" />
@@ -284,7 +284,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           <div>
             <button
               onClick={() => toggleMenu("myPerformance")}
-              className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all dark:text-gray-300 dark:hover:text-white"
+              className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
             >
               <div className="flex items-center gap-3">
                 <ClipboardList className="h-5 w-5" />
@@ -342,7 +342,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           <div>
             <button
               onClick={() => toggleMenu("overtime")}
-              className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all dark:text-gray-300 dark:hover:text-white"
+              className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
             >
               <div className="flex items-center gap-3">
                 <Clock className="h-5 w-5" />
@@ -385,7 +385,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           <div>
             <button
               onClick={() => toggleMenu("manhours")}
-              className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all dark:text-gray-300 dark:hover:text-white"
+              className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
             >
               <div className="flex items-center gap-3">
                 <FileText className="h-5 w-5" />
@@ -480,7 +480,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             <div>
               <button
                 onClick={() => toggleMenu("recruitment")}
-                className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all dark:text-gray-300 dark:hover:text-white"
+                className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
               >
                 <div className="flex items-center gap-3">
                   <UserPlus className="h-5 w-5" />
@@ -603,7 +603,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
 
           {!collapsed && (
             <div className="flex flex-col min-w-0">
-              <span className="font-medium text-sm text-foreground dark:text-gray-200 truncate">
+              <span className="font-medium text-sm text-foreground truncate">
                 {getUserName()}
               </span>
             </div>

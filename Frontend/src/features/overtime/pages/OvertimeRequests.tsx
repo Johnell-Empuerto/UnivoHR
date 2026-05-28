@@ -8,6 +8,7 @@ import {
   isApprover as checkIsApprover,
 } from "@/services/overtimeService";
 import ErrorMessage from "@/components/shared/ErrorMessage";
+import Loader from "@/components/shared/Loader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -277,7 +278,7 @@ const OvertimeRequests = () => {
     }
   };
 
-  if (error) return <ErrorMessage message={error} />;
+  if (error) return <ErrorMessage title="Error" message={error} />;
 
   return (
     <div className="space-y-6 p-6">
@@ -348,14 +349,7 @@ const OvertimeRequests = () => {
         </CardContent>
       </Card>
 
-      {loading && (
-        <div className="flex items-center justify-center py-4">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-          <span className="text-sm text-muted-foreground">
-            Loading overtime requests...
-          </span>
-        </div>
-      )}
+      {loading && <Loader message="Loading overtime requests..." />}
 
       <OvertimeTable
         data={data}

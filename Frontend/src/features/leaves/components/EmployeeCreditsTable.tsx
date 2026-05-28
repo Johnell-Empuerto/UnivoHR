@@ -39,6 +39,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
+import EmptyState from "@/components/shared/EmptyState";
 
 interface LeaveCredits {
   id: number;
@@ -221,7 +222,7 @@ const EmployeeCreditsTable = () => {
   return (
     <>
       {/* Filters */}
-      <Card className="shadow-sm">
+      <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-4">
             <div className="relative flex-1 min-w-50">
@@ -281,14 +282,12 @@ const EmployeeCreditsTable = () => {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : credits.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              No employee credits found
-            </div>
+            <EmptyState message="No employee credits found" />
           ) : (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="bg-muted">
                     <TableHead>Employee</TableHead>
                     <TableHead>Department</TableHead>
                     <TableHead className="text-center">

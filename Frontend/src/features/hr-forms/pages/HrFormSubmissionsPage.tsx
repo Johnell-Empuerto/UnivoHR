@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Eye, Loader2, FileText } from "lucide-react";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = { Submitted: "bg-blue-100 text-blue-800", Reviewed: "bg-green-100 text-green-800" };
@@ -31,7 +33,7 @@ const HrFormSubmissionsPage = () => {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><FileText className="h-5 w-5 text-primary" /></div>
+        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><FileText className="h-5 w-5 text-primary dark:text-black" /></div>
         <div><h1 className="text-2xl font-bold text-muted-foreground">Form Submissions</h1><p className="text-sm text-muted-foreground">Review employee form submissions</p></div>
       </div>
       <Card className="shadow-sm">
@@ -44,9 +46,9 @@ const HrFormSubmissionsPage = () => {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin mr-2" /><span>Loading...</span></div>
+            <Loader message="Loading submissions..." />
           ) : submissions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No submissions yet.</div>
+            <EmptyState message="No submissions yet" description="Submissions will appear here once employees fill out forms." />
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -67,9 +69,9 @@ const HrFormSubmissionsPage = () => {
                       <TableCell>{statusBadge(s.status)}</TableCell>
                       <TableCell>{new Date(s.submitted_at).toLocaleDateString()}</TableCell>
                       <TableCell>
-                        <button className="p-1 rounded hover:bg-muted" title="View" onClick={() => navigate(`/hr-forms/submissions/${s.id}`)}>
+                        <Button variant="ghost" size="icon-sm" title="View" onClick={() => navigate(`/hr-forms/submissions/${s.id}`)}>
                           <Eye className="h-4 w-4" />
-                        </button>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

@@ -39,6 +39,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { RichTextEditor } from "@/features/hr-policies/components/RichTextEditor";
 import { PolicyViewer } from "@/features/hr-policies/components/PolicyViewer";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 
 interface HrPolicy {
   id: number;
@@ -258,16 +260,9 @@ const HRPolicies = () => {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-            <span className="text-sm text-muted-foreground">
-              Loading policies...
-            </span>
-          </div>
+          <Loader message="Loading policies..." />
         ) : filteredPolicies.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No policies found.
-          </div>
+          <EmptyState message="No policies found" />
         ) : (
           <div className="grid gap-4">
             {filteredPolicies.map((policy) => (
@@ -406,16 +401,9 @@ const HRPolicies = () => {
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-              <span className="text-sm text-muted-foreground">
-                Loading policies...
-              </span>
-            </div>
+            <Loader message="Loading policies..." />
           ) : filteredPolicies.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No policies found.
-            </div>
+            <EmptyState message="No policies found" />
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -458,35 +446,34 @@ const HRPolicies = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <button
-                            className="p-1 rounded hover:bg-muted transition"
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             title="Edit"
                             onClick={() => handleOpenEdit(policy)}
                           >
-                            <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                          </button>
-                          <button
-                            className="p-1 rounded hover:bg-muted transition"
-                            title={
-                              policy.is_active
-                                ? "Deactivate"
-                                : "Activate"
-                            }
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title={policy.is_active ? "Deactivate" : "Activate"}
                             onClick={() => handleToggleActive(policy)}
                           >
                             {policy.is_active ? (
-                              <PowerOff className="h-4 w-4 text-red-500 hover:text-red-700" />
+                              <PowerOff className="h-4 w-4 text-red-500" />
                             ) : (
-                              <Power className="h-4 w-4 text-green-500 hover:text-green-700" />
+                              <Power className="h-4 w-4 text-green-500" />
                             )}
-                          </button>
-                          <button
-                            className="p-1 rounded hover:bg-muted transition"
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             title="Delete"
                             onClick={() => handleDeleteClick(policy)}
                           >
-                            <Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" />
-                          </button>
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

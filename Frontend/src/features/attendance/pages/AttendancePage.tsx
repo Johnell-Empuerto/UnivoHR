@@ -58,6 +58,8 @@ import {
 import { format } from "date-fns";
 import { toast } from "sonner";
 import ErrorMessage from "@/components/shared/ErrorMessage";
+import EmptyState from "@/components/shared/EmptyState";
+import Loader from "@/components/shared/Loader";
 import { useAuth } from "@/app/providers/AuthProvider";
 
 const AttendancePage = () => {
@@ -518,14 +520,7 @@ const AttendancePage = () => {
           </Card>
 
           {/* Loading Indicator */}
-          {loading && (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-              <span className="text-sm text-muted-foreground">
-                Loading attendance records...
-              </span>
-            </div>
-          )}
+          {loading && <Loader message="Loading attendance records..." />}
 
           {/* Table */}
           <Card>
@@ -557,24 +552,15 @@ const AttendancePage = () => {
             </CardHeader>
             <CardContent className="p-4">
               {timeRequestsLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-                  <span className="text-sm text-muted-foreground">
-                    Loading requests...
-                  </span>
-                </div>
+                <Loader message="Loading requests..." />
               ) : timeRequests.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileClock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No time modification requests found</p>
-                  {!isAdmin && (
-                    <p className="text-sm mt-2">
-                      Go to the Attendance Records tab to submit a request
-                    </p>
-                  )}
-                </div>
+                <EmptyState
+                  icon={<FileClock className="h-6 w-6 text-muted-foreground" />}
+                  message="No time modification requests found"
+                  description={!isAdmin ? "Go to the Attendance Records tab to submit a request" : undefined}
+                />
               ) : (
-                <div className="rounded-md border shadow-sm">
+                <div className="rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted">

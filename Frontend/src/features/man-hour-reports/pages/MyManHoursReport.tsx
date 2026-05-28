@@ -10,6 +10,7 @@ import {
   getManHourReportDetails,
 } from "@/services/manHourReportService";
 import ErrorMessage from "@/components/shared/ErrorMessage";
+import Loader from "@/components/shared/Loader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -263,7 +264,7 @@ const MyManHoursReport = () => {
   const handleApprove = () => {};
   const handleReject = () => {};
 
-  if (error) return <ErrorMessage message={error} />;
+  if (error) return <ErrorMessage title="Error" message={error} />;
 
   return (
     <div className="space-y-6 p-6">
@@ -319,14 +320,7 @@ const MyManHoursReport = () => {
           </Card>
 
           {/* Loading Indicator */}
-          {loading && (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-              <span className="text-sm text-muted-foreground">
-                Loading man hour reports...
-              </span>
-            </div>
-          )}
+          {loading && <Loader message="Loading man hour reports..." />}
 
           {/* Man Hour Reports Table */}
           <ManHourReportTable

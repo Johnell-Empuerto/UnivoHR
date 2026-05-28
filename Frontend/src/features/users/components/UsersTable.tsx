@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pencil, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import EmptyState from "@/components/shared/EmptyState";
 import type { User } from "@/services/userService";
 
 type UsersTableProps = {
@@ -120,7 +121,7 @@ const UsersTable = ({
   };
 
   return (
-    <Card className="shadow-sm">
+    <Card>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
@@ -157,29 +158,32 @@ const UsersTable = ({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <button
-                          className="p-1 rounded hover:bg-muted transition"
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
                           onClick={() => onEdit(user)}
+                          title="Edit"
                         >
-                          <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                        </button>
-                        <button
-                          className="p-1 rounded hover:bg-red-100 transition"
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
                           onClick={() => onDelete(user.id, user.username)}
+                          title="Delete"
                         >
-                          <Trash2 className="h-4 w-4 text-red-600" />
-                        </button>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="text-center py-8 text-muted-foreground"
-                  >
-                    No users found
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <EmptyState message="No users found" />
                   </TableCell>
                 </TableRow>
               )}

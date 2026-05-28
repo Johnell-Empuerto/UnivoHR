@@ -25,10 +25,11 @@ import {
   Calendar,
   DollarSign,
   RefreshCw,
-  Loader2,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 import { historyLeaveService } from "@/services/historyLeaveService";
 import type {
   LeaveConversion,
@@ -126,11 +127,6 @@ const LeaveConversionHistory = () => {
 
   const goToPage = (page: number) => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-  };
-
-  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setRowsPerPage(Number(e.target.value));
-    setCurrentPage(1);
   };
 
   const getPageNumbers = () => {
@@ -254,10 +250,7 @@ const LeaveConversionHistory = () => {
                 </TableHeader>
                 <TableBody>
                   {yearlySummary.map((item) => (
-                    <TableRow
-                      key={item.year}
-                      className="border-b border-gray-400/50 dark:border-gray-400/50"
-                    >
+                    <TableRow key={item.year}>
                       <TableCell className="font-medium">{item.year}</TableCell>
                       <TableCell>{item.conversion_count}</TableCell>
                       <TableCell>{item.employees_count}</TableCell>
@@ -327,142 +320,131 @@ const LeaveConversionHistory = () => {
             </Button>
           </div>
 
-          {/* Loading Indicator */}
-          {loading && (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-              <span className="text-sm text-muted-foreground">
-                Loading conversion history...
-              </span>
-            </div>
-          )}
+          {loading && <Loader message="Loading conversion history..." />}
 
           {!loading && (
             <>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted">
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Code</TableHead>
-                      <TableHead>Year</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Days</TableHead>
-                      <TableHead>Daily Rate</TableHead>
-                      <TableHead>Rate</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead>Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {conversions.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={9}
-                          className="text-center py-8 text-muted-foreground"
-                        >
-                          No conversion records found
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      conversions.map((conv) => (
-                        <TableRow
-                          key={conv.id}
-                          className="border-b border-gray-400/50 dark:border-gray-400/50"
-                        >
-                          <TableCell className="font-medium">
-                            {getFullName(conv)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {conv.employee_code}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{conv.year}</TableCell>
-                          <TableCell>
-                            <Badge>{conv.leave_type}</Badge>
-                          </TableCell>
-                          <TableCell>{conv.days_converted}</TableCell>
-                          <TableCell>
-                            {formatCurrency(conv.daily_rate)}
-                          </TableCell>
-                          <TableCell>{conv.conversion_rate}x</TableCell>
-                          <TableCell className="text-right font-semibold">
-                            {formatCurrency(conv.amount)}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {format(new Date(conv.created_at), "MMM dd, yyyy")}
-                          </TableCell>
+              {conversions.length === 0 ? (
+                <EmptyState message="No conversion records found" />
+              ) : (
+                <>
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted">
+                          <TableHead>Employee</TableHead>
+                          <TableHead>Code</TableHead>
+                          <TableHead>Year</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Days</TableHead>
+                          <TableHead>Daily Rate</TableHead>
+                          <TableHead>Rate</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
+                          <TableHead>Date</TableHead>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Pagination Controls */}
-              {totalRecords > 0 && (
-                <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
-                  {/* Rows per page */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      Rows per page:
-                    </span>
-                    <select
-                      value={rowsPerPage}
-                      onChange={handleRowsPerPageChange}
-                      className="border rounded px-2 py-1 text-sm bg-background"
-                    >
-                      <option value={5}>5</option>
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                    </select>
+                      </TableHeader>
+                      <TableBody>
+                        {conversions.map((conv) => (
+                          <TableRow key={conv.id}>
+                            <TableCell className="font-medium">
+                              {getFullName(conv)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {conv.employee_code}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{conv.year}</TableCell>
+                            <TableCell>
+                              <Badge>{conv.leave_type}</Badge>
+                            </TableCell>
+                            <TableCell>{conv.days_converted}</TableCell>
+                            <TableCell>
+                              {formatCurrency(conv.daily_rate)}
+                            </TableCell>
+                            <TableCell>{conv.conversion_rate}x</TableCell>
+                            <TableCell className="text-right font-semibold">
+                              {formatCurrency(conv.amount)}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {format(new Date(conv.created_at), "MMM dd, yyyy")}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
 
-                  {/* Showing X to Y of Z */}
-                  <div className="text-sm text-muted-foreground">
-                    Showing {start} to {end} of {totalRecords} entries
-                  </div>
-
-                  {/* Pagination Buttons */}
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => goToPage(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="h-8 w-8 p-0"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-
-                    {getPageNumbers().map((page, index) => (
-                      <Button
-                        key={index}
-                        variant={currentPage === page ? "default" : "outline"}
-                        size="sm"
-                        onClick={() =>
-                          typeof page === "number" && goToPage(page)
-                        }
-                        disabled={page === "..."}
-                        className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
+                  {/* Pagination Controls */}
+                  <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
+                    {/* Rows per page */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        Rows per page:
+                      </span>
+                      <Select
+                        value={rowsPerPage.toString()}
+                        onValueChange={(value) => {
+                          setRowsPerPage(Number(value));
+                          setCurrentPage(1);
+                        }}
                       >
-                        {page}
-                      </Button>
-                    ))}
+                        <SelectTrigger className="w-20">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5">5</SelectItem>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="25">25</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => goToPage(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className="h-8 w-8 p-0"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+                    {/* Showing X to Y of Z */}
+                    <div className="text-sm text-muted-foreground">
+                      Showing {start} to {end} of {totalRecords} entries
+                    </div>
+
+                    {/* Pagination Buttons */}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => goToPage(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+
+                      {getPageNumbers().map((page, index) => (
+                        <Button
+                          key={index}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() =>
+                            typeof page === "number" && goToPage(page)
+                          }
+                          disabled={page === "..."}
+                          className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
+                        >
+                          {page}
+                        </Button>
+                      ))}
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => goToPage(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                </>
               )}
             </>
           )}

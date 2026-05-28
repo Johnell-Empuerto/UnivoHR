@@ -15,7 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, DollarSign, Shield, Settings2, Infinity } from "lucide-react";
+import { DollarSign, Shield, Settings2, Infinity, Loader2 } from "lucide-react";
+import Loader from "@/components/shared/Loader";
 import {
   getLeaveTypes,
   getConversionSettings,
@@ -154,11 +155,7 @@ const LeaveConversionSettings = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <Loader message="Loading conversion settings..." fullPage />;
   }
 
   return (

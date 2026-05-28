@@ -1,6 +1,17 @@
 // features/users/pages/Users.tsx
 import { useEffect, useState } from "react";
-import { UserCog, Search, Loader2, RefreshCw, Plus } from "lucide-react";
+import { UserCog, Search, RefreshCw, Plus } from "lucide-react";
+import Loader from "@/components/shared/Loader";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,6 +43,8 @@ const Users = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{id: number, username: string} | null>(null);
 
   // Drawer states
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -105,24 +118,30 @@ const Users = () => {
     setIsDrawerOpen(true);
   };
 
-  const handleDelete = async (id: number, username: string) => {
-    if (confirm(`Are you sure you want to delete user "${username}"?`)) {
-      try {
-        await deleteUser(id);
-        toast.success("User deleted successfully");
-        // Refresh data
-        const res = await getUsers(
-          currentPage,
-          rowsPerPage,
-          search,
-          roleFilter,
-        );
-        setData(res.data);
-        setTotalPages(res.pagination.totalPages);
-        setTotalRecords(res.pagination.total);
-      } catch (err: any) {
-        toast.error(err.message || "Failed to delete user");
-      }
+  const handleDelete = (id: number, username: string) => {
+    setDeleteTarget({ id, username });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteUser(deleteTarget.id);
+      toast.success("User deleted successfully");
+      const res = await getUsers(
+        currentPage,
+        rowsPerPage,
+        search,
+        roleFilter,
+      );
+      setData(res.data);
+      setTotalPages(res.pagination.totalPages);
+      setTotalRecords(res.pagination.total);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete user");
+    } finally {
+      setDeleteDialogOpen(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -240,15 +259,7 @@ const Users = () => {
         </CardContent>
       </Card>
 
-      {/* Loading Indicator */}
-      {loading && (
-        <div className="flex items-center justify-center py-4">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-          <span className="text-sm text-muted-foreground">
-            Loading users...
-          </span>
-        </div>
-      )}
+      {loading && <Loader message="Loading users..." />}
 
       {/* Users Table */}
       <UsersTable
@@ -275,6 +286,23 @@ const Users = () => {
         mode={mode}
         onSubmit={handleSubmit}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete user "{deleteTarget?.username}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleConfirmDelete}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -19,6 +19,7 @@ import {
 import { markPayrollAsPaid, downloadPayslip } from "@/services/payrollService";
 import { toast } from "sonner";
 import { useState } from "react";
+import EmptyState from "@/components/shared/EmptyState";
 
 interface PayrollRecord {
   id: number;
@@ -163,7 +164,7 @@ const PayrollTable = ({
   };
 
   return (
-    <div className="rounded-md border shadow-sm">
+    <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted">
@@ -259,11 +260,8 @@ const PayrollTable = ({
             ))
           ) : (
             <TableRow>
-              <TableCell
-                colSpan={10}
-                className="text-center py-8 text-muted-foreground"
-              >
-                No payroll records found
+              <TableCell colSpan={10} className="text-center py-8">
+                <EmptyState message="No payroll records found" />
               </TableCell>
             </TableRow>
           )}

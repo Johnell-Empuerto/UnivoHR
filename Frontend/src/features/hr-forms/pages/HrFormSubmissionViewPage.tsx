@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, ArrowLeft, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 
 const AnswerDisplay = ({ field, answer }: { field: any; answer: any }) => {
   const val = answer?.answer || "";
@@ -77,7 +79,7 @@ const HrFormSubmissionViewPage = () => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin mr-2" /><span>Loading submission...</span></div>;
+    return <Loader message="Loading submission..." fullPage />;
   }
 
   return (
@@ -98,7 +100,7 @@ const HrFormSubmissionViewPage = () => {
         <CardHeader><CardTitle className="text-base">Answers</CardTitle></CardHeader>
         <CardContent className="divide-y">
           {(submission?.fields || []).length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No fields found.</p>
+            <EmptyState message="No fields found" />
           ) : (
             submission.fields.map((field: any) => {
               const answer = (submission.answers || []).find((a: any) => Number(a.field_id) === Number(field.id));

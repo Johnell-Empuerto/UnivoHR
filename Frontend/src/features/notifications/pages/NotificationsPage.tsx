@@ -21,6 +21,8 @@ import {
 } from "@/services/notificationService";
 import { formatDistanceToNow } from "date-fns";
 import { formatDateRange, formatDateShort } from "@/utils/formatDate";
+import Loader from "@/components/shared/Loader";
+import EmptyState from "@/components/shared/EmptyState";
 
 const NotificationsPage = () => {
   const navigate = useNavigate();
@@ -210,11 +212,7 @@ const NotificationsPage = () => {
   };
 
   if (loading && notifications.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <Loader fullPage />;
   }
 
   return (
@@ -254,15 +252,11 @@ const NotificationsPage = () => {
         </CardHeader>
         <CardContent>
           {notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                <Bell className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold mb-1">No notifications</h3>
-              <p className="text-sm text-muted-foreground">
-                You're all caught up! New notifications will appear here.
-              </p>
-            </div>
+            <EmptyState
+              icon={<Bell className="h-6 w-6" />}
+              message="No notifications"
+              description="You're all caught up! New notifications will appear here."
+            />
           ) : (
             <div className="space-y-1">
               {notifications.map((notification, index) => (
