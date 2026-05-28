@@ -142,7 +142,7 @@ const hrReject = async (evaluationId, data) => {
 };
 
 const getHistory = async (employeeId, page = 1, limit = 10) => {
-  return await model.getEvaluationsByEmployee(employeeId, "Approved");
+  return await model.getEvaluationsByEmployee(employeeId, "Approved", page, limit);
 };
 
 const getPendingCount = async (evaluatorId) => {

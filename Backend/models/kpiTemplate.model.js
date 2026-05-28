@@ -14,7 +14,8 @@ const getAllTemplates = async (search = "", page = 1, limit = 10) => {
     `SELECT COUNT(*) FROM kpi_templates WHERE $1 = '' OR name ILIKE $1 OR department ILIKE $1`,
     [q],
   );
-  return { data: data.rows, total: parseInt(count.rows[0].count) };
+  const total = parseInt(count.rows[0].count);
+  return { data: data.rows, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / limit) } };
 };
 
 const getTemplateById = async (id) => {

@@ -201,6 +201,10 @@ const getMySalaryDetails = async (employee_id) => {
   return await payrollModel.getMySalaryDetails(employee_id);
 };
 
+const getMyBenefits = async (employee_id) => {
+  return await payrollModel.getMyBenefits(employee_id);
+};
+
 const getPayrollDetails = async (id) => {
   return await payrollModel.getPayrollDetails(id);
 };
@@ -218,6 +222,7 @@ const voidPayroll = async (id) => {
 };
 
 module.exports = {
+  getMyBenefits,
   generatePayroll,
   getPayroll,
   getPayrollSummary,

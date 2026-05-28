@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ClipboardList, Loader2, Plus } from "lucide-react";
+import { ClipboardList, ChevronLeft, ChevronRight, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
@@ -26,7 +26,38 @@ const HrFormAssignmentsPage = () => {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
+
+  const totalPages = Math.ceil(total / pageSize);
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, total);
+
+  const goToPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
+  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setPageSize(Number(e.target.value));
+    setPage(1);
+  };
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisible = 5;
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (page <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push("..."); pages.push(totalPages);
+      } else if (page >= totalPages - 2) {
+        pages.push(1); pages.push("...");
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1); pages.push("...");
+        for (let i = page - 1; i <= page + 1; i++) pages.push(i);
+        pages.push("..."); pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
 
   const [assignDialog, setAssignDialog] = useState(false);
   const [forms, setForms] = useState<any[]>([]);
@@ -35,10 +66,10 @@ const HrFormAssignmentsPage = () => {
   const [assignForm, setAssignForm] = useState({ form_id: "", due_date: "" });
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { fetchAssignments(); }, [page, search]);
+  useEffect(() => { fetchAssignments(); }, [page, pageSize, search]);
 
   const fetchAssignments = async () => {
-    try { setLoading(true); const r = await getAllHrAssignments(page, 10, search); setAssignments(r.data); setTotal(r.total); }
+    try { setLoading(true); const r = await getAllHrAssignments(page, pageSize, search); setAssignments(r.data); setTotal(r.pagination.total); }
     catch { setAssignments([]); }
     finally { setLoading(false); }
   };
@@ -117,13 +148,38 @@ const HrFormAssignmentsPage = () => {
               </Table>
             </div>
           )}
-          <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
-            <span>{total} total</span>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
-              <Button variant="outline" size="sm" disabled={page * 10 >= total} onClick={() => setPage(p => p + 1)}>Next</Button>
+          {total > 0 && (
+            <div className="p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Rows per page:</span>
+                <select value={pageSize} onChange={handleRowsPerPageChange}
+                  className="border rounded px-2 py-1 text-sm bg-background">
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Showing {start} to {end} of {total} entries
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => goToPage(page - 1)}
+                  disabled={page === 1} className="h-8 w-8 p-0">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                {getPageNumbers().map((p, i) => (
+                  <Button key={i} variant={page === p ? "default" : "outline"} size="sm"
+                    onClick={() => typeof p === "number" && goToPage(p)} disabled={p === "..."}
+                    className={`h-8 w-8 p-0 ${p === "..." ? "cursor-default" : ""}`}>{p}</Button>
+                ))}
+                <Button variant="outline" size="sm" onClick={() => goToPage(page + 1)}
+                  disabled={page === totalPages} className="h-8 w-8 p-0">
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 

@@ -18,6 +18,7 @@ import {
   UserPlus,
   Users as UsersIcon,
   Briefcase,
+  HeartHandshake,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import smallIcon from "@/assets/images/small-icon.png";
@@ -543,6 +544,15 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
         >
           <Wallet className="h-5 w-5" />
           {!collapsed && "Payroll"}
+        </NavLink>
+
+        {/* My Benefits - Everyone */}
+        <NavLink
+          to="/my-benefits"
+          className={({ isActive }) => linkClass(isActive)}
+        >
+          <HeartHandshake className="h-5 w-5" />
+          {!collapsed && "My Benefits"}
         </NavLink>
 
         {/* Calendar - Everyone */}

@@ -141,6 +141,12 @@ export const getMyPayroll = async (
   return response.data;
 };
 
+// Get my benefits (employee self-service)
+export const getMyBenefits = async () => {
+  const response = await api.get("/payroll/my/benefits");
+  return response.data;
+};
+
 // Get my salary details (employee)
 export const getMySalaryDetails = async () => {
   const response = await api.get("/payroll/my/salary");

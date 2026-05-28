@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import {
   Bell,
   CheckCheck,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Calendar,
   Clock as ClockIcon,
@@ -28,41 +30,52 @@ const NotificationsPage = () => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const fetchNotifications = async (reset = false) => {
-    try {
-      if (reset) {
-        setLoading(true);
-        setPage(1);
-      } else {
-        setLoadingMore(true);
-      }
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, totalCount);
 
-      const currentPage = reset ? 1 : page;
-      const data = await getMyNotifications(currentPage, 20);
+  const goToPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
+  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setPageSize(Number(e.target.value));
+    setPage(1);
+  };
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisible = 5;
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (page <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push("..."); pages.push(totalPages);
+      } else if (page >= totalPages - 2) {
+        pages.push(1); pages.push("...");
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1); pages.push("...");
+        for (let i = page - 1; i <= page + 1; i++) pages.push(i);
+        pages.push("..."); pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const data = await getMyNotifications(page, pageSize);
 
       const sortedData = [...data.data].sort(
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
 
-      if (reset) {
-        setNotifications(sortedData);
-        setPage(2);
-      } else {
-        const existingIds = new Set(notifications.map((n) => n.id));
-        const newNotifications = sortedData.filter(
-          (n) => !existingIds.has(n.id),
-        );
-        setNotifications((prev) => [...prev, ...newNotifications]);
-        setPage(currentPage + 1);
-      }
-
+      setNotifications(sortedData);
       setTotalPages(data.pagination.totalPages);
       setTotalCount(data.pagination.total);
       setUnreadCount(data.unreadCount);
@@ -70,13 +83,12 @@ const NotificationsPage = () => {
       console.error("Failed to fetch notifications:", error);
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    fetchNotifications(true);
-  }, []);
+    fetchNotifications();
+  }, [page, pageSize]);
 
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.is_read) {
@@ -305,27 +317,36 @@ const NotificationsPage = () => {
                   {index < notifications.length - 1 && <Separator />}
                 </div>
               ))}
-              {page <= totalPages && (
-                <div className="flex justify-center pt-6">
-                  <Button
-                    variant="outline"
-                    onClick={() => fetchNotifications()}
-                    disabled={loadingMore}
-                  >
-                    {loadingMore ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      "Load more"
-                    )}
-                  </Button>
-                </div>
-              )}
-              {page > totalPages && totalCount > 20 && (
-                <div className="text-center pt-4 text-xs text-muted-foreground">
-                  You've reached the end
+              {totalCount > 0 && (
+                <div className="p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Rows per page:</span>
+                    <select value={pageSize} onChange={handleRowsPerPageChange}
+                      className="border rounded px-2 py-1 text-sm bg-background">
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                    </select>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Showing {start} to {end} of {totalCount} entries
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => goToPage(page - 1)}
+                      disabled={page === 1} className="h-8 w-8 p-0">
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    {getPageNumbers().map((p, i) => (
+                      <Button key={i} variant={page === p ? "default" : "outline"} size="sm"
+                        onClick={() => typeof p === "number" && goToPage(p)} disabled={p === "..."}
+                        className={`h-8 w-8 p-0 ${p === "..." ? "cursor-default" : ""}`}>{p}</Button>
+                    ))}
+                    <Button variant="outline" size="sm" onClick={() => goToPage(page + 1)}
+                      disabled={page === totalPages} className="h-8 w-8 p-0">
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>

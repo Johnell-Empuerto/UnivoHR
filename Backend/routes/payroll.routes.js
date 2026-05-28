@@ -133,6 +133,14 @@ router.get(
   controller.getMyPayroll,
 );
 
+//  EMPLOYEE BENEFITS (OWN)
+router.get(
+  "/my/benefits",
+  authenticate,
+  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.EMPLOYEE]),
+  controller.getMyBenefits,
+);
+
 //  EMPLOYEE SALARY VIEW (OWN)
 router.get(
   "/my/salary",

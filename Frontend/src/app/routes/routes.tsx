@@ -55,6 +55,7 @@ import HrFormSubmissionsPage from "@/features/hr-forms/pages/HrFormSubmissionsPa
 import HrFormSubmissionViewPage from "@/features/hr-forms/pages/HrFormSubmissionViewPage";
 import MyFormsPage from "@/features/hr-forms/pages/MyFormsPage";
 import MyFormFillPage from "@/features/hr-forms/pages/MyFormFillPage";
+import MyBenefitsPage from "@/features/benefits/pages/MyBenefitsPage";
 
 
 const AppRoutes = () => {
@@ -178,6 +179,7 @@ const AppRoutes = () => {
           />
 
           <Route path="/payroll/details/:id" element={<PayrollDetails />} />
+          <Route path="/my-benefits" element={<MyBenefitsPage />} />
 
           <Route path="/calendar" element={<CalendarPage />} />
 

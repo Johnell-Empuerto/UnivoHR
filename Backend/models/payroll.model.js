@@ -1257,9 +1257,34 @@ const voidPayroll = async (id) => {
 };
 
 // ============================================
+// GET MY BENEFITS
+// ============================================
+const getMyBenefits = async (employee_id) => {
+  const deductionsRes = await pool.query(
+    `SELECT * FROM employee_deductions 
+     WHERE employee_id = $1 
+       AND is_active = true 
+       AND type NOT LIKE 'LATE%'`,
+    [employee_id],
+  );
+
+  const employeeRes = await pool.query(
+    `SELECT sss_number, philhealth_number, hdmf_number, tin_number 
+     FROM employees WHERE id = $1`,
+    [employee_id],
+  );
+
+  return {
+    deductions: deductionsRes.rows,
+    government_ids: employeeRes.rows[0] || {},
+  };
+};
+
+// ============================================
 // MODULE EXPORTS (UNCHANGED)
 // ============================================
 module.exports = {
+  getMyBenefits,
   generatePayroll,
   getPayroll,
   getPayrollSummary,

@@ -81,7 +81,8 @@ const getAllForms = async (search = "", page = 1, limit = 10) => {
     `SELECT COUNT(*) FROM hr_forms WHERE $1 = '' OR title ILIKE $1`,
     [q],
   );
-  return { data: data.rows, total: parseInt(count.rows[0].count) };
+  const total = parseInt(count.rows[0].count);
+  return { data: data.rows, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / limit) } };
 };
 
 const getFormById = async (id) => {
@@ -194,7 +195,8 @@ const getAllAssignments = async (search = "", page = 1, limit = 10) => {
      WHERE $1 = '' OR e.first_name ILIKE $1 OR e.last_name ILIKE $1 OR e.employee_code ILIKE $1`,
     [q],
   );
-  return { data: data.rows, total: parseInt(count.rows[0].count) };
+  const total = parseInt(count.rows[0].count);
+  return { data: data.rows, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / limit) } };
 };
 
 const getMyAssignments = async (employeeId) => {
@@ -274,7 +276,8 @@ const getSubmissions = async (search = "", page = 1, limit = 10) => {
      WHERE $1 = '' OR e.first_name ILIKE $1 OR e.last_name ILIKE $1 OR e.employee_code ILIKE $1 OR f.title ILIKE $1`,
     [q],
   );
-  return { data: data.rows, total: parseInt(count.rows[0].count) };
+  const total = parseInt(count.rows[0].count);
+  return { data: data.rows, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / limit) } };
 };
 
 const getSubmissionById = async (submissionId) => {

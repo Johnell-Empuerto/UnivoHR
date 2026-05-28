@@ -487,7 +487,22 @@ const getPayrollById = async (req, res) => {
   }
 };
 
+// Get My Benefits
+const getMyBenefits = async (req, res) => {
+  try {
+    const employee_id = req.user.employee_id;
+    if (!employee_id) {
+      return res.status(400).json({ message: "No linked employee record" });
+    }
+    const data = await payrollService.getMyBenefits(employee_id);
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
+  getMyBenefits,
   generatePayroll,
   getPayroll,
   getPayrollSummary,

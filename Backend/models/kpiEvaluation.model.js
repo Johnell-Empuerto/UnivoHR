@@ -29,7 +29,37 @@ const getEvaluationById = async (id) => {
   return result.rows[0];
 };
 
-const getEvaluationsByEmployee = async (employeeId, status = "") => {
+const getEvaluationsByEmployee = async (employeeId, status = "", page, limit) => {
+  const hasPagination = page !== undefined && limit !== undefined;
+  if (hasPagination) {
+    const offset = (page - 1) * limit;
+    let query = `SELECT eke.*, kt.name AS template_name
+                 FROM employee_kpi_evaluations eke
+                 JOIN kpi_templates kt ON kt.id = eke.template_id
+                 WHERE eke.employee_id = $1`;
+    const params = [employeeId];
+    let idx = 2;
+    if (status) {
+      query += ` AND eke.status = $${idx}`;
+      params.push(status);
+      idx++;
+    }
+    query += ` ORDER BY eke.created_at DESC LIMIT $${idx} OFFSET $${idx + 1}`;
+    params.push(limit, offset);
+    const data = await pool.query(query, params);
+
+    let countQuery = `SELECT COUNT(*) FROM employee_kpi_evaluations WHERE employee_id = $1`;
+    const countParams = [employeeId];
+    if (status) {
+      countQuery += ` AND status = $2`;
+      countParams.push(status);
+    }
+    const count = await pool.query(countQuery, countParams);
+    const total = parseInt(count.rows[0].count);
+    return { data: data.rows, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / limit) } };
+  }
+
+  // Backward-compatible: no pagination
   let query = `SELECT eke.*, kt.name AS template_name
                FROM employee_kpi_evaluations eke
                JOIN kpi_templates kt ON kt.id = eke.template_id
@@ -64,7 +94,8 @@ const getEvaluationsByEvaluator = async (evaluatorId, status = "", page = 1, lim
   const count = await pool.query(
     `SELECT COUNT(*) FROM employee_kpi_evaluations eke ${where}`, params,
   );
-  return { data: data.rows, total: parseInt(count.rows[0].count) };
+  const total = parseInt(count.rows[0].count);
+  return { data: data.rows, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / limit) } };
 };
 
 const getEvaluationsForHr = async (search = "", status = "", page = 1, limit = 10) => {
@@ -97,7 +128,8 @@ const getEvaluationsForHr = async (search = "", status = "", page = 1, limit = 1
     `SELECT COUNT(*) FROM employee_kpi_evaluations eke
      JOIN employees emp ON emp.id = eke.employee_id ${where}`, params,
   );
-  return { data: data.rows, total: parseInt(count.rows[0].count) };
+  const total = parseInt(count.rows[0].count);
+  return { data: data.rows, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / limit) } };
 };
 
 const updateEvaluation = async (id, data) => {
