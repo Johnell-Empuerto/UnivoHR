@@ -1,6 +1,15 @@
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Menu, Moon, Sun, BookOpen, User, Settings, Lock, LogOut } from "lucide-react";
+import {
+  Menu,
+  Moon,
+  Sun,
+  BookOpen,
+  User,
+  Settings,
+  Lock,
+  LogOut,
+} from "lucide-react";
 import NotificationDropdown from "./NotificationDropdown";
 
 import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
@@ -125,7 +134,7 @@ const Navbar = ({
             </Avatar>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="w-45">
             <div className="px-2 py-1.5 text-sm font-medium border-b mb-1">
               {getUserName()}
             </div>
