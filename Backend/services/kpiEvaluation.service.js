@@ -1,9 +1,18 @@
 const model = require("../models/kpiEvaluation.model");
 const templateModel = require("../models/kpiTemplate.model");
 const employeeModel = require("../models/employee.model");
+const notificationService = require("./notification.service");
 
 const VALID_STATUSES = ["Draft", "In Progress", "Submitted", "Completed", "Approved"];
 const VALID_RECOMMENDATIONS = ["Regularize", "Extend Probation", "Training", "Warning", "Terminate"];
+
+const notifyParty = (userIds, type, title, message, referenceId, meta) => {
+  if (userIds.length === 0) return;
+  const promises = userIds.map(id => notificationService.notify({
+    user_id: id, type, title, message, reference_id: referenceId, meta,
+  }));
+  Promise.all(promises).catch(err => console.error("[KPI] Notification error:", err));
+};
 
 const assign = async (data) => {
   if (!data.employee_id) throw new Error("Employee is required");
@@ -16,7 +25,26 @@ const assign = async (data) => {
   );
   if (existing) throw new Error("An active evaluation already exists for this employee with the same template and period");
 
-  return await model.createEvaluation(data);
+  const evaluation = await model.createEvaluation(data);
+
+  model.getUserIdsByEmployeeIds([data.employee_id, data.evaluator_id]).then(userRows => {
+    const period = data.evaluation_period_start && data.evaluation_period_end
+      ? `${data.evaluation_period_start} to ${data.evaluation_period_end}` : "";
+    for (const row of userRows) {
+      const isEmployee = Number(row.employee_id) === Number(data.employee_id);
+      notifyParty(
+        [row.id], "KPI_EVALUATION",
+        "Evaluation Assigned",
+        isEmployee
+          ? `A performance evaluation has been assigned to you${period ? ` for ${period}` : ""}`
+          : `You are assigned to evaluate employee #${data.employee_id}${period ? ` for ${period}` : ""}`,
+        evaluation.id,
+        { evaluation_id: evaluation.id, employee_id: data.employee_id, evaluator_id: data.evaluator_id, template_id: data.template_id, period },
+      );
+    }
+  }).catch(err => console.error("[KPI] Failed to send assign notifications:", err));
+
+  return evaluation;
 };
 
 const getById = async (id) => {
@@ -84,7 +112,19 @@ const submit = async (evaluationId, evaluatorId, data) => {
   }
 
   await model.updateEvaluation(evaluationId, updates);
-  return await model.getEvaluationById(evaluationId);
+  const updated = await model.getEvaluationById(evaluationId);
+
+  model.getActiveHRUserIds().then(userIds => {
+    notifyParty(
+      userIds, "KPI_EVALUATION",
+      "Evaluation Submitted",
+      `${evalData.employee_name}'s evaluation has been submitted by ${evalData.evaluator_name} with a score of ${finalScore}`,
+      evaluationId,
+      { evaluation_id: evaluationId, employee_id: evalData.employee_id, evaluator_id: evalData.evaluator_id, final_score: finalScore },
+    );
+  }).catch(err => console.error("[KPI] Failed to send submit notification:", err));
+
+  return updated;
 };
 
 const saveSelfEvaluation = async (evaluationId, employeeId, data) => {
@@ -96,7 +136,19 @@ const saveSelfEvaluation = async (evaluationId, employeeId, data) => {
     self_evaluation: data.self_evaluation || null,
     status: evalData.status === "Draft" ? "In Progress" : evalData.status,
   });
-  return await model.getEvaluationById(evaluationId);
+  const updated = await model.getEvaluationById(evaluationId);
+
+  model.getUserIdsByEmployeeIds([evalData.evaluator_id]).then(userRows => {
+    notifyParty(
+      userRows.map(r => r.id), "KPI_EVALUATION",
+      "Self Evaluation Submitted",
+      `${evalData.employee_name} has submitted their self-evaluation`,
+      evaluationId,
+      { evaluation_id: evaluationId, employee_id: employeeId, evaluator_id: evalData.evaluator_id },
+    );
+  }).catch(err => console.error("[KPI] Failed to send self-evaluation notification:", err));
+
+  return updated;
 };
 
 const hrApprove = async (evaluationId, data) => {
@@ -125,7 +177,19 @@ const hrApprove = async (evaluationId, data) => {
     );
   }
 
-  return await model.getEvaluationById(evaluationId);
+  const updated = await model.getEvaluationById(evaluationId);
+
+  model.getUserIdsByEmployeeIds([evalData.employee_id, evalData.evaluator_id]).then(userRows => {
+    notifyParty(
+      userRows.map(r => r.id), "KPI_EVALUATION",
+      "Evaluation Approved",
+      `Performance evaluation for ${evalData.employee_name} has been approved`,
+      evaluationId,
+      { evaluation_id: evaluationId, employee_id: evalData.employee_id, evaluator_id: evalData.evaluator_id, status: "Approved" },
+    );
+  }).catch(err => console.error("[KPI] Failed to send approval notification:", err));
+
+  return updated;
 };
 
 const hrReject = async (evaluationId, data) => {
@@ -138,7 +202,19 @@ const hrReject = async (evaluationId, data) => {
     hr_approved: false,
     hr_comments: data.hr_comments || null,
   });
-  return await model.getEvaluationById(evaluationId);
+  const updated = await model.getEvaluationById(evaluationId);
+
+  model.getUserIdsByEmployeeIds([evalData.employee_id, evalData.evaluator_id]).then(userRows => {
+    notifyParty(
+      userRows.map(r => r.id), "KPI_EVALUATION",
+      "Evaluation Returned",
+      `Performance evaluation for ${evalData.employee_name} requires revision`,
+      evaluationId,
+      { evaluation_id: evaluationId, employee_id: evalData.employee_id, evaluator_id: evalData.evaluator_id, status: "Completed" },
+    );
+  }).catch(err => console.error("[KPI] Failed to send rejection notification:", err));
+
+  return updated;
 };
 
 const getHistory = async (employeeId, page = 1, limit = 10) => {
@@ -163,7 +239,23 @@ const bulkAssign = async (data, createdBy) => {
     evaluation_period_end: data.evaluation_period_end,
   }));
 
-  return await model.bulkCreateEvaluations(evaluations, createdBy);
+  const result = await model.bulkCreateEvaluations(evaluations, createdBy);
+
+  if (result.created_count > 0) {
+    model.getUserIdsByEmployeeIds(result.created_employee_ids).then(userRows => {
+      const period = data.evaluation_period_start && data.evaluation_period_end
+        ? `${data.evaluation_period_start} to ${data.evaluation_period_end}` : "";
+      notifyParty(
+        userRows.map(r => r.id), "KPI_EVALUATION",
+        "Evaluation Assigned",
+        `A performance evaluation has been assigned to you${period ? ` for ${period}` : ""}`,
+        null,
+        { evaluator_id: data.evaluator_id, template_id: data.template_id, period },
+      );
+    }).catch(err => console.error("[KPI] Failed to send bulk assign notifications:", err));
+  }
+
+  return result;
 };
 
 module.exports = {

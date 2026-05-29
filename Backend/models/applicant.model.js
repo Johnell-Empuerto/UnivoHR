@@ -87,6 +87,22 @@ const updateStatus = async (id, status) => {
   return result.rows[0];
 };
 
+const getUserIdsByEmployeeIds = async (employeeIds) => {
+  if (employeeIds.length === 0) return [];
+  const result = await pool.query(
+    `SELECT id, employee_id FROM users WHERE employee_id = ANY($1::int[])`,
+    [employeeIds],
+  );
+  return result.rows;
+};
+
+const getActiveHRUserIds = async () => {
+  const result = await pool.query(
+    `SELECT id FROM users WHERE role IN ('ADMIN', 'HR_ADMIN', 'HR')`,
+  );
+  return result.rows.map(r => r.id);
+};
+
 module.exports = {
   getAll,
   getById,
@@ -95,4 +111,6 @@ module.exports = {
   updateStatus,
   remove,
   updateEmployeeId,
+  getUserIdsByEmployeeIds,
+  getActiveHRUserIds,
 };

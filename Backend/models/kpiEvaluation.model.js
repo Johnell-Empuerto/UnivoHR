@@ -206,6 +206,7 @@ const checkExistingEvaluation = async (employeeId, templateId, startDate, endDat
 const bulkCreateEvaluations = async (evaluations, createdBy) => {
   const skippedEmployeeIds = [];
   const createdIds = [];
+  const createdEmployeeIds = [];
   for (const ev of evaluations) {
     const existing = await checkExistingEvaluation(
       ev.employee_id, ev.template_id, ev.evaluation_period_start, ev.evaluation_period_end,
@@ -223,8 +224,25 @@ const bulkCreateEvaluations = async (evaluations, createdBy) => {
        createdBy || null],
     );
     createdIds.push(result.rows[0].id);
+    createdEmployeeIds.push(ev.employee_id);
   }
-  return { created_count: createdIds.length, skipped_count: skippedEmployeeIds.length, skipped_employee_ids: skippedEmployeeIds };
+  return { created_count: createdIds.length, created_employee_ids: createdEmployeeIds, skipped_count: skippedEmployeeIds.length, skipped_employee_ids: skippedEmployeeIds };
+};
+
+const getUserIdsByEmployeeIds = async (employeeIds) => {
+  if (employeeIds.length === 0) return [];
+  const result = await pool.query(
+    `SELECT id, employee_id FROM users WHERE employee_id = ANY($1::int[])`,
+    [employeeIds],
+  );
+  return result.rows;
+};
+
+const getActiveHRUserIds = async () => {
+  const result = await pool.query(
+    `SELECT id FROM users WHERE role IN ('ADMIN', 'HR_ADMIN', 'HR')`,
+  );
+  return result.rows.map(r => r.id);
 };
 
 module.exports = {
@@ -233,4 +251,6 @@ module.exports = {
   updateEvaluation,
   getScoresByEvaluationId, upsertScore, deleteScoresByEvaluationId,
   getPendingCountByEvaluator, checkExistingEvaluation,
+  bulkCreateEvaluations,
+  getUserIdsByEmployeeIds, getActiveHRUserIds,
 };

@@ -1,5 +1,6 @@
 const applicantInterviewModel = require("../models/applicantInterview.model");
 const applicantModel = require("../models/applicant.model");
+const notificationService = require("./notification.service");
 
 const getByApplicantId = async (applicantId) => {
   const applicant = await applicantModel.getById(applicantId);
@@ -24,6 +25,37 @@ const create = async (data) => {
   if (applicant.status === "NEW" || applicant.status === "SCREENING") {
     await applicantModel.updateStatus(data.applicant_id, "FOR_INTERVIEW");
   }
+
+  const applicantName = `${applicant.first_name} ${applicant.last_name}`;
+  const dateStr = new Date(data.interview_date).toLocaleDateString();
+
+  if (data.interviewer) {
+    applicantModel.getUserIdsByEmployeeIds([data.interviewer]).then(users => {
+      if (users.length > 0) {
+        notificationService.notify({
+          user_id: users[0].id,
+          type: "RECRUITMENT",
+          title: "Interview Scheduled",
+          message: `You have an interview scheduled with ${applicantName} on ${dateStr}`,
+          reference_id: data.applicant_id,
+        }).catch(err => console.error("[RECRUITMENT] Notification error:", err));
+      }
+    });
+  }
+
+  applicantModel.getActiveHRUserIds().then(userIds => {
+    if (userIds.length === 0) return;
+    const promises = userIds.map(id =>
+      notificationService.notify({
+        user_id: id,
+        type: "RECRUITMENT",
+        title: "Interview Scheduled",
+        message: `${applicantName} interview scheduled on ${dateStr}`,
+        reference_id: data.applicant_id,
+      })
+    );
+    Promise.all(promises).catch(err => console.error("[RECRUITMENT] Notification error:", err));
+  });
 
   return interview;
 };

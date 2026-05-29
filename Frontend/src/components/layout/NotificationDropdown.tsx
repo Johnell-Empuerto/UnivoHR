@@ -11,6 +11,8 @@ import {
   Clock as ClockIcon,
   DollarSign,
   ClipboardList,
+  BarChart3,
+  UserPlus,
   ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -107,6 +109,15 @@ const NotificationDropdown = () => {
           return "/hr-forms/submissions";
         }
         return "/hr-forms/my-assignments";
+
+      case "KPI_EVALUATION":
+        if (canManage) {
+          return "/kpi/hr-view";
+        }
+        return "/kpi/my-evaluations";
+
+      case "RECRUITMENT":
+        return "/recruitment";
 
       default:
         return "/dashboard";
@@ -278,6 +289,12 @@ const NotificationDropdown = () => {
       }
       return notification.message || "HR Form update";
     }
+    if (notification.type === "KPI_EVALUATION") {
+      return notification.message || "Performance evaluation update";
+    }
+    if (notification.type === "RECRUITMENT") {
+      return notification.message || "Recruitment update";
+    }
     return notification.message;
   };
 
@@ -312,6 +329,21 @@ const NotificationDropdown = () => {
       if (notification.title.includes("Reviewed")) return "Form Reviewed";
       return "HR Form Update";
     }
+    if (notification.type === "KPI_EVALUATION") {
+      if (notification.title.includes("Assigned")) return "Evaluation Assigned";
+      if (notification.title.includes("Submitted")) return "Evaluation Submitted";
+      if (notification.title.includes("Approved")) return "Evaluation Approved";
+      if (notification.title.includes("Returned")) return "Evaluation Returned";
+      return "Performance Update";
+    }
+    if (notification.type === "RECRUITMENT") {
+      if (notification.title.includes("New")) return "New Applicant";
+      if (notification.title.includes("Interview")) return "Interview Scheduled";
+      if (notification.title.includes("Approval")) return "Approval";
+      if (notification.title.includes("Hired")) return "Applicant Hired";
+      if (notification.title.includes("Updated")) return "Status Updated";
+      return "Recruitment Update";
+    }
     return notification.title.replace(/[✅❌💰📋⏰]/g, "").trim();
   };
 
@@ -327,6 +359,10 @@ const NotificationDropdown = () => {
         return <DollarSign className="h-4 w-4" />;
       case "HR_FORM":
         return <ClipboardList className="h-4 w-4" />;
+      case "KPI_EVALUATION":
+        return <BarChart3 className="h-4 w-4" />;
+      case "RECRUITMENT":
+        return <UserPlus className="h-4 w-4" />;
       default:
         return <Bell className="h-4 w-4" />;
     }
@@ -344,6 +380,10 @@ const NotificationDropdown = () => {
         return "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400";
       case "HR_FORM":
         return "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400";
+      case "KPI_EVALUATION":
+        return "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400";
+      case "RECRUITMENT":
+        return "bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400";
       default:
         return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400";
     }

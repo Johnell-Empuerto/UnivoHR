@@ -1,5 +1,6 @@
 const applicantApprovalModel = require("../models/applicantApproval.model");
 const applicantModel = require("../models/applicant.model");
+const notificationService = require("./notification.service");
 
 const getByApplicantId = async (applicantId) => {
   const applicant = await applicantModel.getById(applicantId);
@@ -18,7 +19,24 @@ const create = async (data) => {
   if (!data.approval_type) throw new Error("Approval type is required");
   const applicant = await applicantModel.getById(data.applicant_id);
   if (!applicant) throw new Error("Applicant not found");
-  return await applicantApprovalModel.create(data);
+  const approval = await applicantApprovalModel.create(data);
+
+  const applicantName = `${applicant.first_name} ${applicant.last_name}`;
+  if (data.approved_by) {
+    applicantModel.getUserIdsByEmployeeIds([data.approved_by]).then(users => {
+      if (users.length > 0) {
+        notificationService.notify({
+          user_id: users[0].id,
+          type: "RECRUITMENT",
+          title: "Approval Required",
+          message: `${applicantName} requires your ${data.approval_type} approval`,
+          reference_id: data.applicant_id,
+        }).catch(err => console.error("[RECRUITMENT] Notification error:", err));
+      }
+    });
+  }
+
+  return approval;
 };
 
 const update = async (id, data) => {
@@ -39,6 +57,24 @@ const update = async (id, data) => {
     await applicantModel.updateStatus(approval.applicant_id, "APPROVED");
   } else if (data.decision === "REJECTED") {
     await applicantModel.updateStatus(approval.applicant_id, "REJECTED");
+  }
+
+  if (data.decision) {
+    const applicant = await applicantModel.getById(existing.applicant_id);
+    const applicantName = applicant ? `${applicant.first_name} ${applicant.last_name}` : `Applicant #${existing.applicant_id}`;
+    applicantModel.getActiveHRUserIds().then(userIds => {
+      if (userIds.length === 0) return;
+      const promises = userIds.map(uid =>
+        notificationService.notify({
+          user_id: uid,
+          type: "RECRUITMENT",
+          title: `Approval ${data.decision}`,
+          message: `${applicantName} was ${data.decision.toLowerCase()} on ${existing.approval_type}`,
+          reference_id: existing.applicant_id,
+        })
+      );
+      Promise.all(promises).catch(err => console.error("[RECRUITMENT] Notification error:", err));
+    });
   }
 
   return approval;

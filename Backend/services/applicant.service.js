@@ -3,6 +3,7 @@ const branchModel = require("../models/branch.model");
 const employeeModel = require("../models/employee.model");
 const pool = require("../config/db");
 const leaveCreditModel = require("../models/leaveCredit.model");
+const notificationService = require("./notification.service");
 
 const normalizeApplicantStatus = (status) => {
   if (!status) return "Initial";
@@ -20,6 +21,14 @@ const normalizeApplicantStatus = (status) => {
   return map[status] || status;
 };
 
+const notifyParty = (userIds, title, message, referenceId) => {
+  if (userIds.length === 0) return;
+  const promises = userIds.map(id =>
+    notificationService.notify({ user_id: id, type: "RECRUITMENT", title, message, reference_id: referenceId })
+  );
+  Promise.all(promises).catch(err => console.error("[RECRUITMENT] Notification error:", err));
+};
+
 const getAll = async (page, limit, search, status, jobPositionId) => {
   return await applicantModel.getAll(page, limit, search, status, jobPositionId);
 };
@@ -34,7 +43,11 @@ const create = async (data) => {
   if (!data.first_name || !data.first_name.trim()) throw new Error("First name is required");
   if (!data.last_name || !data.last_name.trim()) throw new Error("Last name is required");
   data.status = normalizeApplicantStatus(data.status);
-  return await applicantModel.create(data);
+  const applicant = await applicantModel.create(data);
+  applicantModel.getActiveHRUserIds().then(userIds => {
+    notifyParty(userIds, "New Applicant Registration", `${applicant.first_name} ${applicant.last_name} registered as applicant`, applicant.id);
+  });
+  return applicant;
 };
 
 const update = async (id, data) => {
@@ -63,7 +76,11 @@ const updateStatus = async (id, status) => {
   const existing = await applicantModel.getById(id);
   if (!existing) throw new Error("Applicant not found");
   const normalized = normalizeApplicantStatus(status);
-  return await applicantModel.updateStatus(id, normalized);
+  const updated = await applicantModel.updateStatus(id, normalized);
+  applicantModel.getActiveHRUserIds().then(userIds => {
+    notifyParty(userIds, "Applicant Status Updated", `${existing.first_name} ${existing.last_name} status changed to ${status}`, updated.id);
+  });
+  return updated;
 };
 
 const remove = async (id) => {
@@ -100,6 +117,9 @@ const convertToEmployee = async (applicantId, additionalData) => {
         [existing.id, applicantId],
       );
       await client.query("COMMIT");
+      applicantModel.getActiveHRUserIds().then(userIds => {
+        notifyParty(userIds, "Applicant Hired", `${applicant.first_name} ${applicant.last_name} linked to existing employee ${existing.employee_code}`, applicantId);
+      });
       return {
         id: existing.id,
         employee_code: existing.employee_code,
@@ -172,6 +192,9 @@ const convertToEmployee = async (applicantId, additionalData) => {
     );
 
     await client.query("COMMIT");
+    applicantModel.getActiveHRUserIds().then(userIds => {
+      notifyParty(userIds, "Applicant Hired", `${applicant.first_name} ${applicant.last_name} has been hired as ${newEmployee.employee_code}`, applicantId);
+    });
     return newEmployee;
   } catch (error) {
     await client.query("ROLLBACK");
