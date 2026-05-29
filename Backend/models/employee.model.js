@@ -30,6 +30,7 @@ const getEmployees = async (page = 1, limit = 10, search = "", status = "", allo
         e.first_name ILIKE $3 OR 
         e.last_name ILIKE $3 OR 
         e.employee_code ILIKE $3 OR
+        e.department ILIKE $3 OR
         CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $3
       )
       AND ($4 = '' OR e.status = $4)
@@ -49,6 +50,7 @@ const getEmployees = async (page = 1, limit = 10, search = "", status = "", allo
         e.first_name ILIKE $1 OR 
         e.last_name ILIKE $1 OR 
         e.employee_code ILIKE $1 OR
+        e.department ILIKE $1 OR
         CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $1
       )
       AND ($2 = '' OR e.status = $2)

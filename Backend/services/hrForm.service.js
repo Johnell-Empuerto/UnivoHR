@@ -1,7 +1,41 @@
 const model = require("../models/hrForm.model");
 const queueService = require("./queue.service");
+const notificationService = require("./notification.service");
 
 const BULK_THRESHOLD = 50;
+
+const notifyAssignedEmployees = (form, createdEmployeeIds, assignedByUserId) => {
+  if (createdEmployeeIds.length === 0) return;
+  model.getUserIdsByEmployeeIds(createdEmployeeIds).then(userRows => {
+    const promises = userRows
+      .filter(row => row.id !== assignedByUserId)
+      .map(row => notificationService.notify({
+        user_id: row.id,
+        type: "HR_FORM",
+        title: "New Form Assigned",
+        message: `You have been assigned a new form: ${form.title}`,
+        reference_id: form.id,
+        meta: { form_id: form.id, form_title: form.title },
+      }));
+    return Promise.all(promises);
+  }).catch(err => console.error("[HR Form] Failed to send assignment notifications:", err));
+};
+
+const notifyHRFormSubmitted = (form, employeeName, submitterUserId) => {
+  model.getActiveHRUserIds().then(userIds => {
+    const promises = userIds
+      .filter(id => id !== submitterUserId)
+      .map(id => notificationService.notify({
+        user_id: id,
+        type: "HR_FORM",
+        title: "Form Submitted",
+        message: `${employeeName} submitted form: ${form.title}`,
+        reference_id: form.id,
+        meta: { form_id: form.id, form_title: form.title },
+      }));
+    return Promise.all(promises);
+  }).catch(err => console.error("[HR Form] Failed to send submission notifications:", err));
+};
 
 const getAllForms = async (search, page, limit) => {
   return await model.getAllForms(search, page, limit);
@@ -55,9 +89,23 @@ const removeField = async (fieldId) => {
 
 const assignForm = async (data, userId) => {
   if (!data.form_id) throw new Error("Form is required");
-  if (!data.employee_ids || data.employee_ids.length === 0) throw new Error("No employees selected");
   const form = await model.getFormById(data.form_id);
   if (!form) throw new Error("Form not found");
+
+  if (data.assign_all_matching) {
+    const result = await model.bulkAssignAllMatching({
+      form_id: data.form_id,
+      search: data.search || "",
+      due_date: data.due_date || null,
+      assigned_by: userId,
+    });
+    if (result.created_count > 0) {
+      notifyAssignedEmployees(form, result.created_employee_ids, userId);
+    }
+    return result;
+  }
+
+  if (!data.employee_ids || data.employee_ids.length === 0) throw new Error("No employees selected");
   const { form_id, employee_ids, due_date } = data;
   if (employee_ids.length > BULK_THRESHOLD) {
     await queueService.addBulkAssignmentJob(form_id, employee_ids, userId, due_date || null);
@@ -68,7 +116,11 @@ const assignForm = async (data, userId) => {
     employee_id: empId,
     due_date: due_date || null,
   }));
-  return await model.bulkCreateAssignments(assignments, userId);
+  const result = await model.bulkCreateAssignments(assignments, userId);
+  if (result.created_count > 0) {
+    notifyAssignedEmployees(form, result.created_employee_ids, userId);
+  }
+  return result;
 };
 
 const getAllAssignments = async (search, page, limit) => {
@@ -109,6 +161,11 @@ const submitForm = async (assignmentId, userId, employeeId, data) => {
   });
 
   await model.updateAssignmentStatus(assignmentId, "Submitted", new Date().toISOString());
+
+  const form = await model.getFormById(assignment.form_id);
+  const employeeName = submission.employee_name || `Employee #${employeeId}`;
+  notifyHRFormSubmitted(form || assignment, employeeName, userId);
+
   return submission;
 };
 
@@ -128,7 +185,22 @@ const getSubmissionById = async (submissionId) => {
 const reviewSubmission = async (submissionId, userId, data) => {
   const submission = await model.getSubmissionById(submissionId);
   if (!submission) throw new Error("Submission not found");
-  return await model.updateSubmissionReview(submissionId, userId, data.remarks);
+  const result = await model.updateSubmissionReview(submissionId, userId, data.remarks);
+
+  model.getUserIdsByEmployeeIds([submission.employee_id]).then(userRows => {
+    if (userRows.length > 0 && userRows[0].id !== userId) {
+      notificationService.notify({
+        user_id: userRows[0].id,
+        type: "HR_FORM",
+        title: "Form Reviewed",
+        message: `Your submission for ${submission.form_title || "form"} has been reviewed.`,
+        reference_id: submission.form_id,
+        meta: { form_id: submission.form_id, form_title: submission.form_title },
+      }).catch(err => console.error("[HR Form] Failed to send review notification:", err));
+    }
+  }).catch(err => console.error("[HR Form] Failed to lookup user for review notification:", err));
+
+  return result;
 };
 
 module.exports = {

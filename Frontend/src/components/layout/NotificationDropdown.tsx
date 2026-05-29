@@ -10,6 +10,7 @@ import {
   Calendar,
   Clock as ClockIcon,
   DollarSign,
+  ClipboardList,
   ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -97,6 +98,15 @@ const NotificationDropdown = () => {
           return "/manhours-approval";
         }
         return "/my-manhours";
+
+      case "HR_FORM":
+        if (notification.title.includes("New") && canManage) {
+          return "/hr-forms/assignments";
+        }
+        if (notification.title.includes("Submitted") && canManage) {
+          return "/hr-forms/submissions";
+        }
+        return "/hr-forms/my-assignments";
 
       default:
         return "/dashboard";
@@ -262,6 +272,12 @@ const NotificationDropdown = () => {
     if (notification.type === "PAYROLL") {
       return "Salary has been released";
     }
+    if (notification.type === "HR_FORM") {
+      if (meta.form_title) {
+        return meta.form_title;
+      }
+      return notification.message || "HR Form update";
+    }
     return notification.message;
   };
 
@@ -290,6 +306,12 @@ const NotificationDropdown = () => {
     if (notification.type === "PAYROLL") {
       return "Salary Released";
     }
+    if (notification.type === "HR_FORM") {
+      if (notification.title.includes("New")) return "Form Assigned";
+      if (notification.title.includes("Submitted")) return "Form Submitted";
+      if (notification.title.includes("Reviewed")) return "Form Reviewed";
+      return "HR Form Update";
+    }
     return notification.title.replace(/[✅❌💰📋⏰]/g, "").trim();
   };
 
@@ -303,6 +325,8 @@ const NotificationDropdown = () => {
         return <Clock className="h-4 w-4" />;
       case "PAYROLL":
         return <DollarSign className="h-4 w-4" />;
+      case "HR_FORM":
+        return <ClipboardList className="h-4 w-4" />;
       default:
         return <Bell className="h-4 w-4" />;
     }
@@ -318,6 +342,8 @@ const NotificationDropdown = () => {
         return "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400";
       case "PAYROLL":
         return "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400";
+      case "HR_FORM":
+        return "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400";
       default:
         return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400";
     }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { getHrForms } from "@/services/hrFormService";
 import { assignHrForm, getAllHrAssignments } from "@/services/hrFormService";
 import { employees as fetchEmployees } from "@/services/employeeService";
@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ClipboardList, ChevronLeft, ChevronRight, Loader2, Plus } from "lucide-react";
+import { ClipboardList, ChevronLeft, ChevronRight, Loader2, Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
@@ -61,10 +61,17 @@ const HrFormAssignmentsPage = () => {
 
   const [assignDialog, setAssignDialog] = useState(false);
   const [forms, setForms] = useState<any[]>([]);
-  const [allEmps, setAllEmps] = useState<any[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [assignForm, setAssignForm] = useState({ form_id: "", due_date: "" });
+  const [assignAllMatching, setAssignAllMatching] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const [empData, setEmpData] = useState<any[]>([]);
+  const [empTotal, setEmpTotal] = useState(0);
+  const [empPage, setEmpPage] = useState(1);
+  const [empSearch, setEmpSearch] = useState("");
+  const [empLoading, setEmpLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => { fetchAssignments(); }, [page, pageSize, search]);
 
@@ -76,29 +83,54 @@ const HrFormAssignmentsPage = () => {
 
   const handleOpenAssign = async () => {
     try {
-      const [f, e] = await Promise.all([getHrForms(1, 100, ""), fetchEmployees(1, 10000, "", "ACTIVE")]);
+      const f = await getHrForms(1, 100, "");
       setForms(f.data || []);
-      setAllEmps(e.data || e || []);
-    } catch { setForms([]); setAllEmps([]); }
+    } catch { setForms([]); }
     setAssignForm({ form_id: "", due_date: "" });
     setSelectedIds(new Set());
+    setAssignAllMatching(false);
+    setEmpData([]);
+    setEmpTotal(0);
+    setEmpPage(1);
+    setEmpSearch("");
     setAssignDialog(true);
   };
 
-  const toggleEmp = (id: number) => {
-    setSelectedIds((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
-  };
+  const fetchEmployeesForPicker = useCallback(async (page: number, search: string) => {
+    setEmpLoading(true);
+    try {
+      const r = await fetchEmployees(page, 20, search, "ACTIVE");
+      setEmpData(r.data || []);
+      setEmpTotal(r.pagination?.total || 0);
+    } catch { setEmpData([]); setEmpTotal(0); }
+    finally { setEmpLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    if (!assignDialog) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchEmployeesForPicker(empPage, empSearch);
+    }, empSearch ? 300 : 0);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [assignDialog, empPage, empSearch, fetchEmployeesForPicker]);
 
   const handleAssign = async () => {
     if (!assignForm.form_id) { toast.error("Select a form"); return; }
-    if (selectedIds.size === 0) { toast.error("Select at least one employee"); return; }
+    if (!assignAllMatching && selectedIds.size === 0) { toast.error("Select at least one employee"); return; }
     try {
       setSaving(true);
-      const result = await assignHrForm({ form_id: Number(assignForm.form_id), employee_ids: Array.from(selectedIds), due_date: assignForm.due_date || undefined });
-      if (result.queued) {
-        toast.success(result.message);
+      let result: any;
+      if (assignAllMatching) {
+        result = await assignHrForm({ form_id: Number(assignForm.form_id), assign_all_matching: true, search: empSearch, due_date: assignForm.due_date || undefined });
+        toast.success(`Assigned form to ${result.created_count} matching employees`);
       } else {
-        toast.success(`Assigned: ${result.created_count}, Skipped: ${result.skipped_employee_ids?.length || 0}`);
+        result = await assignHrForm({ form_id: Number(assignForm.form_id), employee_ids: Array.from(selectedIds), due_date: assignForm.due_date || undefined });
+        if (result.queued) {
+          toast.success(result.message);
+        } else {
+          toast.success(`Assigned: ${result.created_count}, Skipped: ${result.skipped_employee_ids?.length || 0}`);
+        }
       }
       setAssignDialog(false);
       fetchAssignments();
@@ -187,7 +219,9 @@ const HrFormAssignmentsPage = () => {
         </CardContent>
       </Card>
 
-      <Dialog open={assignDialog} onOpenChange={setAssignDialog}>
+      <Dialog open={assignDialog} onOpenChange={(open) => {
+        if (!open) { setAssignDialog(false); setEmpData([]); setEmpTotal(0); setEmpPage(1); setEmpSearch(""); setSelectedIds(new Set()); setAssignAllMatching(false); }
+      }}>
         <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Assign Form to Employees</DialogTitle></DialogHeader>
           <div className="space-y-4">
@@ -207,40 +241,142 @@ const HrFormAssignmentsPage = () => {
               </div>
             </div>
             <div className="border-t pt-3">
-              <p className="text-sm font-semibold mb-2">Select Employees</p>
-              <div className="rounded-md border max-h-64 overflow-y-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted sticky top-0">
-                      <TableHead className="w-10"><input type="checkbox" onChange={() => {
-                        if (selectedIds.size === allEmps.length) setSelectedIds(new Set());
-                        else setSelectedIds(new Set(allEmps.map((e: any) => e.id)));
-                      }} checked={allEmps.length > 0 && selectedIds.size === allEmps.length} /></TableHead>
-                      <TableHead>Code</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Department</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allEmps.map((emp: any) => (
-                      <TableRow key={emp.id} className={selectedIds.has(emp.id) ? "bg-muted/50" : ""}>
-                        <TableCell><input type="checkbox" checked={selectedIds.has(emp.id)} onChange={() => toggleEmp(emp.id)} /></TableCell>
-                        <TableCell className="font-mono text-xs">{emp.employee_code}</TableCell>
-                        <TableCell className="font-medium">{emp.first_name} {emp.last_name}</TableCell>
-                        <TableCell>{emp.department || "-"}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              <div className="flex items-center gap-2 mb-2">
+                <p className="text-sm font-semibold">Select Employees</p>
+                <div className="relative flex-1 max-w-sm ml-auto">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    placeholder="Search by name, code, or department..."
+                    value={empSearch}
+                    onChange={(e) => { setEmpSearch(e.target.value); setEmpPage(1); setSelectedIds(new Set()); setAssignAllMatching(false); }}
+                    className="w-full border rounded pl-7 pr-7 py-1 text-sm bg-background"
+                  />
+                  {empSearch && (
+                    <X
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground cursor-pointer"
+                      onClick={() => { setEmpSearch(""); setEmpPage(1); setSelectedIds(new Set()); setAssignAllMatching(false); }}
+                    />
+                  )}
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">{selectedIds.size} employee(s) selected</p>
+              <div className="rounded-md border max-h-64 overflow-y-auto">
+                {empLoading ? (
+                  <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+                ) : empData.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No employees found</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted sticky top-0">
+                        <TableHead className="w-10">
+                          <input
+                            type="checkbox"
+                            onChange={() => {
+                              if (empData.every((e: any) => selectedIds.has(e.id))) {
+                                setSelectedIds((prev) => { const next = new Set(prev); empData.forEach((e: any) => next.delete(e.id)); return next; });
+                              } else {
+                                setSelectedIds((prev) => { const next = new Set(prev); empData.forEach((e: any) => next.add(e.id)); return next; });
+                              }
+                              setAssignAllMatching(false);
+                            }}
+                            checked={empData.length > 0 && empData.every((e: any) => selectedIds.has(e.id))}
+                          />
+                        </TableHead>
+                        <TableHead>Code</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Department</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {empData.map((emp: any) => (
+                        <TableRow key={emp.id} className={selectedIds.has(emp.id) ? "bg-muted/50" : ""}>
+                          <TableCell>
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(emp.id)}
+                              onChange={() => {
+                                setSelectedIds((prev) => { const next = new Set(prev); if (next.has(emp.id)) next.delete(emp.id); else next.add(emp.id); return next; });
+                                setAssignAllMatching(false);
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">{emp.employee_code}</TableCell>
+                          <TableCell className="font-medium">{emp.first_name} {emp.last_name}</TableCell>
+                          <TableCell>{emp.department || "-"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-xs text-muted-foreground">
+                  {assignAllMatching
+                    ? `Assigning to all ${empTotal} matching employees`
+                    : `${selectedIds.size} employee(s) selected${empTotal > 0 ? ` of ${empTotal} matching` : ""}`
+                  }
+                </p>
+                <div className="flex items-center gap-2">
+                  {!assignAllMatching && empData.length > 0 && (
+                    <button className="text-xs text-primary hover:underline" onClick={() => {
+                      setSelectedIds(new Set(empData.map((e: any) => e.id)));
+                      setAssignAllMatching(false);
+                    }}>
+                      Select visible ({empData.length})
+                    </button>
+                  )}
+                  {!assignAllMatching && empTotal > 20 && (
+                    <button className="text-xs text-primary hover:underline" onClick={() => {
+                      setSelectedIds(new Set());
+                      setAssignAllMatching(true);
+                      toast.info(`Will assign to all ${empTotal} matching employees`);
+                    }}>
+                      Assign to all matching ({empTotal})
+                    </button>
+                  )}
+                  {assignAllMatching && (
+                    <button className="text-xs text-destructive hover:underline" onClick={() => setAssignAllMatching(false)}>
+                      Cancel select all
+                    </button>
+                  )}
+                  {selectedIds.size > 0 && !assignAllMatching && (
+                    <button className="text-xs text-destructive hover:underline" onClick={() => setSelectedIds(new Set())}>
+                      Clear selection
+                    </button>
+                  )}
+                </div>
+              </div>
+              {empTotal > 20 && !assignAllMatching && (
+                <div className="flex items-center justify-between mt-2 pt-2 border-t">
+                  <div className="flex items-center gap-2">
+                    <button
+                      disabled={empPage <= 1}
+                      onClick={() => setEmpPage(p => Math.max(1, p - 1))}
+                      className="border rounded px-2 py-1 text-xs disabled:opacity-50"
+                    >
+                      Prev
+                    </button>
+                    <span className="text-xs text-muted-foreground">
+                      Page {empTotal > 0 ? empPage : 0} of {Math.ceil(empTotal / 20) || 1}
+                    </span>
+                    <button
+                      disabled={empPage >= Math.ceil(empTotal / 20)}
+                      onClick={() => setEmpPage(p => p + 1)}
+                      className="border rounded px-2 py-1 text-xs disabled:opacity-50"
+                    >
+                      Next
+                    </button>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{empData.length} per page</span>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAssignDialog(false)}>Cancel</Button>
-            <Button onClick={handleAssign} disabled={saving || selectedIds.size === 0}>
+            <Button variant="outline" onClick={() => { setAssignDialog(false); setEmpData([]); setEmpTotal(0); setEmpPage(1); setEmpSearch(""); setSelectedIds(new Set()); setAssignAllMatching(false); }}>Cancel</Button>
+            <Button onClick={handleAssign} disabled={saving || (!assignAllMatching && selectedIds.size === 0)}>
               {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-              Assign to {selectedIds.size} employee(s)
+              {assignAllMatching ? `Assign to all ${empTotal} matching` : `Assign to ${selectedIds.size} employee(s)`}
             </Button>
           </DialogFooter>
         </DialogContent>

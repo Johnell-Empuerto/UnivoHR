@@ -309,6 +309,7 @@ const hrFormQueue = new Queue("hr-form-assignments", {
 });
 
 const hrFormModel = require("./models/hrForm.model");
+const notificationService = require("./services/notification.service");
 
 hrFormQueue.process("bulk-assign", async (job) => {
   const { formId, employeeIds, userId, dueDate } = job.data;
@@ -319,6 +320,24 @@ hrFormQueue.process("bulk-assign", async (job) => {
     due_date: dueDate,
   }));
   const result = await hrFormModel.bulkCreateAssignments(assignments, userId);
+
+  if (result.created_count > 0) {
+    const form = await hrFormModel.getFormById(formId);
+    hrFormModel.getUserIdsByEmployeeIds(result.created_employee_ids).then(userRows => {
+      const promises = userRows
+        .filter(row => row.id !== userId)
+        .map(row => notificationService.notify({
+          user_id: row.id,
+          type: "HR_FORM",
+          title: "New Form Assigned",
+          message: `You have been assigned a new form: ${form?.title || "Untitled"}`,
+          reference_id: formId,
+          meta: { form_id: formId, form_title: form?.title },
+        }));
+      return Promise.all(promises);
+    }).catch(err => console.error("[Worker] Failed to send assignment notifications:", err));
+  }
+
   console.log(`[Worker] Bulk assignment complete: ${result.created_count} created, ${result.skipped_employee_ids.length} skipped`);
   return result;
 });

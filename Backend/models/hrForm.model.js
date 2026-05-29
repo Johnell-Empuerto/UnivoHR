@@ -170,7 +170,33 @@ const bulkCreateAssignments = async (assignments, assignedBy) => {
   );
   const createdIds = result.rows.map(r => r.employee_id);
   const skippedEmployeeIds = employeeIds.filter(id => !createdIds.includes(id));
-  return { created_count: createdIds.length, skipped_employee_ids: skippedEmployeeIds };
+  return { created_count: createdIds.length, created_employee_ids: createdIds, skipped_employee_ids: skippedEmployeeIds };
+};
+
+const bulkAssignAllMatching = async ({ form_id, search, due_date, assigned_by }) => {
+  const searchValue = `%${search}%`;
+  const result = await pool.query(
+    `WITH matched AS (
+       SELECT e.id FROM employees e
+       WHERE e.status = 'ACTIVE'
+         AND ($2 = '' OR e.first_name ILIKE $3 OR e.last_name ILIKE $3 OR e.employee_code ILIKE $3 OR e.department ILIKE $3)
+     ), inserted AS (
+       INSERT INTO hr_form_assignments (form_id, employee_id, assigned_by, due_date)
+       SELECT $1, m.id, $4, $5::DATE
+       FROM matched m
+       WHERE NOT EXISTS (
+         SELECT 1 FROM hr_form_assignments a
+         WHERE a.form_id = $1 AND a.employee_id = m.id AND a.status = 'Pending'
+       )
+       RETURNING employee_id
+     )
+     SELECT (SELECT COUNT(*) FROM matched) AS total_matching,
+            COALESCE((SELECT array_agg(employee_id) FROM inserted), '{}') AS created_employee_ids`,
+    [form_id, search, searchValue, assigned_by, due_date],
+  );
+  const { total_matching, created_employee_ids } = result.rows[0];
+  const createdIds = created_employee_ids || [];
+  return { created_count: createdIds.length, created_employee_ids: createdIds, total_matching: Number(total_matching) };
 };
 
 const getAllAssignments = async (search = "", page = 1, limit = 10) => {
@@ -309,14 +335,31 @@ const getSubmissionByAssignmentId = async (assignmentId) => {
   return result.rows[0];
 };
 
+const getUserIdsByEmployeeIds = async (employeeIds) => {
+  if (employeeIds.length === 0) return [];
+  const result = await pool.query(
+    `SELECT id, employee_id FROM users WHERE employee_id = ANY($1::int[])`,
+    [employeeIds],
+  );
+  return result.rows;
+};
+
+const getActiveHRUserIds = async () => {
+  const result = await pool.query(
+    `SELECT id FROM users WHERE role IN ('ADMIN', 'HR_ADMIN', 'HR')`,
+  );
+  return result.rows.map(r => r.id);
+};
+
 module.exports = {
   init,
   getAllForms, getFormById, createForm, updateForm, deleteForm,
   getFieldsByFormId, createField, updateField, deleteField,
-  createAssignment, bulkCreateAssignments,
+  createAssignment, bulkCreateAssignments, bulkAssignAllMatching,
   getAllAssignments, getMyAssignments, getAssignmentById,
   updateAssignmentStatus,
   createSubmission, upsertAnswer, getAnswersByAssignmentId,
   getSubmissions, getSubmissionById, updateSubmissionReview,
   getSubmissionByAssignmentId,
+  getUserIdsByEmployeeIds, getActiveHRUserIds,
 };

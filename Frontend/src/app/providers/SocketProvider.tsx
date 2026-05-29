@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 type Notification = {
   id: number;
-  type: "LEAVE" | "OVERTIME" | "PAYROLL";
+  type: "LEAVE" | "OVERTIME" | "PAYROLL" | "HR_FORM";
   title: string;
   message: string;
   reference_id: number;
@@ -63,6 +63,8 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
               window.location.href = `/myovertime`;
             } else if (notification.type === "PAYROLL") {
               window.location.href = `/payroll`;
+            } else if (notification.type === "HR_FORM") {
+              window.location.href = `/hr-forms`;
             }
           },
         },

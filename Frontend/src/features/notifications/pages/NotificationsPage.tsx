@@ -9,6 +9,7 @@ import {
   Calendar,
   Clock as ClockIcon,
   DollarSign,
+  ClipboardList,
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -121,6 +122,13 @@ const NotificationsPage = () => {
           navigate("/my-manhours");
         }
         break;
+      case "HR_FORM":
+        if (notification.title.includes("Submitted") || notification.title.includes("New")) {
+          navigate("/hr-forms/assignments");
+        } else {
+          navigate("/hr-forms/my-assignments");
+        }
+        break;
       default:
         break;
     }
@@ -162,6 +170,10 @@ const NotificationsPage = () => {
     if (notification.type === "PAYROLL") {
       return "Salary has been released";
     }
+    if (notification.type === "HR_FORM") {
+      if (meta.form_title) return meta.form_title;
+      return notification.message || "HR Form update";
+    }
     return notification.message;
   };
 
@@ -190,6 +202,12 @@ const NotificationsPage = () => {
     if (notification.type === "PAYROLL") {
       return "Salary Released";
     }
+    if (notification.type === "HR_FORM") {
+      if (notification.title.includes("New")) return "Form Assigned";
+      if (notification.title.includes("Submitted")) return "Form Submitted";
+      if (notification.title.includes("Reviewed")) return "Form Reviewed";
+      return "HR Form Update";
+    }
     return notification.title.replace(/[✅❌💰📋⏰]/g, "").trim();
   };
 
@@ -203,6 +221,8 @@ const NotificationsPage = () => {
         return <Clock className="h-5 w-5" />;
       case "PAYROLL":
         return <DollarSign className="h-5 w-5" />;
+      case "HR_FORM":
+        return <ClipboardList className="h-5 w-5" />;
       default:
         return <Bell className="h-5 w-5" />;
     }
@@ -218,6 +238,8 @@ const NotificationsPage = () => {
         return "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400";
       case "PAYROLL":
         return "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400";
+      case "HR_FORM":
+        return "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400";
       default:
         return "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400";
     }
