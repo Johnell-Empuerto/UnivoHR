@@ -95,7 +95,11 @@ const HrFormAssignmentsPage = () => {
     try {
       setSaving(true);
       const result = await assignHrForm({ form_id: Number(assignForm.form_id), employee_ids: Array.from(selectedIds), due_date: assignForm.due_date || undefined });
-      toast.success(`Assigned: ${result.created_count}, Skipped: ${result.skipped_employee_ids?.length || 0}`);
+      if (result.queued) {
+        toast.success(result.message);
+      } else {
+        toast.success(`Assigned: ${result.created_count}, Skipped: ${result.skipped_employee_ids?.length || 0}`);
+      }
       setAssignDialog(false);
       fetchAssignments();
     } catch (err: any) { toast.error(err.message || "Assignment failed"); }

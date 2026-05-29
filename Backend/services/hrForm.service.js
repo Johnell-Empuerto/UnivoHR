@@ -1,4 +1,7 @@
 const model = require("../models/hrForm.model");
+const queueService = require("./queue.service");
+
+const BULK_THRESHOLD = 50;
 
 const getAllForms = async (search, page, limit) => {
   return await model.getAllForms(search, page, limit);
@@ -55,10 +58,15 @@ const assignForm = async (data, userId) => {
   if (!data.employee_ids || data.employee_ids.length === 0) throw new Error("No employees selected");
   const form = await model.getFormById(data.form_id);
   if (!form) throw new Error("Form not found");
-  const assignments = data.employee_ids.map((empId) => ({
-    form_id: data.form_id,
+  const { form_id, employee_ids, due_date } = data;
+  if (employee_ids.length > BULK_THRESHOLD) {
+    await queueService.addBulkAssignmentJob(form_id, employee_ids, userId, due_date || null);
+    return { queued: true, employee_count: employee_ids.length, message: `Assignment queued for ${employee_ids.length} employees` };
+  }
+  const assignments = employee_ids.map((empId) => ({
+    form_id,
     employee_id: empId,
-    due_date: data.due_date || null,
+    due_date: due_date || null,
   }));
   return await model.bulkCreateAssignments(assignments, userId);
 };

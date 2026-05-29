@@ -11,8 +11,10 @@ const getUserById = async (id) => {
 };
 
 const createUser = async (data) => {
+  const normalizedUsername = userCacheService.normalizeUsername(data.username);
+
   // Check if username already exists
-  const exists = await userModel.usernameExists(data.username);
+  const exists = await userModel.usernameExists(normalizedUsername);
   if (exists) {
     throw new Error("Username already exists");
   }
@@ -22,7 +24,7 @@ const createUser = async (data) => {
   const hashedPassword = await bcrypt.hash(data.password, saltRounds);
 
   const userData = {
-    username: data.username,
+    username: normalizedUsername,
     password_hash: hashedPassword,
     role: data.role,
     employee_id: data.employee_id,
@@ -33,15 +35,16 @@ const createUser = async (data) => {
 
 const updateUser = async (id, data) => {
   const existing = await userModel.getUserById(id);
+  const normalizedUsername = userCacheService.normalizeUsername(data.username);
 
   // Check if username already exists (excluding current user)
-  const exists = await userModel.usernameExists(data.username, id);
+  const exists = await userModel.usernameExists(normalizedUsername, id);
   if (exists) {
     throw new Error("Username already exists");
   }
 
   const updateData = {
-    username: data.username,
+    username: normalizedUsername,
     role: data.role,
   };
 
@@ -58,15 +61,15 @@ const updateUser = async (id, data) => {
 
   if (existing?.username) {
     const usernameChanging =
-      data.username &&
-      userCacheService.normalizeUsername(data.username) !==
+      normalizedUsername &&
+      normalizedUsername !==
         userCacheService.normalizeUsername(existing.username);
 
     if (passwordChanging || usernameChanging) {
       await userCacheService.invalidateUserCache(existing.username);
     }
-    if (usernameChanging && data.username) {
-      await userCacheService.invalidateUserCache(data.username);
+    if (usernameChanging && normalizedUsername) {
+      await userCacheService.invalidateUserCache(normalizedUsername);
     }
   }
 

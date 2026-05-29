@@ -92,10 +92,35 @@ const cleanFailedJobs = async () => {
   return { cleaned: failedJobs.length };
 };
 
+// Create HR Form assignment queue
+const hrFormQueue = new Queue("hr-form-assignments", {
+  redis: {
+    host: process.env.REDIS_HOST || "localhost",
+    port: process.env.REDIS_PORT || 6379,
+  },
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: {
+      type: "exponential",
+      delay: 5000,
+    },
+    removeOnComplete: true,
+    removeOnFail: false,
+  },
+});
+
+const addBulkAssignmentJob = async (formId, employeeIds, userId, dueDate) => {
+  const job = await hrFormQueue.add("bulk-assign", { formId, employeeIds, userId, dueDate });
+  console.log(`[Queue] Added bulk assignment for form ${formId} to ${employeeIds.length} employees (Job ID: ${job.id})`);
+  return job;
+};
+
 module.exports = {
   payslipQueue,
   addPayslipToQueue,
   addBulkPayslipsToQueue,
   getQueueStats,
   cleanFailedJobs,
+  hrFormQueue,
+  addBulkAssignmentJob,
 };

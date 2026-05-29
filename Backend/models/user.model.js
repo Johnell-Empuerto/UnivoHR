@@ -156,7 +156,7 @@ const deleteUser = async (id) => {
 
 // CHECK IF USERNAME EXISTS
 const usernameExists = async (username, excludeId = null) => {
-  let query = `SELECT id FROM users WHERE username = $1`;
+  let query = `SELECT id FROM users WHERE LOWER(username) = LOWER($1)`;
   const params = [username];
 
   if (excludeId) {

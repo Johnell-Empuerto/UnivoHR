@@ -153,24 +153,24 @@ const createAssignment = async (data) => {
 };
 
 const bulkCreateAssignments = async (assignments, assignedBy) => {
-  let created = 0;
-  const skippedEmployeeIds = [];
-  for (const a of assignments) {
-    const existing = await pool.query(
-      `SELECT id FROM hr_form_assignments WHERE form_id=$1 AND employee_id=$2 AND status='Pending'`,
-      [a.form_id, a.employee_id],
-    );
-    if (existing.rows.length > 0) {
-      skippedEmployeeIds.push(a.employee_id);
-      continue;
-    }
-    await pool.query(
-      `INSERT INTO hr_form_assignments (form_id, employee_id, assigned_by, due_date) VALUES ($1,$2,$3,$4)`,
-      [a.form_id, a.employee_id, assignedBy, a.due_date || null],
-    );
-    created++;
-  }
-  return { created_count: created, skipped_employee_ids: skippedEmployeeIds };
+  if (assignments.length === 0) return { created_count: 0, skipped_employee_ids: [] };
+  const formId = assignments[0].form_id;
+  const employeeIds = assignments.map(a => a.employee_id);
+  const dueDate = assignments[0].due_date || null;
+  const result = await pool.query(
+    `INSERT INTO hr_form_assignments (form_id, employee_id, assigned_by, due_date)
+     SELECT $1, t.employee_id, $3, $4::DATE
+     FROM unnest($2::int[]) AS t(employee_id)
+     WHERE NOT EXISTS (
+       SELECT 1 FROM hr_form_assignments a
+       WHERE a.form_id = $1 AND a.employee_id = t.employee_id AND a.status = 'Pending'
+     )
+     RETURNING employee_id`,
+    [formId, employeeIds, assignedBy, dueDate],
+  );
+  const createdIds = result.rows.map(r => r.employee_id);
+  const skippedEmployeeIds = employeeIds.filter(id => !createdIds.includes(id));
+  return { created_count: createdIds.length, skipped_employee_ids: skippedEmployeeIds };
 };
 
 const getAllAssignments = async (search = "", page = 1, limit = 10) => {

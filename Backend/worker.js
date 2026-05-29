@@ -290,6 +290,52 @@ console.log("[Worker] Scheduled daily statistical anomaly scan at 2:30 AM");
 console.log("[Worker] Scheduled weekly statistical anomaly scan on Monday at 3:30 AM");
 
 // ============================================
+// HR FORM ASSIGNMENT QUEUE
+// ============================================
+const hrFormQueue = new Queue("hr-form-assignments", {
+  redis: {
+    host: process.env.REDIS_HOST || "localhost",
+    port: process.env.REDIS_PORT || 6379,
+  },
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: {
+      type: "exponential",
+      delay: 5000,
+    },
+    removeOnComplete: true,
+    removeOnFail: false,
+  },
+});
+
+const hrFormModel = require("./models/hrForm.model");
+
+hrFormQueue.process("bulk-assign", async (job) => {
+  const { formId, employeeIds, userId, dueDate } = job.data;
+  console.log(`[Worker] Processing bulk assignment for form ${formId} to ${employeeIds.length} employees`);
+  const assignments = employeeIds.map(empId => ({
+    form_id: formId,
+    employee_id: empId,
+    due_date: dueDate,
+  }));
+  const result = await hrFormModel.bulkCreateAssignments(assignments, userId);
+  console.log(`[Worker] Bulk assignment complete: ${result.created_count} created, ${result.skipped_employee_ids.length} skipped`);
+  return result;
+});
+
+hrFormQueue.on("completed", (job, result) => {
+  console.log(`[Worker] HR Form assignment job ${job.id} completed:`, result);
+});
+
+hrFormQueue.on("failed", (job, err) => {
+  console.error(`[Worker] HR Form assignment job ${job.id} failed:`, err.message);
+});
+
+hrFormQueue.on("error", (err) => {
+  console.error("[Worker] HR Form assignment queue error:", err);
+});
+
+// ============================================
 // FORECAST GENERATION QUEUE
 // ============================================
 const forecastQueue = new Queue("forecast-generation", {
@@ -378,6 +424,7 @@ process.on("SIGTERM", async () => {
   await anomalyQueue.close();
   await statAnomalyQueue.close();
   await forecastQueue.close();
+  await hrFormQueue.close();
   await pool.end();
   process.exit(0);
 });
@@ -389,6 +436,7 @@ process.on("SIGINT", async () => {
   await anomalyQueue.close();
   await statAnomalyQueue.close();
   await forecastQueue.close();
+  await hrFormQueue.close();
   await pool.end();
   process.exit(0);
 });

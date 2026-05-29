@@ -17,7 +17,7 @@ const findUserByUsername = async (username) => {
     e.email 
   FROM users u
   LEFT JOIN employees e ON e.id = u.employee_id
-  WHERE u.username = $1
+  WHERE LOWER(u.username) = LOWER($1)
 `,
     [username],
   );
