@@ -62,7 +62,11 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
             } else if (notification.type === "OVERTIME") {
               window.location.href = `/myovertime`;
             } else if (notification.type === "PAYROLL") {
-              window.location.href = `/payroll`;
+              if (notification.title.includes("Available") || notification.title.includes("Payslip") || (notification.title.includes("Paid") && user?.role === "EMPLOYEE")) {
+                window.location.href = `/my-payroll`;
+              } else {
+                window.location.href = `/payroll`;
+              }
             } else if (notification.type === "HR_FORM") {
               window.location.href = `/hr-forms`;
             } else if (notification.type === "KPI_EVALUATION") {
@@ -91,7 +95,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       socketInstance.disconnect();
     };
-  }, [isAuth, user?.id]);
+    }, [isAuth, user?.id, user?.role]);
 
   return (
     <SocketContext.Provider value={{ socket, lastNotification }}>

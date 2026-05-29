@@ -1281,6 +1281,33 @@ const getMyBenefits = async (employee_id) => {
 };
 
 // ============================================
+// NOTIFICATION HELPERS
+// ============================================
+const getUserIdsByEmployeeIds = async (employeeIds) => {
+  if (employeeIds.length === 0) return [];
+  const result = await pool.query(
+    `SELECT id, employee_id FROM users WHERE employee_id = ANY($1::int[])`,
+    [employeeIds],
+  );
+  return result.rows;
+};
+
+const getActiveHRUserIds = async () => {
+  const result = await pool.query(
+    `SELECT id FROM users WHERE role IN ('ADMIN', 'HR_ADMIN', 'HR')`,
+  );
+  return result.rows.map(r => r.id);
+};
+
+const getEmployeeIdsByCutoff = async (cutoff_start, cutoff_end) => {
+  const result = await pool.query(
+    `SELECT DISTINCT employee_id FROM payroll WHERE cutoff_start::date = $1::date AND cutoff_end::date = $2::date`,
+    [cutoff_start, cutoff_end],
+  );
+  return result.rows.map(r => r.employee_id);
+};
+
+// ============================================
 // MODULE EXPORTS (UNCHANGED)
 // ============================================
 module.exports = {
@@ -1303,4 +1330,7 @@ module.exports = {
   lockPayroll,
   unlockPayroll,
   voidPayroll,
+  getUserIdsByEmployeeIds,
+  getActiveHRUserIds,
+  getEmployeeIdsByCutoff,
 };

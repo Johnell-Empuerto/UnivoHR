@@ -92,6 +92,12 @@ const NotificationDropdown = () => {
         return "/attendance?tab=time-requests";
 
       case "PAYROLL":
+        if (notification.title.includes("Available") || notification.title.includes("Payslip")) {
+          return "/my-payroll";
+        }
+        if (notification.title.includes("Paid") && !canManage) {
+          return "/my-payroll";
+        }
         return "/payroll";
 
       case "MAN_HOUR":

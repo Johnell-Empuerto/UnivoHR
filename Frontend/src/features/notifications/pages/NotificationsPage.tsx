@@ -115,7 +115,11 @@ const NotificationsPage = () => {
         navigate("/attendance?tab=time-requests");
         break;
       case "PAYROLL":
-        navigate("/payroll");
+        if (notification.title.includes("Available") || notification.title.includes("Payslip") || notification.title.includes("Paid")) {
+          navigate("/my-payroll");
+        } else {
+          navigate("/payroll");
+        }
         break;
       case "MAN_HOUR":
         if (notification.title.includes("New")) {

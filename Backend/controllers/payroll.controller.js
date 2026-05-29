@@ -1,8 +1,36 @@
 const pool = require("../config/db");
 const payrollService = require("../services/payroll.service");
+const payrollModel = require("../models/payroll.model");
 const notificationService = require("../services/notification.service");
 const audit = require("../services/audit.service");
 const { getUserBranchIds } = require("../utils/branchAccess");
+
+const formatPayrollDate = (d) => {
+  if (!d) return "";
+  const dt = new Date(d);
+  return dt.toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
+};
+
+const notifyHR = (title, message, referenceId) => {
+  payrollModel.getActiveHRUserIds().then(userIds => {
+    if (userIds.length === 0) return;
+    const promises = userIds.map(uid =>
+      notificationService.notify({ user_id: uid, type: "PAYROLL", title, message, reference_id: referenceId })
+    );
+    Promise.all(promises).catch(err => console.error("[PAYROLL] HR notify error:", err));
+  });
+};
+
+const notifyPayrollEmployees = (employeeIds, title, message) => {
+  if (employeeIds.length === 0) return;
+  payrollModel.getUserIdsByEmployeeIds(employeeIds).then(users => {
+    if (users.length === 0) return;
+    const promises = users.map(u =>
+      notificationService.notify({ user_id: u.id, type: "PAYROLL", title, message, reference_id: null })
+    );
+    Promise.all(promises).catch(err => console.error("[PAYROLL] bulk notify error:", err));
+  });
+};
 
 // Generate Payroll (with branch access)
 const generatePayroll = async (req, res) => {
@@ -28,6 +56,12 @@ const generatePayroll = async (req, res) => {
       branch_id: branch_id || null,
       new_values: { cutoff_start, cutoff_end, pay_date, branch_id: branch_id || null },
       description: `Payroll generated: ${cutoff_start} to ${cutoff_end}, pay date ${pay_date}${branch_id ? `, branch ${branch_id}` : ""}`,
+    });
+
+    const dateRange = `${formatPayrollDate(cutoff_start)} to ${formatPayrollDate(cutoff_end)}`;
+    notifyHR("Payroll Generated", `Payroll for ${dateRange} has been generated.`, null);
+    payrollModel.getEmployeeIdsByCutoff(cutoff_start, cutoff_end).then(empIds => {
+      notifyPayrollEmployees(empIds, "Payslip Available", `Your payslip for ${dateRange} is now available.`);
     });
 
     res.json(data);
@@ -242,21 +276,29 @@ const markAsPaid = async (req, res) => {
 
     // Get payroll details for in-app notification
     const payroll = await payrollService.getPayrollDetails(payrollId);
+    const dateRange = `${formatPayrollDate(payroll.cutoff_start)} to ${formatPayrollDate(payroll.cutoff_end)}`;
 
-    // Send in-app notification (fast)
-    await notificationService.notify({
-      user_id: payroll.employee_id,
-      type: "PAYROLL",
-      title: "Salary Released",
-      message: `Your salary has been released`,
-      reference_id: payrollId,
-      meta: {
-        payroll_id: payrollId,
-        net_salary: payroll.net_salary,
-        cutoff_start: payroll.cutoff_start,
-        cutoff_end: payroll.cutoff_end,
-      },
+    // Send in-app notification to employee (fire-and-forget user_id lookup)
+    payrollModel.getUserIdsByEmployeeIds([payroll.employee_id]).then(users => {
+      if (users.length > 0) {
+        notificationService.notify({
+          user_id: users[0].id,
+          type: "PAYROLL",
+          title: "Payroll Paid",
+          message: `Your salary for ${dateRange} has been marked as paid.`,
+          reference_id: payrollId,
+          meta: {
+            payroll_id: payrollId,
+            net_salary: payroll.net_salary,
+            cutoff_start: payroll.cutoff_start,
+            cutoff_end: payroll.cutoff_end,
+          },
+        }).catch(err => console.error("[PAYROLL] employee notify error:", err));
+      }
     });
+
+    // Notify HR about the payment
+    notifyHR("Payroll Paid", `Payroll for ${dateRange} has been marked as paid.`, payrollId);
 
     // Audit log
     audit.auditLog(req, {
@@ -299,6 +341,12 @@ const markAllAsPaid = async (req, res) => {
       table_name: "payroll",
       new_values: { status: "PAID", cutoff_start, cutoff_end },
       description: `All payroll marked as paid: ${cutoff_start} to ${cutoff_end} (${data.count} records)`,
+    });
+
+    const dateRange = `${formatPayrollDate(cutoff_start)} to ${formatPayrollDate(cutoff_end)}`;
+    notifyHR("Payroll Paid", `Payroll for ${dateRange} has been marked as paid.`, null);
+    payrollModel.getEmployeeIdsByCutoff(cutoff_start, cutoff_end).then(empIds => {
+      notifyPayrollEmployees(empIds, "Payroll Paid", `Your salary for ${dateRange} has been marked as paid.`);
     });
 
     res.json({
@@ -419,6 +467,8 @@ const lockPayroll = async (req, res) => {
     const data = await payrollService.lockPayroll(id);
     if (!data) return res.status(404).json({ message: "Payroll not found or already locked/paid" });
     audit.auditLog(req, { action: "UPDATE", table_name: "payroll", record_id: Number(id), employee_id: data?.employee_id, old_values: { status: "UNPAID" }, new_values: { status: "LOCKED" }, description: `Payroll ${id} locked` });
+    const dateRange = `${formatPayrollDate(data.cutoff_start)} to ${formatPayrollDate(data.cutoff_end)}`;
+    notifyHR("Payroll Locked", `Payroll for ${dateRange} has been locked.`, id);
     res.json({ message: "Payroll locked successfully", data });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -440,6 +490,8 @@ const unlockPayroll = async (req, res) => {
     const data = await payrollService.unlockPayroll(id);
     if (!data) return res.status(404).json({ message: "Payroll not found or not locked" });
     audit.auditLog(req, { action: "UPDATE", table_name: "payroll", record_id: Number(id), employee_id: data?.employee_id, old_values: { status: "LOCKED" }, new_values: { status: "UNPAID" }, description: `Payroll ${id} unlocked` });
+    const dateRange = `${formatPayrollDate(data.cutoff_start)} to ${formatPayrollDate(data.cutoff_end)}`;
+    notifyHR("Payroll Unlocked", `Payroll for ${dateRange} has been unlocked for modification.`, id);
     res.json({ message: "Payroll unlocked successfully", data });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -461,6 +513,8 @@ const voidPayroll = async (req, res) => {
     const data = await payrollService.voidPayroll(id);
     if (!data) return res.status(404).json({ message: "Payroll not found or already paid/voided" });
     audit.auditLog(req, { action: "UPDATE", table_name: "payroll", record_id: Number(id), employee_id: data?.employee_id, old_values: { status: data?.status === "LOCKED" ? "LOCKED" : "UNPAID" }, new_values: { status: "VOID" }, description: `Payroll ${id} voided` });
+    const dateRange = `${formatPayrollDate(data.cutoff_start)} to ${formatPayrollDate(data.cutoff_end)}`;
+    notifyHR("Payroll Voided", `Payroll for ${dateRange} has been voided.`, id);
     res.json({ message: "Payroll voided successfully", data });
   } catch (err) {
     res.status(500).json({ message: err.message });
