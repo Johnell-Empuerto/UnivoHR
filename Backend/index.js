@@ -135,10 +135,10 @@ app.use("/api/applicants", authenticate, applicantRoutes);
 app.use("/api/kpi/templates", authenticate, kpiTemplateRoutes);
 app.use("/api/kpi/evaluations", authenticate, kpiEvaluationRoutes);
 app.use("/api/hr-forms", authenticate, hrFormRoutes);
+app.use("/api/employee/performance", authenticate, require("./routes/employeePerformance.routes"));
 app.use("/api/applicants", authenticate, applicantRequirementRoutes);
 
 app.use("/api/reports", authenticate, reportRoutes);
-
 
 const queueService = require("./services/queue.service");
 

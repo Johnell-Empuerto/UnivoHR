@@ -10,6 +10,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { formatDateShort } from "@/utils/formatDate";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -236,7 +237,7 @@ const OnboardingPage = () => {
                       <TableCell className="font-medium">{o.first_name} {o.last_name}</TableCell>
                       <TableCell>{o.employee_code}</TableCell>
                       <TableCell>{o.department || "-"}</TableCell>
-                      <TableCell>{o.onboarding_date ? new Date(o.onboarding_date).toLocaleDateString() : "-"}</TableCell>
+                      <TableCell>{o.onboarding_date ? formatDateShort(o.onboarding_date) : "-"}</TableCell>
                       <TableCell>{statusBadge(o.status)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -310,7 +311,7 @@ const OnboardingPage = () => {
                 <p><span className="text-muted-foreground">Employee Code:</span> {selectedOnboarding.employee_code}</p>
                 <p><span className="text-muted-foreground">Position:</span> {selectedOnboarding.position || "-"}</p>
                 <p><span className="text-muted-foreground">Department:</span> {selectedOnboarding.department || "-"}</p>
-                <p><span className="text-muted-foreground">Date:</span> {selectedOnboarding.onboarding_date ? new Date(selectedOnboarding.onboarding_date).toLocaleDateString() : "-"}</p>
+                <p><span className="text-muted-foreground">Date:</span> {selectedOnboarding.onboarding_date ? formatDateShort(selectedOnboarding.onboarding_date) : "-"}</p>
               </div>
 
               <div className="flex items-center justify-between">

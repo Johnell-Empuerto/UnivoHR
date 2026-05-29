@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDateShort } from "@/utils/formatDate";
 import {
   User,
   Mail,
@@ -174,7 +175,7 @@ const ProfilePage = () => {
             label="Birthday"
             value={
               profile.birthday
-                ? new Date(profile.birthday).toLocaleDateString()
+                ? formatDateShort(profile.birthday)
                 : null
             }
           />
@@ -237,7 +238,7 @@ const ProfilePage = () => {
             label="Hired Date"
             value={
               profile.hired_date
-                ? new Date(profile.hired_date).toLocaleDateString()
+                ? formatDateShort(profile.hired_date)
                 : null
             }
           />
@@ -245,21 +246,21 @@ const ProfilePage = () => {
             <InfoField
               icon={<Calendar className="h-3.5 w-3.5" />}
               label="Resignation Date"
-              value={new Date(profile.resignation_date).toLocaleDateString()}
+              value={formatDateShort(profile.resignation_date)}
             />
           )}
           {profile.termination_date && (
             <InfoField
               icon={<Calendar className="h-3.5 w-3.5" />}
               label="Termination Date"
-              value={new Date(profile.termination_date).toLocaleDateString()}
+              value={formatDateShort(profile.termination_date)}
             />
           )}
           {profile.last_working_date && (
             <InfoField
               icon={<Calendar className="h-3.5 w-3.5" />}
               label="Last Working Date"
-              value={new Date(profile.last_working_date).toLocaleDateString()}
+              value={formatDateShort(profile.last_working_date)}
             />
           )}
         </CardContent>
@@ -362,7 +363,7 @@ const ProfilePage = () => {
             label="Account Created"
             value={
               profile.created_at
-                ? new Date(profile.created_at).toLocaleDateString()
+                ? formatDateShort(profile.created_at)
                 : null
             }
           />

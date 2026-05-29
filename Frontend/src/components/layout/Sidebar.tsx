@@ -20,17 +20,20 @@ import {
   Briefcase,
   HeartHandshake,
   BarChart3,
+  UserCheck,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import smallIcon from "@/assets/images/small-icon.png";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { isApprover as checkIsApprover } from "@/services/overtimeService";
+import { getKpiPendingCount } from "@/services/kpiService";
 
 const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
   const { user } = useAuth();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const [isUserApprover, setIsUserApprover] = useState(false);
+  const [isEvaluator, setIsEvaluator] = useState(false);
 
   // Check if current user is assigned as approver
   useEffect(() => {
@@ -46,6 +49,21 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
       }
     };
     checkApproverStatus();
+  }, [user]);
+
+  // Check if current employee has evaluator assignments
+  useEffect(() => {
+    const checkEvaluatorStatus = async () => {
+      if (user?.employee_id) {
+        try {
+          const result = await getKpiPendingCount();
+          setIsEvaluator(result.count > 0);
+        } catch {
+          setIsEvaluator(false);
+        }
+      }
+    };
+    checkEvaluatorStatus();
   }, [user]);
 
   const toggleMenu = (menu: string) => {
@@ -187,7 +205,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           {!collapsed && (canApprove() ? "Manage Leaves" : "My Leaves")}
         </NavLink>
 
-        {/* Performance Management Dropdown - ADMIN / HR_ADMIN only */}
+        {/* Performance (KPI) Dropdown - ADMIN / HR_ADMIN only */}
         {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") &&
           !collapsed && (
             <div>
@@ -219,28 +237,55 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
                   >
                     <ClipboardList className="h-4 w-4" /> KPI Evaluations
                   </NavLink>
+                </div>
+              )}
+            </div>
+          )}
+
+        {/* Forms Dropdown - ADMIN / HR_ADMIN only */}
+        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") &&
+          !collapsed && (
+            <div>
+              <button
+                onClick={() => toggleMenu("forms")}
+                className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5" />
+                  <span>Forms</span>
+                </div>
+                {openMenus["forms"] ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </button>
+              {openMenus["forms"] && (
+                <div className="mt-1 space-y-1">
                   <NavLink
                     to="/hr-forms"
                     className={({ isActive }) => dropdownLinkClass(isActive)}
                   >
-                    <FileText className="h-4 w-4" /> Form Builder
+                    <FileText className="h-4 w-4" /> Form Templates
                   </NavLink>
                   <NavLink
                     to="/hr-forms/assignments"
                     className={({ isActive }) => dropdownLinkClass(isActive)}
                   >
-                    <ClipboardList className="h-4 w-4" /> Assignments
+                    <ClipboardList className="h-4 w-4" /> Assign Forms
                   </NavLink>
                   <NavLink
                     to="/hr-forms/submissions"
                     className={({ isActive }) => dropdownLinkClass(isActive)}
                   >
-                    <ClipboardList className="h-4 w-4" /> Submissions
+                    <ClipboardList className="h-4 w-4" /> Form Submissions
                   </NavLink>
                 </div>
               )}
             </div>
           )}
+
+        {/* Collapsed admin icons */}
         {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && collapsed && (
           <>
             <NavLink
@@ -260,60 +305,103 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             <NavLink
               to="/hr-forms"
               className={({ isActive }) => linkClass(isActive)}
-              title="Form Builder"
+              title="Form Templates"
             >
               <FileText className="h-5 w-5" />
             </NavLink>
             <NavLink
               to="/hr-forms/assignments"
               className={({ isActive }) => linkClass(isActive)}
-              title="Assignments"
+              title="Assign Forms"
             >
               <ClipboardList className="h-5 w-5" />
             </NavLink>
             <NavLink
               to="/hr-forms/submissions"
               className={({ isActive }) => linkClass(isActive)}
-              title="Submissions"
+              title="Form Submissions"
             >
               <ClipboardList className="h-5 w-5" />
             </NavLink>
           </>
         )}
 
-        {/* My Reviews Dropdown - Users linked to an employee */}
-        {user?.employee_id && !collapsed && (
+        {/* Evaluator Dropdown - only shown if has assignments */}
+        {isEvaluator && !collapsed && (
           <div>
             <button
-              onClick={() => toggleMenu("myPerformance")}
+              onClick={() => toggleMenu("evaluator")}
               className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
             >
               <div className="flex items-center gap-3">
                 <ClipboardList className="h-5 w-5" />
-                <span>My Reviews</span>
+                <span>Evaluator</span>
               </div>
-              {openMenus["myPerformance"] ? (
+              {openMenus["evaluator"] ? (
                 <ChevronDown className="h-4 w-4" />
               ) : (
                 <ChevronRight className="h-4 w-4" />
               )}
             </button>
-            {openMenus["myPerformance"] && (
+            {openMenus["evaluator"] && (
               <div className="mt-1 space-y-1">
                 <NavLink
                   to="/kpi/my-evaluations"
                   className={({ isActive }) => dropdownLinkClass(isActive)}
                 >
-                  <ClipboardList className="h-4 w-4" /> Employee Evaluations
+                  <ClipboardList className="h-4 w-4" /> Evaluations Page
                 </NavLink>
-                {user?.role === "EMPLOYEE" && (
-                  <NavLink
-                    to="/my-forms"
-                    className={({ isActive }) => dropdownLinkClass(isActive)}
-                  >
-                    <FileText className="h-4 w-4" /> My Forms
-                  </NavLink>
-                )}
+              </div>
+            )}
+          </div>
+        )}
+        {isEvaluator && collapsed && (
+          <NavLink
+            to="/kpi/my-evaluations"
+            className={({ isActive }) => linkClass(isActive)}
+            title="Evaluations Page"
+          >
+            <ClipboardList className="h-5 w-5" />
+          </NavLink>
+        )}
+
+        {/* Employee Dropdown - Self-service */}
+        {user?.employee_id && !collapsed && (
+          <div>
+            <button
+              onClick={() => toggleMenu("employee")}
+              className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <UserCheck className="h-5 w-5" />
+                <span>Employee KPI</span>
+              </div>
+              {openMenus["employee"] ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </button>
+            {openMenus["employee"] && (
+              <div className="mt-1 space-y-1">
+                <NavLink
+                  to="/my-performance/kpi-results"
+                  className={({ isActive }) => dropdownLinkClass(isActive)}
+                >
+                  <ClipboardList className="h-4 w-4" /> My KPI Results
+                </NavLink>
+                <NavLink
+                  to="/my-performance/probation"
+                  className={({ isActive }) => dropdownLinkClass(isActive)}
+                >
+                  <UserCheck className="h-4 w-4" /> My Probation Status
+                </NavLink>
+                <NavLink
+                  to="/my-forms"
+                  className={({ isActive }) => dropdownLinkClass(isActive)}
+                >
+                  <FileText className="h-4 w-4" /> My Forms
+                </NavLink>
               </div>
             )}
           </div>
@@ -321,21 +409,26 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
         {user?.employee_id && collapsed && (
           <>
             <NavLink
-              to="/kpi/my-evaluations"
+              to="/my-performance/kpi-results"
               className={({ isActive }) => linkClass(isActive)}
-              title="Employee Evaluations"
+              title="My KPI Results"
             >
               <ClipboardList className="h-5 w-5" />
             </NavLink>
-            {user?.role === "EMPLOYEE" && (
-              <NavLink
-                to="/my-forms"
-                className={({ isActive }) => linkClass(isActive)}
-                title="My Forms"
-              >
-                <FileText className="h-5 w-5" />
-              </NavLink>
-            )}
+            <NavLink
+              to="/my-performance/probation"
+              className={({ isActive }) => linkClass(isActive)}
+              title="My Probation Status"
+            >
+              <UserCheck className="h-5 w-5" />
+            </NavLink>
+            <NavLink
+              to="/my-forms"
+              className={({ isActive }) => linkClass(isActive)}
+              title="My Forms"
+            >
+              <FileText className="h-5 w-5" />
+            </NavLink>
           </>
         )}
 

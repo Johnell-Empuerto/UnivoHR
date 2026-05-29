@@ -151,6 +151,16 @@ export const getKpiPendingCount = async () => {
   return response.data;
 };
 
+export const getMyPerformanceSummary = async () => {
+  const response = await api.get("/employee/performance/summary");
+  return response.data;
+};
+
+export const getMyProbationInfo = async () => {
+  const response = await api.get("/employee/performance/probation");
+  return response.data;
+};
+
 export const getEmployees = async (status = "") => {
   const response = await api.get("/employees", { params: { status, limit: 10000 } });
   return response.data;

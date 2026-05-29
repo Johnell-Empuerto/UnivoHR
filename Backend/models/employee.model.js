@@ -86,12 +86,12 @@ const createEmployee = async (data) => {
       sss_number, philhealth_number, hdmf_number, tin_number,
       hired_date, resignation_date, termination_date,
       termination_reason, last_working_date,
-      branch_id, employment_status
+      branch_id, employment_status, probation_period_months
     )
     VALUES (
       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
       $12,$13,$14,$15,$16,$17,$18,$19,$20,
-      $21,$22,$23,$24,$25,$26,$27,$28,$29,$30
+      $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31
     )
     RETURNING *;
   `;
@@ -127,6 +127,7 @@ const createEmployee = async (data) => {
     data.last_working_date || null,
     branchId,
     data.employment_status || "Regular",
+    data.probation_period_months ?? null,
   ];
 
   const result = await pool.query(query, values);
@@ -168,6 +169,7 @@ const updateEmployee = async (id, data, client = null) => {
       termination_reason = $27,
       last_working_date = $28,
       employment_status = $31,
+      probation_period_months = $32,
       branch_id = $30
     WHERE id = $29
     RETURNING *;
@@ -205,6 +207,7 @@ const updateEmployee = async (id, data, client = null) => {
     id,
     branchId,
     data.employment_status || null,
+    data.probation_period_months ?? null,
   ];
 
   const result = await db.query(query, values);
@@ -237,6 +240,12 @@ const updateEmploymentStatus = async (id, employmentStatus) => {
   return result.rows[0];
 };
 
+const regularizeEmployee = async (id) => {
+  const query = "UPDATE employees SET employment_status = 'Regular', regularization_date = CURRENT_DATE WHERE id = $1 RETURNING *;";
+  const result = await pool.query(query, [id]);
+  return result.rows[0];
+};
+
 const updateEmployeeStatusToTerminated = async (id, terminationDate, terminationReason) => {
   const query = "UPDATE employees SET status = 'TERMINATED', termination_date = $1, termination_reason = $2 WHERE id = $3 RETURNING *;";
   const result = await pool.query(query, [terminationDate, terminationReason || null, id]);
@@ -249,5 +258,6 @@ module.exports = {
   updateEmployee,
   getEmployeeById,
   updateEmploymentStatus,
+  regularizeEmployee,
   updateEmployeeStatusToTerminated,
 };

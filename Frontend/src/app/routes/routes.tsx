@@ -48,6 +48,9 @@ import KpiTemplatesPage from "@/features/kpi/pages/KpiTemplatesPage";
 import KpiEvaluationPage from "@/features/kpi/pages/KpiEvaluationPage";
 import EmployeeEvaluationPage from "@/features/kpi/pages/EmployeeEvaluationPage";
 import SelfEvaluationPage from "@/features/kpi/pages/SelfEvaluationPage";
+import MyPerformancePage from "@/features/performance/pages/MyPerformancePage";
+import MyKpiResultsPage from "@/features/performance/pages/MyKpiResultsPage";
+import MyProbationStatusPage from "@/features/performance/pages/MyProbationStatusPage";
 import HrFormsPage from "@/features/hr-forms/pages/HrFormsPage";
 import HrFormBuilderPage from "@/features/hr-forms/pages/HrFormBuilderPage";
 import HrFormAssignmentsPage from "@/features/hr-forms/pages/HrFormAssignmentsPage";
@@ -57,6 +60,7 @@ import MyFormsPage from "@/features/hr-forms/pages/MyFormsPage";
 import MyFormFillPage from "@/features/hr-forms/pages/MyFormFillPage";
 import MyBenefitsPage from "@/features/benefits/pages/MyBenefitsPage";
 import ReportsPage from "@/features/reports/pages/ReportsPage";
+
 
 
 const AppRoutes = () => {
@@ -325,6 +329,38 @@ const AppRoutes = () => {
             element={
               user?.employee_id ? (
                 <SelfEvaluationPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+
+          {/* Employee Performance Portal */}
+          <Route
+            path="/my-performance"
+            element={
+              user?.employee_id ? (
+                <MyPerformancePage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/my-performance/kpi-results"
+            element={
+              user?.employee_id ? (
+                <MyKpiResultsPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/my-performance/probation"
+            element={
+              user?.employee_id ? (
+                <MyProbationStatusPage />
               ) : (
                 <Navigate to="/dashboard" replace />
               )

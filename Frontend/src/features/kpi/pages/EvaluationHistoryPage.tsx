@@ -10,6 +10,7 @@ import EmptyState from "@/components/shared/EmptyState";
 import { History, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers/AuthProvider";
+import { formatDateShort } from "@/utils/formatDate";
 
 const EvaluationHistoryPage = () => {
   const { user } = useAuth();
@@ -125,7 +126,7 @@ const EvaluationHistoryPage = () => {
                       <TableCell><span className="font-semibold">{r.final_score || "-"}</span></TableCell>
                       <TableCell>{r.recommendation ? <Badge variant="outline">{r.recommendation}</Badge> : "-"}</TableCell>
                       <TableCell>{statusBadge(r.status)}</TableCell>
-                      <TableCell className="text-sm">{r.updated_at ? new Date(r.updated_at).toLocaleDateString() : "-"}</TableCell>
+                      <TableCell className="text-sm">{r.updated_at ? formatDateShort(r.updated_at) : "-"}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="sm" title="View" onClick={() => handleViewDetail(r.id)}><Eye className="h-4 w-4" /></Button>
                       </TableCell>

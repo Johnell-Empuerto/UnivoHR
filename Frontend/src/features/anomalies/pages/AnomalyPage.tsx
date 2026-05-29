@@ -6,6 +6,7 @@ import {
   runDailyScan,
 } from "@/services/anomalyService";
 import type { Anomaly, AnomalySummary as AnomalySummaryType } from "@/services/anomalyService";
+import { formatDateShort } from "@/utils/formatDate";
 import {
   Table,
   TableBody,
@@ -401,7 +402,7 @@ const AnomalyPage = () => {
                           {a.source_module.replace("_", " ")}
                         </TableCell>
                         <TableCell className="text-xs">
-                          {new Date(a.detected_at).toLocaleDateString()}
+                          {formatDateShort(a.detected_at)}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">

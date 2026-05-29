@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDateShort } from "@/utils/formatDate";
 import {
   Search,
   Loader2,
@@ -440,7 +441,7 @@ const ApprovalSettings = () => {
                           </span>
                         </TableCell>
                         <TableCell>
-                          {new Date(item.created_at).toLocaleDateString()}
+                          {formatDateShort(item.created_at)}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">

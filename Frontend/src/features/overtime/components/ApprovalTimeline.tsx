@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle, XCircle, Clock } from "lucide-react";
+import { formatDateTime } from "@/utils/formatDate";
 
 type ApprovalTimelineProps = {
   request: {
@@ -30,7 +31,7 @@ const ApprovalTimeline = ({ request }: ApprovalTimelineProps) => {
           <div>
             <p className="font-medium text-sm">Request Submitted</p>
             <p className="text-xs text-muted-foreground">
-              {new Date(request.created_at).toLocaleString()}
+              {formatDateTime(request.created_at)}
             </p>
           </div>
         </div>
@@ -71,7 +72,7 @@ const ApprovalTimeline = ({ request }: ApprovalTimelineProps) => {
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {request.approved_at
-                    ? new Date(request.approved_at).toLocaleString()
+                    ? formatDateTime(request.approved_at)
                     : ""}
                 </p>
               </>

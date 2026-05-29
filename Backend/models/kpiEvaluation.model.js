@@ -33,9 +33,11 @@ const getEvaluationsByEmployee = async (employeeId, status = "", page, limit) =>
   const hasPagination = page !== undefined && limit !== undefined;
   if (hasPagination) {
     const offset = (page - 1) * limit;
-    let query = `SELECT eke.*, kt.name AS template_name
+    let query = `SELECT eke.*, kt.name AS template_name,
+                        ev.first_name || ' ' || ev.last_name AS evaluator_name
                  FROM employee_kpi_evaluations eke
                  JOIN kpi_templates kt ON kt.id = eke.template_id
+                 LEFT JOIN employees ev ON ev.id = eke.evaluator_id
                  WHERE eke.employee_id = $1`;
     const params = [employeeId];
     let idx = 2;
@@ -60,9 +62,11 @@ const getEvaluationsByEmployee = async (employeeId, status = "", page, limit) =>
   }
 
   // Backward-compatible: no pagination
-  let query = `SELECT eke.*, kt.name AS template_name
+  let query = `SELECT eke.*, kt.name AS template_name,
+                      ev.first_name || ' ' || ev.last_name AS evaluator_name
                FROM employee_kpi_evaluations eke
                JOIN kpi_templates kt ON kt.id = eke.template_id
+               LEFT JOIN employees ev ON ev.id = eke.evaluator_id
                WHERE eke.employee_id = $1`;
   const params = [employeeId];
   if (status) {

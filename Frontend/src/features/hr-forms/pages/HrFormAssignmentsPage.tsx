@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ClipboardList, ChevronLeft, ChevronRight, Loader2, Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import Loader from "@/components/shared/Loader";
+import { formatDateShort } from "@/utils/formatDate";
 import EmptyState from "@/components/shared/EmptyState";
 
 const statusBadge = (s: string) => {
@@ -175,9 +176,9 @@ const HrFormAssignmentsPage = () => {
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.employee_name}<p className="text-xs text-muted-foreground">{a.employee_code}</p></TableCell>
                       <TableCell>{a.form_title}</TableCell>
-                      <TableCell>{a.due_date ? new Date(a.due_date).toLocaleDateString() : "-"}</TableCell>
+                      <TableCell>{a.due_date ? formatDateShort(a.due_date) : "-"}</TableCell>
                       <TableCell>{statusBadge(a.status)}</TableCell>
-                      <TableCell>{a.submitted_at ? new Date(a.submitted_at).toLocaleDateString() : "-"}</TableCell>
+                      <TableCell>{a.submitted_at ? formatDateShort(a.submitted_at) : "-"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

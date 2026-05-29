@@ -9,6 +9,7 @@ import {
 } from "@/services/dashboardService";
 import { getAnomalySummary } from "@/services/anomalyService";
 import { leaveService } from "@/services/leaveService";
+import { formatDateShort } from "@/utils/formatDate";
 import StatsCard from "../components/StatsCard";
 import AttendanceChart from "../components/AttendanceChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -542,8 +543,8 @@ const EmployeeDashboardContent = React.memo(
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(leave.from_date).toLocaleDateString()} -{" "}
-                          {new Date(leave.to_date).toLocaleDateString()}
+                          {formatDateShort(leave.from_date)} -{" "}
+                          {formatDateShort(leave.to_date)}
                         </p>
                         {leave.reason && (
                           <p className="text-xs text-muted-foreground truncate max-w-50">

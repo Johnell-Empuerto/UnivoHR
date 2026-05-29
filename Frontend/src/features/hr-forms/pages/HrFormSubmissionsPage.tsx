@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Eye, ChevronLeft, ChevronRight, Loader2, FileText } from "lucide-react";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
+import { formatDateShort } from "@/utils/formatDate";
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = { Submitted: "bg-blue-100 text-blue-800", Reviewed: "bg-green-100 text-green-800" };
@@ -98,7 +99,7 @@ const HrFormSubmissionsPage = () => {
                       <TableCell className="font-medium">{s.employee_name}<p className="text-xs text-muted-foreground">{s.employee_code}</p></TableCell>
                       <TableCell>{s.form_title}</TableCell>
                       <TableCell>{statusBadge(s.status)}</TableCell>
-                      <TableCell>{new Date(s.submitted_at).toLocaleDateString()}</TableCell>
+                      <TableCell>{formatDateShort(s.submitted_at)}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon-sm" title="View" onClick={() => navigate(`/hr-forms/submissions/${s.id}`)}>
                           <Eye className="h-4 w-4" />

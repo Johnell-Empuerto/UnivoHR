@@ -55,6 +55,7 @@ type Employee = {
   branch_id?: number | null;
   branch_name?: string | null;
   employment_status?: string | null;
+  probation_period_months?: number | null;
 };
 
 type Props = {
@@ -207,6 +208,7 @@ const EmployeeDrawer = ({
         position: "",
         status: "ACTIVE",
         employment_status: "Regular",
+        probation_period_months: "",
         rfid_tag: "",
         fingerprint_id: "",
         birthday: "",
@@ -296,8 +298,13 @@ const EmployeeDrawer = ({
         return;
       }
 
+      const probationMonths = form.probation_period_months !== "" && form.probation_period_months != null
+        ? Number(form.probation_period_months)
+        : null;
+
       const apiData = {
         ...form,
+        probation_period_months: probationMonths,
         name: form.name || `${form.first_name} ${form.last_name || ""}`.trim(),
       };
 
@@ -384,6 +391,14 @@ const EmployeeDrawer = ({
                 <Info label="Department" value={employee?.department} />
                 <Info label="Position" value={employee?.position} />
                 <Info label="Employment Status" value={employee?.employment_status} />
+                <Info
+                  label="Probation Period"
+                  value={
+                    employee?.probation_period_months
+                      ? `${employee.probation_period_months} months`
+                      : "Company Default"
+                  }
+                />
                 <div>
                   <p className="text-xs text-muted-foreground">Status</p>
                   <span
@@ -670,6 +685,22 @@ const EmployeeDrawer = ({
                   <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${form.employment_status === "Regular" ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}`}>
                     {form.employment_status || "Regular"}
                   </span>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Probation Period (Months)</p>
+                  <input
+                    type="number"
+                    name="probation_period_months"
+                    value={form.probation_period_months ?? ""}
+                    onChange={handleChange}
+                    disabled={!canEditMode}
+                    min={1}
+                    max={24}
+                    placeholder="Company Default"
+                    className="w-full border rounded px-2 py-1 bg-background"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Leave blank to use company default (6 months)</p>
                 </div>
 
                 {/* Show separation date fields when status is RESIGNED or TERMINATED */}

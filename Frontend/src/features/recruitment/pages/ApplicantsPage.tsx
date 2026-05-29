@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
+import { formatDateShort } from "@/utils/formatDate";
 import { Users, Plus, ChevronLeft, ChevronRight, Eye, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -201,7 +202,7 @@ const ApplicantsPage = () => {
                         {a.first_name} {a.middle_name ? a.middle_name + " " : ""}{a.last_name}{a.suffix ? ", " + a.suffix : ""}
                       </TableCell>
                       <TableCell>{a.job_title || "-"}</TableCell>
-                      <TableCell>{a.applied_date ? new Date(a.applied_date).toLocaleDateString() : "-"}</TableCell>
+                      <TableCell>{a.applied_date ? formatDateShort(a.applied_date) : "-"}</TableCell>
                       <TableCell>{statusBadge(a.status)}</TableCell>
                       <TableCell>{a.rating || "-"}</TableCell>
                       <TableCell>

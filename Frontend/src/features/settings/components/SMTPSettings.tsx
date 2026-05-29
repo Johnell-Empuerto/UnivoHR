@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatDateTime } from "@/utils/formatDate";
 import {
   Dialog,
   DialogContent,
@@ -337,7 +338,7 @@ const SMTPSettings = () => {
                           <span className="text-muted-foreground">
                             Last Test:
                           </span>{" "}
-                          {new Date(item.last_test_sent_at).toLocaleString()}
+                          {formatDateTime(item.last_test_sent_at)}
                         </div>
                       )}
                     </div>

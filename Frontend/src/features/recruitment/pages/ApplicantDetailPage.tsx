@@ -12,6 +12,7 @@ import {
   deleteApplicantRequirement,
 } from "@/services/applicantRequirementService";
 import { getActiveBranches } from "@/services/branchService";
+import { formatDateShort } from "@/utils/formatDate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -281,7 +282,7 @@ const ApplicantDetailPage = () => {
           <CardContent className="space-y-2 text-sm">
             <p><span className="text-muted-foreground">Position:</span> {applicant.job_title || "-"}</p>
             <p><span className="text-muted-foreground">Department:</span> {applicant.job_department || "-"}</p>
-            <p><span className="text-muted-foreground">Applied:</span> {applicant.applied_date ? new Date(applicant.applied_date).toLocaleDateString() : "-"}</p>
+            <p><span className="text-muted-foreground">Applied:</span> {applicant.applied_date ? formatDateShort(applicant.applied_date) : "-"}</p>
             <p><span className="text-muted-foreground">Source:</span> {applicant.source || "-"}</p>
             <p><span className="text-muted-foreground">Rating:</span> {applicant.rating || "-"}</p>
             {applicant.notes && <p><span className="text-muted-foreground">Notes:</span> {applicant.notes}</p>}
@@ -317,7 +318,7 @@ const ApplicantDetailPage = () => {
                       <TableCell className="font-medium">{r.requirement_name}</TableCell>
                       <TableCell>{reqStatusBadge(r.status)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{r.remarks || "-"}</TableCell>
-                      <TableCell className="text-sm">{r.verified_date ? new Date(r.verified_date).toLocaleDateString() : "-"}</TableCell>
+                      <TableCell className="text-sm">{r.verified_date ? formatDateShort(r.verified_date) : "-"}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1 flex-wrap">
                           <Button variant="ghost" size="sm" title="Edit" onClick={() => handleOpenEditReq(r)}>

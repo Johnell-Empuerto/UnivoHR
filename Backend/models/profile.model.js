@@ -29,6 +29,7 @@ const getProfileByEmployeeId = async (employeeId) => {
       e.hdmf_number,
       e.tin_number,
       e.hired_date,
+      e.employment_status,
       e.resignation_date,
       e.termination_date,
       e.last_working_date,

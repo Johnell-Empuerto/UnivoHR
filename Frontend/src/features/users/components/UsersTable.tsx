@@ -14,6 +14,7 @@ import { Pencil, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import EmptyState from "@/components/shared/EmptyState";
+import { formatDateShort } from "@/utils/formatDate";
 import type { User } from "@/services/userService";
 
 type UsersTableProps = {
@@ -154,7 +155,7 @@ const UsersTable = ({
                     <TableCell>{getRoleBadge(user.role)}</TableCell>
                     <TableCell>{user.department || "-"}</TableCell>
                     <TableCell>
-                      {new Date(user.created_at).toLocaleDateString()}
+                      {formatDateShort(user.created_at)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import EmptyState from "@/components/shared/EmptyState";
 import Loader from "@/components/shared/Loader";
+import { formatTime } from "@/utils/formatDate";
 import {
   Table,
   TableBody,
@@ -475,8 +476,8 @@ const ReportsPage = () => {
                   {row.status}
                 </Badge>
               </TableCell>
-              <TableCell className="font-mono text-xs">{row.check_in_time ? new Date(row.check_in_time).toLocaleTimeString() : "-"}</TableCell>
-              <TableCell className="font-mono text-xs">{row.check_out_time ? new Date(row.check_out_time).toLocaleTimeString() : "-"}</TableCell>
+              <TableCell className="font-mono text-xs">{row.check_in_time ? formatTime(row.check_in_time) : "-"}</TableCell>
+              <TableCell className="font-mono text-xs">{row.check_out_time ? formatTime(row.check_out_time) : "-"}</TableCell>
               <TableCell>{row.department}</TableCell>
               <TableCell>{row.branch_name}</TableCell>
             </TableRow>

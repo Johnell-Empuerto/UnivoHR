@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ClipboardList, Loader2, Eye } from "lucide-react";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
+import { formatDateShort } from "@/utils/formatDate";
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
@@ -59,7 +60,7 @@ const MyFormsPage = () => {
                   {assignments.map((a: any) => (
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.form_title}</TableCell>
-                      <TableCell>{a.due_date ? new Date(a.due_date).toLocaleDateString() : "-"}</TableCell>
+                      <TableCell>{a.due_date ? formatDateShort(a.due_date) : "-"}</TableCell>
                       <TableCell>{statusBadge(a.status)}</TableCell>
                       <TableCell>
                         {a.status === "Pending" ? (

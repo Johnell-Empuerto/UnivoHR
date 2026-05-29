@@ -167,7 +167,7 @@ const hrApprove = async (evaluationId, data) => {
 
   const rec = evalData.recommendation || data.recommendation;
   if (rec === "Regularize") {
-    await employeeModel.updateEmploymentStatus(evalData.employee_id, "Regular");
+    await employeeModel.regularizeEmployee(evalData.employee_id);
   } else if (rec === "Terminate") {
     if (!data.termination_date) throw new Error("Termination date is required for termination");
     await employeeModel.updateEmployeeStatusToTerminated(
