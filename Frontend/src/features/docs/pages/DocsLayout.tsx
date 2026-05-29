@@ -53,9 +53,9 @@ const DocsLayout = () => {
       return;
     }
     if (
+      user.role === "SYSTEM_ADMIN" ||
       user.role === "ADMIN" ||
-      user.role === "HR_ADMIN" ||
-      user.role === "HR"
+      user.role === "HR_USER"
     ) {
       setIsUserApprover(false);
       return;

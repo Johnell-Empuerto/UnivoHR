@@ -54,7 +54,7 @@ export const leaveService = {
     return res.data;
   },
 
-  // GET ALL EMPLOYEE CREDITS (ADMIN/HR_ADMIN)
+  // GET ALL EMPLOYEE CREDITS (SYSTEM_ADMIN/ADMIN)
   getAllEmployeeCredits: async (page = 1, limit = 10, search = "", department = "") => {
     const params = new URLSearchParams();
     params.append("page", page.toString());
@@ -66,13 +66,13 @@ export const leaveService = {
     return res.data;
   },
 
-  // GET SINGLE EMPLOYEE CREDITS (ADMIN/HR_ADMIN)
+  // GET SINGLE EMPLOYEE CREDITS (SYSTEM_ADMIN/ADMIN)
   getEmployeeCredits: async (employeeId: number) => {
     const res = await api.get(`/leaves/credits/${employeeId}`);
     return res.data;
   },
 
-  // UPDATE EMPLOYEE CREDITS (ADMIN/HR_ADMIN)
+  // UPDATE EMPLOYEE CREDITS (SYSTEM_ADMIN/ADMIN)
   updateEmployeeCredits: async (employeeId: number, data: any) => {
     const res = await api.put(`/leaves/credits/${employeeId}`, data);
     return res.data;

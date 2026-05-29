@@ -1,17 +1,19 @@
 const { getUserBranchIds, normalizeBranchId } = require("../utils/branchAccess");
+const { normalizeRole } = require("../constants/roles");
 
 const requireBranchAccessFromQuery = (paramName = "branch_id") => {
   return async (req, res, next) => {
     try {
       const rawValue = req.query[paramName];
       const branchId = normalizeBranchId(rawValue);
+      const role = normalizeRole(req.user.role);
 
-      if (req.user.role === "ADMIN" || req.user.role === "HR_ADMIN") {
+      if (role === "SYSTEM_ADMIN" || role === "ADMIN") {
         req.allowedBranchIds = branchId ? [branchId] : null;
         return next();
       }
 
-      if (req.user.role === "EMPLOYEE") {
+      if (role === "EMPLOYEE" || role === "PAYROLL_USER") {
         return res.status(403).json({ message: "Forbidden: Employees cannot use branch filtering" });
       }
 
@@ -43,12 +45,14 @@ const requireBranchAccessFromBody = (paramName = "branch_id") => {
       const rawValue = req.body[paramName];
       const branchId = normalizeBranchId(rawValue);
 
-      if (req.user.role === "ADMIN" || req.user.role === "HR_ADMIN") {
+      const role = normalizeRole(req.user.role);
+
+      if (role === "SYSTEM_ADMIN" || role === "ADMIN") {
         req.allowedBranchIds = branchId ? [branchId] : null;
         return next();
       }
 
-      if (req.user.role === "EMPLOYEE") {
+      if (role === "EMPLOYEE" || role === "PAYROLL_USER") {
         return res.status(403).json({ message: "Forbidden: Employees cannot use branch filtering" });
       }
 

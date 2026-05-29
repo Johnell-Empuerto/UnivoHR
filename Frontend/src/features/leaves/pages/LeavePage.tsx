@@ -37,8 +37,8 @@ const LeavePage = () => {
   const [isLeaveApprover, setIsLeaveApprover] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const isHR = ["ADMIN", "HR_ADMIN", "HR"].includes(user?.role ?? "");
-  const canManageCredits = user?.role === "ADMIN" || user?.role === "HR_ADMIN";
+  const isHR = ["ADMIN", "HR_USER"].includes(user?.role ?? "");
+  const canManageCredits = user?.role === "ADMIN";
 
   // My Leaves State
   const [myLeaves, setMyLeaves] = useState<Leave[]>([]);

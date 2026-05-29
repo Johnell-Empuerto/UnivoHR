@@ -15,8 +15,8 @@ const getById = async (req, res) => {
     const policy = await hrPolicyService.getById(req.params.id);
 
     if (
+      req.user.role !== "SYSTEM_ADMIN" &&
       req.user.role !== "ADMIN" &&
-      req.user.role !== "HR_ADMIN" &&
       !policy.is_active
     ) {
       return res.status(404).json({ message: "Policy not found" });

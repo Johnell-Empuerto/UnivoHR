@@ -19,7 +19,7 @@ const getAnomalies = async (req, res) => {
     } = req.query;
 
     let allowedBranchIds = null;
-    if (req.user.role === "HR") {
+    if (req.user.role === "HR_USER") {
       allowedBranchIds = await getUserBranchIds(req.user.id);
       if (allowedBranchIds.length === 0) {
         return res.status(403).json({ message: "No branch access" });
@@ -50,7 +50,7 @@ const getAnomalies = async (req, res) => {
 const getAnomalySummary = async (req, res) => {
   try {
     let allowedBranchIds = null;
-    if (req.user.role === "HR") {
+    if (req.user.role === "HR_USER") {
       allowedBranchIds = await getUserBranchIds(req.user.id);
       if (allowedBranchIds.length === 0) {
         return res.json({

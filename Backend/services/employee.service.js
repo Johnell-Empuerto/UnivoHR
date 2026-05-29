@@ -36,7 +36,7 @@ const updateEmployee = async (id, data) => {
 
     if (userResult.rows.length > 0) {
       const user = userResult.rows[0];
-      if (user.role === "HR") {
+      if (user.role === "HR_USER") {
         const existing = await client.query(
           `SELECT id FROM user_branch_access WHERE user_id = $1 AND branch_id = $2`,
           [user.id, currentEmployee.branch_id],

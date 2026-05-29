@@ -132,10 +132,9 @@ const getAllOvertime = async (
 
   // Filter by assigned employees for non-admin users
   const isAdmin =
-    userRole === "ADMIN" || userRole === "HR_ADMIN" || userRole === "HR";
+    userRole === "SYSTEM_ADMIN" || userRole === "ADMIN" || userRole === "HR_USER";
 
   if (!isAdmin) {
-    // For non-admin users (EMPLOYEE approvers), only show requests from employees they are assigned to
     query += ` AND EXISTS (
       SELECT 1 FROM employee_approvers ea
       WHERE ea.employee_id = o.employee_id
@@ -177,7 +176,7 @@ const getAllOvertime = async (
   let countIndex = 1;
 
   const isAdminForCount =
-    userRole === "ADMIN" || userRole === "HR_ADMIN" || userRole === "HR";
+    userRole === "SYSTEM_ADMIN" || userRole === "ADMIN" || userRole === "HR_USER";
 
   if (!isAdminForCount) {
     countQuery += ` AND EXISTS (
@@ -402,13 +401,12 @@ const canApprove = async (
   approval_type,
   userRole = null,
 ) => {
-  // ADMIN and HR_ADMIN can always approve
-  if (userRole === "ADMIN" || userRole === "HR_ADMIN") {
+  const role = userRole;
+  if (role === "SYSTEM_ADMIN" || role === "ADMIN") {
     return true;
   }
 
-  // HR can always approve
-  if (userRole === "HR") {
+  if (role === "HR_USER") {
     return true;
   }
 

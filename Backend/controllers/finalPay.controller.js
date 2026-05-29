@@ -2,6 +2,7 @@ const pool = require("../config/db");
 const finalPayService = require("../services/finalPay.service");
 const audit = require("../services/audit.service");
 const { getUserBranchIds } = require("../utils/branchAccess");
+const { normalizeRole, ROLES } = require("../constants/roles");
 
 // Get employees eligible for final pay
 const getEmployeesForFinalPay = async (req, res) => {
@@ -9,7 +10,8 @@ const getEmployeesForFinalPay = async (req, res) => {
     const { page = 1, limit = 10, search = "" } = req.query;
 
     let allowedBranchIds = null;
-    if (req.user.role !== "ADMIN" && req.user.role !== "HR_ADMIN") {
+    const fpRole = normalizeRole(req.user.role);
+    if (fpRole !== ROLES.SYSTEM_ADMIN && fpRole !== ROLES.ADMIN) {
       allowedBranchIds = await getUserBranchIds(req.user.id);
       if (allowedBranchIds.length === 0) {
         return res.status(403).json({ message: "You are not allowed to manage this branch." });
@@ -37,7 +39,8 @@ const calculateFinalPay = async (req, res) => {
   try {
     const { employeeId } = req.params;
 
-    if (req.user.role !== "ADMIN" && req.user.role !== "HR_ADMIN") {
+    const calcRole = normalizeRole(req.user.role);
+    if (calcRole !== ROLES.SYSTEM_ADMIN && calcRole !== ROLES.ADMIN) {
       const assigned = await getUserBranchIds(req.user.id);
       const empResult = await pool.query(`SELECT branch_id FROM employees WHERE id = $1`, [employeeId]);
       if (empResult.rows.length === 0) {
@@ -61,7 +64,8 @@ const processFinalPay = async (req, res) => {
   try {
     const { employeeId } = req.params;
 
-    if (req.user.role !== "ADMIN" && req.user.role !== "HR_ADMIN") {
+    const procRole = normalizeRole(req.user.role);
+    if (procRole !== ROLES.SYSTEM_ADMIN && procRole !== ROLES.ADMIN) {
       const assigned = await getUserBranchIds(req.user.id);
       const empResult = await pool.query(`SELECT branch_id FROM employees WHERE id = $1`, [employeeId]);
       if (empResult.rows.length === 0) {
@@ -95,7 +99,8 @@ const getFinalPayHistory = async (req, res) => {
     const { page = 1, limit = 10, search = "" } = req.query;
 
     let allowedBranchIds = null;
-    if (req.user.role !== "ADMIN" && req.user.role !== "HR_ADMIN") {
+    const histRole = normalizeRole(req.user.role);
+    if (histRole !== ROLES.SYSTEM_ADMIN && histRole !== ROLES.ADMIN) {
       allowedBranchIds = await getUserBranchIds(req.user.id);
       if (allowedBranchIds.length === 0) {
         return res.status(403).json({ message: "You are not allowed to manage this branch." });
@@ -120,7 +125,8 @@ const getFinalPayById = async (req, res) => {
     const { id } = req.params;
     const result = await finalPayService.getFinalPayById(id);
 
-    if (req.user.role !== "ADMIN" && req.user.role !== "HR_ADMIN") {
+    const byIdRole = normalizeRole(req.user.role);
+    if (byIdRole !== ROLES.SYSTEM_ADMIN && byIdRole !== ROLES.ADMIN) {
       const assigned = await getUserBranchIds(req.user.id);
       const empResult = await pool.query(`SELECT branch_id FROM employees WHERE id = $1`, [result.employee_id]);
       const empBranch = empResult.rows[0]?.branch_id;
@@ -142,7 +148,8 @@ const downloadFinalPaySlip = async (req, res) => {
 
     const record = await finalPayService.getFinalPayById(id);
 
-    if (req.user.role !== "ADMIN" && req.user.role !== "HR_ADMIN") {
+    const dlRole = normalizeRole(req.user.role);
+    if (dlRole !== ROLES.SYSTEM_ADMIN && dlRole !== ROLES.ADMIN) {
       const assigned = await getUserBranchIds(req.user.id);
       const empResult = await pool.query(`SELECT branch_id FROM employees WHERE id = $1`, [record.employee_id]);
       const empBranch = empResult.rows[0]?.branch_id;

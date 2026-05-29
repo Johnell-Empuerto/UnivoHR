@@ -67,7 +67,7 @@ const NotificationDropdown = () => {
 
   // Smart navigation based on notification type and content
   const getNavigationPath = (notification: Notification) => {
-    const isHR = ["ADMIN", "HR_ADMIN", "HR"].includes(user?.role || "");
+    const isHR = ["ADMIN", "HR_USER"].includes(user?.role || "");
     const canManage = isHR || isUserApprover;
 
     switch (notification.type) {

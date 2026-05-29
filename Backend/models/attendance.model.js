@@ -162,7 +162,7 @@ const getAttendance = async (
     JOIN users u ON u.employee_id = e.id
     LEFT JOIN branches b ON b.id = e.branch_id
     WHERE
-      u.role != 'ADMIN'
+      u.role != 'SYSTEM_ADMIN'
       AND (
         e.first_name ILIKE $3 OR
         e.last_name ILIKE $3 OR
@@ -186,7 +186,7 @@ const getAttendance = async (
     JOIN users u ON u.employee_id = e.id
     LEFT JOIN branches b ON b.id = e.branch_id
     WHERE
-      u.role != 'ADMIN'
+      u.role != 'SYSTEM_ADMIN'
       AND (
         e.first_name ILIKE $1 OR
         e.last_name ILIKE $1 OR

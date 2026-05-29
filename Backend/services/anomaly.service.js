@@ -45,7 +45,7 @@ const createAnomalyRecord = async (req, anomalyData) => {
 
 const notifyHighSeverityAnomaly = async (anomaly) => {
   const adminUsers = await pool.query(
-    `SELECT id FROM users WHERE role IN ('ADMIN', 'HR_ADMIN') AND is_active = true`
+    `SELECT id FROM users WHERE role IN ('SYSTEM_ADMIN', 'ADMIN') AND is_active = true`
   );
 
   for (const user of adminUsers.rows) {

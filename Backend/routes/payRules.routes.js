@@ -13,7 +13,7 @@ const ROLES = require("../constants/roles");
 router.get(
   "/pay-rules",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
   calendarController.getAllPayRules,
 );
 
@@ -21,7 +21,7 @@ router.get(
 router.get(
   "/pay-rules/:id",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
   calendarController.getPayRuleById,
 );
 
@@ -29,7 +29,7 @@ router.get(
 router.post(
   "/pay-rules",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
   calendarController.createPayRule,
 );
 
@@ -37,7 +37,7 @@ router.post(
 router.put(
   "/pay-rules/:id",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
   calendarController.updatePayRule,
 );
 
@@ -45,7 +45,7 @@ router.put(
 router.delete(
   "/pay-rules/:id",
   authenticate,
-  authorize([ROLES.ADMIN]),
+  authorize([ROLES.SYSTEM_ADMIN]),
   calendarController.deletePayRule,
 );
 
@@ -55,7 +55,7 @@ router.delete(
 router.get(
   "/calendar-days",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
   calendarController.getCalendarDays,
 );
 
@@ -63,7 +63,7 @@ router.get(
 router.post(
   "/calendar-days",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
   calendarController.upsertCalendarDay,
 );
 
@@ -71,7 +71,7 @@ router.post(
 router.delete(
   "/calendar-days/:date",
   authenticate,
-  authorize([ROLES.ADMIN]),
+  authorize([ROLES.SYSTEM_ADMIN]),
   calendarController.deleteCalendarDay,
 );
 

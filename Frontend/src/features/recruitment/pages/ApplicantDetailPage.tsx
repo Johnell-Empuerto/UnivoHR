@@ -68,7 +68,7 @@ const ApplicantDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isAdmin = user?.role === "ADMIN" || user?.role === "HR_ADMIN";
+  const isAdmin = user?.role === "ADMIN";
 
   const [applicant, setApplicant] = useState<Applicant | null>(null);
   const [branches, setBranches] = useState<{ id: number; code: string; name: string }[]>([]);

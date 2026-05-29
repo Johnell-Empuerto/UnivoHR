@@ -3,10 +3,9 @@ const router = express.Router();
 const controller = require("../controllers/user.controller");
 const authenticate = require("../middleware/auth.middleware");
 const authorize = require("../middleware/role.middleware");
-const ROLES = require("../constants/roles");
+const { ROLES } = require("../constants/roles");
 
-// All user routes require ADMIN or HR_ADMIN role
-router.use(authenticate, authorize([ROLES.ADMIN, ROLES.HR_ADMIN]));
+router.use(authenticate, authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]));
 
 // GET users with pagination and filters
 router.get("/", controller.getUsers);

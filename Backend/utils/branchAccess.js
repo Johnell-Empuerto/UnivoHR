@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { normalizeRole } = require("../constants/roles");
 
 const getUserBranchIds = async (userId) => {
   const result = await pool.query(
@@ -10,8 +11,9 @@ const getUserBranchIds = async (userId) => {
 
 const canAccessBranch = async (user, branchId) => {
   if (!user) return false;
-  if (user.role === "ADMIN" || user.role === "HR_ADMIN") return true;
-  if (user.role === "EMPLOYEE") return false;
+  const role = normalizeRole(user.role);
+  if (role === "SYSTEM_ADMIN" || role === "ADMIN") return true;
+  if (role === "EMPLOYEE" || role === "PAYROLL_USER") return false;
   const branchNum = Number(branchId);
   if (!branchNum) return false;
   const branches = await getUserBranchIds(user.id);

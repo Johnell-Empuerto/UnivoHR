@@ -61,7 +61,7 @@ const TermsPage = () => {
       icon: Shield,
       title: "Role-Based Access",
       description:
-        "ADMIN, HR_ADMIN, HR, and EMPLOYEE roles with specific permissions",
+        "SYSTEM_ADMIN, ADMIN, HR_USER, PAYROLL_USER, and EMPLOYEE roles with specific permissions",
     },
     {
       icon: Clock,

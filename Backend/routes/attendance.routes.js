@@ -6,7 +6,7 @@ const authenticate = require("../middleware/auth.middleware");
 const authorize = require("../middleware/role.middleware");
 const { requireBranchAccessFromQuery } = require("../middleware/branchAccess.middleware");
 const validate = require("../middleware/validate.middleware");
-const ROLES = require("../constants/roles");
+const { ROLES } = require("../constants/roles");
 
 const Joi = require("joi");
 
@@ -37,67 +37,18 @@ const statusUpdateSchema = Joi.object({
 //  TIME REQUEST ROUTES FIRST (IMPORTANT)
 // ==========================
 
-// CREATE
-router.post(
-  "/time-requests",
-  authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.EMPLOYEE]),
-  validate(timeModificationSchema),
-  controller.createTimeModificationRequest,
-);
+// TIME REQUESTS
+const ALL_ROLES = [ROLES.ADMIN, ROLES.HR_USER, ROLES.PAYROLL_USER, ROLES.EMPLOYEE];
+const HR_ROLES = [ROLES.ADMIN, ROLES.HR_USER];
 
-// GET MY
-router.get(
-  "/time-requests/my",
-  authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.EMPLOYEE]),
-  controller.getMyTimeModificationRequests,
-);
+router.post("/time-requests", authenticate, authorize(ALL_ROLES), validate(timeModificationSchema), controller.createTimeModificationRequest);
+router.get("/time-requests/my", authenticate, authorize(ALL_ROLES), controller.getMyTimeModificationRequests);
+router.get("/time-requests", authenticate, authorize(HR_ROLES), controller.getTimeModificationRequests);
+router.put("/time-requests/:id/status", authenticate, authorize(HR_ROLES), validate(statusUpdateSchema), controller.updateTimeModificationStatus);
 
-// GET ALL
-router.get(
-  "/time-requests",
-  authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR]),
-  controller.getTimeModificationRequests,
-);
-
-// UPDATE STATUS
-router.put(
-  "/time-requests/:id/status",
-  authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR]),
-  validate(statusUpdateSchema),
-  controller.updateTimeModificationStatus,
-);
-
-// ==========================
-// ATTENDANCE ROUTES AFTER
-// ==========================
-
-// CREATE ATTENDANCE
-router.post(
-  "/",
-  authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
-  controller.createAttendance,
-);
-
-// GET ALL (HR/Admin with branch filtering)
-router.get(
-  "/",
-  authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.EMPLOYEE]),
-  requireBranchAccessFromQuery("branch_id"),
-  controller.getAttendance,
-);
-
-//  GENERIC ROUTE MUST BE LAST
-router.get(
-  "/:id",
-  authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.EMPLOYEE]),
-  controller.getByEmployee,
-);
+// ATTENDANCE
+router.post("/", authenticate, authorize([ROLES.ADMIN]), controller.createAttendance);
+router.get("/", authenticate, authorize([...HR_ROLES, ROLES.PAYROLL_USER, ROLES.EMPLOYEE]), requireBranchAccessFromQuery("branch_id"), controller.getAttendance);
+router.get("/:id", authenticate, authorize([...HR_ROLES, ROLES.PAYROLL_USER, ROLES.EMPLOYEE]), controller.getByEmployee);
 
 module.exports = router;

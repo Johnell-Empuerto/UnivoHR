@@ -2,6 +2,7 @@ const attendanceService = require("../services/attendance.service");
 const rulesService = require("../services/attendance.service");
 const attendanceModel = require("../models/attendance.model");
 const audit = require("../services/audit.service");
+const { normalizeRole } = require("../constants/roles");
 
 // Create attendance (check-in / check-out logic)
 const createAttendance = async (req, res) => {
@@ -247,7 +248,7 @@ const createTimeModificationRequest = async (req, res) => {
     const adminUsers = await pool.query(
       `SELECT DISTINCT u.id
        FROM users u
-       WHERE u.role IN ('ADMIN', 'HR_ADMIN', 'HR')`,
+       WHERE u.role IN ('SYSTEM_ADMIN', 'ADMIN', 'HR_USER')`,
     );
 
     const employeeResult = await pool.query(
@@ -359,13 +360,14 @@ const updateTimeModificationStatus = async (req, res) => {
       `SELECT role FROM users WHERE employee_id = $1`,
       [request.employee_id],
     );
-    const ownerRole = requestOwnerRole.rows[0]?.role || "EMPLOYEE";
+    const ownerRole = normalizeRole(requestOwnerRole.rows[0]?.role) || "EMPLOYEE";
+    const normalizedUserRole = normalizeRole(userRole);
 
     const canApprove =
       (ownerRole === "EMPLOYEE" &&
-        ["HR", "HR_ADMIN", "ADMIN"].includes(userRole)) ||
-      (ownerRole === "HR" && ["HR_ADMIN", "ADMIN"].includes(userRole)) ||
-      (ownerRole === "HR_ADMIN" && userRole === "ADMIN");
+        ["HR_USER", "ADMIN", "SYSTEM_ADMIN"].includes(normalizedUserRole)) ||
+      (ownerRole === "HR_USER" && ["ADMIN", "SYSTEM_ADMIN"].includes(normalizedUserRole)) ||
+      (ownerRole === "ADMIN" && normalizedUserRole === "SYSTEM_ADMIN");
 
     if (!canApprove) {
       return res.status(403).json({

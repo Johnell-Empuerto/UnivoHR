@@ -66,7 +66,7 @@ const AttendancePage = () => {
   const { user } = useAuth();
   const location = useLocation();
   const isAdmin =
-    user?.role === "ADMIN" || user?.role === "HR_ADMIN" || user?.role === "HR";
+    user?.role === "ADMIN" || user?.role === "HR_USER";
 
   // Read tab from query parameter
   useEffect(() => {
@@ -142,7 +142,7 @@ const AttendancePage = () => {
         setLoading(true);
         let result;
 
-        if (user?.role === "EMPLOYEE") {
+        if (user?.role === "EMPLOYEE" || user?.role === "SYSTEM_ADMIN") {
           const data = await getAttendanceByEmployee(user.employee_id, formattedDate);
           result = {
             data,

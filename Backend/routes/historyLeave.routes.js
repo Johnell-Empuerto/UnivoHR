@@ -5,7 +5,7 @@ const authorize = require("../middleware/role.middleware");
 const ROLES = require("../constants/roles");
 
 // All routes require authentication
-router.use(authorize([ROLES.ADMIN, ROLES.HR_ADMIN]));
+router.use(authorize([ROLES.ADMIN]));
 
 // Get all conversions with pagination and filters
 router.get("/", controller.getAll);

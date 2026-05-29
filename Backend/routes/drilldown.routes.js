@@ -6,7 +6,7 @@ const authenticate = require("../middleware/auth.middleware");
 const authorize = require("../middleware/role.middleware");
 
 const ROLES = require("../constants/roles");
-const ADMIN_HR = [ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR];
+const ADMIN_HR = [ROLES.ADMIN, ROLES.HR_USER];
 
 router.get("/attendance", authenticate, authorize(ADMIN_HR), controller.getAttendance);
 router.get("/payroll", authenticate, authorize(ADMIN_HR), controller.getPayroll);

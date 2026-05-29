@@ -28,7 +28,7 @@ const statusBadge = (s: string) => {
 
 const KpiEvaluationPage = () => {
   const { user } = useAuth();
-  const isHr = user?.role === "ADMIN" || user?.role === "HR_ADMIN";
+  const isHr = user?.role === "ADMIN" || user?.role === "HR_USER";
   const [evaluations, setEvaluations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);

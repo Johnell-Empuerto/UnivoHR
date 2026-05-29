@@ -104,12 +104,10 @@ interface UploadResult {
 const CalendarPage: React.FC = () => {
   const { user } = useAuth();
 
-  // Role-based access control flags (matching backend routes)
-  const canEdit = user?.role === "ADMIN" || user?.role === "HR_ADMIN";
-  const canDelete = user?.role === "ADMIN" || user?.role === "HR_ADMIN";
-  const canBulkUpload = user?.role === "ADMIN" || user?.role === "HR_ADMIN";
-  const canDownloadTemplate =
-    user?.role === "ADMIN" || user?.role === "HR_ADMIN";
+  const canEdit = user?.role === "ADMIN";
+  const canDelete = user?.role === "ADMIN";
+  const canBulkUpload = user?.role === "ADMIN";
+  const canDownloadTemplate = user?.role === "ADMIN";
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     new Date(),
@@ -992,7 +990,7 @@ const CalendarPage: React.FC = () => {
                     <p>• Hover over events for details</p>
                     <p>• Use date picker to jump to any month/year</p>
                     <p className="text-blue-600 mt-2">
-                      Note: ADMIN and HR_ADMIN have full access
+                      Note: SYSTEM_ADMIN and ADMIN have full access
                     </p>
                   </>
                 ) : (

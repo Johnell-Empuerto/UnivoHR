@@ -56,9 +56,9 @@ type Employee = {
 const EmployeeList = () => {
   const { user } = useAuth();
 
-  const canCreate = user?.role === "ADMIN" || user?.role === "HR_ADMIN";
-  const canEdit = user?.role === "ADMIN" || user?.role === "HR_ADMIN";
-  const canView = canCreate || user?.role === "HR";
+  const canCreate = user?.role === "ADMIN";
+  const canEdit = user?.role === "ADMIN";
+  const canView = canCreate || user?.role === "HR_USER" || user?.role === "PAYROLL_USER" || user?.role === "SYSTEM_ADMIN";
 
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);

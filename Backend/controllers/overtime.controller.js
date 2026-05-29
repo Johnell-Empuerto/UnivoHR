@@ -1,6 +1,7 @@
 const overtimeService = require("../services/overtime.service");
 const notificationService = require("../services/notification.service");
 const audit = require("../services/audit.service");
+const { normalizeRole } = require("../constants/roles");
 
 // Helper function to format date
 const formatDateForMeta = (dateString) => {
@@ -24,7 +25,7 @@ const createOvertime = async (req, res) => {
     const adminUsers = await pool.query(
       `SELECT DISTINCT u.id 
        FROM users u
-       WHERE u.role IN ('ADMIN', 'HR_ADMIN', 'HR')`,
+       WHERE u.role IN ('SYSTEM_ADMIN', 'ADMIN', 'HR_USER')`,
     );
 
     const assignedApprovers = await pool.query(

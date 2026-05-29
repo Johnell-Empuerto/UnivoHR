@@ -15,7 +15,7 @@ import { formatDateShort } from "@/utils/formatDate";
 const EvaluationHistoryPage = () => {
   const { user } = useAuth();
   const employeeId = user?.employee_id;
-  const isHr = user?.role === "ADMIN" || user?.role === "HR_ADMIN";
+  const isHr = user?.role === "SYSTEM_ADMIN" || user?.role === "ADMIN";
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);

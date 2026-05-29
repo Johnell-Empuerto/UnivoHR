@@ -399,11 +399,11 @@ const PayRollPage = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={`grid w-full max-w-md ${user?.role === "ADMIN" || user?.role === "HR_ADMIN" ? "grid-cols-4" : "grid-cols-3"}`}>
+        <TabsList className={`grid w-full max-w-md ${user?.role === "ADMIN" || user?.role === "PAYROLL_USER" ? "grid-cols-4" : "grid-cols-3"}`}>
           <TabsTrigger value="records">Payroll Records</TabsTrigger>
           <TabsTrigger value="final-pay">Final Pay</TabsTrigger>
           <TabsTrigger value="generate">Generate Payroll</TabsTrigger>
-          {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && (
+          {(user?.role === "ADMIN" || user?.role === "PAYROLL_USER") && (
             <TabsTrigger value="settings">Settings</TabsTrigger>
           )}
         </TabsList>
@@ -416,7 +416,7 @@ const PayRollPage = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex flex-wrap items-center gap-4">
-                {user?.role !== "EMPLOYEE" && (
+                {user?.role !== "EMPLOYEE" && user?.role !== "SYSTEM_ADMIN" && (
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Branch:</span>
                     <Select
@@ -732,7 +732,7 @@ const PayRollPage = () => {
         {/* ============================================ */}
         {/* SETTINGS TAB */}
         {/* ============================================ */}
-        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && (
+        {(user?.role === "SYSTEM_ADMIN" || user?.role === "ADMIN") && (
           <TabsContent value="settings" className="mt-6">
             <PayrollSettings />
           </TabsContent>

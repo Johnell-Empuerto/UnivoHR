@@ -11,7 +11,7 @@ const ROLES = require("../constants/roles");
 router.get(
   "/active",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
   controller.getRules,
 );
 
@@ -19,7 +19,7 @@ router.get(
 router.get(
   "/",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
   controller.getAllRules,
 );
 
@@ -27,7 +27,7 @@ router.get(
 router.post(
   "/",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
   controller.createRule,
 );
 
@@ -35,7 +35,7 @@ router.post(
 router.put(
   "/:id/activate",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
   controller.setActiveRule,
 );
 
@@ -43,7 +43,7 @@ router.put(
 router.delete(
   "/:id",
   authenticate,
-  authorize([ROLES.ADMIN]), // ONLY ADMIN
+  authorize([ROLES.SYSTEM_ADMIN]), // ONLY SYSTEM_ADMIN
   controller.deleteRule,
 );
 
@@ -51,7 +51,7 @@ router.delete(
 router.put(
   "/:id",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
   controller.updateRule,
 );
 

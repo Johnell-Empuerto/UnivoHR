@@ -134,7 +134,7 @@ const getMyAssignments = async (employeeId) => {
 const getAssignmentById = async (assignmentId, userId, userRole, employeeId) => {
   const assignment = await model.getAssignmentById(assignmentId);
   if (!assignment) throw new Error("Assignment not found");
-  const isHr = userRole === "ADMIN" || userRole === "HR_ADMIN";
+  const isHr = userRole === "SYSTEM_ADMIN" || userRole === "ADMIN";
   if (!isHr && Number(assignment.employee_id) !== Number(employeeId)) {
     throw new Error("You are not assigned to this form");
   }

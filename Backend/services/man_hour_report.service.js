@@ -4,6 +4,7 @@ const smtpService = require("./smtp.service");
 const settingService = require("./setting.service");
 const emailTemplateService = require("./emailTemplate.service");
 const pool = require("../config/db");
+const { normalizeRole } = require("../constants/roles");
 
 // Helper function to format date
 const formatDate = (dateStr) => {
@@ -169,7 +170,8 @@ const approveManHourReport = async (id, approver_id, comment, userRole) => {
   }
 
   let canApprove = false;
-  if (userRole === "ADMIN" || userRole === "HR_ADMIN" || userRole === "HR") {
+  const role = normalizeRole(userRole);
+  if (role === "SYSTEM_ADMIN" || role === "ADMIN" || role === "HR_USER") {
     canApprove = true;
   } else {
     canApprove = await manHourReportModel.canApprove(
@@ -228,7 +230,8 @@ const rejectManHourReport = async (id, approver_id, reason, userRole) => {
   }
 
   let canApprove = false;
-  if (userRole === "ADMIN" || userRole === "HR_ADMIN" || userRole === "HR") {
+  const role = normalizeRole(userRole);
+  if (role === "SYSTEM_ADMIN" || role === "ADMIN" || role === "HR_USER") {
     canApprove = true;
   } else {
     canApprove = await manHourReportModel.canApprove(
@@ -342,13 +345,9 @@ const getMissingManHourDates = async (employee_id, start_date, end_date) => {
 const deleteManHourReport = async (id, employee_id, userRole) => {
   const report = await manHourReportModel.getManHourReportDetails(id);
 
-  // Only admin/HR can delete any report, employee can only delete their own pending reports
-  if (
-    userRole !== "ADMIN" &&
-    userRole !== "HR_ADMIN" &&
-    userRole !== "HR" &&
-    report.employee_id !== employee_id
-  ) {
+  const delRole = normalizeRole(userRole);
+  const canDelete = delRole === "SYSTEM_ADMIN" || delRole === "ADMIN" || delRole === "HR_USER";
+  if (!canDelete && report.employee_id !== employee_id) {
     throw new Error("You don't have permission to delete this report");
   }
 

@@ -72,7 +72,7 @@ const emptyForm = {
 
 const HRPolicies = () => {
   const { user } = useAuth();
-  const isAdmin = user?.role === "ADMIN" || user?.role === "HR_ADMIN";
+  const isAdmin = user?.role === "SYSTEM_ADMIN" || user?.role === "ADMIN";
 
   const [policies, setPolicies] = useState<HrPolicy[]>([]);
   const [loading, setLoading] = useState(true);

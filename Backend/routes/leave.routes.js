@@ -8,7 +8,7 @@ const authenticate = require("../middleware/auth.middleware");
 const authorize = require("../middleware/role.middleware");
 const validate = require("../middleware/validate.middleware");
 
-const ROLES = require("../constants/roles");
+const { ROLES, normalizeRole } = require("../constants/roles");
 
 // Joi schema for leave validation
 const Joi = require("joi");
@@ -38,204 +38,117 @@ const leaveSchema = Joi.object({
 // LEAVE APPROVERS ROUTE (Allow approvers)
 // ==========================================
 
+const HR_ACCESS = [ROLES.ADMIN, ROLES.HR_USER];
+const ALL = [ROLES.ADMIN, ROLES.HR_USER, ROLES.PAYROLL_USER, ROLES.EMPLOYEE];
+const ADMIN_ONLY = [ROLES.ADMIN];
+
 // Custom middleware to check if user is a leave approver
 const canAccessLeaveApprovers = async (req, res, next) => {
-  // ADMIN and HR_ADMIN have full access
-  if (req.user.role === "ADMIN" || req.user.role === "HR_ADMIN") {
-    return next();
-  }
+  const role = normalizeRole(req.user.role);
+  if (HR_ACCESS.includes(role)) return next();
 
-  // HR can also access
-  if (req.user.role === "HR") {
-    return next();
-  }
-
-  // Check if user is assigned as a leave approver for anyone
   try {
     const pool = require("../config/db");
     const result = await pool.query(
       `SELECT EXISTS (
         SELECT 1 FROM employee_approvers 
         WHERE approver_id = $1 
-        AND approval_type = 'LEAVE'
+        AND (approval_type = 'LEAVE' OR approval_type = 'ALL')
         LIMIT 1
       ) as is_leave_approver`,
       [req.user.id],
     );
-
-    if (result.rows[0].is_leave_approver) {
-      return next();
-    }
+    if (result.rows[0].is_leave_approver) return next();
   } catch (error) {
     console.error("Error checking leave approver status:", error);
   }
 
   return res.status(403).json({
     message: "Forbidden: Insufficient permissions",
-    required: ["ADMIN", "HR_ADMIN", "HR", "LEAVE_APPROVER"],
+    required: HR_ACCESS,
     yourRole: req.user.role,
   });
 };
 
-// LEAVE APPROVERS PAGE ROUTE
 router.get("/approvers", authenticate, canAccessLeaveApprovers, (req, res) => {
-  // This just allows the page to load - the actual data comes from the API
   res.json({ message: "Access granted" });
 });
 
-// ==========================================
-// LEAVE REQUESTS ROUTES
-// ==========================================
+// CREATE LEAVE
+router.post("/", authenticate, authorize(ALL), validate(leaveSchema), controller.createLeave);
 
-// CREATE LEAVE (everyone)
-router.post(
-  "/",
-  authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.EMPLOYEE]),
-  validate(leaveSchema),
-  controller.createLeave,
-);
+// MY LEAVES
+router.get("/my", authenticate, authorize(ALL), controller.getMyLeaves);
 
-// MY LEAVES (everyone)
-router.get(
-  "/my",
-  authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.EMPLOYEE]),
-  controller.getMyLeaves,
-);
+// VIEW ALL LEAVES (+ approvers)
+router.get("/", authenticate, async (req, res, next) => {
+  const role = normalizeRole(req.user.role);
+  if (HR_ACCESS.includes(role)) return next();
 
-// VIEW ALL LEAVES (HR side + approvers)
-router.get(
-  "/",
-  authenticate,
-  async (req, res, next) => {
-    // ADMIN, HR_ADMIN, HR have full access
-    if (
-      req.user.role === "ADMIN" ||
-      req.user.role === "HR_ADMIN" ||
-      req.user.role === "HR"
-    ) {
-      return next();
-    }
+  try {
+    const pool = require("../config/db");
+    const result = await pool.query(
+      `SELECT EXISTS (
+        SELECT 1 FROM employee_approvers 
+        WHERE approver_id = $1 
+        AND (approval_type = 'LEAVE' OR approval_type = 'ALL')
+        LIMIT 1
+      ) as is_leave_approver`,
+      [req.user.id],
+    );
+    if (result.rows[0].is_leave_approver) return next();
+  } catch (error) {
+    console.error("Error checking leave approver status:", error);
+  }
 
-    // Check if user is a leave approver
-    try {
-      const pool = require("../config/db");
-      const result = await pool.query(
-        `SELECT EXISTS (
-          SELECT 1 FROM employee_approvers 
-          WHERE approver_id = $1 
-          AND approval_type = 'LEAVE'
-          LIMIT 1
-        ) as is_leave_approver`,
-        [req.user.id],
-      );
-
-      if (result.rows[0].is_leave_approver) {
-        return next();
-      }
-    } catch (error) {
-      console.error("Error checking leave approver status:", error);
-    }
-
-    return res.status(403).json({
-      message: "Forbidden: Insufficient permissions",
-      required: ["ADMIN", "HR_ADMIN", "HR", "LEAVE_APPROVER"],
-      yourRole: req.user.role,
-    });
-  },
-  controller.getLeaves,
-);
+  return res.status(403).json({
+    message: "Forbidden: Insufficient permissions",
+    required: HR_ACCESS,
+    yourRole: req.user.role,
+  });
+}, controller.getLeaves);
 
 // APPROVE / REJECT
-router.put(
-  "/:id/status",
-  authenticate,
-  async (req, res, next) => {
-    // ADMIN, HR_ADMIN, HR have full access
-    if (
-      req.user.role === "ADMIN" ||
-      req.user.role === "HR_ADMIN" ||
-      req.user.role === "HR"
-    ) {
-      return next();
+router.put("/:id/status", authenticate, async (req, res, next) => {
+  const role = normalizeRole(req.user.role);
+  if (HR_ACCESS.includes(role)) return next();
+
+  try {
+    const leaveId = req.params.id;
+    const pool = require("../config/db");
+    const leaveResult = await pool.query(
+      `SELECT employee_id FROM leaves WHERE id = $1`,
+      [leaveId],
+    );
+    if (leaveResult.rows.length === 0) {
+      return res.status(404).json({ message: "Leave not found" });
     }
 
-    // Check if user is a leave approver for this specific employee
-    try {
-      const leaveId = req.params.id;
-      const pool = require("../config/db");
+    const employeeId = leaveResult.rows[0].employee_id;
+    const approverResult = await pool.query(
+      `SELECT 1 FROM employee_approvers 
+       WHERE employee_id = $1 
+       AND approver_id = $2 
+       AND (approval_type = 'LEAVE' OR approval_type = 'ALL')
+       LIMIT 1`,
+      [employeeId, req.user.id],
+    );
+    if (approverResult.rows.length > 0) return next();
+  } catch (error) {
+    console.error("Error checking leave approver status:", error);
+  }
 
-      // First get the employee_id from the leave request
-      const leaveResult = await pool.query(
-        `SELECT employee_id FROM leaves WHERE id = $1`,
-        [leaveId],
-      );
+  return res.status(403).json({
+    message: "You are not allowed to approve this leave request",
+  });
+}, controller.updateStatus);
 
-      if (leaveResult.rows.length === 0) {
-        return res.status(404).json({ message: "Leave not found" });
-      }
+// MY CREDITS
+router.get("/credits", authenticate, authorize(ALL), leaveCreditController.getMyCredits);
 
-      const employeeId = leaveResult.rows[0].employee_id;
-
-      // Check if user is assigned as approver for this employee
-      const approverResult = await pool.query(
-        `SELECT 1 FROM employee_approvers 
-         WHERE employee_id = $1 
-         AND approver_id = $2 
-         AND approval_type = 'LEAVE'
-         LIMIT 1`,
-        [employeeId, req.user.id],
-      );
-
-      if (approverResult.rows.length > 0) {
-        return next();
-      }
-    } catch (error) {
-      console.error("Error checking leave approver status:", error);
-    }
-
-    return res.status(403).json({
-      message: "You are not allowed to approve this leave request",
-    });
-  },
-  controller.updateStatus,
-);
-
-// LEAVE CREDITS (everyone) - MY CREDITS
-router.get(
-  "/credits",
-  authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR, ROLES.EMPLOYEE]),
-  leaveCreditController.getMyCredits,
-);
-
-// ==========================================
-// LEAVE CREDITS MANAGEMENT (ADMIN/HR_ADMIN ONLY)
-// ==========================================
-
-// GET ALL CREDITS (ADMIN/HR_ADMIN)
-router.get(
-  "/credits/all",
-  authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
-  leaveCreditController.getAllCredits,
-);
-
-// GET SINGLE EMPLOYEE CREDITS (ADMIN/HR_ADMIN)
-router.get(
-  "/credits/:employeeId",
-  authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
-  leaveCreditController.getEmployeeCredits,
-);
-
-// UPDATE EMPLOYEE CREDITS (ADMIN/HR_ADMIN)
-router.put(
-  "/credits/:employeeId",
-  authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
-  leaveCreditController.updateCredits,
-);
+// CREDITS MANAGEMENT
+router.get("/credits/all", authenticate, authorize(ADMIN_ONLY), leaveCreditController.getAllCredits);
+router.get("/credits/:employeeId", authenticate, authorize(ADMIN_ONLY), leaveCreditController.getEmployeeCredits);
+router.put("/credits/:employeeId", authenticate, authorize(ADMIN_ONLY), leaveCreditController.updateCredits);
 
 module.exports = router;

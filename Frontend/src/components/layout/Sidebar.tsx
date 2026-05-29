@@ -86,17 +86,14 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
         : "text-muted-foreground hover:bg-muted hover:text-foreground"
     }`;
 
-  // Determine if user can approve (has approval)
   const canApprove = () => {
     return (
       user?.role === "ADMIN" ||
-      user?.role === "HR_ADMIN" ||
-      user?.role === "HR" ||
+      user?.role === "HR_USER" ||
       isUserApprover
     );
   };
 
-  // Determine if user is regular employee (only request, no approve)
   const isRegularEmployee = () => {
     return user?.role === "EMPLOYEE" && !isUserApprover;
   };
@@ -177,10 +174,8 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           {!collapsed && "Attendance"}
         </NavLink>
 
-        {/* Anomaly Detection - ADMIN and HR_ADMIN only */}
         {(user?.role === "ADMIN" ||
-          user?.role === "HR_ADMIN" ||
-          user?.role === "HR") && (
+          user?.role === "HR_USER") && (
           <NavLink
             to="/anomalies"
             className={({ isActive }) => linkClass(isActive)}
@@ -205,8 +200,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           {!collapsed && (canApprove() ? "Manage Leaves" : "My Leaves")}
         </NavLink>
 
-        {/* Performance (KPI) Dropdown - ADMIN / HR_ADMIN only */}
-        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") &&
+        {(user?.role === "ADMIN" || user?.role === "HR_USER") &&
           !collapsed && (
             <div>
               <button
@@ -242,8 +236,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             </div>
           )}
 
-        {/* Forms Dropdown - ADMIN / HR_ADMIN only */}
-        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") &&
+        {(user?.role === "ADMIN" || user?.role === "HR_USER") &&
           !collapsed && (
             <div>
               <button
@@ -286,7 +279,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           )}
 
         {/* Collapsed admin icons */}
-        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && collapsed && (
+        {(user?.role === "ADMIN" || user?.role === "HR_USER") && collapsed && (
           <>
             <NavLink
               to="/kpi/templates"
@@ -556,8 +549,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           </>
         )}
 
-        {/* Employees - ADMIN and HR_ADMIN */}
-        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && (
+        {(user?.role === "SYSTEM_ADMIN" || user?.role === "ADMIN" || user?.role === "HR_USER" || user?.role === "PAYROLL_USER") && (
           <NavLink
             to="/employees"
             className={({ isActive }) => linkClass(isActive)}
@@ -567,10 +559,8 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           </NavLink>
         )}
 
-        {/* Recruitment Dropdown - HR roles only */}
         {(user?.role === "ADMIN" ||
-          user?.role === "HR_ADMIN" ||
-          user?.role === "HR") &&
+          user?.role === "HR_USER") &&
           !collapsed && (
             <div>
               <button
@@ -608,10 +598,8 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             </div>
           )}
 
-        {/* Collapsed Recruitment Icons */}
         {(user?.role === "ADMIN" ||
-          user?.role === "HR_ADMIN" ||
-          user?.role === "HR") &&
+          user?.role === "HR_USER") &&
           collapsed && (
             <>
               <NavLink
@@ -631,10 +619,8 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             </>
           )}
 
-        {/* Reports - ADMIN/HR_ADMIN/HR */}
         {(user?.role === "ADMIN" ||
-          user?.role === "HR_ADMIN" ||
-          user?.role === "HR") && (
+          user?.role === "HR_USER") && (
           <NavLink
             to="/reports"
             className={({ isActive }) => linkClass(isActive)}
@@ -671,8 +657,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           {!collapsed && "Calendar"}
         </NavLink>
 
-        {/* Accounts - ADMIN only */}
-        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && (
+        {(user?.role === "SYSTEM_ADMIN" || user?.role === "ADMIN") && (
           <NavLink
             to="/users"
             className={({ isActive }) => linkClass(isActive)}
@@ -682,8 +667,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           </NavLink>
         )}
 
-        {/* Branch Management - ADMIN and HR_ADMIN only */}
-        {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && (
+        {(user?.role === "SYSTEM_ADMIN" || user?.role === "ADMIN") && (
           <NavLink
             to="/branches"
             className={({ isActive }) => linkClass(isActive)}
@@ -693,10 +677,8 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           </NavLink>
         )}
 
-        {/* Settings - ADMIN, HR_ADMIN, HR */}
-        {(user?.role === "ADMIN" ||
-          user?.role === "HR_ADMIN" ||
-          user?.role === "HR") && (
+        {(user?.role === "SYSTEM_ADMIN" ||
+          user?.role === "ADMIN") && (
           <NavLink
             to="/settings"
             className={({ isActive }) => linkClass(isActive)}

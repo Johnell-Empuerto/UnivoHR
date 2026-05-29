@@ -88,13 +88,11 @@ const OvertimeRequests = () => {
     checkApproverStatus();
   }, [user]);
 
-  // Updated: User can approve if ADMIN, HR_ADMIN, HR, or assigned as approver
+  // User can approve if ADMIN, HR_USER, or assigned as approver
   const canUserApprove = (request: OvertimeRequest) => {
-    // Super admins can always approve
     if (
       user?.role === "ADMIN" ||
-      user?.role === "HR_ADMIN" ||
-      user?.role === "HR"
+      user?.role === "HR_USER"
     ) {
       return true;
     }
@@ -112,8 +110,7 @@ const OvertimeRequests = () => {
   const canShowApprovalActions = () => {
     return (
       user?.role === "ADMIN" ||
-      user?.role === "HR_ADMIN" ||
-      user?.role === "HR" ||
+      user?.role === "HR_USER" ||
       isUserApprover
     );
   };

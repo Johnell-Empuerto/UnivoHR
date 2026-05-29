@@ -6,6 +6,7 @@ const smtpService = require("./smtp.service");
 const settingService = require("./setting.service");
 const notificationService = require("./notification.service");
 const emailTemplateService = require("./emailTemplate.service");
+const { normalizeRole } = require("../constants/roles");
 
 // Helper function to calculate days (UPDATED to support half-day)
 const calculateDays = (from, to, dayFraction = 1) => {
@@ -121,7 +122,7 @@ const getEmployeeRole = async (employeeId) => {
     `SELECT u.role FROM users u WHERE u.employee_id = $1`,
     [employeeId],
   );
-  return result.rows[0]?.role;
+  return normalizeRole(result.rows[0]?.role);
 };
 
 // Check available credits with half-day support

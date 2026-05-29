@@ -42,7 +42,6 @@ import DailyBreakdownStackedBar from "../components/DailyBreakdownStackedBar";
 import InsightsPanel from "../components/InsightsPanel";
 import StatInsightCard from "../components/StatInsightCard";
 import ForecastCard from "../components/ForecastCard";
-import DrilldownDrawer from "@/components/drilldown/DrilldownDrawer";
 import React from "react";
 
 interface LeaveCredits {
@@ -174,24 +173,36 @@ const AdminDashboardContent = React.memo(
                   <ShieldAlert className="h-5 w-5 text-orange-600" />
                   <h3 className="font-semibold">Anomaly Alerts</h3>
                 </div>
-                <span className="text-xs text-muted-foreground">Click to view all</span>
+                <span className="text-xs text-muted-foreground">
+                  Click to view all
+                </span>
               </div>
               <div className="grid grid-cols-4 gap-4">
                 <div>
                   <p className="text-xs text-muted-foreground">Open</p>
-                  <p className="text-xl font-bold">{anomalySummary.open_count}</p>
+                  <p className="text-xl font-bold">
+                    {anomalySummary.open_count}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">High Severity</p>
-                  <p className="text-xl font-bold text-destructive">{anomalySummary.high_severity_count}</p>
+                  <p className="text-xl font-bold text-destructive">
+                    {anomalySummary.high_severity_count}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Detected Today</p>
-                  <p className="text-xl font-bold">{anomalySummary.today_detected_count}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Detected Today
+                  </p>
+                  <p className="text-xl font-bold">
+                    {anomalySummary.today_detected_count}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Resolved</p>
-                  <p className="text-xl font-bold text-green-600">{anomalySummary.resolved_count}</p>
+                  <p className="text-xl font-bold text-green-600">
+                    {anomalySummary.resolved_count}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -224,7 +235,7 @@ const AdminDashboardContent = React.memo(
         </div>
 
         {/* Advanced Analytics Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           {employeeGrowthData.length > 0 && (
             <EmployeeGrowthChart data={employeeGrowthData} />
           )}
@@ -655,7 +666,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [employeeTrends, setEmployeeTrends] = useState<any>(null);
 
-  const isAdminLevel = user?.role === "ADMIN" || user?.role === "HR_ADMIN";
+  const isAdminLevel = user?.role === "ADMIN";
 
   // Memoize fetchData to prevent unnecessary re-renders
   const fetchData = useCallback(async () => {

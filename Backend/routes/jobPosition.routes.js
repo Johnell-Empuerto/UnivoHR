@@ -9,42 +9,42 @@ const ROLES = require("../constants/roles");
 router.get(
   "/active",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR]),
+  authorize([ROLES.ADMIN, ROLES.HR_USER]),
   controller.getAllActive,
 );
 
 router.get(
   "/",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR]),
+  authorize([ROLES.ADMIN, ROLES.HR_USER]),
   controller.getAll,
 );
 
 router.get(
   "/:id",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR]),
+  authorize([ROLES.ADMIN, ROLES.HR_USER]),
   controller.getById,
 );
 
 router.post(
   "/",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.ADMIN]),
   controller.create,
 );
 
 router.put(
   "/:id",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.ADMIN]),
   controller.update,
 );
 
 router.delete(
   "/:id",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.ADMIN]),
   controller.remove,
 );
 

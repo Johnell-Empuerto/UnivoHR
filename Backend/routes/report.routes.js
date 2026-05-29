@@ -5,15 +5,17 @@ const controller = require("../controllers/report.controller");
 const authenticate = require("../middleware/auth.middleware");
 const authorize = require("../middleware/role.middleware");
 
-const ROLES = require("../constants/roles");
-const ADMIN_HR = [ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR];
+const { ROLES } = require("../constants/roles");
+const HR_ACCESS = [ROLES.ADMIN, ROLES.HR_USER];
+const PAYROLL_ADMIN = [ROLES.ADMIN, ROLES.PAYROLL_USER];
+const ALL_REPORTS = [ROLES.SYSTEM_ADMIN, ROLES.ADMIN, ROLES.HR_USER, ROLES.PAYROLL_USER];
 
-router.get("/employees", authenticate, authorize(ADMIN_HR), controller.getEmployeeReport);
-router.get("/leaves", authenticate, authorize(ADMIN_HR), controller.getLeaveReport);
-router.get("/attendance", authenticate, authorize(ADMIN_HR), controller.getAttendanceReport);
-router.get("/payroll", authenticate, authorize(ADMIN_HR), controller.getPayrollReport);
-router.get("/benefits", authenticate, authorize(ADMIN_HR), controller.getBenefitsReport);
-router.get("/performance", authenticate, authorize(ADMIN_HR), controller.getPerformanceReport);
-router.get("/export", authenticate, authorize(ADMIN_HR), controller.exportReport);
+router.get("/employees", authenticate, authorize(HR_ACCESS), controller.getEmployeeReport);
+router.get("/leaves", authenticate, authorize(HR_ACCESS), controller.getLeaveReport);
+router.get("/attendance", authenticate, authorize(HR_ACCESS), controller.getAttendanceReport);
+router.get("/payroll", authenticate, authorize(PAYROLL_ADMIN), controller.getPayrollReport);
+router.get("/benefits", authenticate, authorize(HR_ACCESS), controller.getBenefitsReport);
+router.get("/performance", authenticate, authorize(HR_ACCESS), controller.getPerformanceReport);
+router.get("/export", authenticate, authorize(ALL_REPORTS), controller.exportReport);
 
 module.exports = router;

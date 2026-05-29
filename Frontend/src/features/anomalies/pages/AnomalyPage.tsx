@@ -106,7 +106,7 @@ const AnomalyPage = () => {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const isAdminLevel = user?.role === "ADMIN" || user?.role === "HR_ADMIN";
+  const isAdminLevel = user?.role === "ADMIN";
 
   const fetchData = useCallback(async () => {
     setLoading(true);

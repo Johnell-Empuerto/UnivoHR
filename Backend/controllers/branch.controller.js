@@ -15,8 +15,8 @@ const getActive = async (req, res) => {
   try {
     let branches = await branchService.getActive();
 
-    // Non-ADMIN, non-HR_ADMIN users only see assigned branches
-    if (req.user && req.user.role !== "ADMIN" && req.user.role !== "HR_ADMIN") {
+    // Non-SYSTEM_ADMIN, non-ADMIN users only see assigned branches
+    if (req.user && req.user.role !== "SYSTEM_ADMIN" && req.user.role !== "ADMIN") {
       const allowed = await getUserBranchIds(req.user.id);
       if (allowed.length > 0) {
         branches = branches.filter((b) => allowed.includes(b.id));

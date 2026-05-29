@@ -238,10 +238,11 @@ const Users = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="ADMIN">Admin</SelectItem>
-                <SelectItem value="HR_ADMIN">HR Admin</SelectItem>
-                <SelectItem value="HR">HR</SelectItem>
-                <SelectItem value="EMPLOYEE">Employee</SelectItem>
+                    <SelectItem value="SYSTEM_ADMIN">System Admin</SelectItem>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="HR_USER">HR User</SelectItem>
+                    <SelectItem value="PAYROLL_USER">Payroll User</SelectItem>
+                    <SelectItem value="EMPLOYEE">Employee</SelectItem>
               </SelectContent>
             </Select>
 

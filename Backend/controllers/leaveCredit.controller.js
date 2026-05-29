@@ -13,7 +13,7 @@ const getMyCredits = async (req, res) => {
   }
 };
 
-// GET ALL CREDITS (ADMIN/HR_ADMIN)
+// GET ALL CREDITS (SYSTEM_ADMIN/ADMIN)
 const getAllCredits = async (req, res) => {
   try {
     const { page = 1, limit = 10, search = "", department = "" } = req.query;
@@ -31,7 +31,7 @@ const getAllCredits = async (req, res) => {
   }
 };
 
-// GET SINGLE EMPLOYEE CREDITS (ADMIN/HR_ADMIN)
+// GET SINGLE EMPLOYEE CREDITS (SYSTEM_ADMIN/ADMIN)
 const getEmployeeCredits = async (req, res) => {
   try {
     const { employeeId } = req.params;
@@ -44,7 +44,7 @@ const getEmployeeCredits = async (req, res) => {
   }
 };
 
-// UPDATE EMPLOYEE CREDITS (ADMIN/HR_ADMIN)
+// UPDATE EMPLOYEE CREDITS (SYSTEM_ADMIN/ADMIN)
 const updateCredits = async (req, res) => {
   try {
     const { employeeId } = req.params;

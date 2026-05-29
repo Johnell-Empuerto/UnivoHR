@@ -9,7 +9,7 @@ const ROLES = require("../constants/roles");
 router.get(
   "/status",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.ADMIN]),
   controller.getQueueStatus,
 );
 

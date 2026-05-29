@@ -445,7 +445,7 @@ const createManHourReport = async (req, res) => {
     const adminUsers = await pool.query(
       `SELECT DISTINCT u.id
        FROM users u
-       WHERE u.role IN ('ADMIN', 'HR_ADMIN', 'HR')`,
+       WHERE u.role IN ('SYSTEM_ADMIN', 'ADMIN', 'HR_USER')`,
     );
 
     const assignedApprovers = await pool.query(

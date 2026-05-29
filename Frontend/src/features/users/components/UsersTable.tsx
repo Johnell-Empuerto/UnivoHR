@@ -30,34 +30,24 @@ type UsersTableProps = {
   title?: string;
 };
 
-const getRoleBadge = (role: string) => {
-  switch (role) {
-    case "ADMIN":
-      return (
-        <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-          ADMIN
-        </Badge>
-      );
-    case "HR_ADMIN":
-      return (
-        <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
-          HR ADMIN
-        </Badge>
-      );
-    case "HR":
-      return (
-        <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-          HR
-        </Badge>
-      );
-    default:
-      return (
-        <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-          EMPLOYEE
-        </Badge>
-      );
-  }
-};
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case "SYSTEM_ADMIN":
+        return <Badge variant="destructive">SYSTEM ADMIN</Badge>;
+      case "ADMIN":
+        return (
+          <Badge variant="default" className="bg-purple-500">
+            ADMIN
+          </Badge>
+        );
+      case "HR_USER":
+        return <Badge variant="secondary">HR USER</Badge>;
+      case "PAYROLL_USER":
+        return <Badge variant="secondary" className="bg-orange-500">PAYROLL USER</Badge>;
+      default:
+        return <Badge variant="outline">EMPLOYEE</Badge>;
+    }
+  };
 
 const getFullName = (user: User) => {
   const parts = [

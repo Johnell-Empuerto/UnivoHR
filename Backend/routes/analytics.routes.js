@@ -5,12 +5,12 @@ const controller = require("../controllers/analytics.controller");
 const authenticate = require("../middleware/auth.middleware");
 const authorize = require("../middleware/role.middleware");
 
-const ROLES = require("../constants/roles");
-const ADMIN_HR = [ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR];
+const { ROLES } = require("../constants/roles");
+const HR_ACCESS = [ROLES.ADMIN, ROLES.HR_USER];
 
-router.get("/overview", authenticate, authorize(ADMIN_HR), controller.getOverview);
-router.get("/anomaly-trend", authenticate, authorize(ADMIN_HR), controller.getAnomalyTrend);
-router.get("/forecast-summary", authenticate, authorize(ADMIN_HR), controller.getForecastSummary);
-router.get("/department-comparison", authenticate, authorize(ADMIN_HR), controller.getDepartmentComparison);
+router.get("/overview", authenticate, authorize(HR_ACCESS), controller.getOverview);
+router.get("/anomaly-trend", authenticate, authorize(HR_ACCESS), controller.getAnomalyTrend);
+router.get("/forecast-summary", authenticate, authorize(HR_ACCESS), controller.getForecastSummary);
+router.get("/department-comparison", authenticate, authorize(HR_ACCESS), controller.getDepartmentComparison);
 
 module.exports = router;

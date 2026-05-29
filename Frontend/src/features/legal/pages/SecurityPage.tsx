@@ -51,7 +51,7 @@ const SecurityPage = () => {
       icon: Shield,
       title: "Role-Based Access Control",
       description:
-        "ADMIN, HR_ADMIN, HR, and EMPLOYEE roles with granular permissions",
+        "SYSTEM_ADMIN, ADMIN, HR_USER, PAYROLL_USER, and EMPLOYEE roles with granular permissions",
       badge: "Active",
       badgeColor:
         "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",

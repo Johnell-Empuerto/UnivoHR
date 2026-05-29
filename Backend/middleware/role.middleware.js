@@ -1,20 +1,19 @@
-// middleware/role.middleware.js
+const { normalizeRole } = require("../constants/roles");
+
 const authorize = (allowedRoles) => {
   return (req, res, next) => {
-    // Check if user exists
     if (!req.user) {
       return res.status(401).json({ message: "Unauthorized: No user found" });
     }
 
-    const userRole = req.user.role;
-    console.log("Checking role:", userRole, "Allowed:", allowedRoles);
+    const normalized = normalizeRole(req.user.role);
+    req.user.role = normalized;
 
-    // Check if user role is allowed
-    if (!allowedRoles.includes(userRole)) {
+    if (!allowedRoles.includes(normalized)) {
       return res.status(403).json({
         message: "Forbidden: Insufficient permissions",
         required: allowedRoles,
-        yourRole: userRole,
+        yourRole: normalized,
       });
     }
 

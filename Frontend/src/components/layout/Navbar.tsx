@@ -154,7 +154,7 @@ const Navbar = ({
               Change Password
             </DropdownMenuItem>
 
-            {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && (
+            {(user?.role === "SYSTEM_ADMIN") && (
               <DropdownMenuItem
                 className="flex items-center gap-2"
                 onClick={() => navigate("/settings")}

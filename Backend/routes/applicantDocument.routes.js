@@ -9,21 +9,21 @@ const ROLES = require("../constants/roles");
 router.get(
   "/:applicantId",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR]),
+  authorize([ROLES.ADMIN, ROLES.HR_USER]),
   controller.getByApplicantId,
 );
 
 router.post(
   "/:applicantId",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN, ROLES.HR]),
+  authorize([ROLES.ADMIN, ROLES.HR_USER]),
   controller.create,
 );
 
 router.delete(
   "/:id",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_ADMIN]),
+  authorize([ROLES.ADMIN]),
   controller.remove,
 );
 
