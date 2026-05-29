@@ -121,12 +121,32 @@ const logout = async (req, res) => {
   }
 };
 
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+    const result = await authService.changePassword(req.user.id, { currentPassword, newPassword, confirmPassword });
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "users",
+      record_id: req.user.id,
+      description: `Password changed by user ${req.user.id}`,
+    });
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
 module.exports = {
   login,
   verifyOTP,
   resendOTP,
   forgotPassword,
   resetPassword,
+  changePassword,
   refresh,
   logout,
 };

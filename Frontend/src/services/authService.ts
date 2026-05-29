@@ -79,3 +79,12 @@ export const logoutAPI = async (
   const response = await api.post("/auth/logout", { refreshToken });
   return response.data;
 };
+
+export const changePassword = async (data: {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}): Promise<{ message: string }> => {
+  const response = await api.put("/auth/change-password", data);
+  return response.data;
+};

@@ -11,17 +11,34 @@ import {
   Heart,
   Users,
   FileText,
+  Lock,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { getProfile, type Profile } from "@/services/profileService";
+import { changePassword } from "@/services/authService";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
 
+const SPECIAL_CHARS = "!@#$%^&*(),.?\":{}|<>_-~`[]\\;/'" as const;
+const hasSpecialChar = (s: string) => [...s].some((ch) => SPECIAL_CHARS.includes(ch));
+
 const ProfilePage = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [changing, setChanging] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -349,6 +366,118 @@ const ProfilePage = () => {
                 : null
             }
           />
+        </CardContent>
+      </Card>
+
+      {/* Change Password */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Lock className="h-5 w-5" />
+            Change Password
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 max-w-md">
+          <div className="space-y-2">
+            <Label htmlFor="currentPassword">Current Password</Label>
+            <div className="relative">
+              <Input
+                id="currentPassword"
+                type={showCurrent ? "text" : "password"}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter current password"
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                onClick={() => setShowCurrent(!showCurrent)}
+              >
+                {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="newPassword">New Password</Label>
+            <div className="relative">
+              <Input
+                id="newPassword"
+                type={showNew ? "text" : "password"}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                onClick={() => setShowNew(!showNew)}
+              >
+                {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <ul className="text-xs text-muted-foreground space-y-0.5 mt-1">
+              <li className={newPassword.length >= 8 ? "text-green-600" : ""}>At least 8 characters</li>
+              <li className={/[A-Z]/.test(newPassword) ? "text-green-600" : ""}>At least 1 uppercase letter</li>
+              <li className={/[a-z]/.test(newPassword) ? "text-green-600" : ""}>At least 1 lowercase letter</li>
+              <li className={/\d/.test(newPassword) ? "text-green-600" : ""}>At least 1 number</li>
+              <li className={hasSpecialChar(newPassword) ? "text-green-600" : ""}>At least 1 special character</li>
+              <li className={!/\s/.test(newPassword) && newPassword.length > 0 ? "text-green-600" : ""}>No spaces</li>
+            </ul>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm New Password</Label>
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                type={showConfirm ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                onClick={() => setShowConfirm(!showConfirm)}
+              >
+                {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {confirmPassword && newPassword !== confirmPassword && (
+              <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+            )}
+          </div>
+
+          <Button
+            onClick={async () => {
+              if (!currentPassword || !newPassword || !confirmPassword) {
+                toast.error("All fields are required");
+                return;
+              }
+              if (newPassword !== confirmPassword) {
+                toast.error("Passwords do not match");
+                return;
+              }
+              setChanging(true);
+              try {
+                const result = await changePassword({ currentPassword, newPassword, confirmPassword });
+                toast.success(result.message);
+                setCurrentPassword("");
+                setNewPassword("");
+                setConfirmPassword("");
+              } catch (err: unknown) {
+                const e = err as { response?: { data?: { message?: string } }; message?: string };
+                toast.error(e.response?.data?.message || e.message || "Failed to change password");
+              } finally {
+                setChanging(false);
+              }
+            }}
+            disabled={changing}
+            className="w-full sm:w-auto"
+          >
+            {changing ? "Changing..." : "Change Password"}
+          </Button>
         </CardContent>
       </Card>
     </div>

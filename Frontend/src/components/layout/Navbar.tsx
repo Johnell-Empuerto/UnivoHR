@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Menu, Moon, Sun, BookOpen, User, Settings, LogOut } from "lucide-react";
+import { Menu, Moon, Sun, BookOpen, User, Settings, Lock, LogOut } from "lucide-react";
 import NotificationDropdown from "./NotificationDropdown";
 
 import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
@@ -135,6 +135,14 @@ const Navbar = ({
             >
               <User className="h-4 w-4" />
               Profile
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              className="flex items-center gap-2"
+              onClick={() => navigate("/profile")}
+            >
+              <Lock className="h-4 w-4" />
+              Change Password
             </DropdownMenuItem>
 
             {(user?.role === "ADMIN" || user?.role === "HR_ADMIN") && (

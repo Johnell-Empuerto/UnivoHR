@@ -1,4 +1,5 @@
 const authModel = require("../models/auth.model");
+const userModel = require("../models/user.model");
 const sessionModel = require("../models/session.model");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
@@ -10,6 +11,7 @@ const userService = require("./user.service");
 const userCacheService = require("./userCache.service");
 const redisClient = require("../config/redis");
 const tokenBlacklist = require("./tokenBlacklist.service");
+const { validatePassword } = require("../utils/passwordValidator");
 
 if (!process.env.JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is not set");
@@ -329,12 +331,47 @@ const resetPassword = async ({ user_id, otp, new_password }) => {
   };
 };
 
+const changePassword = async (userId, { currentPassword, newPassword, confirmPassword }) => {
+  if (newPassword !== confirmPassword) {
+    throw new Error("Passwords do not match");
+  }
+
+  const user = await authModel.findUserById(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+  if (!isMatch) {
+    throw new Error("Current password is incorrect");
+  }
+
+  const passwordErrors = validatePassword(newPassword, user.username);
+  if (passwordErrors.length > 0) {
+    throw new Error(passwordErrors[0]);
+  }
+
+  const isSame = await bcrypt.compare(newPassword, user.password_hash);
+  if (isSame) {
+    throw new Error("New password must be different from current password");
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(newPassword, salt);
+  await userModel.updatePassword(userId, hashedPassword);
+
+  userCacheService.invalidateUserCache(user.username);
+
+  return { message: "Password changed successfully" };
+};
+
 module.exports = {
   login,
   verifyOTPAndLogin,
   resendOTP,
   forgotPassword,
   resetPassword,
+  changePassword,
   refreshToken,
   logout,
 };
