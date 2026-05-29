@@ -1,4 +1,5 @@
 const profileService = require("../services/profile.service");
+const audit = require("../services/audit.service");
 
 // Get current user's profile
 const getProfile = async (req, res) => {
@@ -46,6 +47,14 @@ const updateProfile = async (req, res) => {
     }
 
     const updated = await profileService.updateProfile(employeeId, updateData);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "employees",
+      record_id: Number(employeeId),
+      employee_id: Number(employeeId),
+      new_values: updateData,
+      description: `Profile updated by employee ${employeeId}`,
+    });
     res.json({
       message: "Profile updated successfully",
       profile: updated,

@@ -1,4 +1,5 @@
 const service = require("../services/kpiTemplate.service");
+const audit = require("../services/audit.service");
 
 const getAll = async (req, res) => {
   try {
@@ -22,6 +23,13 @@ const getById = async (req, res) => {
 const create = async (req, res) => {
   try {
     const result = await service.create(req.body);
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "kpi_templates",
+      record_id: result.id,
+      new_values: { name: result.name, department: result.department, is_active: result.is_active },
+      description: `KPI template created: ${result.name}`,
+    });
     res.status(201).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -31,6 +39,13 @@ const create = async (req, res) => {
 const update = async (req, res) => {
   try {
     const result = await service.update(req.params.id, req.body);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "kpi_templates",
+      record_id: Number(req.params.id),
+      new_values: { name: result.name, department: result.department, is_active: result.is_active },
+      description: `KPI template updated: ${result.name}`,
+    });
     res.json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -40,6 +55,13 @@ const update = async (req, res) => {
 const toggleActive = async (req, res) => {
   try {
     const result = await service.toggleActive(req.params.id);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "kpi_templates",
+      record_id: Number(req.params.id),
+      new_values: { is_active: result.is_active },
+      description: `KPI template ${result.is_active ? "activated" : "deactivated"} (id: ${req.params.id})`,
+    });
     res.json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -49,6 +71,12 @@ const toggleActive = async (req, res) => {
 const remove = async (req, res) => {
   try {
     await service.remove(req.params.id);
+    audit.auditLog(req, {
+      action: "DELETE",
+      table_name: "kpi_templates",
+      record_id: Number(req.params.id),
+      description: `KPI template deleted (id: ${req.params.id})`,
+    });
     res.json({ message: "Template deleted" });
   } catch (error) {
     res.status(400).json({ message: error.message });

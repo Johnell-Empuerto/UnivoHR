@@ -1,4 +1,5 @@
 const service = require("../services/payRules.service");
+const audit = require("../services/audit.service");
 
 // PAY RULES
 
@@ -35,6 +36,13 @@ const getPayRuleById = async (req, res) => {
 const createPayRule = async (req, res) => {
   try {
     const data = await service.createPayRule(req.body);
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "pay_rules",
+      record_id: data.id,
+      new_values: { day_type: data.day_type, multiplier: data.multiplier },
+      description: `Pay rule created: ${data.day_type} (${data.multiplier}x)`,
+    });
     res.status(201).json(data);
   } catch (error) {
     console.error("Error creating pay rule:", error);
@@ -55,6 +63,13 @@ const updatePayRule = async (req, res) => {
     const { id } = req.params;
 
     const data = await service.updatePayRule(id, req.body);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "pay_rules",
+      record_id: Number(id),
+      new_values: { day_type: data.day_type, multiplier: data.multiplier },
+      description: `Pay rule updated: ${data.day_type} (${data.multiplier}x)`,
+    });
     res.json(data);
   } catch (error) {
     console.error("Error updating pay rule:", error);
@@ -77,6 +92,12 @@ const deletePayRule = async (req, res) => {
     const { id } = req.params;
 
     await service.deletePayRule(id);
+    audit.auditLog(req, {
+      action: "DELETE",
+      table_name: "pay_rules",
+      record_id: Number(id),
+      description: `Pay rule deleted (id: ${id})`,
+    });
     res.json({ message: "Pay rule deleted successfully" });
   } catch (error) {
     console.error("Error deleting pay rule:", error);
@@ -117,6 +138,13 @@ const getCalendarDays = async (req, res) => {
 const upsertCalendarDay = async (req, res) => {
   try {
     const data = await service.upsertCalendarDay(req.body);
+    audit.auditLog(req, {
+      action: data.is_new ? "INSERT" : "UPDATE",
+      table_name: "calendar_days",
+      record_id: data.id,
+      new_values: { date: data.date, day_type: data.day_type, description: data.description, branch_id: data.branch_id },
+      description: `Calendar day ${data.is_new ? "created" : "updated"}: ${data.date}`,
+    });
     res.status(201).json(data);
   } catch (error) {
     console.error("Error saving calendar day:", error);
@@ -137,6 +165,12 @@ const deleteCalendarDay = async (req, res) => {
     const { date } = req.params;
 
     await service.deleteCalendarDay(date);
+    audit.auditLog(req, {
+      action: "DELETE",
+      table_name: "calendar_days",
+      new_values: { date },
+      description: `Calendar day deleted: ${date}`,
+    });
     res.json({ message: "Calendar day deleted successfully" });
   } catch (error) {
     console.error("Error deleting calendar day:", error);

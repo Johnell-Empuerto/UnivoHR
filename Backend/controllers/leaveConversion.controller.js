@@ -1,6 +1,7 @@
 const service = require("../services/leaveConversion.service");
 const historyLeaveService = require("../services/historyLeave.service");
 const leaveTypeModel = require("../models/leaveType.model");
+const audit = require("../services/audit.service");
 const pool = require("../config/db");
 
 // ==========================================
@@ -21,6 +22,13 @@ const getLeaveTypes = async (req, res) => {
 const updateLeaveType = async (req, res) => {
   try {
     const data = await service.updateLeaveType?.(req.params.id, req.body) || await leaveTypeModel.update(req.params.id, req.body);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "leave_types",
+      record_id: Number(req.params.id),
+      new_values: { is_convertible: data.is_convertible, max_convertible_days: data.max_convertible_days },
+      description: `Leave type updated: ${data.name || data.code}`,
+    });
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -56,6 +64,13 @@ const updateSettings = async (req, res) => {
       `,
       [enforce_sil, sil_min_days, conversion_rate]
     );
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "company_settings",
+      record_id: result.rows[0]?.id,
+      new_values: { enforce_sil, sil_min_days, conversion_rate },
+      description: `Leave conversion settings updated`,
+    });
     res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -102,6 +117,12 @@ const saveAll = async (req, res) => {
     }
 
     await client.query("COMMIT");
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "leave_types",
+      new_values: { leaveTypes: leaveTypes?.length, settings },
+      description: `Leave conversion settings and leave types saved all`,
+    });
     res.json({ message: "Saved successfully" });
   } catch (err) {
     await client.query("ROLLBACK");
@@ -143,6 +164,12 @@ const triggerYearEndConversion = async (req, res) => {
     );
 
     if (result.success) {
+      audit.auditLog(req, {
+        action: "GENERATE_CONVERSION",
+        table_name: "leave_conversions",
+        new_values: { year, total_processed: result.results?.total_processed, total_amount: result.results?.total_amount },
+        description: `Year-end leave conversion triggered for ${year}`,
+      });
       res.status(200).json(result);
     } else {
       res.status(400).json(result);
@@ -182,6 +209,13 @@ const processResignationConversion = async (req, res) => {
     );
 
     if (result.success) {
+      audit.auditLog(req, {
+        action: "PROCESS",
+        table_name: "leave_conversions",
+        employee_id: Number(employee_id),
+        new_values: { employee_id: Number(employee_id), year: conversionYear, reason: conversionReason, total_amount: result.results?.total_amount },
+        description: `Resignation leave conversion processed for employee ${employee_id}`,
+      });
       res.status(200).json(result);
     } else {
       res.status(400).json(result);
@@ -309,6 +343,13 @@ const deleteConversion = async (req, res) => {
     );
 
     if (result.success) {
+      audit.auditLog(req, {
+        action: "DELETE",
+        table_name: "leave_conversions",
+        employee_id: Number(employee_id),
+        new_values: { employee_id: Number(employee_id), year: parseInt(year), leave_type },
+        description: `Leave conversion deleted: employee ${employee_id}, ${year}, ${leave_type}`,
+      });
       res.status(200).json(result);
     } else {
       res.status(404).json(result);

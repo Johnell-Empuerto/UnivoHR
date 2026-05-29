@@ -1,4 +1,5 @@
 const smtpService = require("../services/smtp.service");
+const audit = require("../services/audit.service");
 
 // Get active SMTP settings
 const getSmtpSettings = async (req, res) => {
@@ -24,6 +25,13 @@ const getAllSmtpSettings = async (req, res) => {
 const createSmtpSettings = async (req, res) => {
   try {
     const data = await smtpService.createSmtpSettings(req.body);
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "smtp_settings",
+      record_id: data.id,
+      new_values: { host: data.host, port: data.port, from_email: data.from_email, is_active: data.is_active },
+      description: `SMTP settings created: ${data.host}:${data.port}`,
+    });
     res.status(201).json(data);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -35,6 +43,13 @@ const updateSmtpSettings = async (req, res) => {
   try {
     const { id } = req.params;
     const data = await smtpService.updateSmtpSettings(id, req.body);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "smtp_settings",
+      record_id: Number(id),
+      new_values: { host: data.host, port: data.port, from_email: data.from_email, is_active: data.is_active },
+      description: `SMTP settings updated: ${data.host}:${data.port}`,
+    });
     res.json(data);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -46,6 +61,12 @@ const deleteSmtpSettings = async (req, res) => {
   try {
     const { id } = req.params;
     await smtpService.deleteSmtpSettings(id);
+    audit.auditLog(req, {
+      action: "DELETE",
+      table_name: "smtp_settings",
+      record_id: Number(id),
+      description: `SMTP settings deleted (id: ${id})`,
+    });
     res.json({ message: "SMTP settings deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });

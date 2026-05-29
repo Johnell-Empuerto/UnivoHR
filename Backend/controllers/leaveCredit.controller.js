@@ -1,4 +1,5 @@
 const leaveCreditService = require("../services/leaveCredit.service");
+const audit = require("../services/audit.service");
 
 const getMyCredits = async (req, res) => {
   try {
@@ -59,6 +60,15 @@ const updateCredits = async (req, res) => {
       vacation_leave,
       maternity_leave,
       emergency_leave,
+    });
+
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "leave_credits",
+      record_id: data.id,
+      employee_id: Number(employeeId),
+      new_values: { sick_leave, vacation_leave, maternity_leave, emergency_leave },
+      description: `Leave credits updated for employee ${employeeId}`,
     });
 
     res.json({

@@ -1,4 +1,5 @@
 const emailTemplateService = require("../services/emailTemplate.service");
+const audit = require("../services/audit.service");
 
 // Get all templates
 const getAllTemplates = async (req, res) => {
@@ -35,6 +36,13 @@ const upsertTemplate = async (req, res) => {
       body_html,
       userId,
     );
+    audit.auditLog(req, {
+      action: template.is_new ? "INSERT" : "UPDATE",
+      table_name: "email_templates",
+      record_id: template.id,
+      new_values: { type: template.type, subject: template.subject, is_active: template.is_active },
+      description: `Email template ${template.is_new ? "created" : "updated"}: ${template.type}`,
+    });
     res.json(template);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -54,6 +62,13 @@ const updateTemplate = async (req, res) => {
       is_active,
       userId,
     );
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "email_templates",
+      record_id: Number(id),
+      new_values: { subject: template.subject, is_active: template.is_active },
+      description: `Email template updated: ${template.type}`,
+    });
     res.json(template);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -71,6 +86,13 @@ const toggleTemplate = async (req, res) => {
       is_active,
       userId,
     );
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "email_templates",
+      record_id: Number(id),
+      new_values: { is_active: template.is_active },
+      description: `Email template ${is_active ? "activated" : "deactivated"}: ${template.type}`,
+    });
     res.json(template);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -82,6 +104,12 @@ const deleteTemplate = async (req, res) => {
   try {
     const { id } = req.params;
     await emailTemplateService.deleteTemplate(id);
+    audit.auditLog(req, {
+      action: "DELETE",
+      table_name: "email_templates",
+      record_id: Number(id),
+      description: `Email template deleted (id: ${id})`,
+    });
     res.json({ message: "Template deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });

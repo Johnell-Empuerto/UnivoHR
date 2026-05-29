@@ -264,6 +264,13 @@ const getApprovers = async (req, res) => {
 const createApprover = async (req, res) => {
   try {
     const data = await overtimeService.createApprover(req.body);
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "employee_approvers",
+      record_id: data.id,
+      new_values: { employee_id: data.employee_id, approver_id: data.approver_id, approval_type: data.approval_type },
+      description: `Approver mapping created: employee ${data.employee_id} → approver ${data.approver_id} (${data.approval_type})`,
+    });
     res.json({ message: "Approver mapping created", data });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -274,6 +281,13 @@ const updateApprover = async (req, res) => {
   try {
     const { id } = req.params;
     const data = await overtimeService.updateApprover(id, req.body);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "employee_approvers",
+      record_id: Number(id),
+      new_values: { employee_id: data.employee_id, approver_id: data.approver_id, approval_type: data.approval_type },
+      description: `Approver mapping updated (id: ${id})`,
+    });
     res.json({ message: "Approver mapping updated", data });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -284,6 +298,12 @@ const deleteApprover = async (req, res) => {
   try {
     const { id } = req.params;
     await overtimeService.deleteApprover(id);
+    audit.auditLog(req, {
+      action: "DELETE",
+      table_name: "employee_approvers",
+      record_id: Number(id),
+      description: `Approver mapping deleted (id: ${id})`,
+    });
     res.json({ message: "Approver mapping deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });

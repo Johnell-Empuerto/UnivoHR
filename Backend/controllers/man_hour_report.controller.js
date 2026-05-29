@@ -1,5 +1,6 @@
 const manHourReportService = require("../services/man_hour_report.service");
 const notificationService = require("../services/notification.service");
+const audit = require("../services/audit.service");
 const pool = require("../config/db");
 
 const fs = require("fs");
@@ -479,6 +480,14 @@ const createManHourReport = async (req, res) => {
       });
     }
 
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "man_hour_reports",
+      record_id: data.id,
+      employee_id: employee_id,
+      new_values: { employee_id, work_date: req.body.work_date, hours: data.hours, status: "SUBMITTED" },
+      description: `Man hour report created: ${req.body.work_date}, ${data.hours}h`,
+    });
     res.json({ message: "Man hour report submitted successfully", data });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -515,6 +524,15 @@ const updateManHourReport = async (req, res) => {
       req.body,
     );
 
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "man_hour_reports",
+      record_id: Number(id),
+      employee_id,
+      new_values: { work_date: req.body.work_date, hours: data.hours, task: req.body.task },
+      description: `Man hour report updated: ${id}`,
+    });
+
     res.json({ message: "Man hour report updated successfully", data });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -528,6 +546,14 @@ const deleteManHourReport = async (req, res) => {
     const userRole = req.user.role;
 
     await manHourReportService.deleteManHourReport(id, employee_id, userRole);
+
+    audit.auditLog(req, {
+      action: "DELETE",
+      table_name: "man_hour_reports",
+      record_id: Number(id),
+      employee_id,
+      description: `Man hour report deleted: ${id}`,
+    });
 
     res.json({ message: "Man hour report deleted successfully" });
   } catch (error) {
@@ -619,6 +645,15 @@ const approveManHourReport = async (req, res) => {
       },
     });
 
+    audit.auditLog(req, {
+      action: "APPROVE",
+      table_name: "man_hour_reports",
+      record_id: Number(id),
+      employee_id: report.employee_id,
+      old_values: { status: "SUBMITTED" },
+      new_values: { status: "APPROVED", approved_by: approver_id },
+      description: `Man hour report ${id} approved`,
+    });
     res.json({ message: "Man hour report approved", data });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -659,6 +694,15 @@ const rejectManHourReport = async (req, res) => {
       },
     });
 
+    audit.auditLog(req, {
+      action: "REJECT",
+      table_name: "man_hour_reports",
+      record_id: Number(id),
+      employee_id: report.employee_id,
+      old_values: { status: "SUBMITTED" },
+      new_values: { status: "REJECTED", rejected_by: approver_id, rejected_reason: reason },
+      description: `Man hour report ${id} rejected: ${reason}`,
+    });
     res.json({ message: "Man hour report rejected", data });
   } catch (error) {
     res.status(500).json({ message: error.message });

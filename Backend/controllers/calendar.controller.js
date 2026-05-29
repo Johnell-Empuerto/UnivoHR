@@ -1,4 +1,5 @@
 const calendarService = require("../services/calendar.service");
+const audit = require("../services/audit.service");
 const { getUserBranchIds } = require("../utils/branchAccess");
 
 // GET ALL (no branch filter — all users see all events)
@@ -39,6 +40,14 @@ const create = async (req, res) => {
 
     // 2. Then duplicate check + insert
     const data = await calendarService.create(req.body);
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "calendar_days",
+      record_id: data.id,
+      branch_id: data.branch_id || null,
+      new_values: { date: req.body.date, day_type: req.body.day_type, description: req.body.description, branch_id: data.branch_id || null },
+      description: `Calendar day created: ${req.body.date} (${req.body.day_type})`,
+    });
     res.json(data);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -72,6 +81,14 @@ const update = async (req, res) => {
 
     // 2. Then update
     const data = await calendarService.update(id, req.body);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "calendar_days",
+      record_id: Number(id),
+      branch_id: data.branch_id || null,
+      new_values: { date: data.date, day_type: data.day_type, description: data.description, branch_id: data.branch_id || null },
+      description: `Calendar day updated: ${data.date || id}`,
+    });
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -96,6 +113,12 @@ const remove = async (req, res) => {
     }
 
     const data = await calendarService.remove(id);
+    audit.auditLog(req, {
+      action: "DELETE",
+      table_name: "calendar_days",
+      record_id: Number(id),
+      description: `Calendar day deleted (id: ${id})`,
+    });
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: err.message });

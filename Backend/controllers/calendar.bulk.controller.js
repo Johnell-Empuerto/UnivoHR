@@ -1,5 +1,6 @@
 // controllers/calendar.bulk.controller.js
 const calendarBulkService = require("../services/calendar.bulk.service");
+const audit = require("../services/audit.service");
 const { getUserBranchIds } = require("../utils/branchAccess");
 const branchModel = require("../models/branch.model");
 const fs = require("fs");
@@ -43,6 +44,13 @@ const bulkUpload = async (req, res) => {
     }
 
     const results = await calendarBulkService.bulkUpsert(data, overwrite);
+
+    audit.auditLog(req, {
+      action: "BULK_UPLOAD",
+      table_name: "calendar_days",
+      new_values: { total_rows: data.length, inserted: results.inserted, updated: results.updated, skipped: results.skipped },
+      description: `Bulk calendar upload: ${results.inserted} inserted, ${results.updated} updated, ${results.skipped} skipped`,
+    });
 
     res.json({
       message: "Bulk upload completed",

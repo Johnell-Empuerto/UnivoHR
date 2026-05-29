@@ -1,8 +1,17 @@
 const service = require("../services/kpiEvaluation.service");
+const audit = require("../services/audit.service");
 
 const assign = async (req, res) => {
   try {
     const result = await service.assign({ ...req.body, created_by: req.user?.id });
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "employee_kpi_evaluations",
+      record_id: result.id,
+      employee_id: req.body.employee_id || null,
+      new_values: { employee_id: result.employee_id, template_id: result.template_id, evaluator_id: result.evaluator_id, status: result.status },
+      description: `KPI evaluation assigned: employee ${result.employee_id}, template ${result.template_id}`,
+    });
     res.status(201).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -88,6 +97,13 @@ const saveSelfEvaluation = async (req, res) => {
 const hrApprove = async (req, res) => {
   try {
     const result = await service.hrApprove(req.params.id, req.body);
+    audit.auditLog(req, {
+      action: "APPROVE",
+      table_name: "employee_kpi_evaluations",
+      record_id: Number(req.params.id),
+      new_values: { status: "APPROVED" },
+      description: `KPI evaluation ${req.params.id} approved`,
+    });
     res.json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -97,6 +113,13 @@ const hrApprove = async (req, res) => {
 const hrReject = async (req, res) => {
   try {
     const result = await service.hrReject(req.params.id, req.body);
+    audit.auditLog(req, {
+      action: "REJECT",
+      table_name: "employee_kpi_evaluations",
+      record_id: Number(req.params.id),
+      new_values: { status: "REJECTED", remarks: req.body.remarks },
+      description: `KPI evaluation ${req.params.id} rejected`,
+    });
     res.json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -129,6 +152,12 @@ const getPendingCount = async (req, res) => {
 const bulkAssign = async (req, res) => {
   try {
     const result = await service.bulkAssign(req.body, req.user?.id);
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "employee_kpi_evaluations",
+      new_values: { template_id: req.body.template_id, employee_ids: req.body.employee_ids, count: result.created_count },
+      description: `Bulk KPI evaluation assigned: ${result.created_count} employees, template ${req.body.template_id}`,
+    });
     res.status(201).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });

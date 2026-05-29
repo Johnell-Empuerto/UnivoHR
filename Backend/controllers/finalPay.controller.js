@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const finalPayService = require("../services/finalPay.service");
+const audit = require("../services/audit.service");
 const { getUserBranchIds } = require("../utils/branchAccess");
 
 // Get employees eligible for final pay
@@ -74,6 +75,14 @@ const processFinalPay = async (req, res) => {
 
     const processedBy = req.user.id;
     const result = await finalPayService.processFinalPay(employeeId, processedBy);
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "final_pay",
+      record_id: result.id,
+      employee_id: Number(employeeId),
+      new_values: { employee_id: Number(employeeId), processed_by: processedBy, status: "PROCESSED" },
+      description: `Final pay processed for employee ${employeeId}`,
+    });
     res.json(result);
   } catch (err) {
     res.status(500).json({ message: err.message });

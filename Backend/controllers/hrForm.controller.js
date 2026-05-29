@@ -1,4 +1,5 @@
 const service = require("../services/hrForm.service");
+const audit = require("../services/audit.service");
 
 const getAllForms = async (req, res) => {
   try {
@@ -22,6 +23,13 @@ const getFormById = async (req, res) => {
 const createForm = async (req, res) => {
   try {
     const result = await service.createForm(req.body, req.user?.id);
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "hr_forms",
+      record_id: result.id,
+      new_values: { title: result.title, is_active: result.is_active },
+      description: `HR form created: ${result.title}`,
+    });
     res.status(201).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -31,6 +39,13 @@ const createForm = async (req, res) => {
 const updateForm = async (req, res) => {
   try {
     const result = await service.updateForm(req.params.id, req.body);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "hr_forms",
+      record_id: Number(req.params.id),
+      new_values: { title: result.title, is_active: result.is_active },
+      description: `HR form updated: ${result.title}`,
+    });
     res.json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -40,6 +55,12 @@ const updateForm = async (req, res) => {
 const deleteForm = async (req, res) => {
   try {
     await service.deleteForm(req.params.id);
+    audit.auditLog(req, {
+      action: "DELETE",
+      table_name: "hr_forms",
+      record_id: Number(req.params.id),
+      description: `HR form deleted (id: ${req.params.id})`,
+    });
     res.json({ message: "Form deleted" });
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -85,6 +106,13 @@ const removeField = async (req, res) => {
 const assignForm = async (req, res) => {
   try {
     const result = await service.assignForm(req.body, req.user?.id);
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "hr_form_assignments",
+      record_id: result.id,
+      new_values: { form_id: result.form_id, employee_id: result.employee_id, status: result.status, due_date: result.due_date },
+      description: `HR form assigned: form ${result.form_id} to employee ${result.employee_id}`,
+    });
     res.status(201).json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -162,6 +190,13 @@ const getSubmissionById = async (req, res) => {
 const reviewSubmission = async (req, res) => {
   try {
     const result = await service.reviewSubmission(req.params.submissionId, req.user?.id, req.body);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "hr_form_submissions",
+      record_id: Number(req.params.submissionId),
+      new_values: { status: result.status, reviewed_by: req.user?.id },
+      description: `HR form submission ${req.params.submissionId} reviewed as ${result.status}`,
+    });
     res.json(result);
   } catch (error) {
     res.status(400).json({ message: error.message });
