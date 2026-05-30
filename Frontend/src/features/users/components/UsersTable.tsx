@@ -21,6 +21,7 @@ type UsersTableProps = {
   data: User[];
   onEdit: (user: User) => void;
   onDelete: (id: number, username: string) => void;
+  canManage: boolean;
   currentPage: number;
   totalPages: number;
   totalRecords: number;
@@ -63,6 +64,7 @@ const UsersTable = ({
   data,
   onEdit,
   onDelete,
+  canManage,
   currentPage,
   totalPages,
   totalRecords,
@@ -148,26 +150,28 @@ const UsersTable = ({
                       {formatDateShort(user.created_at)}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          onClick={() => onEdit(user)}
-                          title="Edit"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                          onClick={() => onDelete(user.id, user.username)}
-                          title="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {canManage && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            onClick={() => onEdit(user)}
+                            title="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                            onClick={() => onDelete(user.id, user.username)}
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))

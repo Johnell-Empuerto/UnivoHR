@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/app/providers/AuthProvider";
 import {
   Select,
   SelectContent,
@@ -67,6 +68,7 @@ const formatDeductionLabel = (type?: string | null) => {
 };
 
 const ReportsPage = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("employees");
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -911,7 +913,9 @@ const ReportsPage = () => {
           <TabsTrigger value="employees">Employee</TabsTrigger>
           <TabsTrigger value="leaves">Leave</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
-          <TabsTrigger value="payroll">Payroll</TabsTrigger>
+          {(user?.role === "ADMIN" || user?.role === "PAYROLL_USER") && (
+            <TabsTrigger value="payroll">Payroll</TabsTrigger>
+          )}
           <TabsTrigger value="benefits">Benefits</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
         </TabsList>

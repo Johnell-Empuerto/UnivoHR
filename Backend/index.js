@@ -46,6 +46,7 @@ const kpiTemplateRoutes = require("./routes/kpiTemplate.routes");
 const kpiEvaluationRoutes = require("./routes/kpiEvaluation.routes");
 const hrFormRoutes = require("./routes/hrForm.routes");
 const reportRoutes = require("./routes/report.routes");
+const permissionRoutes = require("./routes/permission.routes");
 
 // Middleware
 const authenticate = require("./middleware/auth.middleware");
@@ -57,7 +58,7 @@ const errorHandler = require("./middleware/errorHandler");
 // =====================
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://192.168.2.59:5173"],
+    origin: ["http://localhost:5173", "http://192.168.1.8:5173"],
     credentials: true,
   }),
 );
@@ -135,10 +136,16 @@ app.use("/api/applicants", authenticate, applicantRoutes);
 app.use("/api/kpi/templates", authenticate, kpiTemplateRoutes);
 app.use("/api/kpi/evaluations", authenticate, kpiEvaluationRoutes);
 app.use("/api/hr-forms", authenticate, hrFormRoutes);
-app.use("/api/employee/performance", authenticate, require("./routes/employeePerformance.routes"));
+app.use(
+  "/api/employee/performance",
+  authenticate,
+  require("./routes/employeePerformance.routes"),
+);
 app.use("/api/applicants", authenticate, applicantRequirementRoutes);
 
 app.use("/api/reports", authenticate, reportRoutes);
+
+app.use("/api/permissions", authenticate, permissionRoutes);
 
 const queueService = require("./services/queue.service");
 
@@ -183,6 +190,20 @@ pool
       console.log("HR Forms tables initialized");
     } catch (err) {
       console.error("HR Forms init error:", err.message);
+    }
+    try {
+      const permissionModel = require("./models/permission.model");
+      const adminResult = await pool.query("SELECT id FROM users WHERE username = 'admin'");
+      if (adminResult.rows.length > 0) {
+        const adminId = adminResult.rows[0].id;
+        const existingPermissions = await permissionModel.getUserPermissions(adminId);
+        if (existingPermissions.length === 0) {
+          await permissionModel.seedAdminPermissions(adminId);
+          console.log("Admin permissions seeded successfully");
+        }
+      }
+    } catch (err) {
+      console.error("Admin permissions seed error:", err.message);
     }
   })
   .catch((err) => console.error("DB Error:", err));

@@ -21,6 +21,7 @@ import {
   HeartHandshake,
   BarChart3,
   UserCheck,
+  ShieldCheck,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import smallIcon from "@/assets/images/small-icon.png";
@@ -30,12 +31,11 @@ import { isApprover as checkIsApprover } from "@/services/overtimeService";
 import { getKpiPendingCount } from "@/services/kpiService";
 
 const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const [isUserApprover, setIsUserApprover] = useState(false);
   const [isEvaluator, setIsEvaluator] = useState(false);
 
-  // Check if current user is assigned as approver
   useEffect(() => {
     const checkApproverStatus = async () => {
       if (user?.id) {
@@ -51,7 +51,6 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
     checkApproverStatus();
   }, [user]);
 
-  // Check if current employee has evaluator assignments
   useEffect(() => {
     const checkEvaluatorStatus = async () => {
       if (user?.employee_id) {
@@ -98,12 +97,10 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
     return user?.role === "EMPLOYEE" && !isUserApprover;
   };
 
-  // Show dropdown for Overtime if user can approve OR is regular employee
   const showOvertimeDropdown = () => {
     return canApprove() || isRegularEmployee();
   };
 
-  // Get user display name
   const getUserName = () => {
     if (user?.name) return user.name;
     if (user?.first_name && user?.last_name)
@@ -113,7 +110,6 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
     return "User";
   };
 
-  // Get initials for avatar (same logic as navbar)
   const getUserInitials = () => {
     if (user?.name) {
       return user.name.charAt(0).toUpperCase();
@@ -132,7 +128,6 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
 
   return (
     <div className="flex flex-col h-full border-r bg-background">
-      {/* LOGO / TITLE */}
       <div className="h-16 flex items-center px-4 gap-2">
         {!collapsed ? (
           <div className="flex items-center gap-2">
@@ -154,7 +149,6 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
         )}
       </div>
 
-      {/* NAVIGATION */}
       <nav className="flex-1 flex flex-col gap-1 px-2 overflow-y-auto">
         {/* Dashboard - Everyone */}
         <NavLink
@@ -174,8 +168,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           {!collapsed && "Attendance"}
         </NavLink>
 
-        {(user?.role === "ADMIN" ||
-          user?.role === "HR_USER") && (
+        {hasPermission("anomalies.view") && (
           <NavLink
             to="/anomalies"
             className={({ isActive }) => linkClass(isActive)}
@@ -194,92 +187,89 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           {!collapsed && "HR Policies"}
         </NavLink>
 
-        {/* Leaves - Everyone (different text based on role) */}
+        {/* Leaves */}
         <NavLink to="/leaves" className={({ isActive }) => linkClass(isActive)}>
           <CalendarDays className="h-5 w-5" />
           {!collapsed && (canApprove() ? "Manage Leaves" : "My Leaves")}
         </NavLink>
 
-        {(user?.role === "ADMIN" || user?.role === "HR_USER") &&
-          !collapsed && (
-            <div>
-              <button
-                onClick={() => toggleMenu("performance")}
-                className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <ClipboardList className="h-5 w-5" />
-                  <span>Performance</span>
-                </div>
-                {openMenus["performance"] ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </button>
-              {openMenus["performance"] && (
-                <div className="mt-1 space-y-1">
-                  <NavLink
-                    to="/kpi/templates"
-                    className={({ isActive }) => dropdownLinkClass(isActive)}
-                  >
-                    <FileText className="h-4 w-4" /> KPI Templates
-                  </NavLink>
-                  <NavLink
-                    to="/kpi/evaluations"
-                    className={({ isActive }) => dropdownLinkClass(isActive)}
-                  >
-                    <ClipboardList className="h-4 w-4" /> KPI Evaluations
-                  </NavLink>
-                </div>
+        {hasPermission("performance.view") && !collapsed && (
+          <div>
+            <button
+              onClick={() => toggleMenu("performance")}
+              className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <ClipboardList className="h-5 w-5" />
+                <span>Performance</span>
+              </div>
+              {openMenus["performance"] ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
               )}
-            </div>
-          )}
+            </button>
+            {openMenus["performance"] && (
+              <div className="mt-1 space-y-1">
+                <NavLink
+                  to="/kpi/templates"
+                  className={({ isActive }) => dropdownLinkClass(isActive)}
+                >
+                  <FileText className="h-4 w-4" /> KPI Templates
+                </NavLink>
+                <NavLink
+                  to="/kpi/evaluations"
+                  className={({ isActive }) => dropdownLinkClass(isActive)}
+                >
+                  <ClipboardList className="h-4 w-4" /> KPI Evaluations
+                </NavLink>
+              </div>
+            )}
+          </div>
+        )}
 
-        {(user?.role === "ADMIN" || user?.role === "HR_USER") &&
-          !collapsed && (
-            <div>
-              <button
-                onClick={() => toggleMenu("forms")}
-                className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <FileText className="h-5 w-5" />
-                  <span>Forms</span>
-                </div>
-                {openMenus["forms"] ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </button>
-              {openMenus["forms"] && (
-                <div className="mt-1 space-y-1">
-                  <NavLink
-                    to="/hr-forms"
-                    className={({ isActive }) => dropdownLinkClass(isActive)}
-                  >
-                    <FileText className="h-4 w-4" /> Form Templates
-                  </NavLink>
-                  <NavLink
-                    to="/hr-forms/assignments"
-                    className={({ isActive }) => dropdownLinkClass(isActive)}
-                  >
-                    <ClipboardList className="h-4 w-4" /> Assign Forms
-                  </NavLink>
-                  <NavLink
-                    to="/hr-forms/submissions"
-                    className={({ isActive }) => dropdownLinkClass(isActive)}
-                  >
-                    <ClipboardList className="h-4 w-4" /> Form Submissions
-                  </NavLink>
-                </div>
+        {hasPermission("forms.view") && !collapsed && (
+          <div>
+            <button
+              onClick={() => toggleMenu("forms")}
+              className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <FileText className="h-5 w-5" />
+                <span>Forms</span>
+              </div>
+              {openMenus["forms"] ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
               )}
-            </div>
-          )}
+            </button>
+            {openMenus["forms"] && (
+              <div className="mt-1 space-y-1">
+                <NavLink
+                  to="/hr-forms"
+                  className={({ isActive }) => dropdownLinkClass(isActive)}
+                >
+                  <FileText className="h-4 w-4" /> Form Templates
+                </NavLink>
+                <NavLink
+                  to="/hr-forms/assignments"
+                  className={({ isActive }) => dropdownLinkClass(isActive)}
+                >
+                  <ClipboardList className="h-4 w-4" /> Assign Forms
+                </NavLink>
+                <NavLink
+                  to="/hr-forms/submissions"
+                  className={({ isActive }) => dropdownLinkClass(isActive)}
+                >
+                  <ClipboardList className="h-4 w-4" /> Form Submissions
+                </NavLink>
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Collapsed admin icons */}
-        {(user?.role === "ADMIN" || user?.role === "HR_USER") && collapsed && (
+        {hasPermission("performance.view") && collapsed && (
           <>
             <NavLink
               to="/kpi/templates"
@@ -295,6 +285,11 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             >
               <ClipboardList className="h-5 w-5" />
             </NavLink>
+          </>
+        )}
+
+        {hasPermission("forms.view") && collapsed && (
+          <>
             <NavLink
               to="/hr-forms"
               className={({ isActive }) => linkClass(isActive)}
@@ -319,7 +314,6 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           </>
         )}
 
-        {/* Evaluator Dropdown - only shown if has assignments */}
         {isEvaluator && !collapsed && (
           <div>
             <button
@@ -358,7 +352,6 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           </NavLink>
         )}
 
-        {/* Employee Dropdown - Self-service */}
         {user?.employee_id && !collapsed && (
           <div>
             <button
@@ -425,7 +418,6 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           </>
         )}
 
-        {/* Overtime Dropdown Menu - For all employees */}
         {showOvertimeDropdown() && !collapsed && (
           <div>
             <button
@@ -444,7 +436,6 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             </button>
             {openMenus["overtime"] && (
               <div className="mt-1 space-y-1">
-                {/* My Overtime - visible to everyone */}
                 <NavLink
                   to="/myovertime"
                   className={({ isActive }) => dropdownLinkClass(isActive)}
@@ -453,7 +444,6 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
                   My Overtime
                 </NavLink>
 
-                {/* Manage Overtime - only for approvers */}
                 {canApprove() && (
                   <NavLink
                     to="/overtime"
@@ -468,7 +458,6 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           </div>
         )}
 
-        {/* Man Hours Dropdown Menu - For all employees */}
         {showOvertimeDropdown() && !collapsed && (
           <div>
             <button
@@ -487,7 +476,6 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             </button>
             {openMenus["manhours"] && (
               <div className="mt-1 space-y-1">
-                {/* My Man Hours - visible to everyone */}
                 <NavLink
                   to="/my-manhours"
                   className={({ isActive }) => dropdownLinkClass(isActive)}
@@ -496,7 +484,6 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
                   My Man Hours
                 </NavLink>
 
-                {/* Manage Man Hours - only for approvers */}
                 {canApprove() && (
                   <NavLink
                     to="/manhours-approval"
@@ -511,7 +498,6 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           </div>
         )}
 
-        {/* Collapsed Overtime Menu (no dropdown, just icons) */}
         {showOvertimeDropdown() && collapsed && (
           <>
             <NavLink
@@ -549,7 +535,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           </>
         )}
 
-        {(user?.role === "SYSTEM_ADMIN" || user?.role === "ADMIN" || user?.role === "HR_USER" || user?.role === "PAYROLL_USER") && (
+        {hasPermission("employees.view") && (
           <NavLink
             to="/employees"
             className={({ isActive }) => linkClass(isActive)}
@@ -559,68 +545,63 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           </NavLink>
         )}
 
-        {(user?.role === "ADMIN" ||
-          user?.role === "HR_USER") &&
-          !collapsed && (
-            <div>
-              <button
-                onClick={() => toggleMenu("recruitment")}
-                className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <UserPlus className="h-5 w-5" />
-                  <span>Recruitment</span>
-                </div>
-                {openMenus["recruitment"] ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </button>
-              {openMenus["recruitment"] && (
-                <div className="mt-1 space-y-1">
-                  <NavLink
-                    to="/recruitment/job-positions"
-                    className={({ isActive }) => dropdownLinkClass(isActive)}
-                  >
-                    <Briefcase className="h-4 w-4" />
-                    Job Positions
-                  </NavLink>
-                  <NavLink
-                    to="/recruitment/applicants"
-                    className={({ isActive }) => dropdownLinkClass(isActive)}
-                  >
-                    <UsersIcon className="h-4 w-4" />
-                    Applicants
-                  </NavLink>
-                </div>
+        {hasPermission("recruitment.view") && !collapsed && (
+          <div>
+            <button
+              onClick={() => toggleMenu("recruitment")}
+              className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <UserPlus className="h-5 w-5" />
+                <span>Recruitment</span>
+              </div>
+              {openMenus["recruitment"] ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
               )}
-            </div>
-          )}
+            </button>
+            {openMenus["recruitment"] && (
+              <div className="mt-1 space-y-1">
+                <NavLink
+                  to="/recruitment/job-positions"
+                  className={({ isActive }) => dropdownLinkClass(isActive)}
+                >
+                  <Briefcase className="h-4 w-4" />
+                  Job Positions
+                </NavLink>
+                <NavLink
+                  to="/recruitment/applicants"
+                  className={({ isActive }) => dropdownLinkClass(isActive)}
+                >
+                  <UsersIcon className="h-4 w-4" />
+                  Applicants
+                </NavLink>
+              </div>
+            )}
+          </div>
+        )}
 
-        {(user?.role === "ADMIN" ||
-          user?.role === "HR_USER") &&
-          collapsed && (
-            <>
-              <NavLink
-                to="/recruitment/job-positions"
-                className={({ isActive }) => linkClass(isActive)}
-                title="Job Positions"
-              >
-                <Briefcase className="h-5 w-5" />
-              </NavLink>
-              <NavLink
-                to="/recruitment/applicants"
-                className={({ isActive }) => linkClass(isActive)}
-                title="Applicants"
-              >
-                <UsersIcon className="h-5 w-5" />
-              </NavLink>
-            </>
-          )}
+        {hasPermission("recruitment.view") && collapsed && (
+          <>
+            <NavLink
+              to="/recruitment/job-positions"
+              className={({ isActive }) => linkClass(isActive)}
+              title="Job Positions"
+            >
+              <Briefcase className="h-5 w-5" />
+            </NavLink>
+            <NavLink
+              to="/recruitment/applicants"
+              className={({ isActive }) => linkClass(isActive)}
+              title="Applicants"
+            >
+              <UsersIcon className="h-5 w-5" />
+            </NavLink>
+          </>
+        )}
 
-        {(user?.role === "ADMIN" ||
-          user?.role === "HR_USER") && (
+        {hasPermission("reports.view") && (
           <NavLink
             to="/reports"
             className={({ isActive }) => linkClass(isActive)}
@@ -630,14 +611,15 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           </NavLink>
         )}
 
-        {/* Payroll - Everyone */}
-        <NavLink
-          to="/payroll"
-          className={({ isActive }) => linkClass(isActive)}
-        >
-          <Wallet className="h-5 w-5" />
-          {!collapsed && "Payroll"}
-        </NavLink>
+        {hasPermission("payroll.view") && (
+          <NavLink
+            to="/payroll"
+            className={({ isActive }) => linkClass(isActive)}
+          >
+            <Wallet className="h-5 w-5" />
+            {!collapsed && "Payroll"}
+          </NavLink>
+        )}
 
         {/* My Benefits - Everyone */}
         <NavLink
@@ -657,7 +639,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           {!collapsed && "Calendar"}
         </NavLink>
 
-        {(user?.role === "SYSTEM_ADMIN" || user?.role === "ADMIN") && (
+        {hasPermission("users.view") && (
           <NavLink
             to="/users"
             className={({ isActive }) => linkClass(isActive)}
@@ -667,7 +649,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           </NavLink>
         )}
 
-        {(user?.role === "SYSTEM_ADMIN" || user?.role === "ADMIN") && (
+        {hasPermission("branches.view") && (
           <NavLink
             to="/branches"
             className={({ isActive }) => linkClass(isActive)}
@@ -677,8 +659,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           </NavLink>
         )}
 
-        {(user?.role === "SYSTEM_ADMIN" ||
-          user?.role === "ADMIN") && (
+        {hasPermission("settings.view") && (
           <NavLink
             to="/settings"
             className={({ isActive }) => linkClass(isActive)}
@@ -687,9 +668,18 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             {!collapsed && "Settings"}
           </NavLink>
         )}
+
+        {hasPermission("users.manage") && (
+          <NavLink
+            to="/user-permissions"
+            className={({ isActive }) => linkClass(isActive)}
+          >
+            <ShieldCheck className="h-5 w-5" />
+            {!collapsed && "User Permissions"}
+          </NavLink>
+        )}
       </nav>
 
-      {/* BOTTOM PROFILE SECTION - Fixed dark mode text visibility */}
       <div className="border-t p-3">
         <div
           className={`flex items-center ${

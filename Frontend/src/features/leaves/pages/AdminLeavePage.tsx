@@ -7,6 +7,7 @@ import LeaveConversionSettings from "../components/LeaveConversionSettings";
 import LeaveConversionHistory from "../components/LeaveConversionHistory";
 import EmployeeCreditsTable from "../components/EmployeeCreditsTable";
 import { CalendarDays } from "lucide-react";
+import { useAuth } from "@/app/providers/AuthProvider";
 import EmptyState from "@/components/shared/EmptyState";
 import Loader from "@/components/shared/Loader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,6 +44,8 @@ type Leave = {
 };
 
 const AdminLeavePage = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [pagination, setPagination] = useState<PaginationData>({
     page: 1,
@@ -178,18 +181,22 @@ const AdminLeavePage = () => {
           >
             Conversion History
           </TabsTrigger>
-          <TabsTrigger
-            value="settings"
-            className="flex items-center gap-2 flex-1"
-          >
-            Conversion Settings
-          </TabsTrigger>
-          <TabsTrigger
-            value="credits"
-            className="flex items-center gap-2 flex-1"
-          >
-            Leave Credits
-          </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger
+              value="settings"
+              className="flex items-center gap-2 flex-1"
+            >
+              Conversion Settings
+            </TabsTrigger>
+          )}
+          {isAdmin && (
+            <TabsTrigger
+              value="credits"
+              className="flex items-center gap-2 flex-1"
+            >
+              Leave Credits
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* LEAVE REQUESTS TAB */}
@@ -215,14 +222,18 @@ const AdminLeavePage = () => {
         </TabsContent>
 
         {/* CONVERSION SETTINGS TAB */}
-        <TabsContent value="settings" className="mt-6">
-          <LeaveConversionSettings />
-        </TabsContent>
+        {isAdmin && (
+          <TabsContent value="settings" className="mt-6">
+            <LeaveConversionSettings />
+          </TabsContent>
+        )}
 
         {/* LEAVE CREDITS TAB */}
-        <TabsContent value="credits" className="mt-6">
-          <EmployeeCreditsTable />
-        </TabsContent>
+        {isAdmin && (
+          <TabsContent value="credits" className="mt-6">
+            <EmployeeCreditsTable />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Reject Reason Modal */}

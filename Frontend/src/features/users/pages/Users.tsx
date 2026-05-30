@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useAuth } from "@/app/providers/AuthProvider";
 import UsersTable from "../components/UsersTable";
 import UserDrawerForm from "../components/UserDrawersForm";
 import {
@@ -34,6 +35,8 @@ import {
 } from "@/services/userService";
 
 const Users = () => {
+  const { user } = useAuth();
+  const canManage = user?.role === "SYSTEM_ADMIN" || user?.role === "ADMIN";
   const [data, setData] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState("");
@@ -209,10 +212,12 @@ const Users = () => {
             </p>
           </div>
         </div>
-        <Button onClick={handleAddNew} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Add User
-        </Button>
+        {canManage && (
+          <Button onClick={handleAddNew} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add User
+          </Button>
+        )}
       </div>
 
       {/* Filters Card */}
@@ -267,6 +272,7 @@ const Users = () => {
         data={data}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        canManage={canManage}
         currentPage={currentPage}
         totalPages={totalPages}
         totalRecords={totalRecords}

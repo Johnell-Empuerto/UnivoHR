@@ -7,6 +7,7 @@ import {
 import { getActiveJobPositions } from "@/services/jobPositionService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/app/providers/AuthProvider";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -52,6 +53,8 @@ const statusBadge = (status: string) => {
 
 const ApplicantsPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canDelete = user?.role === "ADMIN";
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -210,9 +213,11 @@ const ApplicantsPage = () => {
                           <Button variant="ghost" size="sm" title="View" onClick={() => navigate(`/recruitment/applicants/${a.id}`)}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" title="Delete" onClick={() => handleDelete(a.id)}>
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
+                          {canDelete && (
+                            <Button variant="ghost" size="sm" title="Delete" onClick={() => handleDelete(a.id)}>
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

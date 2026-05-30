@@ -60,11 +60,12 @@ import MyFormsPage from "@/features/hr-forms/pages/MyFormsPage";
 import MyFormFillPage from "@/features/hr-forms/pages/MyFormFillPage";
 import MyBenefitsPage from "@/features/benefits/pages/MyBenefitsPage";
 import ReportsPage from "@/features/reports/pages/ReportsPage";
+import UserPermissionsPage from "@/features/permissions/pages/UserPermissionsPage";
 
 
 
 const AppRoutes = () => {
-  const { isAuth, user } = useAuth();
+  const { isAuth, user, hasPermission } = useAuth();
   const [canAccessOvertime, setCanAccessOvertime] = useState(false);
   const [canAccessManHours, setCanAccessManHours] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -76,7 +77,6 @@ const AppRoutes = () => {
         return;
       }
 
-      // Check Overtime Access
       if (
         user?.role === "ADMIN" ||
         user?.role === "HR_USER"
@@ -158,21 +158,38 @@ const AppRoutes = () => {
         >
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/attendance" element={<AttendancePage />} />
-          <Route path="/employees" element={<EmployeeList />} />
+          <Route
+            path="/employees"
+            element={
+              hasPermission("employees.view") ? (
+                <EmployeeList />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
           <Route
             path="/payroll"
             element={
-              user?.role === "ADMIN" || user?.role === "PAYROLL_USER" ? (
-                <PayRollPage />
+              hasPermission("payroll.view") ? (
+                user?.role === "ADMIN" || user?.role === "PAYROLL_USER" ? (
+                  <PayRollPage />
+                ) : (
+                  <EmployeePayrollPage />
+                )
               ) : (
-                <EmployeePayrollPage />
+                <Navigate to="/dashboard" replace />
               )
             }
           />
           <Route
             path="/leaves"
             element={
-              user?.role === "ADMIN" ? <AdminLeavePage /> : <LeavePage />
+              user?.role === "ADMIN" || user?.role === "HR_USER" ? (
+                <AdminLeavePage />
+              ) : (
+                <LeavePage />
+              )
             }
           />
 
@@ -184,20 +201,41 @@ const AppRoutes = () => {
 
           <Route path="/payroll/details/:id" element={<PayrollDetails />} />
           <Route path="/my-benefits" element={<MyBenefitsPage />} />
-          <Route path="/reports" element={
-            user?.role === "ADMIN" || user?.role === "HR_USER" ? (
-              <ReportsPage />
-            ) : (
-              <Navigate to="/dashboard" replace />
-            )
-          } />
+          <Route
+            path="/reports"
+            element={
+              hasPermission("reports.view") ? (
+                <ReportsPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
 
           <Route path="/calendar" element={<CalendarPage />} />
 
-          <Route path="/settings" element={<Setting />} />
+          <Route
+            path="/settings"
+            element={
+              hasPermission("settings.view") ? (
+                <Setting />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
           <Route path="/myovertime" element={<MyOvertime />} />
 
-          <Route path="/users" element={<Users />} />
+          <Route
+            path="/users"
+            element={
+              hasPermission("users.view") ? (
+                <Users />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
 
           <Route path="/profile" element={<ProfilePage />} />
 
@@ -233,16 +271,16 @@ const AppRoutes = () => {
           {/* HR Policies - Everyone can view, admin gets management controls */}
           <Route path="/hr-policies" element={<HRPolicies />} />
 
-          {/* Branch Management - SYSTEM_ADMIN and ADMIN only */}
-          {(user?.role === "SYSTEM_ADMIN" || user?.role === "ADMIN") && (
+          {/* Branch Management */}
+          {hasPermission("branches.view") && (
             <Route path="/branches" element={<BranchesPage />} />
           )}
 
-          {/* Anomaly Detection - ADMIN, HR_USER */}
+          {/* Anomaly Detection */}
           <Route
             path="/anomalies"
             element={
-              user?.role === "ADMIN" || user?.role === "HR_USER" ? (
+              hasPermission("anomalies.view") ? (
                 <AnomalyPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -250,11 +288,11 @@ const AppRoutes = () => {
             }
           />
 
-          {/* Recruitment Routes - ADMIN, HR_USER only */}
+          {/* Recruitment Routes */}
           <Route
             path="/recruitment/job-positions"
             element={
-              user?.role === "ADMIN" || user?.role === "HR_USER" ? (
+              hasPermission("recruitment.view") ? (
                 <JobPositionsPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -264,7 +302,7 @@ const AppRoutes = () => {
           <Route
             path="/recruitment/applicants"
             element={
-              user?.role === "ADMIN" || user?.role === "HR_USER" ? (
+              hasPermission("recruitment.view") ? (
                 <ApplicantsPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -274,7 +312,7 @@ const AppRoutes = () => {
           <Route
             path="/recruitment/applicants/new"
             element={
-              user?.role === "ADMIN" || user?.role === "HR_USER" ? (
+              hasPermission("recruitment.view") ? (
                 <ApplicantFormPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -284,7 +322,7 @@ const AppRoutes = () => {
           <Route
             path="/recruitment/applicants/:id"
             element={
-              user?.role === "ADMIN" || user?.role === "HR_USER" ? (
+              hasPermission("recruitment.view") ? (
                 <ApplicantDetailPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -296,7 +334,7 @@ const AppRoutes = () => {
           <Route
             path="/kpi/templates"
             element={
-              user?.role === "ADMIN" || user?.role === "HR_USER" ? (
+              hasPermission("performance.view") ? (
                 <KpiTemplatesPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -306,7 +344,7 @@ const AppRoutes = () => {
           <Route
             path="/kpi/evaluations"
             element={
-              user?.role === "ADMIN" || user?.role === "HR_USER" ? (
+              hasPermission("performance.view") ? (
                 <KpiEvaluationPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -366,11 +404,11 @@ const AppRoutes = () => {
             }
           />
 
-          {/* HR Dynamic Forms - ADMIN, HR_USER */}
+          {/* HR Dynamic Forms */}
           <Route
             path="/hr-forms"
             element={
-              user?.role === "ADMIN" || user?.role === "HR_USER" ? (
+              hasPermission("forms.view") ? (
                 <HrFormsPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -380,7 +418,7 @@ const AppRoutes = () => {
           <Route
             path="/hr-forms/:id/builder"
             element={
-              user?.role === "ADMIN" || user?.role === "HR_USER" ? (
+              hasPermission("forms.view") ? (
                 <HrFormBuilderPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -390,7 +428,7 @@ const AppRoutes = () => {
           <Route
             path="/hr-forms/assignments"
             element={
-              user?.role === "ADMIN" || user?.role === "HR_USER" ? (
+              hasPermission("forms.view") ? (
                 <HrFormAssignmentsPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -400,7 +438,7 @@ const AppRoutes = () => {
           <Route
             path="/hr-forms/submissions"
             element={
-              user?.role === "ADMIN" || user?.role === "HR_USER" ? (
+              hasPermission("forms.view") ? (
                 <HrFormSubmissionsPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -410,7 +448,7 @@ const AppRoutes = () => {
           <Route
             path="/hr-forms/submissions/:submissionId"
             element={
-              user?.role === "ADMIN" || user?.role === "HR_USER" ? (
+              hasPermission("forms.view") ? (
                 <HrFormSubmissionViewPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -437,6 +475,11 @@ const AppRoutes = () => {
               )
             }
           />
+
+          {/* User Permissions Management */}
+          {hasPermission("users.manage") && (
+            <Route path="/user-permissions" element={<UserPermissionsPage />} />
+          )}
         </Route>
       </Routes>
     </BrowserRouter>

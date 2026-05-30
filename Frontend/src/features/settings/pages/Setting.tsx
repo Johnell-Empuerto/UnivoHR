@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings } from "lucide-react";
+import { useAuth } from "@/app/providers/AuthProvider";
 import AttendanceSettings from "../components/AttendanceSettings";
 import PayRulesSettings from "../components/PayRulesSettings";
 import SMTPSettings from "../components/SMTPSettings";
@@ -12,7 +13,17 @@ import EmailTemplateEditor from "../components/EmailTemplateEditor";
 import CompanyBranding from "../components/CompanyBranding";
 
 const Setting = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("attendance");
+  const role = user?.role;
+
+  const canViewAttendance = role === "SYSTEM_ADMIN" || role === "ADMIN";
+  const canViewPayRules = role === "SYSTEM_ADMIN" || role === "ADMIN";
+  const canViewApprovals = role === "SYSTEM_ADMIN" || role === "ADMIN";
+  const canViewSMTP = role === "SYSTEM_ADMIN";
+  const canViewNotifications = role === "SYSTEM_ADMIN" || role === "ADMIN";
+  const canViewEmailTemplates = role === "SYSTEM_ADMIN";
+  const canViewBranding = role === "SYSTEM_ADMIN";
 
   return (
     <div className="space-y-6 p-6">
@@ -39,42 +50,56 @@ const Setting = () => {
         className="space-y-6"
       >
         <TabsList className="flex w-full gap-2 overflow-x-auto">
-          <TabsTrigger value="attendance">Attendance</TabsTrigger>
-          <TabsTrigger value="payrules">Pay Rules</TabsTrigger>
-          <TabsTrigger value="approvals">Approvals</TabsTrigger>
-          <TabsTrigger value="smtp">SMTP</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="email-templates">Email Templates</TabsTrigger>
-          <TabsTrigger value="branding">Branding</TabsTrigger>
+          {canViewAttendance && <TabsTrigger value="attendance">Attendance</TabsTrigger>}
+          {canViewPayRules && <TabsTrigger value="payrules">Pay Rules</TabsTrigger>}
+          {canViewApprovals && <TabsTrigger value="approvals">Approvals</TabsTrigger>}
+          {canViewSMTP && <TabsTrigger value="smtp">SMTP</TabsTrigger>}
+          {canViewNotifications && <TabsTrigger value="notifications">Notifications</TabsTrigger>}
+          {canViewEmailTemplates && <TabsTrigger value="email-templates">Email Templates</TabsTrigger>}
+          {canViewBranding && <TabsTrigger value="branding">Branding</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value="attendance" className="mt-0">
-          <AttendanceSettings />
-        </TabsContent>
+        {canViewAttendance && (
+          <TabsContent value="attendance" className="mt-0">
+            <AttendanceSettings />
+          </TabsContent>
+        )}
 
-        <TabsContent value="payrules" className="mt-0">
-          <PayRulesSettings />
-        </TabsContent>
+        {canViewPayRules && (
+          <TabsContent value="payrules" className="mt-0">
+            <PayRulesSettings />
+          </TabsContent>
+        )}
 
-        <TabsContent value="approvals" className="mt-0">
-          <ApprovalSettings />
-        </TabsContent>
+        {canViewApprovals && (
+          <TabsContent value="approvals" className="mt-0">
+            <ApprovalSettings />
+          </TabsContent>
+        )}
 
-        <TabsContent value="smtp" className="mt-0">
-          <SMTPSettings />
-        </TabsContent>
+        {canViewSMTP && (
+          <TabsContent value="smtp" className="mt-0">
+            <SMTPSettings />
+          </TabsContent>
+        )}
 
-        <TabsContent value="notifications" className="mt-0">
-          <NotificationSettings />
-        </TabsContent>
+        {canViewNotifications && (
+          <TabsContent value="notifications" className="mt-0">
+            <NotificationSettings />
+          </TabsContent>
+        )}
 
-        <TabsContent value="email-templates" className="mt-0">
-          <EmailTemplateEditor />
-        </TabsContent>
+        {canViewEmailTemplates && (
+          <TabsContent value="email-templates" className="mt-0">
+            <EmailTemplateEditor />
+          </TabsContent>
+        )}
 
-        <TabsContent value="branding" className="mt-0">
-          <CompanyBranding />
-        </TabsContent>
+        {canViewBranding && (
+          <TabsContent value="branding" className="mt-0">
+            <CompanyBranding />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

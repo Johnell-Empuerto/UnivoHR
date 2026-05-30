@@ -27,16 +27,23 @@ type User = {
 type LoginData = {
   token: string;
   refreshToken?: string;
+  user?: {
+    permissions?: string[];
+  };
 };
 
 type AuthContextType = {
   isAuth: boolean;
   user: User | null;
+  permissions: string[];
   login: (data: LoginData) => void;
   logout: () => void;
+  hasPermission: (key: string) => boolean;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+const PERMISSIONS_KEY = "user_permissions";
 
 export const AuthProvider = ({ children }: any) => {
   const token = localStorage.getItem("token");
@@ -49,6 +56,22 @@ export const AuthProvider = ({ children }: any) => {
       return null;
     }
   });
+  const [permissions, setPermissions] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem(PERMISSIONS_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const hasPermission = useCallback(
+    (key: string) => {
+      if (user?.role === "ADMIN") return true;
+      return permissions.includes(key);
+    },
+    [user?.role, permissions],
+  );
 
   const login = (data: LoginData) => {
     localStorage.setItem("token", data.token);
@@ -57,6 +80,11 @@ export const AuthProvider = ({ children }: any) => {
     }
     const decoded = jwtDecode<User>(data.token);
     setUser(decoded);
+
+    const perms = data.user?.permissions || [];
+    localStorage.setItem(PERMISSIONS_KEY, JSON.stringify(perms));
+    setPermissions(perms);
+
     setIsAuth(true);
   };
 
@@ -74,7 +102,9 @@ export const AuthProvider = ({ children }: any) => {
     }
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
+    localStorage.removeItem(PERMISSIONS_KEY);
     setUser(null);
+    setPermissions([]);
     setIsAuth(false);
   }, []);
 
@@ -84,7 +114,9 @@ export const AuthProvider = ({ children }: any) => {
     clearSessionExpiredFlag();
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
+    localStorage.removeItem(PERMISSIONS_KEY);
     setUser(null);
+    setPermissions([]);
     setIsAuth(false);
     window.location.href = "/login";
   }, []);
@@ -119,7 +151,7 @@ export const AuthProvider = ({ children }: any) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isAuth, user, login, logout }}>
+    <AuthContext.Provider value={{ isAuth, user, permissions, login, logout, hasPermission }}>
       {children}
 
       <Dialog open={showSessionExpired} onOpenChange={() => {}}>

@@ -11,6 +11,7 @@ const userService = require("./user.service");
 const userCacheService = require("./userCache.service");
 const redisClient = require("../config/redis");
 const tokenBlacklist = require("./tokenBlacklist.service");
+const permissionService = require("./permission.service");
 const { validatePassword } = require("../utils/passwordValidator");
 
 if (!process.env.JWT_SECRET) {
@@ -52,15 +53,19 @@ const generateAccessToken = (user) => {
   return { token, jti, expiresIn: ACCESS_TOKEN_EXPIRY_SECONDS };
 };
 
-const buildUserResponse = (user) => ({
-  id: user.id,
-  username: user.username,
-  role: user.role,
-  employee_id: user.employee_id,
-  first_name: user.first_name,
-  last_name: user.last_name,
-  email: user.email,
-});
+const buildUserResponse = async (user) => {
+  const permissions = await permissionService.getEffectivePermissions(user);
+  return {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    employee_id: user.employee_id,
+    first_name: user.first_name,
+    last_name: user.last_name,
+    email: user.email,
+    permissions,
+  };
+};
 
 const enforceMaxSessions = async (userId) => {
   const count = await sessionModel.countActiveSessions(userId);
@@ -92,7 +97,8 @@ const createSessionAndIssueTokens = async (user, reqInfo) => {
 
   await sessionModel.updateSessionHash(session.id, hashToken(refreshTokenStr));
 
-  return { accessToken: access.token, refreshToken: refreshTokenStr, user: buildUserResponse(user) };
+  const userResp = await buildUserResponse(user);
+  return { accessToken: access.token, refreshToken: refreshTokenStr, user: userResp };
 };
 
 const login = async ({ username, password }, reqInfo) => {
