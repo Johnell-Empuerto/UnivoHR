@@ -33,8 +33,10 @@ const getStatusBadge = (status: string) => {
 const getReadinessBadge = (readiness: string) => {
   const map: Record<string, string> = {
     "Recommended for Regularization": "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    "Training Recommended": "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
     "Needs Improvement": "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
     "Probation Extension Recommended": "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+    "Termination Recommended": "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
     "Not Recommended": "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
     "No Evaluation Yet": "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
   };
@@ -159,10 +161,9 @@ const MyProbationStatusPage = () => {
               <CardContent>
                 {data.latestEvaluation ? (
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Score:</span>
-                      <span className="font-bold text-lg">{data.latestEvaluation.finalScore}</span>
+                    <div>
+                      <span className="text-sm text-muted-foreground">Template: </span>
+                      <span className="font-medium">{data.latestEvaluation.templateName || "—"}</span>
                     </div>
                     <div>
                       <span className="text-sm text-muted-foreground">Period: </span>
@@ -174,9 +175,18 @@ const MyProbationStatusPage = () => {
                       <span className="text-sm text-muted-foreground">Evaluator: </span>
                       <span className="font-medium">{data.latestEvaluation.evaluatorName || "—"}</span>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Score:</span>
+                      <span className="font-bold text-lg">{data.latestEvaluation.finalScore}</span>
+                    </div>
                     <div>
                       <span className="text-sm text-muted-foreground">Recommendation: </span>
                       <span className="font-medium">{data.latestEvaluation.recommendation || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="text-sm text-muted-foreground">Status: </span>
+                      <span className="font-medium">{data.latestEvaluation.status || "—"}</span>
                     </div>
                   </div>
                 ) : (
@@ -207,15 +217,42 @@ const MyProbationStatusPage = () => {
                   </div>
                 )}
 
-                <div className="bg-muted/30 p-4 rounded-lg border border-border/50">
-                  <p className="text-sm font-medium flex items-center gap-2 mb-1">
+                <div className="bg-muted/30 p-4 rounded-lg border border-border/50 space-y-3">
+                  <p className="text-sm font-medium flex items-center gap-2">
                     <FileText className="h-4 w-4" />
-                    About Probation Milestones
+                    Probation Summary
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Detailed probation milestone tracking is not yet configured.
-                    Your regularization status is based on the latest KPI evaluation
-                    recommendation from your supervisor.
+                    Your probation progress is monitored through KPI evaluations and supervisor recommendations.
+                  </p>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Current Recommendation</p>
+                    {data.latestEvaluation?.recommendation
+                      ? getReadinessBadge(
+                          data.latestEvaluation.recommendation === "Regularize"
+                            ? "Recommended for Regularization"
+                            : data.latestEvaluation.recommendation === "Extend Probation"
+                              ? "Probation Extension Recommended"
+                              : data.latestEvaluation.recommendation === "Training"
+                                ? "Training Recommended"
+                                : data.latestEvaluation.recommendation === "Terminate"
+                                  ? "Termination Recommended"
+                                  : data.latestEvaluation.recommendation
+                        )
+                      : <span className="text-sm text-muted-foreground italic">No recommendation available yet.</span>
+                    }
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Expected Regularization Date</p>
+                    <p className="text-sm font-medium">
+                      {data.expectedRegularizationDate
+                        ? formatDate(data.expectedRegularizationDate)
+                        : <span className="italic">Not yet determined.</span>
+                      }
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Please coordinate with your supervisor or HR regarding your probation progress.
                   </p>
                 </div>
               </CardContent>

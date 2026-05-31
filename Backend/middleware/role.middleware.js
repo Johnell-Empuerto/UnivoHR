@@ -1,4 +1,4 @@
-const { normalizeRole } = require("../constants/roles");
+const { ROLES } = require("../constants/roles");
 
 const authorize = (allowedRoles) => {
   return (req, res, next) => {
@@ -6,14 +6,11 @@ const authorize = (allowedRoles) => {
       return res.status(401).json({ message: "Unauthorized: No user found" });
     }
 
-    const normalized = normalizeRole(req.user.role);
-    req.user.role = normalized;
-
-    if (!allowedRoles.includes(normalized)) {
+    if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
         message: "Forbidden: Insufficient permissions",
         required: allowedRoles,
-        yourRole: normalized,
+        yourRole: req.user.role,
       });
     }
 

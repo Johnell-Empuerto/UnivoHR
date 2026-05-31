@@ -5,8 +5,8 @@ const pool = require("../config/db");
 const smtpService = require("./smtp.service");
 const settingService = require("./setting.service");
 const notificationService = require("./notification.service");
+const notificationHelper = require("./notificationHelper.service");
 const emailTemplateService = require("./emailTemplate.service");
-const { normalizeRole } = require("../constants/roles");
 
 // Helper function to calculate days (UPDATED to support half-day)
 const calculateDays = (from, to, dayFraction = 1) => {
@@ -122,7 +122,7 @@ const getEmployeeRole = async (employeeId) => {
     `SELECT u.role FROM users u WHERE u.employee_id = $1`,
     [employeeId],
   );
-  return normalizeRole(result.rows[0]?.role);
+  return result.rows[0]?.role;
 };
 
 // Check available credits with half-day support
@@ -240,11 +240,11 @@ const updateStatus = async (leaveId, status, rejectionReason = null) => {
         : "leave";
 
     if (status === "APPROVED") {
-      await notificationService.notify({
-        user_id: existing.employee_id,
+      const dateRange = `${existing.from_date} to ${existing.to_date}`;
+      await notificationHelper.notifyEmployee(existing.employee_id, {
         type: "LEAVE",
         title: "Leave Approved",
-        message: `Your ${leaveTypeDisplay} ${durationText} request has been approved`,
+        message: `Your ${leaveTypeDisplay} ${durationText} request (${dateRange}) has been approved`,
         reference_id: existing.id,
         meta: {
           leave_id: existing.id,
@@ -256,17 +256,14 @@ const updateStatus = async (leaveId, status, rejectionReason = null) => {
           half_day_type: existing.half_day_type,
         },
       });
-      console.log(
-        `📢 In-app notification sent to employee ${existing.employee_id}`,
-      );
 
       await sendLeaveEmailNotification(existing, status, rejectionReason);
     } else if (status === "REJECTED") {
-      await notificationService.notify({
-        user_id: existing.employee_id,
+      const dateRange = `${existing.from_date} to ${existing.to_date}`;
+      await notificationHelper.notifyEmployee(existing.employee_id, {
         type: "LEAVE",
         title: "Leave Declined",
-        message: `Your ${leaveTypeDisplay} ${durationText} request was not approved. Reason: ${rejectionReason}`,
+        message: `Your ${leaveTypeDisplay} ${durationText} request (${dateRange}) was not approved. Reason: ${rejectionReason}`,
         reference_id: existing.id,
         meta: {
           leave_id: existing.id,
@@ -279,9 +276,6 @@ const updateStatus = async (leaveId, status, rejectionReason = null) => {
           rejection_reason: rejectionReason,
         },
       });
-      console.log(
-        `📢 In-app rejection notification sent to employee ${existing.employee_id}`,
-      );
 
       await sendLeaveEmailNotification(existing, status, rejectionReason);
     }

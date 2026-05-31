@@ -3,34 +3,33 @@ const router = express.Router();
 
 const controller = require("../controllers/employeeRequirement.controller");
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
-const ROLES = require("../constants/roles");
+const requirePermission = require("../middleware/permission.middleware");
 
 router.get(
   "/:onboardingId",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_USER]),
+  requirePermission("employees.view"),
   controller.getByOnboardingId,
 );
 
 router.post(
   "/:onboardingId",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_USER]),
+  requirePermission("employees.view"),
   controller.create,
 );
 
 router.put(
   "/:id",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_USER]),
+  requirePermission("employees.view"),
   controller.update,
 );
 
 router.delete(
   "/:id",
   authenticate,
-  authorize([ROLES.ADMIN]),
+  requirePermission("employees.view"),
   controller.remove,
 );
 

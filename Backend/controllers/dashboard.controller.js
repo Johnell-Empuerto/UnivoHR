@@ -7,7 +7,7 @@ const getSummary = async (req, res) => {
     const endDate = req.query.end_date || null;
 
     let allowedBranchIds = null;
-    if (req.user.role === "HR_USER") {
+    if (req.user.role !== "ADMIN") {
       allowedBranchIds = await getUserBranchIds(req.user.id);
       if (allowedBranchIds.length === 0) {
         return res.status(403).json({ message: "You are not allowed to view this data." });
@@ -47,7 +47,7 @@ const getAdminAnalytics = async (req, res) => {
     const endDate = req.query.end_date || null;
 
     let allowedBranchIds = null;
-    if (req.user.role === "HR_USER") {
+    if (req.user.role !== "ADMIN") {
       allowedBranchIds = await getUserBranchIds(req.user.id);
       if (allowedBranchIds.length === 0) {
         return res.status(403).json({ message: "You are not allowed to view this data." });
@@ -77,7 +77,7 @@ const getExecutiveKpis = async (req, res) => {
     const endDate = req.query.end_date || null;
 
     let allowedBranchIds = null;
-    if (req.user.role === "HR_USER") {
+    if (req.user.role !== "ADMIN") {
       allowedBranchIds = await getUserBranchIds(req.user.id);
       if (allowedBranchIds.length === 0) {
         return res.status(403).json({ message: "You are not allowed to view this data." });

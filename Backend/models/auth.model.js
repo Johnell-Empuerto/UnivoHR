@@ -14,7 +14,8 @@ const findUserByUsername = async (username) => {
     e.middle_name,
     e.suffix,
     e.employee_code,
-    e.email 
+    e.email,
+    e.employment_status
   FROM users u
   LEFT JOIN employees e ON e.id = u.employee_id
   WHERE LOWER(u.username) = LOWER($1)
@@ -39,7 +40,8 @@ const findUserById = async (id) => {
     e.middle_name,
     e.suffix,
     e.employee_code,
-    e.email  
+    e.email,
+    e.employment_status
   FROM users u
   LEFT JOIN employees e ON e.id = u.employee_id
   WHERE u.id = $1

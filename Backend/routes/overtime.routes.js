@@ -2,29 +2,29 @@ const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/overtime.controller");
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
-const { ROLES, normalizeRole } = require("../constants/roles");
+const requirePermission = require("../middleware/permission.middleware");
+const { ROLES } = require("../constants/roles");
 
-const HR_ACCESS = [ROLES.ADMIN, ROLES.HR_USER];
-const ALL = [ROLES.ADMIN, ROLES.HR_USER, ROLES.PAYROLL_USER, ROLES.EMPLOYEE];
+const HR_ACCESS = [ROLES.ADMIN];
+const ALL = [ROLES.ADMIN, ROLES.EMPLOYEE];
 const ADMIN_ONLY = [ROLES.ADMIN];
 
-router.get("/my", authenticate, authorize(ALL), controller.getMyOvertime);
-router.post("/", authenticate, authorize(ALL), controller.createOvertime);
+router.get("/my", authenticate, requirePermission("overtime.view"), controller.getMyOvertime);
+router.post("/", authenticate, requirePermission("overtime.manage"), controller.createOvertime);
 
-router.get("/approvers", authenticate, authorize(ADMIN_ONLY), controller.getApprovers);
-router.post("/approvers", authenticate, authorize(ADMIN_ONLY), controller.createApprover);
-router.put("/approvers/:id", authenticate, authorize(ADMIN_ONLY), controller.updateApprover);
-router.delete("/approvers/:id", authenticate, authorize(ADMIN_ONLY), controller.deleteApprover);
+router.get("/approvers", authenticate, requirePermission("overtime.manage"), controller.getApprovers);
+router.post("/approvers", authenticate, requirePermission("overtime.manage"), controller.createApprover);
+router.put("/approvers/:id", authenticate, requirePermission("overtime.manage"), controller.updateApprover);
+router.delete("/approvers/:id", authenticate, requirePermission("overtime.manage"), controller.deleteApprover);
 
-router.get("/employees/list", authenticate, authorize(ADMIN_ONLY), controller.getEmployeesForDropdown);
+router.get("/employees/list", authenticate, requirePermission("overtime.view"), controller.getEmployeesForDropdown);
 router.get("/is-approver", authenticate, controller.isApprover);
 
 router.get("/:id", authenticate, async (req, res, next) => {
-  const role = normalizeRole(req.user.role);
+  const role = req.user.role;
   if (HR_ACCESS.includes(role)) return next();
 
-  if (role === ROLES.EMPLOYEE || role === ROLES.PAYROLL_USER) {
+  if (role === ROLES.EMPLOYEE) {
     try {
       const pool = require("../config/db");
       const result = await pool.query(
@@ -52,7 +52,7 @@ router.get("/:id", authenticate, async (req, res, next) => {
 }, controller.getOvertimeDetails);
 
 router.get("/", authenticate, async (req, res, next) => {
-  const role = normalizeRole(req.user.role);
+  const role = req.user.role;
   if (HR_ACCESS.includes(role)) return next();
 
   try {
@@ -70,7 +70,7 @@ router.get("/", authenticate, async (req, res, next) => {
 }, controller.getAllOvertime);
 
 const approveCheck = async (req, res, next) => {
-  const role = normalizeRole(req.user.role);
+  const role = req.user.role;
   if (HR_ACCESS.includes(role)) return next();
   try {
     const pool = require("../config/db");

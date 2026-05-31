@@ -169,6 +169,7 @@ const EmployeeEvaluationPage = () => {
                     <TableHead>Template</TableHead>
                     <TableHead>Score</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Self Eval</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -179,6 +180,7 @@ const EmployeeEvaluationPage = () => {
                       <TableCell>{a.template_name}</TableCell>
                       <TableCell>{a.final_score || "-"}</TableCell>
                       <TableCell>{statusBadge(a.status)}</TableCell>
+                      <TableCell>{a.self_evaluation ? <Badge className="bg-green-100 text-green-800">Completed</Badge> : <Badge className="bg-red-100 text-red-800">Missing</Badge>}</TableCell>
                       <TableCell>
                         <Button size="sm" variant="outline" onClick={() => handleOpenEval(a.id)} className="flex items-center gap-1">
                           <Star className="h-4 w-4" /> Evaluate
@@ -231,6 +233,11 @@ const EmployeeEvaluationPage = () => {
           {currentEval && (
             <div className="space-y-4">
               <p className="text-xs text-muted-foreground">Template: {currentEval.template_name} | Score range: 1 (Low) - 5 (High)</p>
+              {!currentEval.self_evaluation && (
+                <div className="bg-amber-50 border border-amber-200 rounded p-3 text-sm text-amber-800">
+                  Self Evaluation: <strong>Missing</strong> — Employee has not submitted their self-evaluation yet.
+                </div>
+              )}
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>

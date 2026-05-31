@@ -141,15 +141,17 @@ const getAllManHourReports = async (
   let paramIndex = 2;
 
   const isAdmin =
-    userRole === "SYSTEM_ADMIN" || userRole === "ADMIN" || userRole === "HR_USER";
+    userRole === "ADMIN";
 
   if (!isAdmin) {
-    query += ` AND EXISTS (
+    query += ` AND (EXISTS (
       SELECT 1 FROM employee_approvers ea
       WHERE ea.employee_id = m.employee_id
       AND ea.approver_id = $1
       AND (ea.approval_type = 'MAN_HOUR' OR ea.approval_type = 'ALL')
-    )`;
+    ) OR EXISTS (
+      SELECT 1 FROM user_permissions up WHERE up.user_id = $1 AND up.permission_key = 'manhours.manage' AND up.is_allowed = true
+    ))`;
   }
 
   if (search) {
@@ -180,15 +182,17 @@ const getAllManHourReports = async (
   let countIndex = 1;
 
   const isAdminForCount =
-    userRole === "SYSTEM_ADMIN" || userRole === "ADMIN" || userRole === "HR_USER";
+    userRole === "ADMIN";
 
   if (!isAdminForCount) {
-    countQuery += ` AND EXISTS (
+    countQuery += ` AND (EXISTS (
       SELECT 1 FROM employee_approvers ea
       WHERE ea.employee_id = m.employee_id
       AND ea.approver_id = $${countIndex}
       AND (ea.approval_type = 'MAN_HOUR' OR ea.approval_type = 'ALL')
-    )`;
+    ) OR EXISTS (
+      SELECT 1 FROM user_permissions up WHERE up.user_id = $${countIndex} AND up.permission_key = 'manhours.manage' AND up.is_allowed = true
+    ))`;
     countParams.push(user_id);
     countIndex++;
   }
@@ -477,15 +481,20 @@ const canApprove = async (
   userRole = null,
 ) => {
   const role = userRole;
-  if (role === "SYSTEM_ADMIN" || role === "ADMIN") {
+  if (role === "ADMIN") {
     return true;
   }
 
-  if (role === "HR_USER") {
+  // Check if user has manhours.approve permission
+  const permResult = await pool.query(
+    `SELECT 1 FROM user_permissions WHERE user_id = $1 AND permission_key = 'manhours.approve' AND is_allowed = true LIMIT 1`,
+    [approver_id],
+  );
+  if (permResult.rows.length > 0) {
     return true;
   }
 
-  // For EMPLOYEE role, check if they are assigned as approver
+  // For other users, check if they are assigned as approver
   const result = await pool.query(
     `SELECT 1 FROM employee_approvers
      WHERE employee_id = $1

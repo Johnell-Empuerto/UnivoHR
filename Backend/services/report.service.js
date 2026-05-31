@@ -1,6 +1,5 @@
 const pool = require("../config/db");
 const { getUserBranchIds } = require("../utils/branchAccess");
-const { normalizeRole } = require("../constants/roles");
 
 // ============================================
 // EMPLOYEE REPORTS
@@ -11,7 +10,7 @@ const getEmployeeReport = async (user, { reportType, status, department, branch_
   const params = [];
   let idx = 1;
 
-  if (normalizeRole(user.role) === "HR_USER") {
+  if (user.role !== "ADMIN") {
     const branchIds = await getUserBranchIds(user.id);
     if (branchIds.length === 0) return { data: [], pagination: { total: 0, page: Number(page), limit: Number(limit), totalPages: 0 } };
     whereConditions.push(`e.branch_id = ANY($${idx}::int[])`);
@@ -27,6 +26,18 @@ const getEmployeeReport = async (user, { reportType, status, department, branch_
     case "inactive":
       whereConditions.push(`e.status = $${idx++}`);
       params.push("INACTIVE");
+      break;
+    case "active_regular":
+      whereConditions.push(`e.status = $${idx++}`);
+      params.push("ACTIVE");
+      whereConditions.push(`e.employment_status = $${idx++}`);
+      params.push("REGULAR");
+      break;
+    case "active_probationary":
+      whereConditions.push(`e.status = $${idx++}`);
+      params.push("ACTIVE");
+      whereConditions.push(`e.employment_status = $${idx++}`);
+      params.push("PROBATIONARY");
       break;
     case "new_hires":
       if (startDate) { whereConditions.push(`e.hired_date >= $${idx++}::date`); params.push(startDate); }
@@ -60,6 +71,7 @@ const getEmployeeReport = async (user, { reportType, status, department, branch_
     SELECT e.id, e.employee_code, e.first_name, e.middle_name, e.last_name, e.suffix,
            e.department, e.position, e.status, e.employment_status,
            e.hired_date, e.resignation_date, e.termination_date, e.last_working_date,
+           e.probation_period_months, e.regularization_date,
            e.branch_id, b.name AS branch_name,
            e.gender, e.contact_number, e.email
     FROM employees e
@@ -100,7 +112,7 @@ const getLeaveReport = async (user, { reportType, status, department, startDate,
       params.push(searchVal);
       idx++;
     }
-    if (normalizeRole(user.role) === "HR_USER") {
+    if (user.role !== "ADMIN") {
       const branchIds = await getUserBranchIds(user.id);
       if (branchIds.length === 0) return { data: [], pagination: { total: 0, page: Number(page), limit: Number(limit), totalPages: 0 } };
       whereConditions.push(`e.branch_id = ANY($${idx}::int[])`);
@@ -161,7 +173,7 @@ const getLeaveReport = async (user, { reportType, status, department, startDate,
       params.push(searchVal);
       idx++;
     }
-    if (normalizeRole(user.role) === "HR_USER") {
+    if (user.role !== "ADMIN") {
       const branchIds = await getUserBranchIds(user.id);
       if (branchIds.length === 0) return { data: [], pagination: { total: 0, page: Number(page), limit: Number(limit), totalPages: 0 } };
       whereConditions.push(`e.branch_id = ANY($${idx}::int[])`);
@@ -207,7 +219,7 @@ const getLeaveReport = async (user, { reportType, status, department, startDate,
       params.push(searchVal);
       idx++;
     }
-    if (normalizeRole(user.role) === "HR_USER") {
+    if (user.role !== "ADMIN") {
       const branchIds = await getUserBranchIds(user.id);
       if (branchIds.length === 0) return { data: [], pagination: { total: 0, page: Number(page), limit: Number(limit), totalPages: 0 } };
       whereConditions.push(`e.branch_id = ANY($${idx}::int[])`);
@@ -252,7 +264,7 @@ const getLeaveReport = async (user, { reportType, status, department, startDate,
     params.push(searchVal);
     idx++;
   }
-  if (normalizeRole(user.role) === "HR_USER") {
+  if (user.role !== "ADMIN") {
     const branchIds = await getUserBranchIds(user.id);
     if (branchIds.length === 0) return { data: [], pagination: { total: 0, page: Number(page), limit: Number(limit), totalPages: 0 } };
     whereConditions.push(`e.branch_id = ANY($${idx}::int[])`);
@@ -299,7 +311,7 @@ const getAttendanceReport = async (user, { reportType, status, department, branc
 
   const buildBranchFilter = async () => {
     if (branch_id) { whereConditions.push(`e.branch_id = $${idx++}`); params.push(branch_id); }
-    if (normalizeRole(user.role) === "HR_USER") {
+    if (user.role !== "ADMIN") {
       const branchIds = await getUserBranchIds(user.id);
       if (branchIds.length === 0) return false;
       whereConditions.push(`e.branch_id = ANY($${idx}::int[])`);
@@ -347,7 +359,7 @@ const getAttendanceReport = async (user, { reportType, status, department, branc
   }
 
   if (reportType === "by_branch") {
-    if (normalizeRole(user.role) === "HR_USER") {
+    if (user.role !== "ADMIN") {
       const branchIds = await getUserBranchIds(user.id);
       if (branchIds.length === 0) return { data: [], pagination: { total: 0, page: Number(page), limit: Number(limit), totalPages: 0 } };
       whereConditions.push(`e.branch_id = ANY($${idx}::int[])`);
@@ -475,7 +487,7 @@ const getPayrollReport = async (user, { reportType, status, department, branch_i
 
   switch (reportType) {
     case "by_branch":
-      if (normalizeRole(user.role) === "HR_USER") {
+      if (user.role !== "ADMIN") {
         const branchIds = await getUserBranchIds(user.id);
         if (branchIds.length === 0) return { data: [], pagination: { total: 0, page: Number(page), limit: Number(limit), totalPages: 0 } };
         whereConditions.push(`e.branch_id = ANY($${idx}::int[])`);
@@ -516,7 +528,7 @@ const getPayrollReport = async (user, { reportType, status, department, branch_i
       return { data: dataBranch.rows, pagination: { total: parseInt(countBranch.rows[0].count), page: Number(page), limit: Number(limit), totalPages: Math.ceil(parseInt(countBranch.rows[0].count) / limit) } };
     case "by_department":
     case "department_summary":
-      if (normalizeRole(user.role) === "HR_USER") {
+      if (user.role !== "ADMIN") {
         const branchIds = await getUserBranchIds(user.id);
         if (branchIds.length === 0) return { data: [], pagination: { total: 0, page: Number(page), limit: Number(limit), totalPages: 0 } };
         whereConditions.push(`e.branch_id = ANY($${idx}::int[])`);
@@ -549,7 +561,7 @@ const getPayrollReport = async (user, { reportType, status, department, branch_i
       `, params);
       return { data: dataDept.rows, pagination: { total: parseInt(countDept.rows[0].count), page: Number(page), limit: Number(limit), totalPages: Math.ceil(parseInt(countDept.rows[0].count) / limit) } };
     case "net_pay_summary":
-      if (normalizeRole(user.role) === "HR_USER") {
+      if (user.role !== "ADMIN") {
         const branchIds = await getUserBranchIds(user.id);
         if (branchIds.length === 0) return { data: [], pagination: { total: 0, page: Number(page), limit: Number(limit), totalPages: 0 } };
         whereConditions.push(`e.branch_id = ANY($${idx}::int[])`);
@@ -584,7 +596,7 @@ const getPayrollReport = async (user, { reportType, status, department, branch_i
         pagination: { total: parseInt(countNet.rows[0].count), page: Number(page), limit: Number(limit), totalPages: Math.ceil(parseInt(countNet.rows[0].count) / limit) },
       };
     case "deduction_summary":
-      if (normalizeRole(user.role) === "HR_USER") {
+      if (user.role !== "ADMIN") {
         const branchIds = await getUserBranchIds(user.id);
         if (branchIds.length === 0) return { data: [], pagination: { total: 0, page: Number(page), limit: Number(limit), totalPages: 0 } };
         whereConditions.push(`e.branch_id = ANY($${idx}::int[])`);
@@ -618,7 +630,7 @@ const getPayrollReport = async (user, { reportType, status, department, branch_i
         pagination: { total: parseInt(countDed.rows[0].count), page: Number(page), limit: Number(limit), totalPages: Math.ceil(parseInt(countDed.rows[0].count) / limit) },
       };
     case "final_pay":
-      if (normalizeRole(user.role) === "HR_USER") {
+      if (user.role !== "ADMIN") {
         const branchIds = await getUserBranchIds(user.id);
         if (branchIds.length === 0) return { data: [], pagination: { total: 0, page: Number(page), limit: Number(limit), totalPages: 0 } };
         whereConditions.push(`e.branch_id = ANY($${idx}::int[])`);
@@ -668,7 +680,7 @@ const getPayrollReport = async (user, { reportType, status, department, branch_i
       // fall through
     case "summary":
     default:
-      if (normalizeRole(user.role) === "HR_USER") {
+      if (user.role !== "ADMIN") {
         const branchIds = await getUserBranchIds(user.id);
         if (branchIds.length === 0) return { data: [], pagination: { total: 0, page: Number(page), limit: Number(limit), totalPages: 0 } };
         whereConditions.push(`e.branch_id = ANY($${idx}::int[])`);
@@ -723,7 +735,7 @@ const getBenefitsReport = async (user, { reportType, status, department, branch_
   const params = [];
   let idx = 1;
 
-  if (normalizeRole(user.role) === "HR_USER") {
+  if (user.role !== "ADMIN") {
     const branchIds = await getUserBranchIds(user.id);
     if (branchIds.length === 0) return { data: [], pagination: { total: 0, page: Number(page), limit: Number(limit), totalPages: 0 } };
     whereConditions.push(`e.branch_id = ANY($${idx}::int[])`);
@@ -789,7 +801,7 @@ const getPerformanceReport = async (user, { reportType, status, department, bran
   const params = [];
   let idx = 1;
 
-  if (normalizeRole(user.role) === "HR_USER") {
+  if (user.role !== "ADMIN") {
     const branchIds = await getUserBranchIds(user.id);
     if (branchIds.length === 0) return { data: [], pagination: { total: 0, page: Number(page), limit: Number(limit), totalPages: 0 } };
     whereConditions.push(`emp.branch_id = ANY($${idx}::int[])`);

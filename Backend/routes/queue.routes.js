@@ -2,14 +2,13 @@ const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/payroll.controller");
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
-const ROLES = require("../constants/roles");
+const requirePermission = require("../middleware/permission.middleware");
 
 // Queue status (admin only)
 router.get(
   "/status",
   authenticate,
-  authorize([ROLES.ADMIN]),
+  requirePermission("settings.system"),
   controller.getQueueStatus,
 );
 

@@ -13,17 +13,16 @@ import EmailTemplateEditor from "../components/EmailTemplateEditor";
 import CompanyBranding from "../components/CompanyBranding";
 
 const Setting = () => {
-  const { user } = useAuth();
+  const { hasPermission } = useAuth();
   const [activeTab, setActiveTab] = useState("attendance");
-  const role = user?.role;
 
-  const canViewAttendance = role === "SYSTEM_ADMIN" || role === "ADMIN";
-  const canViewPayRules = role === "SYSTEM_ADMIN" || role === "ADMIN";
-  const canViewApprovals = role === "SYSTEM_ADMIN" || role === "ADMIN";
-  const canViewSMTP = role === "SYSTEM_ADMIN";
-  const canViewNotifications = role === "SYSTEM_ADMIN" || role === "ADMIN";
-  const canViewEmailTemplates = role === "SYSTEM_ADMIN";
-  const canViewBranding = role === "SYSTEM_ADMIN";
+  const canViewAttendance = hasPermission("settings.attendance_rules");
+  const canViewPayRules = hasPermission("payroll.settings");
+  const canViewApprovals = hasPermission("settings.approvals");
+  const canViewSMTP = hasPermission("settings.smtp");
+  const canViewNotifications = hasPermission("settings.notifications");
+  const canViewEmailTemplates = hasPermission("settings.email_templates");
+  const canViewBranding = hasPermission("settings.branding");
 
   return (
     <div className="space-y-6 p-6">

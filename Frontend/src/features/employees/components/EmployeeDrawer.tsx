@@ -56,6 +56,7 @@ type Employee = {
   branch_name?: string | null;
   employment_status?: string | null;
   probation_period_months?: number | null;
+  regularization_date?: string | null;
 };
 
 type Props = {
@@ -207,7 +208,7 @@ const EmployeeDrawer = ({
         department: "",
         position: "",
         status: "ACTIVE",
-        employment_status: "Regular",
+        employment_status: "REGULAR",
         probation_period_months: "",
         rfid_tag: "",
         fingerprint_id: "",
@@ -390,15 +391,55 @@ const EmployeeDrawer = ({
                 )}
                 <Info label="Department" value={employee?.department} />
                 <Info label="Position" value={employee?.position} />
-                <Info label="Employment Status" value={employee?.employment_status} />
-                <Info
-                  label="Probation Period"
-                  value={
-                    employee?.probation_period_months
-                      ? `${employee.probation_period_months} months`
-                      : "Company Default"
-                  }
-                />
+                <div>
+                  <p className="text-xs text-muted-foreground">Employment Status</p>
+                  <span className={`inline-block mt-1 px-2 py-1 text-xs rounded font-semibold ${
+                    employee?.employment_status === "REGULAR"
+                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                      : employee?.employment_status === "PROBATIONARY"
+                        ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                        : "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
+                  }`}>
+                    {employee?.employment_status || "REGULAR"}
+                  </span>
+                </div>
+                {employee?.employment_status === "PROBATIONARY" ? (
+                  <>
+                    <Info
+                      label="Probation Period"
+                      value={employee?.probation_period_months
+                        ? `${employee.probation_period_months} months`
+                        : "Company Default (6 months)"
+                      }
+                    />
+                    <Info
+                      label="Regularization Date"
+                      value={employee?.regularization_date
+                        ? formatDate(employee.regularization_date)
+                        : "Not set"
+                      }
+                    />
+                    {employee?.regularization_date && (() => {
+                      const daysLeft = Math.ceil(
+                        (new Date(employee.regularization_date!).getTime() - new Date().getTime()) /
+                        (1000 * 60 * 60 * 24)
+                      );
+                      return (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Days Remaining</p>
+                          <p className={`text-sm font-medium ${daysLeft <= 0 ? "text-red-600" : daysLeft <= 30 ? "text-amber-600" : "text-green-600"}`}>
+                            {daysLeft <= 0 ? "Due for Regularization" : `${daysLeft} days`}
+                          </p>
+                        </div>
+                      );
+                    })()}
+                  </>
+                ) : (
+                  <Info
+                    label="Probation Period"
+                    value="Not Applicable"
+                  />
+                )}
                 <div>
                   <p className="text-xs text-muted-foreground">Status</p>
                   <span
@@ -680,28 +721,77 @@ const EmployeeDrawer = ({
                   disabled={!canEditMode}
                 />
 
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">Employment Status</p>
-                  <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${form.employment_status === "Regular" ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}`}>
-                    {form.employment_status || "Regular"}
-                  </span>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="employment_status"
+                        value="REGULAR"
+                        checked={form.employment_status === "REGULAR"}
+                        onChange={handleChange}
+                        disabled={!canEditMode}
+                        className="accent-primary"
+                      />
+                      <span className="text-sm font-medium">REGULAR</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="employment_status"
+                        value="PROBATIONARY"
+                        checked={form.employment_status === "PROBATIONARY"}
+                        onChange={handleChange}
+                        disabled={!canEditMode}
+                        className="accent-primary"
+                      />
+                      <span className="text-sm font-medium">PROBATIONARY</span>
+                    </label>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">Probation Period (Months)</p>
-                  <input
-                    type="number"
-                    name="probation_period_months"
-                    value={form.probation_period_months ?? ""}
-                    onChange={handleChange}
-                    disabled={!canEditMode}
-                    min={1}
-                    max={24}
-                    placeholder="Company Default"
-                    className="w-full border rounded px-2 py-1 bg-background"
-                  />
-                  <p className="text-[10px] text-muted-foreground">Leave blank to use company default (6 months)</p>
-                </div>
+                {form.employment_status === "REGULAR" ? (
+                  <div className="p-3 bg-muted/30 rounded border text-sm text-muted-foreground">
+                    Probation is not applicable for Regular employees.
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">Probation Period (Months)</p>
+                      <input
+                        type="number"
+                        name="probation_period_months"
+                        value={form.probation_period_months ?? ""}
+                        onChange={handleChange}
+                        disabled={!canEditMode}
+                        min={1}
+                        max={24}
+                        placeholder="Company Default (6 months)"
+                        className="w-full border rounded px-2 py-1 bg-background"
+                      />
+                      <p className="text-[10px] text-muted-foreground">Leave blank to use company default (6 months)</p>
+                    </div>
+                    {form.hired_date && (form.probation_period_months || form.probation_period_months === "") && (
+                      <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded border text-sm">
+                        <p className="text-xs text-muted-foreground mb-1">Expected Regularization Date</p>
+                        <p className="font-medium">
+                          {(() => {
+                            const hireDate = new Date(form.hired_date);
+                            const months = form.probation_period_months
+                              ? Number(form.probation_period_months)
+                              : 6;
+                            hireDate.setMonth(hireDate.getMonth() + months);
+                            return formatDate(hireDate.toISOString().split("T")[0]);
+                          })()}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Based on {form.probation_period_months || "6"} month{form.probation_period_months !== "1" ? "s" : ""} from hire date
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
 
                 {/* Show separation date fields when status is RESIGNED or TERMINATED */}
 

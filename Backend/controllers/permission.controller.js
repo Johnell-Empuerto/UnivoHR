@@ -1,5 +1,7 @@
 const permissionModel = require("../models/permission.model");
-const { ALL_PERMISSIONS, PERMISSION_GROUPS } = require("../constants/permissions");
+const userModel = require("../models/user.model");
+const { ALL_PERMISSIONS, PERMISSION_GROUPS, EMPLOYEE_DEFAULT_PERMISSIONS } = require("../constants/permissions");
+const { ROLES } = require("../constants/roles");
 
 const getAllPermissions = async (req, res) => {
   try {
@@ -46,8 +48,19 @@ const setUserPermissions = async (req, res) => {
 const resetUserPermissions = async (req, res) => {
   try {
     const { id } = req.params;
+    const user = await userModel.getUserById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    if (user.role === ROLES.ADMIN) {
+      return res.json({ message: "ADMIN permissions cannot be reset. ADMIN always has full access." });
+    }
+    if (user.role === ROLES.EMPLOYEE) {
+      await permissionModel.setUserPermissions(id, EMPLOYEE_DEFAULT_PERMISSIONS);
+      return res.json({ message: "Permissions reset to Employee Default" });
+    }
     await permissionModel.resetUserPermissions(id);
-    res.json({ message: "Permissions reset to default" });
+    res.json({ message: "Permissions reset" });
   } catch (error) {
     console.error("Error resetting user permissions:", error);
     res.status(500).json({ message: "Failed to reset permissions" });

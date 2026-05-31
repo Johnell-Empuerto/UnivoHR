@@ -68,7 +68,7 @@ const formatDeductionLabel = (type?: string | null) => {
 };
 
 const ReportsPage = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [activeTab, setActiveTab] = useState("employees");
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -913,7 +913,7 @@ const ReportsPage = () => {
           <TabsTrigger value="employees">Employee</TabsTrigger>
           <TabsTrigger value="leaves">Leave</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
-          {(user?.role === "ADMIN" || user?.role === "PAYROLL_USER") && (
+          {hasPermission("reports.payroll") && (
             <TabsTrigger value="payroll">Payroll</TabsTrigger>
           )}
           <TabsTrigger value="benefits">Benefits</TabsTrigger>

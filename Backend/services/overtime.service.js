@@ -3,7 +3,6 @@ const smtpService = require("./smtp.service");
 const settingService = require("./setting.service");
 const pool = require("../config/db");
 const emailTemplateService = require("./emailTemplate.service");
-const { normalizeRole } = require("../constants/roles");
 
 // Helper function to format date
 const formatDate = (dateStr) => {
@@ -157,9 +156,8 @@ const approveOvertime = async (id, approver_id, comment, userRole) => {
     throw new Error("Cannot approve already paid overtime request");
   }
 
-  const role = normalizeRole(userRole);
   let canApprove = false;
-  if (role === "SYSTEM_ADMIN" || role === "ADMIN") {
+  if (userRole === "ADMIN") {
     canApprove = true;
   } else {
     canApprove = await overtimeModel.canApprove(
@@ -196,9 +194,8 @@ const rejectOvertime = async (id, approver_id, reason, userRole) => {
     throw new Error("Cannot reject already paid overtime request");
   }
 
-  const role = normalizeRole(userRole);
   let canApprove = false;
-  if (role === "SYSTEM_ADMIN" || role === "ADMIN") {
+  if (userRole === "ADMIN") {
     canApprove = true;
   } else {
     canApprove = await overtimeModel.canApprove(

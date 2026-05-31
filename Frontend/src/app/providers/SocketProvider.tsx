@@ -1,12 +1,18 @@
 // app/providers/SocketProvider.tsx
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useAuth } from "./AuthProvider";
 import { toast } from "sonner";
 
 type Notification = {
   id: number;
-  type: "LEAVE" | "OVERTIME" | "PAYROLL" | "HR_FORM" | "KPI_EVALUATION" | "RECRUITMENT";
+  type:
+    | "LEAVE"
+    | "OVERTIME"
+    | "PAYROLL"
+    | "HR_FORM"
+    | "KPI_EVALUATION"
+    | "RECRUITMENT";
   title: string;
   message: string;
   reference_id: number;
@@ -35,10 +41,13 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (!isAuth || !user?.id) return;
 
+    const token = localStorage.getItem("token");
+
     const socketInstance = io(
-      import.meta.env.VITE_API_URL || "http://localhost:3003",
+      import.meta.env.VITE_API_URL || "http://localhost:3002",
       {
         withCredentials: true,
+        auth: { token },
       },
     );
 
@@ -62,7 +71,12 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
             } else if (notification.type === "OVERTIME") {
               window.location.href = `/myovertime`;
             } else if (notification.type === "PAYROLL") {
-              if (notification.title.includes("Available") || notification.title.includes("Payslip") || (notification.title.includes("Paid") && user?.role === "EMPLOYEE")) {
+              if (
+                notification.title.includes("Available") ||
+                notification.title.includes("Payslip") ||
+                (notification.title.includes("Paid") &&
+                  user?.role === "EMPLOYEE")
+              ) {
                 window.location.href = `/my-payroll`;
               } else {
                 window.location.href = `/payroll`;
@@ -72,7 +86,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
             } else if (notification.type === "KPI_EVALUATION") {
               window.location.href = `/kpi`;
             } else if (notification.type === "RECRUITMENT") {
-              window.location.href = `/recruitment`;
+              window.location.href = `/recruitment/applicants`;
             }
           },
         },
@@ -95,7 +109,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       socketInstance.disconnect();
     };
-    }, [isAuth, user?.id, user?.role]);
+  }, [isAuth, user?.id, user?.role]);
 
   return (
     <SocketContext.Provider value={{ socket, lastNotification }}>

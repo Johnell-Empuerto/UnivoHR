@@ -134,7 +134,7 @@ const getMyAssignments = async (employeeId) => {
 const getAssignmentById = async (assignmentId, userId, userRole, employeeId) => {
   const assignment = await model.getAssignmentById(assignmentId);
   if (!assignment) throw new Error("Assignment not found");
-  const isHr = userRole === "SYSTEM_ADMIN" || userRole === "ADMIN";
+  const isHr = userRole === "ADMIN";
   if (!isHr && Number(assignment.employee_id) !== Number(employeeId)) {
     throw new Error("You are not assigned to this form");
   }
@@ -193,7 +193,7 @@ const reviewSubmission = async (submissionId, userId, data) => {
         user_id: userRows[0].id,
         type: "HR_FORM",
         title: "Form Reviewed",
-        message: `Your submission for ${submission.form_title || "form"} has been reviewed.`,
+        message: `Your submission for ${submission.form_title || "form"} has been reviewed.${data.remarks ? ` Remarks: ${data.remarks}` : ""}`,
         reference_id: submission.form_id,
         meta: { form_id: submission.form_id, form_title: submission.form_title },
       }).catch(err => console.error("[HR Form] Failed to send review notification:", err));

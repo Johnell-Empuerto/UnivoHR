@@ -2,26 +2,26 @@ const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/man_hour_report.controller");
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
-const { ROLES, normalizeRole } = require("../constants/roles");
+const requirePermission = require("../middleware/permission.middleware");
+const { ROLES } = require("../constants/roles");
 
-const HR_ACCESS = [ROLES.ADMIN, ROLES.HR_USER];
-const ALL = [ROLES.ADMIN, ROLES.HR_USER, ROLES.PAYROLL_USER, ROLES.EMPLOYEE];
+const HR_ACCESS = [ROLES.ADMIN];
+const ALL = [ROLES.ADMIN, ROLES.EMPLOYEE];
 
-router.get("/my", authenticate, authorize(ALL), controller.getMyManHourReports);
-router.get("/missing", authenticate, authorize(ALL), controller.getMissingManHourDates);
-router.post("/", authenticate, authorize(ALL), controller.createManHourReport);
-router.put("/:id", authenticate, authorize(ALL), controller.updateManHourReport);
-router.delete("/:id", authenticate, authorize(ALL), controller.deleteManHourReport);
+router.get("/my", authenticate, requirePermission("manhours.view"), controller.getMyManHourReports);
+router.get("/missing", authenticate, requirePermission("manhours.view"), controller.getMissingManHourDates);
+router.post("/", authenticate, requirePermission("manhours.manage"), controller.createManHourReport);
+router.put("/:id", authenticate, requirePermission("manhours.manage"), controller.updateManHourReport);
+router.delete("/:id", authenticate, requirePermission("manhours.manage"), controller.deleteManHourReport);
 
-router.get("/is-approver", authenticate, authorize(ALL));
-router.get("/download", authenticate, authorize(HR_ACCESS), controller.downloadManHourReports);
+router.get("/is-approver", authenticate, requirePermission("manhours.view"));
+router.get("/download", authenticate, requirePermission("manhours.view"), controller.downloadManHourReports);
 
 router.get("/:id", authenticate, async (req, res, next) => {
-  const role = normalizeRole(req.user.role);
+  const role = req.user.role;
   if (HR_ACCESS.includes(role)) return next();
 
-  if (role === ROLES.EMPLOYEE || role === ROLES.PAYROLL_USER) {
+  if (role === ROLES.EMPLOYEE) {
     try {
       const pool = require("../config/db");
       const result = await pool.query(
@@ -49,7 +49,7 @@ router.get("/:id", authenticate, async (req, res, next) => {
 }, controller.getManHourReportDetails);
 
 router.get("/", authenticate, async (req, res, next) => {
-  const role = normalizeRole(req.user.role);
+  const role = req.user.role;
   if (HR_ACCESS.includes(role)) return next();
 
   try {
@@ -67,7 +67,7 @@ router.get("/", authenticate, async (req, res, next) => {
 }, controller.getAllManHourReports);
 
 const approveCheck = async (req, res, next) => {
-  const role = normalizeRole(req.user.role);
+  const role = req.user.role;
   if (HR_ACCESS.includes(role)) return next();
   try {
     const pool = require("../config/db");
@@ -83,6 +83,6 @@ const approveCheck = async (req, res, next) => {
 router.put("/:id/approve", authenticate, approveCheck, controller.approveManHourReport);
 router.put("/:id/reject", authenticate, approveCheck, controller.rejectManHourReport);
 
-router.get("/summary/range", authenticate, authorize(HR_ACCESS), controller.getManHourSummary);
+router.get("/summary/range", authenticate, requirePermission("manhours.view"), controller.getManHourSummary);
 
 module.exports = router;

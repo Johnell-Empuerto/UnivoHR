@@ -1294,7 +1294,7 @@ const getUserIdsByEmployeeIds = async (employeeIds) => {
 
 const getActiveHRUserIds = async () => {
   const result = await pool.query(
-    `SELECT id FROM users WHERE role IN ('SYSTEM_ADMIN', 'ADMIN', 'HR_USER')`,
+    `SELECT id FROM users WHERE role = 'ADMIN' OR EXISTS (SELECT 1 FROM user_permissions up WHERE up.user_id = users.id AND up.permission_key = 'employees.manage' AND up.is_allowed = true)`,
   );
   return result.rows.map(r => r.id);
 };

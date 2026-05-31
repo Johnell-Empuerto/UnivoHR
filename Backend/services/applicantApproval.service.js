@@ -68,7 +68,7 @@ const update = async (id, data) => {
         notificationService.notify({
           user_id: uid,
           type: "RECRUITMENT",
-          title: `Approval ${data.decision}`,
+          title: `Applicant ${data.decision.charAt(0) + data.decision.slice(1).toLowerCase()}`,
           message: `${applicantName} was ${data.decision.toLowerCase()} on ${existing.approval_type}`,
           reference_id: existing.applicant_id,
         })

@@ -34,7 +34,7 @@ const getForecastSummary = async (req, res) => {
 const getDepartmentComparison = async (req, res) => {
   try {
     let allowedBranchIds = null;
-    if (req.user.role === "HR_USER") {
+    if (req.user.role !== "ADMIN") {
       const { getUserBranchIds } = require("../utils/branchAccess");
       allowedBranchIds = await getUserBranchIds(req.user.id);
     }

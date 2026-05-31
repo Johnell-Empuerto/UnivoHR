@@ -2,11 +2,11 @@
 
 ## Accounts (built into script; override via `.env.docs-screenshots.local`)
 
-| Role | Username | Used for |
-|------|----------|----------|
-| ADMIN | admin | Dashboard, attendance, leaves, overtime-manage, man-hours approval, employees, payroll admin, calendar, users, settings, notifications, profile |
-| EMPLOYEE | emp50 | My overtime, my man hours, employee payroll |
-| HR_ADMIN | emp27 | Fallback only if ADMIN cannot open a page |
+| Role     | Username | Used for                                                                                                                                        |
+| -------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| ADMIN    | admin    | Dashboard, attendance, leaves, overtime-manage, man-hours approval, employees, payroll admin, calendar, users, settings, notifications, profile |
+| EMPLOYEE | emp50    | My overtime, my man hours, employee payroll                                                                                                     |
+| HR_ADMIN | emp27    | Fallback only if ADMIN cannot open a page                                                                                                       |
 
 **2FA must be off** for login during capture (`enable_2fa_login_email` in Settings).
 
@@ -17,7 +17,7 @@ cd Frontend
 npm install
 npm run docs:screenshots:install   # once
 npm run dev                        # terminal 1
-# backend already on :3003
+# backend already on :3002
 npm run docs:screenshots           # terminal 2
 ```
 

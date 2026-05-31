@@ -55,14 +55,17 @@ const SelfEvaluationPage = () => {
 
   const handleSave = async () => {
     if (!currentEval) return;
+    const isAckMode = currentEval.status !== "Draft" && currentEval.status !== "In Progress";
     try {
       setSaving(true);
       await saveKpiSelfEvaluation(currentEval.id, { self_evaluation: selfEval });
-      toast.success("Self evaluation saved");
+      toast.success(isAckMode ? "Acknowledgement saved" : "Self evaluation saved");
       fetchAll();
     } catch (err: any) { toast.error(getFriendlyKpiError(err, "Save failed")); }
     finally { setSaving(false); }
   };
+
+  const isEditable = (s: string) => s === "Draft" || s === "In Progress";
 
   return (
     <div className="space-y-6 p-6">
@@ -96,7 +99,7 @@ const SelfEvaluationPage = () => {
                       <TableCell>{statusBadge(ev.status)}</TableCell>
                       <TableCell>
                         <Button size="sm" variant="outline" onClick={() => handleOpen(ev.id)} className="flex items-center gap-1">
-                          <FileText className="h-4 w-4" /> {ev.self_evaluation ? "Edit" : "Answer"}
+                          <FileText className="h-4 w-4" /> {isEditable(ev.status) ? (ev.self_evaluation ? "Edit" : "Answer") : "View"}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -110,11 +113,11 @@ const SelfEvaluationPage = () => {
 
       <Dialog open={evalDialog} onOpenChange={setEvalDialog}>
         <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle>Self Evaluation</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{currentEval && isEditable(currentEval.status) ? "Self Evaluation" : "Employee Acknowledgement"}</DialogTitle></DialogHeader>
           {currentEval && (
             <div className="space-y-4">
               <p className="text-xs text-muted-foreground">Template: {currentEval.template_name}</p>
-              {(currentEval.status === "Draft" || currentEval.status === "In Progress") ? (
+              {isEditable(currentEval.status) ? (
                 <>
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground mb-1">Your Achievements</p>
@@ -129,10 +132,41 @@ const SelfEvaluationPage = () => {
                   </Button>
                 </>
               ) : (
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground mb-1">Your Response</p>
-                  <p className="text-sm bg-muted p-3 rounded whitespace-pre-wrap">{currentEval.self_evaluation || "No response submitted."}</p>
-                </div>
+                <>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground">Final Score</p>
+                      <p className="text-lg font-bold">{currentEval.final_score ?? "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground">Recommendation</p>
+                      <p>{currentEval.recommendation || "-"}</p>
+                    </div>
+                  </div>
+                  {currentEval.manager_comments && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">Evaluator Comments</p>
+                      <p className="text-sm bg-muted p-3 rounded whitespace-pre-wrap">{currentEval.manager_comments}</p>
+                    </div>
+                  )}
+                  {currentEval.hr_comments && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">HR Comments</p>
+                      <p className="text-sm bg-muted p-3 rounded whitespace-pre-wrap">{currentEval.hr_comments}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">Your Acknowledgement</p>
+                    <textarea value={selfEval}
+                      onChange={(e) => setSelfEval(e.target.value)}
+                      className="w-full border rounded px-2 py-1 bg-background min-h-[100px]"
+                      placeholder="No acknowledgement submitted yet." />
+                  </div>
+                  <Button onClick={handleSave} disabled={saving} className="flex items-center gap-1">
+                    {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                    <Save className="h-4 w-4" /> Save
+                  </Button>
+                </>
               )}
             </div>
           )}

@@ -67,7 +67,7 @@ const NotificationDropdown = () => {
 
   // Smart navigation based on notification type and content
   const getNavigationPath = (notification: Notification) => {
-    const isHR = ["ADMIN", "HR_USER"].includes(user?.role || "");
+    const isHR = user?.role === "ADMIN";
     const canManage = isHR || isUserApprover;
 
     switch (notification.type) {
@@ -117,13 +117,16 @@ const NotificationDropdown = () => {
         return "/hr-forms/my-assignments";
 
       case "KPI_EVALUATION":
-        if (canManage) {
-          return "/kpi/hr-view";
+        if (notification.title === "Evaluation Submitted") {
+          return "/kpi/evaluations";
+        }
+        if (!notification.meta?.employee_id || (Number(user?.employee_id) === Number(notification.meta.employee_id))) {
+          return "/kpi/self-evaluation";
         }
         return "/kpi/my-evaluations";
 
       case "RECRUITMENT":
-        return "/recruitment";
+        return "/recruitment/applicants";
 
       default:
         return "/dashboard";
@@ -179,14 +182,14 @@ const NotificationDropdown = () => {
     }
   };
 
-  // Fetch unread count when user logs in or changes
+  // Reset state on user change (login/logout)
   useEffect(() => {
+    setNotifications([]);
+    setUnreadCount(0);
+    setPage(1);
+    setHasMore(false);
+    setTotalCount(0);
     if (user?.id) {
-      setNotifications([]);
-      setUnreadCount(0);
-      setPage(1);
-      setHasMore(false);
-      setTotalCount(0);
       fetchUnreadCount();
       if (open) {
         fetchNotifications(false);

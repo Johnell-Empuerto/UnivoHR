@@ -1,17 +1,7 @@
 import { useEffect, useState } from "react";
-import {
-  Navigate,
-  Outlet,
-  useLocation,
-  useNavigate,
-} from "react-router-dom";
+import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import {
-  ArrowLeft,
-  BookOpen,
-  LayoutDashboard,
-  Menu,
-} from "lucide-react";
+import { ArrowLeft, BookOpen, LayoutDashboard, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -44,7 +34,8 @@ const DocsLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const segment = location.pathname.split("/docs/")[1]?.replace(/\/$/, "") || "";
+  const segment =
+    location.pathname.split("/docs/")[1]?.replace(/\/$/, "") || "";
   const pageTitle = docPageTitles[segment];
 
   useEffect(() => {
@@ -52,11 +43,7 @@ const DocsLayout = () => {
       setIsUserApprover(false);
       return;
     }
-    if (
-      user.role === "SYSTEM_ADMIN" ||
-      user.role === "ADMIN" ||
-      user.role === "HR_USER"
-    ) {
+    if (user.role === "ADMIN") {
       setIsUserApprover(false);
       return;
     }
@@ -90,9 +77,7 @@ const DocsLayout = () => {
   return (
     <>
       <Helmet>
-        <title>
-          {pageTitle ? `${pageTitle} | ` : ""}User Manual | UnivoHR
-        </title>
+        <title>{pageTitle ? `${pageTitle} | ` : ""}User Manual | UnivoHR</title>
       </Helmet>
 
       <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -118,7 +103,7 @@ const DocsLayout = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="hidden sm:flex gap-2"
+                className="hidden sm:flex gap-2 text-muted-foreground"
                 onClick={handleBack}
               >
                 {isAuth ? (
@@ -183,9 +168,7 @@ const DocsLayout = () => {
               <Badge variant="secondary">
                 {isAuth ? "Personalized for you" : "Public — no login required"}
               </Badge>
-              <Badge variant="outline">
-                {DOCS_MODULE_COUNT} modules
-              </Badge>
+              <Badge variant="outline">{DOCS_MODULE_COUNT} modules</Badge>
               {approverLoading && isAuth && user?.role === "EMPLOYEE" && (
                 <Badge variant="outline">Checking approver access…</Badge>
               )}

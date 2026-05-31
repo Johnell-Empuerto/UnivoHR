@@ -4,7 +4,7 @@ const payrollModel = require("../models/payroll.model");
 const notificationService = require("../services/notification.service");
 const audit = require("../services/audit.service");
 const { getUserBranchIds } = require("../utils/branchAccess");
-const { normalizeRole, ROLES } = require("../constants/roles");
+const { ROLES } = require("../constants/roles");
 
 const formatPayrollDate = (d) => {
   if (!d) return "";
@@ -39,7 +39,7 @@ const generatePayroll = async (req, res) => {
     const { cutoff_start, cutoff_end, pay_date } = req.body;
     const branch_id = req.body.branch_id || null;
 
-    if (normalizeRole(req.user.role) !== ROLES.SYSTEM_ADMIN && !branch_id) {
+    if (req.user.role !== ROLES.ADMIN && !branch_id) {
       return res.status(403).json({ message: "You are not allowed to manage this branch." });
     }
 
@@ -119,8 +119,7 @@ const getEmployeeSalary = async (req, res) => {
     const { page = 1, limit = 10, search = "" } = req.query;
 
     let allowedBranchIds = null;
-    const role = normalizeRole(req.user.role);
-    if (role !== ROLES.SYSTEM_ADMIN && role !== ROLES.ADMIN) {
+    if (req.user.role !== ROLES.ADMIN) {
       allowedBranchIds = await getUserBranchIds(req.user.id);
       if (allowedBranchIds.length === 0) {
         return res.status(403).json({ message: "You are not allowed to view this data." });
@@ -160,8 +159,7 @@ const getDeductions = async (req, res) => {
   try {
     const { employee_id } = req.params;
 
-    const role = normalizeRole(req.user.role);
-    if (role !== ROLES.SYSTEM_ADMIN && role !== ROLES.ADMIN) {
+    if (req.user.role !== ROLES.ADMIN) {
       const assigned = await getUserBranchIds(req.user.id);
       const empResult = await pool.query(`SELECT branch_id FROM employees WHERE id = $1`, [employee_id]);
       if (empResult.rows.length === 0) {
@@ -250,7 +248,7 @@ const markAsPaid = async (req, res) => {
     const { id } = req.params;
     const payrollId = Number(id);
 
-    if (normalizeRole(req.user.role) === ROLES.HR_USER) {
+    if (req.user.role !== ROLES.ADMIN) {
       const existing = await payrollService.getPayrollDetails(payrollId);
       const branchNum = existing?.branch_id ? Number(existing.branch_id) : null;
       if (!branchNum || !(await getUserBranchIds(req.user.id)).includes(branchNum)) {
@@ -418,12 +416,11 @@ const downloadPayslip = async (req, res) => {
     const id = req.params.id;
     const payroll = await payrollService.getPayrollDetails(id);
 
-    const dlRole = normalizeRole(req.user.role);
-    if (dlRole === ROLES.EMPLOYEE) {
+    if (req.user.role === ROLES.EMPLOYEE) {
       if (payroll.employee_id !== req.user.employee_id) {
         return res.status(403).json({ message: "You can only download your own payslip." });
       }
-    } else if (dlRole !== ROLES.SYSTEM_ADMIN && dlRole !== ROLES.ADMIN) {
+    } else if (req.user.role !== ROLES.ADMIN) {
       const assigned = await getUserBranchIds(req.user.id);
       const branchNum = payroll?.branch_id ? Number(payroll.branch_id) : null;
       if (!branchNum || !assigned.includes(branchNum)) {
@@ -457,7 +454,7 @@ const lockPayroll = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (normalizeRole(req.user.role) === ROLES.HR_USER) {
+    if (req.user.role !== ROLES.ADMIN) {
       const existing = await payrollService.getPayrollDetails(id);
       const branchNum = existing?.branch_id ? Number(existing.branch_id) : null;
       if (!branchNum || !(await getUserBranchIds(req.user.id)).includes(branchNum)) {
@@ -480,7 +477,7 @@ const unlockPayroll = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (normalizeRole(req.user.role) === ROLES.HR_USER) {
+    if (req.user.role !== ROLES.ADMIN) {
       const existing = await payrollService.getPayrollDetails(id);
       const branchNum = existing?.branch_id ? Number(existing.branch_id) : null;
       if (!branchNum || !(await getUserBranchIds(req.user.id)).includes(branchNum)) {
@@ -503,7 +500,7 @@ const voidPayroll = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (normalizeRole(req.user.role) === ROLES.HR_USER) {
+    if (req.user.role !== ROLES.ADMIN) {
       const existing = await payrollService.getPayrollDetails(id);
       const branchNum = existing?.branch_id ? Number(existing.branch_id) : null;
       if (!branchNum || !(await getUserBranchIds(req.user.id)).includes(branchNum)) {
@@ -528,8 +525,7 @@ const getPayrollById = async (req, res) => {
 
     const data = await payrollService.getPayrollDetails(id);
 
-    const gpiRole = normalizeRole(req.user.role);
-    if (gpiRole !== ROLES.SYSTEM_ADMIN && gpiRole !== ROLES.ADMIN) {
+    if (req.user.role !== ROLES.ADMIN) {
       const assigned = await getUserBranchIds(req.user.id);
       const branchNum = data?.branch_id ? Number(data.branch_id) : null;
       if (!branchNum || !assigned.includes(branchNum)) {

@@ -4,6 +4,7 @@ const employeeModel = require("../models/employee.model");
 const pool = require("../config/db");
 const leaveCreditModel = require("../models/leaveCredit.model");
 const notificationService = require("./notification.service");
+const { EMPLOYMENT_STATUS, COMPANY_DEFAULT_PROBATION_MONTHS } = require("../constants/employmentStatus");
 
 const normalizeApplicantStatus = (status) => {
   if (!status) return "Initial";
@@ -136,6 +137,18 @@ const convertToEmployee = async (applicantId, additionalData) => {
       branchId = branch ? branch.id : null;
     }
 
+    const probationMonths = additionalData.probation_period_months != null
+      ? Number(additionalData.probation_period_months)
+      : COMPANY_DEFAULT_PROBATION_MONTHS;
+
+    const hiredDate = additionalData.hired_date || new Date().toISOString().split("T")[0];
+    let regularizationDate = null;
+    if (probationMonths > 0 && hiredDate) {
+      const regDate = new Date(hiredDate);
+      regDate.setMonth(regDate.getMonth() + probationMonths);
+      regularizationDate = regDate.toISOString().split("T")[0];
+    }
+
     const employeeData = {
       first_name: applicant.first_name,
       middle_name: applicant.middle_name,
@@ -147,9 +160,12 @@ const convertToEmployee = async (applicantId, additionalData) => {
       contact_number: applicant.phone || null,
       address: applicant.address || null,
       email: applicant.email || null,
-      hired_date: additionalData.hired_date || new Date().toISOString().split("T")[0],
+      hired_date: hiredDate,
       status: "ACTIVE",
       branch_id: branchId,
+      employment_status: EMPLOYMENT_STATUS.PROBATIONARY,
+      probation_period_months: probationMonths > 0 ? probationMonths : null,
+      regularization_date: regularizationDate,
     };
 
     const empResult = await client.query(
@@ -157,8 +173,9 @@ const convertToEmployee = async (applicantId, additionalData) => {
         first_name, middle_name, last_name, suffix,
         employee_code, department, position,
         contact_number, address, email,
-        hired_date, status, branch_id, employment_status
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+        hired_date, status, branch_id, employment_status,
+        probation_period_months, regularization_date
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
       RETURNING id, employee_code, first_name, last_name`,
       [
         employeeData.first_name,
@@ -174,7 +191,9 @@ const convertToEmployee = async (applicantId, additionalData) => {
         employeeData.hired_date,
         employeeData.status,
         employeeData.branch_id || null,
-        "Probationary",
+        employeeData.employment_status,
+        employeeData.probation_period_months,
+        employeeData.regularization_date,
       ],
     );
 

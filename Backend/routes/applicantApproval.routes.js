@@ -3,28 +3,22 @@ const router = express.Router();
 
 const controller = require("../controllers/applicantApproval.controller");
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
-const ROLES = require("../constants/roles");
+const requirePermission = require("../middleware/permission.middleware");
 
 router.get(
   "/:applicantId",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_USER]),
+  requirePermission("recruitment.approvals.manage"),
   controller.getByApplicantId,
 );
 
 router.post(
   "/:applicantId",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_USER]),
+  requirePermission("recruitment.approvals.manage"),
   controller.create,
 );
 
-router.put(
-  "/:id",
-  authenticate,
-  authorize([ROLES.ADMIN]),
-  controller.update,
-);
+router.put("/:id", authenticate, requirePermission("recruitment.approvals.manage"), controller.update);
 
 module.exports = router;

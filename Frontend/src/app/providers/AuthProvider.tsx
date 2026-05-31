@@ -22,6 +22,7 @@ type User = {
   last_name: string;
   middle_name: string;
   employee_code?: string;
+  employment_status?: string;
 };
 
 type LoginData = {

@@ -29,14 +29,12 @@ function loadEnvFile() {
 
 loadEnvFile();
 
-const BASE_URL = (process.env.DOCS_SCREENSHOT_BASE_URL || "http://localhost:5173").replace(
-  /\/$/,
-  "",
-);
-const API_URL = (process.env.DOCS_SCREENSHOT_API_URL || "http://localhost:3003/api").replace(
-  /\/$/,
-  "",
-);
+const BASE_URL = (
+  process.env.DOCS_SCREENSHOT_BASE_URL || "http://localhost:5173"
+).replace(/\/$/, "");
+const API_URL = (
+  process.env.DOCS_SCREENSHOT_API_URL || "http://localhost:3002/api"
+).replace(/\/$/, "");
 
 /** Default accounts (override via .env.docs-screenshots.local) */
 const ACCOUNTS = {
@@ -134,13 +132,18 @@ async function detect2FAOnPage(page) {
 }
 
 async function injectToken(page, token) {
-  await page.goto(`${BASE_URL}/login`, { waitUntil: "domcontentloaded", timeout: 60_000 });
+  await page.goto(`${BASE_URL}/login`, {
+    waitUntil: "domcontentloaded",
+    timeout: 60_000,
+  });
   await page.evaluate((t) => localStorage.setItem("token", t), token);
 }
 
 async function removeHighlights(page) {
   await page.evaluate(() => {
-    document.querySelectorAll("[data-docs-highlight]").forEach((el) => el.remove());
+    document
+      .querySelectorAll("[data-docs-highlight]")
+      .forEach((el) => el.remove());
     document.getElementById("docs-highlight-style")?.remove();
     document.getElementById("docs-highlight-svg")?.remove();
   });
@@ -184,7 +187,10 @@ async function applyHighlights(page, highlights = []) {
       "position:fixed;inset:0;width:100%;height:100%;z-index:100000;pointer-events:none",
     );
     const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-    const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+    const marker = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "marker",
+    );
     marker.setAttribute("id", "docs-arrow");
     marker.setAttribute("markerWidth", "10");
     marker.setAttribute("markerHeight", "10");
@@ -237,7 +243,10 @@ async function applyHighlights(page, highlights = []) {
         label.style.left = `${labelLeft}px`;
         document.body.appendChild(label);
 
-        const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        const line = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "line",
+        );
         line.setAttribute("data-docs-highlight", "1");
         line.setAttribute("x1", String(labelLeft + 50));
         line.setAttribute("y1", String(labelTop + 28));
@@ -322,10 +331,7 @@ async function captureGroup(page, captures, primaryRole, tokens) {
           await captureOne(page, cap);
           logOk(cap.id);
         } catch (adminErr) {
-          if (
-            adminErr instanceof TwoFactorRequiredError ||
-            !tokens.hr_admin
-          ) {
+          if (adminErr instanceof TwoFactorRequiredError || !tokens.hr_admin) {
             throw adminErr;
           }
           console.log(`    ↻ Retrying ${cap.id} with HR_ADMIN (emp27)...`);
@@ -350,12 +356,16 @@ async function handle2FAPause(browser, err) {
   console.error(err.message);
   console.error("\nSteps:");
   console.error("  1. Log in as ADMIN in the app.");
-  console.error("  2. Open Settings → disable login email OTP (enable_2fa_login_email).");
+  console.error(
+    "  2. Open Settings → disable login email OTP (enable_2fa_login_email).",
+  );
   console.error("  3. Re-run: npm run docs:screenshots");
   console.error("=".repeat(72));
 
   if (HEADED_ON_2FA) {
-    console.error("\nOpening browser (paused). Press Resume in Playwright Inspector after disabling 2FA...");
+    console.error(
+      "\nOpening browser (paused). Press Resume in Playwright Inspector after disabling 2FA...",
+    );
     const context = await browser.newContext({ viewport: VIEWPORT });
     const page = await context.newPage();
     await page.goto(`${BASE_URL}/login`);
@@ -369,13 +379,17 @@ async function main() {
 
   const publicCaps = docsScreenshotCaptures.filter((c) => c.auth === "none");
   const adminCaps = docsScreenshotCaptures.filter((c) => c.auth === "admin");
-  const employeeCaps = docsScreenshotCaptures.filter((c) => c.auth === "employee");
+  const employeeCaps = docsScreenshotCaptures.filter(
+    (c) => c.auth === "employee",
+  );
 
   console.log("UnivoHR documentation screenshot capture");
   console.log(`Base URL: ${BASE_URL}`);
   console.log(`API URL:  ${API_URL}`);
   console.log(`Output:   ${OUT_DIR}`);
-  console.log(`Accounts: admin=${ACCOUNTS.admin.username}, hr_admin=${ACCOUNTS.hr_admin.username}, employee=${ACCOUNTS.employee.username}`);
+  console.log(
+    `Accounts: admin=${ACCOUNTS.admin.username}, hr_admin=${ACCOUNTS.hr_admin.username}, employee=${ACCOUNTS.employee.username}`,
+  );
 
   const browser = await chromium.launch({ headless: !HEADED_ON_2FA });
 
@@ -399,7 +413,9 @@ async function main() {
         await handle2FAPause(browser, err);
         process.exit(1);
       }
-      console.warn(`  ⚠ HR_ADMIN login failed (admin fallback only): ${err.message}`);
+      console.warn(
+        `  ⚠ HR_ADMIN login failed (admin fallback only): ${err.message}`,
+      );
     }
 
     try {

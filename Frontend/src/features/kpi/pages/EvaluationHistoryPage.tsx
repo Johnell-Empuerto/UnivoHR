@@ -13,9 +13,9 @@ import { useAuth } from "@/app/providers/AuthProvider";
 import { formatDateShort } from "@/utils/formatDate";
 
 const EvaluationHistoryPage = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const employeeId = user?.employee_id;
-  const isHr = user?.role === "SYSTEM_ADMIN" || user?.role === "ADMIN";
+  const isHr = hasPermission("performance.view");
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);

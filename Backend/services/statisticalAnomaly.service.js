@@ -22,14 +22,14 @@ const createStatAnomaly = async (data) => {
 
 const notifyHighSeverity = async (anomaly) => {
   const adminUsers = await pool.query(
-    `SELECT id FROM users WHERE role IN ('SYSTEM_ADMIN', 'ADMIN') AND is_active = true`
+    `SELECT u.id FROM users u WHERE (u.role = 'ADMIN' OR EXISTS (SELECT 1 FROM user_permissions up WHERE up.user_id = u.id AND up.permission_key = 'anomalies.view' AND up.is_allowed = true)) AND u.is_active = true`
   );
   for (const user of adminUsers.rows) {
     try {
       await notificationService.notify({
         user_id: user.id,
         type: "STAT_ANOMALY_HIGH",
-        title: `STATISTICAL: ${anomaly.title}`,
+        title: anomaly.title,
         message: anomaly.description || anomaly.title,
         reference_id: anomaly.id,
         meta: { anomaly_id: anomaly.id, severity: "HIGH", anomaly_type: anomaly.anomaly_type, statistical_method: anomaly.statistical_method },

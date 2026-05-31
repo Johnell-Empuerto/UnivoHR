@@ -233,6 +233,21 @@ const ProfilePage = () => {
             label="Position"
             value={profile.position}
           />
+          <div className="space-y-1">
+            <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Briefcase className="h-3.5 w-3.5" />
+              Employment Status
+            </div>
+            <span className={`inline-block px-2 py-0.5 text-xs rounded font-semibold ${
+              profile.employment_status === "REGULAR"
+                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                : profile.employment_status === "PROBATIONARY"
+                  ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                  : "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
+            }`}>
+              {profile.employment_status || "REGULAR"}
+            </span>
+          </div>
           <InfoField
             icon={<Calendar className="h-3.5 w-3.5" />}
             label="Hired Date"
@@ -242,6 +257,57 @@ const ProfilePage = () => {
                 : null
             }
           />
+          {profile.employment_status === "PROBATIONARY" ? (
+            <>
+              <InfoField
+                icon={<Calendar className="h-3.5 w-3.5" />}
+                label="Probation Period"
+                value={profile.probation_period_months
+                  ? `${profile.probation_period_months} months`
+                  : "Company Default (6 months)"
+                }
+              />
+              <InfoField
+                icon={<Calendar className="h-3.5 w-3.5" />}
+                label="Regularization Date"
+                value={profile.regularization_date
+                  ? formatDateShort(profile.regularization_date)
+                  : null
+                }
+              />
+              {profile.regularization_date && (
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5" />
+                    Days Remaining
+                  </div>
+                  <p className={`text-sm font-medium ${
+                    (() => {
+                      const daysLeft = Math.ceil(
+                        (new Date(profile.regularization_date).getTime() - new Date().getTime()) /
+                        (1000 * 60 * 60 * 24)
+                      );
+                      return daysLeft <= 0 ? "text-red-600" : daysLeft <= 30 ? "text-amber-600" : "";
+                    })()
+                  }`}>
+                    {(() => {
+                      const daysLeft = Math.ceil(
+                        (new Date(profile.regularization_date).getTime() - new Date().getTime()) /
+                        (1000 * 60 * 60 * 24)
+                      );
+                      return daysLeft <= 0 ? "Due for Regularization" : `${daysLeft} days`;
+                    })()}
+                  </p>
+                </div>
+              )}
+            </>
+          ) : (
+            <InfoField
+              icon={<Calendar className="h-3.5 w-3.5" />}
+              label="Probation Period"
+              value="Not Applicable"
+            />
+          )}
           {profile.resignation_date && (
             <InfoField
               icon={<Calendar className="h-3.5 w-3.5" />}

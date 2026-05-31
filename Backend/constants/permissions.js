@@ -7,10 +7,13 @@ const ALL_PERMISSIONS = [
   'employees.delete',
 
   'attendance.view',
+  'attendance.view_own',
   'attendance.manage',
   'attendance.time_requests.approve',
 
   'leave.view',
+  'leave.view_own',
+  'leave.create',
   'leave.manage',
   'leave.approve',
   'leave.credits.view',
@@ -19,10 +22,13 @@ const ALL_PERMISSIONS = [
   'leave.conversion.manage',
 
   'overtime.view',
+  'overtime.view_own',
+  'overtime.create',
   'overtime.manage',
   'overtime.approve',
 
   'manhours.view',
+  'manhours.view_own',
   'manhours.manage',
   'manhours.approve',
 
@@ -45,10 +51,12 @@ const ALL_PERMISSIONS = [
   'recruitment.convert_employee',
 
   'performance.view',
+  'my_performance.view',
   'performance.templates.manage',
   'performance.evaluations.manage',
 
   'forms.view',
+  'forms.view_own',
   'forms.builder.manage',
   'forms.assignments.manage',
   'forms.submissions.view',
@@ -93,21 +101,26 @@ const ALL_PERMISSIONS = [
 
   'notifications.view',
   'profile.view',
+  'profile.edit_own',
   'change_password',
+
+  'benefits.view_own',
+  'policies.view',
+  'self_service.view',
 ];
 
 const PERMISSION_GROUPS = {
   Dashboard: ['dashboard.view'],
   Employees: ['employees.view', 'employees.create', 'employees.edit', 'employees.delete'],
-  Attendance: ['attendance.view', 'attendance.manage', 'attendance.time_requests.approve'],
-  Leave: ['leave.view', 'leave.manage', 'leave.approve', 'leave.credits.view', 'leave.credits.manage', 'leave.conversion.view', 'leave.conversion.manage'],
-  Overtime: ['overtime.view', 'overtime.manage', 'overtime.approve'],
-  'Man Hours': ['manhours.view', 'manhours.manage', 'manhours.approve'],
+  Attendance: ['attendance.view', 'attendance.view_own', 'attendance.manage', 'attendance.time_requests.approve'],
+  Leave: ['leave.view', 'leave.view_own', 'leave.create', 'leave.manage', 'leave.approve', 'leave.credits.view', 'leave.credits.manage', 'leave.conversion.view', 'leave.conversion.manage'],
+  Overtime: ['overtime.view', 'overtime.view_own', 'overtime.create', 'overtime.manage', 'overtime.approve'],
+  'Man Hours': ['manhours.view', 'manhours.view_own', 'manhours.manage', 'manhours.approve'],
   Payroll: ['payroll.view', 'payroll.generate', 'payroll.mark_paid', 'payroll.settings', 'payroll.salary.manage', 'payroll.deductions.manage'],
   'Final Pay': ['finalpay.view', 'finalpay.manage'],
   Recruitment: ['recruitment.view', 'recruitment.jobs.manage', 'recruitment.applicants.manage', 'recruitment.applicants.delete', 'recruitment.interviews.manage', 'recruitment.approvals.manage', 'recruitment.convert_employee'],
-  Performance: ['performance.view', 'performance.templates.manage', 'performance.evaluations.manage'],
-  Forms: ['forms.view', 'forms.builder.manage', 'forms.assignments.manage', 'forms.submissions.view'],
+  Performance: ['performance.view', 'my_performance.view', 'performance.templates.manage', 'performance.evaluations.manage'],
+  Forms: ['forms.view', 'forms.view_own', 'forms.builder.manage', 'forms.assignments.manage', 'forms.submissions.view'],
   Reports: ['reports.view', 'reports.employee', 'reports.attendance', 'reports.leave', 'reports.payroll', 'reports.benefits', 'reports.performance'],
   Settings: ['settings.view', 'settings.system', 'settings.attendance_rules', 'settings.approvals', 'settings.notifications', 'settings.smtp', 'settings.email_templates', 'settings.branding'],
   Users: ['users.view', 'users.manage'],
@@ -118,9 +131,25 @@ const PERMISSION_GROUPS = {
   Analytics: ['analytics.view'],
   Forecasting: ['forecasting.view'],
   Calendar: ['calendar.view', 'calendar.manage'],
-  'HR Policies': ['hr_policies.view', 'hr_policies.manage'],
+  'HR Policies': ['policies.view', 'hr_policies.view', 'hr_policies.manage'],
   Notifications: ['notifications.view'],
-  Profile: ['profile.view', 'change_password'],
+  Profile: ['profile.view', 'profile.edit_own', 'change_password'],
+  Benefits: ['benefits.view_own'],
+  'Self Service': ['self_service.view'],
 };
 
-module.exports = { ALL_PERMISSIONS, PERMISSION_GROUPS };
+const EMPLOYEE_DEFAULT_PERMISSIONS = [
+  'dashboard.view',
+  'attendance.view',
+  'leave.view',
+  'overtime.view',
+  'manhours.view',
+  'hr_policies.view',
+  'calendar.view',
+  'notifications.view',
+  'my_performance.view',
+  'profile.view',
+  'change_password',
+];
+
+module.exports = { ALL_PERMISSIONS, PERMISSION_GROUPS, EMPLOYEE_DEFAULT_PERMISSIONS };

@@ -3,17 +3,44 @@ const router = express.Router();
 
 const controller = require("../controllers/drilldown.controller");
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
+const requirePermission = require("../middleware/permission.middleware");
 
-const ROLES = require("../constants/roles");
-const ADMIN_HR = [ROLES.ADMIN, ROLES.HR_USER];
-
-router.get("/attendance", authenticate, authorize(ADMIN_HR), controller.getAttendance);
-router.get("/payroll", authenticate, authorize(ADMIN_HR), controller.getPayroll);
-router.get("/overtime", authenticate, authorize(ADMIN_HR), controller.getOvertime);
-router.get("/leaves", authenticate, authorize(ADMIN_HR), controller.getLeaves);
-router.get("/anomalies", authenticate, authorize(ADMIN_HR), controller.getAnomalies);
-router.get("/branches", authenticate, authorize(ADMIN_HR), controller.getBranches);
-router.get("/export", authenticate, authorize(ADMIN_HR), controller.exportDrillDown);
+router.get(
+  "/attendance",
+  authenticate,
+  requirePermission("analytics.view"),
+  controller.getAttendance,
+);
+router.get(
+  "/payroll",
+  authenticate,
+  requirePermission("analytics.view"),
+  controller.getPayroll,
+);
+router.get(
+  "/overtime",
+  authenticate,
+  requirePermission("analytics.view"),
+  controller.getOvertime,
+);
+router.get("/leaves", authenticate, requirePermission("analytics.view"), controller.getLeaves);
+router.get(
+  "/anomalies",
+  authenticate,
+  requirePermission("analytics.view"),
+  controller.getAnomalies,
+);
+router.get(
+  "/branches",
+  authenticate,
+  requirePermission("analytics.view"),
+  controller.getBranches,
+);
+router.get(
+  "/export",
+  authenticate,
+  requirePermission("analytics.view"),
+  controller.exportDrillDown,
+);
 
 module.exports = router;

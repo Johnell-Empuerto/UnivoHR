@@ -3,11 +3,9 @@ const router = express.Router();
 
 const controller = require("../controllers/attendance.controller");
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
+const requirePermission = require("../middleware/permission.middleware");
 const { requireBranchAccessFromQuery } = require("../middleware/branchAccess.middleware");
 const validate = require("../middleware/validate.middleware");
-const { ROLES } = require("../constants/roles");
-
 const Joi = require("joi");
 
 // ==========================
@@ -38,17 +36,14 @@ const statusUpdateSchema = Joi.object({
 // ==========================
 
 // TIME REQUESTS
-const ALL_ROLES = [ROLES.ADMIN, ROLES.HR_USER, ROLES.PAYROLL_USER, ROLES.EMPLOYEE];
-const HR_ROLES = [ROLES.ADMIN, ROLES.HR_USER];
-
-router.post("/time-requests", authenticate, authorize(ALL_ROLES), validate(timeModificationSchema), controller.createTimeModificationRequest);
-router.get("/time-requests/my", authenticate, authorize(ALL_ROLES), controller.getMyTimeModificationRequests);
-router.get("/time-requests", authenticate, authorize(HR_ROLES), controller.getTimeModificationRequests);
-router.put("/time-requests/:id/status", authenticate, authorize(HR_ROLES), validate(statusUpdateSchema), controller.updateTimeModificationStatus);
+router.post("/time-requests", authenticate, requirePermission("attendance.manage"), validate(timeModificationSchema), controller.createTimeModificationRequest);
+router.get("/time-requests/my", authenticate, requirePermission("attendance.view"), controller.getMyTimeModificationRequests);
+router.get("/time-requests", authenticate, requirePermission("attendance.view"), controller.getTimeModificationRequests);
+router.put("/time-requests/:id/status", authenticate, requirePermission("attendance.manage"), validate(statusUpdateSchema), controller.updateTimeModificationStatus);
 
 // ATTENDANCE
-router.post("/", authenticate, authorize([ROLES.ADMIN]), controller.createAttendance);
-router.get("/", authenticate, authorize([...HR_ROLES, ROLES.PAYROLL_USER, ROLES.EMPLOYEE]), requireBranchAccessFromQuery("branch_id"), controller.getAttendance);
-router.get("/:id", authenticate, authorize([...HR_ROLES, ROLES.PAYROLL_USER, ROLES.EMPLOYEE]), controller.getByEmployee);
+router.post("/", authenticate, requirePermission("attendance.manage"), controller.createAttendance);
+router.get("/", authenticate, requirePermission("attendance.view"), requireBranchAccessFromQuery("branch_id"), controller.getAttendance);
+router.get("/:id", authenticate, requirePermission("attendance.view"), controller.getByEmployee);
 
 module.exports = router;

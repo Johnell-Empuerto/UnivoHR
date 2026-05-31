@@ -6,19 +6,15 @@ const controller = require("../controllers/calendar.controller");
 const bulkController = require("../controllers/calendar.bulk.controller");
 
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
-const { ROLES } = require("../constants/roles");
+const requirePermission = require("../middleware/permission.middleware");
 const upload = require("../middleware/upload.middleware");
 
-const ALL = [ROLES.SYSTEM_ADMIN, ROLES.ADMIN, ROLES.HR_USER, ROLES.PAYROLL_USER, ROLES.EMPLOYEE];
-const ADMIN_ONLY = [ROLES.ADMIN];
-
-router.get("/", authenticate, authorize(ALL), controller.getCalendar);
-router.get("/:date", authenticate, authorize(ALL), controller.getByDate);
-router.post("/", authenticate, authorize(ADMIN_ONLY), controller.create);
-router.put("/:id", authenticate, authorize(ADMIN_ONLY), controller.update);
-router.delete("/:id", authenticate, authorize(ADMIN_ONLY), controller.remove);
-router.post("/bulk", authenticate, authorize(ADMIN_ONLY), bulkController.bulkUpload);
-router.get("/bulk/template", authenticate, authorize(ADMIN_ONLY), bulkController.downloadTemplate);
+router.get("/", authenticate, requirePermission("calendar.view"), controller.getCalendar);
+router.get("/:date", authenticate, requirePermission("calendar.view"), controller.getByDate);
+router.post("/", authenticate, requirePermission("calendar.manage"), controller.create);
+router.put("/:id", authenticate, requirePermission("calendar.manage"), controller.update);
+router.delete("/:id", authenticate, requirePermission("calendar.manage"), controller.remove);
+router.post("/bulk", authenticate, requirePermission("calendar.manage"), bulkController.bulkUpload);
+router.get("/bulk/template", authenticate, requirePermission("calendar.manage"), bulkController.downloadTemplate);
 
 module.exports = router;

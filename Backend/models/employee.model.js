@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { EMPLOYMENT_STATUS } = require("../constants/employmentStatus");
 
 const getEmployees = async (page = 1, limit = 10, search = "", status = "", allowedBranchIds = null) => {
   const offset = (page - 1) * limit;
@@ -86,12 +87,13 @@ const createEmployee = async (data) => {
       sss_number, philhealth_number, hdmf_number, tin_number,
       hired_date, resignation_date, termination_date,
       termination_reason, last_working_date,
-      branch_id, employment_status, probation_period_months
+      branch_id, employment_status, probation_period_months,
+      regularization_date
     )
     VALUES (
       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,
       $12,$13,$14,$15,$16,$17,$18,$19,$20,
-      $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31
+      $21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32
     )
     RETURNING *;
   `;
@@ -126,8 +128,9 @@ const createEmployee = async (data) => {
     data.termination_reason || null,
     data.last_working_date || null,
     branchId,
-    data.employment_status || "Regular",
+    data.employment_status || EMPLOYMENT_STATUS.REGULAR,
     data.probation_period_months ?? null,
+    data.regularization_date || null,
   ];
 
   const result = await pool.query(query, values);
@@ -170,6 +173,7 @@ const updateEmployee = async (id, data, client = null) => {
       last_working_date = $28,
       employment_status = $31,
       probation_period_months = $32,
+      regularization_date = $33,
       branch_id = $30
     WHERE id = $29
     RETURNING *;
@@ -208,13 +212,13 @@ const updateEmployee = async (id, data, client = null) => {
     branchId,
     data.employment_status || null,
     data.probation_period_months ?? null,
+    data.regularization_date || null,
   ];
 
   const result = await db.query(query, values);
   return result.rows[0];
 };
 
-// Helper to get employee by ID
 const getEmployeeById = async (id) => {
   const query = `
     SELECT e.*, b.name AS branch_name, b.code AS branch_code
@@ -226,7 +230,6 @@ const getEmployeeById = async (id) => {
   return result.rows[0];
 };
 
-// Helper to get default branch ID (Main Branch)
 const getDefaultBranchId = async () => {
   const result = await pool.query(
     `SELECT id FROM branches WHERE code = 'MAIN' LIMIT 1`,
@@ -241,14 +244,87 @@ const updateEmploymentStatus = async (id, employmentStatus) => {
 };
 
 const regularizeEmployee = async (id) => {
-  const query = "UPDATE employees SET employment_status = 'Regular', regularization_date = CURRENT_DATE WHERE id = $1 RETURNING *;";
-  const result = await pool.query(query, [id]);
+  const query = `
+    UPDATE employees 
+    SET employment_status = $1, 
+        probation_period_months = NULL
+    WHERE id = $2 
+    RETURNING *;
+  `;
+  const result = await pool.query(query, [EMPLOYMENT_STATUS.REGULAR, id]);
   return result.rows[0];
 };
 
 const updateEmployeeStatusToTerminated = async (id, terminationDate, terminationReason) => {
-  const query = "UPDATE employees SET status = 'TERMINATED', termination_date = $1, termination_reason = $2 WHERE id = $3 RETURNING *;";
-  const result = await pool.query(query, [terminationDate, terminationReason || null, id]);
+  const current = await getEmployeeById(id);
+
+  const query = `
+    UPDATE employees 
+    SET status = 'TERMINATED', 
+        employment_status = $1,
+        termination_date = $2, 
+        termination_reason = $3 
+    WHERE id = $4 
+    RETURNING *;
+  `;
+  const result = await pool.query(query, [current?.employment_status || EMPLOYMENT_STATUS.REGULAR, terminationDate, terminationReason || null, id]);
+  return result.rows[0];
+};
+
+const getProbationaryEmployeesDueForRegularization = async (allowedBranchIds = null) => {
+  const params = [];
+  let branchClause = "";
+  if (allowedBranchIds && allowedBranchIds.length > 0) {
+    branchClause = `AND e.branch_id = ANY($${params.length + 1}::int[])`;
+    params.push(allowedBranchIds);
+  }
+
+  const result = await pool.query(
+    `
+    SELECT e.*, b.name AS branch_name, b.code AS branch_code
+    FROM employees e
+    LEFT JOIN branches b ON b.id = e.branch_id
+    WHERE e.employment_status = $1
+      AND e.regularization_date IS NOT NULL
+      AND e.regularization_date <= CURRENT_DATE
+      AND e.status = 'ACTIVE'
+      ${branchClause}
+    ORDER BY e.regularization_date ASC
+    `,
+    [EMPLOYMENT_STATUS.PROBATIONARY, ...params],
+  );
+  return result.rows;
+};
+
+const getEmploymentStats = async (allowedBranchIds = null) => {
+  const params = [];
+  let branchClause = "";
+  if (allowedBranchIds && allowedBranchIds.length > 0) {
+    branchClause = `AND branch_id = ANY($${params.length + 1}::int[])`;
+    params.push(allowedBranchIds);
+  }
+
+  const result = await pool.query(
+    `
+    SELECT
+      COUNT(*) FILTER (WHERE employment_status = $1 AND status = 'ACTIVE') AS probationary_count,
+      COUNT(*) FILTER (WHERE employment_status = $2 AND status = 'ACTIVE') AS regular_count,
+      COUNT(*) FILTER (
+        WHERE employment_status = $1 
+          AND status = 'ACTIVE'
+          AND regularization_date IS NOT NULL
+          AND regularization_date <= CURRENT_DATE
+      ) AS due_for_regularization_count,
+      COUNT(*) FILTER (
+        WHERE employment_status = $2 
+          AND regularization_date IS NOT NULL
+          AND DATE_TRUNC('month', regularization_date) = DATE_TRUNC('month', CURRENT_DATE)
+      ) AS recent_regularizations_count
+    FROM employees
+    WHERE status = 'ACTIVE' ${branchClause}
+    `,
+    [EMPLOYMENT_STATUS.PROBATIONARY, EMPLOYMENT_STATUS.REGULAR, ...params],
+  );
   return result.rows[0];
 };
 
@@ -260,4 +336,6 @@ module.exports = {
   updateEmploymentStatus,
   regularizeEmployee,
   updateEmployeeStatusToTerminated,
+  getProbationaryEmployeesDueForRegularization,
+  getEmploymentStats,
 };

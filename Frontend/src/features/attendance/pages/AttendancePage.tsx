@@ -63,10 +63,9 @@ import Loader from "@/components/shared/Loader";
 import { useAuth } from "@/app/providers/AuthProvider";
 
 const AttendancePage = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const location = useLocation();
-  const isAdmin =
-    user?.role === "ADMIN" || user?.role === "HR_USER";
+  const isAdmin = hasPermission("attendance.manage");
 
   // Read tab from query parameter
   useEffect(() => {
@@ -142,7 +141,7 @@ const AttendancePage = () => {
         setLoading(true);
         let result;
 
-        if (user?.role === "EMPLOYEE" || user?.role === "SYSTEM_ADMIN") {
+        if (!hasPermission("attendance.manage")) {
           const data = await getAttendanceByEmployee(user.employee_id, formattedDate);
           result = {
             data,

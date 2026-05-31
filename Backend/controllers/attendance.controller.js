@@ -2,7 +2,6 @@ const attendanceService = require("../services/attendance.service");
 const rulesService = require("../services/attendance.service");
 const attendanceModel = require("../models/attendance.model");
 const audit = require("../services/audit.service");
-const { normalizeRole } = require("../constants/roles");
 
 // Create attendance (check-in / check-out logic)
 const createAttendance = async (req, res) => {
@@ -248,7 +247,8 @@ const createTimeModificationRequest = async (req, res) => {
     const adminUsers = await pool.query(
       `SELECT DISTINCT u.id
        FROM users u
-       WHERE u.role IN ('SYSTEM_ADMIN', 'ADMIN', 'HR_USER')`,
+       WHERE u.role = 'ADMIN' 
+          OR EXISTS (SELECT 1 FROM user_permissions up WHERE up.user_id = u.id AND up.permission_key = 'attendance.time_requests.approve' AND up.is_allowed = true)`,
     );
 
     const employeeResult = await pool.query(
@@ -354,25 +354,19 @@ const updateTimeModificationStatus = async (req, res) => {
       });
     }
 
-    // Check permissions based on role hierarchy
+    // ADMIN can always approve
+    // EMPLOYEE can approve only with attendance.time_requests.approve permission
+    // user cannot approve own request (checked above)
     const pool = require("../config/db");
-    const requestOwnerRole = await pool.query(
-      `SELECT role FROM users WHERE employee_id = $1`,
-      [request.employee_id],
+    const userIsAdmin = userRole === "ADMIN";
+    const hasApprovePermission = await pool.query(
+      `SELECT 1 FROM user_permissions WHERE user_id = $1 AND permission_key = 'attendance.time_requests.approve' AND is_allowed = true LIMIT 1`,
+      [userId],
     );
-    const ownerRole = normalizeRole(requestOwnerRole.rows[0]?.role) || "EMPLOYEE";
-    const normalizedUserRole = normalizeRole(userRole);
 
-    const canApprove =
-      (ownerRole === "EMPLOYEE" &&
-        ["HR_USER", "ADMIN", "SYSTEM_ADMIN"].includes(normalizedUserRole)) ||
-      (ownerRole === "HR_USER" && ["ADMIN", "SYSTEM_ADMIN"].includes(normalizedUserRole)) ||
-      (ownerRole === "ADMIN" && normalizedUserRole === "SYSTEM_ADMIN");
-
-    if (!canApprove) {
+    if (!userIsAdmin && hasApprovePermission.rows.length === 0) {
       return res.status(403).json({
-        message:
-          "You are not allowed to approve/reject this time modification request",
+        message: "You are not allowed to approve/reject this time modification request",
       });
     }
 
@@ -403,11 +397,10 @@ const updateTimeModificationStatus = async (req, res) => {
     }
 
     // Notify employee
-    const notificationService = require("../services/notification.service");
-    await notificationService.notify({
-      user_id: request.employee_id,
+    const notificationHelper = require("../services/notificationHelper.service");
+    await notificationHelper.notifyEmployee(request.employee_id, {
       type: "TIME_MODIFICATION",
-      title: `Time Modification ${status}`,
+      title: `Time Modification ${status.charAt(0) + status.slice(1).toLowerCase()}`,
       message: `Your time modification request for ${new Date(request.attendance_date).toLocaleDateString()} has been ${status.toLowerCase()}`,
       reference_id: request.id,
       meta: {

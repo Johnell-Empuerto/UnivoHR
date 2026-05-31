@@ -35,8 +35,8 @@ import {
 } from "@/services/userService";
 
 const Users = () => {
-  const { user } = useAuth();
-  const canManage = user?.role === "SYSTEM_ADMIN" || user?.role === "ADMIN";
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission("users.manage");
   const [data, setData] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState("");
@@ -243,10 +243,7 @@ const Users = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
-                    <SelectItem value="SYSTEM_ADMIN">System Admin</SelectItem>
                     <SelectItem value="ADMIN">Admin</SelectItem>
-                    <SelectItem value="HR_USER">HR User</SelectItem>
-                    <SelectItem value="PAYROLL_USER">Payroll User</SelectItem>
                     <SelectItem value="EMPLOYEE">Employee</SelectItem>
               </SelectContent>
             </Select>

@@ -33,11 +33,11 @@ type PaginationData = {
 };
 
 const LeavePage = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [isLeaveApprover, setIsLeaveApprover] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const isHR = ["ADMIN", "HR_USER"].includes(user?.role ?? "");
+  const isHR = hasPermission("leave.manage");
   const canManageCredits = user?.role === "ADMIN";
 
   // My Leaves State

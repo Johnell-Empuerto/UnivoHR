@@ -4,8 +4,7 @@ const router = express.Router();
 const calendarController = require("../controllers/payRules.controller");
 
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
-const ROLES = require("../constants/roles");
+const requirePermission = require("../middleware/permission.middleware");
 
 // Pay Rules CRUD
 
@@ -13,7 +12,7 @@ const ROLES = require("../constants/roles");
 router.get(
   "/pay-rules",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
+  requirePermission("payroll.settings"),
   calendarController.getAllPayRules,
 );
 
@@ -21,7 +20,7 @@ router.get(
 router.get(
   "/pay-rules/:id",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
+  requirePermission("payroll.settings"),
   calendarController.getPayRuleById,
 );
 
@@ -29,7 +28,7 @@ router.get(
 router.post(
   "/pay-rules",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
+  requirePermission("payroll.settings"),
   calendarController.createPayRule,
 );
 
@@ -37,7 +36,7 @@ router.post(
 router.put(
   "/pay-rules/:id",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
+  requirePermission("payroll.settings"),
   calendarController.updatePayRule,
 );
 
@@ -45,7 +44,7 @@ router.put(
 router.delete(
   "/pay-rules/:id",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN]),
+  requirePermission("payroll.settings"),
   calendarController.deletePayRule,
 );
 
@@ -55,7 +54,7 @@ router.delete(
 router.get(
   "/calendar-days",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
+  requirePermission("payroll.settings"),
   calendarController.getCalendarDays,
 );
 
@@ -63,7 +62,7 @@ router.get(
 router.post(
   "/calendar-days",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
+  requirePermission("payroll.settings"),
   calendarController.upsertCalendarDay,
 );
 
@@ -71,7 +70,7 @@ router.post(
 router.delete(
   "/calendar-days/:date",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN]),
+  requirePermission("payroll.settings"),
   calendarController.deleteCalendarDay,
 );
 

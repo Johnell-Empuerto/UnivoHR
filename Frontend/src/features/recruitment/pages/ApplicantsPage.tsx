@@ -53,8 +53,8 @@ const statusBadge = (status: string) => {
 
 const ApplicantsPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const canDelete = user?.role === "ADMIN";
+  const { hasPermission } = useAuth();
+  const canDelete = hasPermission("recruitment.applicants.delete");
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);

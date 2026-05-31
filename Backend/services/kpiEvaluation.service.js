@@ -37,7 +37,7 @@ const assign = async (data) => {
         "Evaluation Assigned",
         isEmployee
           ? `A performance evaluation has been assigned to you${period ? ` for ${period}` : ""}`
-          : `You are assigned to evaluate employee #${data.employee_id}${period ? ` for ${period}` : ""}`,
+          : `You are assigned to evaluate ${row.employee_name || `Employee #${data.employee_id}`}${period ? ` for ${period}` : ""}`,
         evaluation.id,
         { evaluation_id: evaluation.id, employee_id: data.employee_id, evaluator_id: data.evaluator_id, template_id: data.template_id, period },
       );

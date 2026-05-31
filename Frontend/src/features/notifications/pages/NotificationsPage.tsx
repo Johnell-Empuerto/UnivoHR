@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/app/providers/AuthProvider";
 import {
   Bell,
   CheckCheck,
@@ -31,6 +32,7 @@ import EmptyState from "@/components/shared/EmptyState";
 
 const NotificationsPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -91,7 +93,7 @@ const NotificationsPage = () => {
 
   useEffect(() => {
     fetchNotifications();
-  }, [page, pageSize]);
+  }, [page, pageSize, user?.id]);
 
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.is_read) {
@@ -136,14 +138,16 @@ const NotificationsPage = () => {
         }
         break;
       case "KPI_EVALUATION":
-        if (notification.title.includes("Assigned") || notification.title.includes("Submitted")) {
-          navigate("/kpi/hr-view");
+        if (notification.title === "Evaluation Submitted") {
+          navigate("/kpi/evaluations");
+        } else if (!notification.meta?.employee_id || Number(user?.employee_id) === Number(notification.meta.employee_id)) {
+          navigate("/kpi/self-evaluation");
         } else {
           navigate("/kpi/my-evaluations");
         }
         break;
       case "RECRUITMENT":
-        navigate("/recruitment");
+        navigate("/recruitment/applicants");
         break;
       default:
         break;
@@ -425,3 +429,4 @@ const NotificationsPage = () => {
 };
 
 export default NotificationsPage;
+

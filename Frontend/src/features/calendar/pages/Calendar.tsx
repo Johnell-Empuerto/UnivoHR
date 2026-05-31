@@ -990,7 +990,7 @@ const CalendarPage: React.FC = () => {
                     <p>• Hover over events for details</p>
                     <p>• Use date picker to jump to any month/year</p>
                     <p className="text-blue-600 mt-2">
-                      Note: SYSTEM_ADMIN and ADMIN have full access
+                      Note: ADMIN has full access
                     </p>
                   </>
                 ) : (

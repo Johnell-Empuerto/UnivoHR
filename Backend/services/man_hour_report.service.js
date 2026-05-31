@@ -1,10 +1,10 @@
 const manHourReportModel = require("../models/man_hour_report.model");
 const notificationService = require("../services/notification.service");
+const notificationHelper = require("../services/notificationHelper.service");
 const smtpService = require("./smtp.service");
 const settingService = require("./setting.service");
 const emailTemplateService = require("./emailTemplate.service");
 const pool = require("../config/db");
-const { normalizeRole } = require("../constants/roles");
 
 // Helper function to format date
 const formatDate = (dateStr) => {
@@ -170,8 +170,8 @@ const approveManHourReport = async (id, approver_id, comment, userRole) => {
   }
 
   let canApprove = false;
-  const role = normalizeRole(userRole);
-  if (role === "SYSTEM_ADMIN" || role === "ADMIN" || role === "HR_USER") {
+  const role = userRole;
+  if (role === "ADMIN") {
     canApprove = true;
   } else {
     canApprove = await manHourReportModel.canApprove(
@@ -194,11 +194,10 @@ const approveManHourReport = async (id, approver_id, comment, userRole) => {
 
   // Send notification
   try {
-    await notificationService.notify({
-      user_id: report.employee_id,
+    await notificationHelper.notifyEmployee(report.employee_id, {
       type: "MAN_HOUR",
       title: "Man Hour Report Approved",
-      message: "Your man hour report has been approved",
+      message: `Your man hour report for ${report.work_date} (${report.hours}h) has been approved`,
       reference_id: id,
       meta: {
         man_hour_id: id,
@@ -230,8 +229,8 @@ const rejectManHourReport = async (id, approver_id, reason, userRole) => {
   }
 
   let canApprove = false;
-  const role = normalizeRole(userRole);
-  if (role === "SYSTEM_ADMIN" || role === "ADMIN" || role === "HR_USER") {
+  const role = userRole;
+  if (role === "ADMIN") {
     canApprove = true;
   } else {
     canApprove = await manHourReportModel.canApprove(
@@ -254,11 +253,10 @@ const rejectManHourReport = async (id, approver_id, reason, userRole) => {
 
   // Send notification
   try {
-    await notificationService.notify({
-      user_id: report.employee_id,
+    await notificationHelper.notifyEmployee(report.employee_id, {
       type: "MAN_HOUR",
       title: "Man Hour Report Rejected",
-      message: "Your man hour report was not approved",
+      message: `Your man hour report for ${report.work_date} (${report.hours}h) was not approved. Reason: ${reason}`,
       reference_id: id,
       meta: {
         man_hour_id: id,
@@ -345,8 +343,8 @@ const getMissingManHourDates = async (employee_id, start_date, end_date) => {
 const deleteManHourReport = async (id, employee_id, userRole) => {
   const report = await manHourReportModel.getManHourReportDetails(id);
 
-  const delRole = normalizeRole(userRole);
-  const canDelete = delRole === "SYSTEM_ADMIN" || delRole === "ADMIN" || delRole === "HR_USER";
+  const delRole = userRole;
+  const canDelete = delRole === "ADMIN";
   if (!canDelete && report.employee_id !== employee_id) {
     throw new Error("You don't have permission to delete this report");
   }

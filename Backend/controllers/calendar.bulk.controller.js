@@ -15,7 +15,7 @@ const bulkUpload = async (req, res) => {
     }
 
     // HR branch validation: every row must belong to an assigned branch
-    if (req.user.role !== "SYSTEM_ADMIN" && req.user.role !== "ADMIN") {
+    if (req.user.role !== "ADMIN") {
       const assigned = await getUserBranchIds(req.user.id);
       const allBranches = await branchModel.getAll();
       const branchLookup = {};

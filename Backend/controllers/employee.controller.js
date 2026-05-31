@@ -1,7 +1,6 @@
 const employeeService = require("../services/employee.service");
 const audit = require("../services/audit.service");
 
-// CREATE
 const createEmployee = async (req, res) => {
   try {
     const employee = await employeeService.createEmployee(req.body);
@@ -11,8 +10,19 @@ const createEmployee = async (req, res) => {
       record_id: employee.id,
       employee_id: employee.id,
       branch_id: employee.branch_id,
-      new_values: { employee_code: employee.employee_code, first_name: employee.first_name, last_name: employee.last_name, department: employee.department, position: employee.position, branch_id: employee.branch_id, status: employee.status },
-      description: `Employee created: ${employee.first_name} ${employee.last_name} (${employee.employee_code})`,
+      new_values: {
+        employee_code: employee.employee_code,
+        first_name: employee.first_name,
+        last_name: employee.last_name,
+        department: employee.department,
+        position: employee.position,
+        branch_id: employee.branch_id,
+        status: employee.status,
+        employment_status: employee.employment_status,
+        probation_period_months: employee.probation_period_months,
+        regularization_date: employee.regularization_date,
+      },
+      description: `Employee created: ${employee.first_name} ${employee.last_name} (${employee.employee_code}) - ${employee.employment_status}`,
     });
     res.status(201).json(employee);
   } catch (error) {
@@ -20,7 +30,6 @@ const createEmployee = async (req, res) => {
   }
 };
 
-//  GET (Pagination + Search + Status Filter)
 const getEmployees = async (req, res) => {
   try {
     const { page = 1, limit = 10, search = "", status = "" } = req.query;
@@ -39,23 +48,97 @@ const getEmployees = async (req, res) => {
   }
 };
 
-// UPDATE
 const updateEmployee = async (req, res) => {
   try {
     const { id } = req.params;
     const oldValues = await audit.fetchOldValues("employees", id);
     const updated = await employeeService.updateEmployee(id, req.body);
+
+    const employmentChanged = oldValues && oldValues.employment_status !== updated.employment_status;
+
     audit.auditLog(req, {
-      action: "UPDATE",
+      action: employmentChanged ? "EMPLOYMENT_STATUS_CHANGED" : "UPDATE",
       table_name: "employees",
       record_id: Number(id),
       employee_id: updated.id,
       branch_id: updated.branch_id,
-      old_values: oldValues ? { employee_code: oldValues.employee_code, first_name: oldValues.first_name, last_name: oldValues.last_name, department: oldValues.department, position: oldValues.position, status: oldValues.status, branch_id: oldValues.branch_id } : null,
-      new_values: { employee_code: updated.employee_code, first_name: updated.first_name, last_name: updated.last_name, department: updated.department, position: updated.position, status: updated.status, branch_id: updated.branch_id },
-      description: `Employee updated: ${updated.first_name} ${updated.last_name} (${updated.employee_code})`,
+      old_values: oldValues ? {
+        employee_code: oldValues.employee_code,
+        first_name: oldValues.first_name,
+        last_name: oldValues.last_name,
+        department: oldValues.department,
+        position: oldValues.position,
+        status: oldValues.status,
+        branch_id: oldValues.branch_id,
+        employment_status: oldValues.employment_status,
+        probation_period_months: oldValues.probation_period_months,
+        regularization_date: oldValues.regularization_date,
+      } : null,
+      new_values: {
+        employee_code: updated.employee_code,
+        first_name: updated.first_name,
+        last_name: updated.last_name,
+        department: updated.department,
+        position: updated.position,
+        status: updated.status,
+        branch_id: updated.branch_id,
+        employment_status: updated.employment_status,
+        probation_period_months: updated.probation_period_months,
+        regularization_date: updated.regularization_date,
+      },
+      description: employmentChanged
+        ? `Employment status changed: ${updated.first_name} ${updated.last_name} - ${oldValues?.employment_status} → ${updated.employment_status}`
+        : `Employee updated: ${updated.first_name} ${updated.last_name} (${updated.employee_code})`,
     });
     res.json(updated);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const getDueForRegularization = async (req, res) => {
+  try {
+    const employees = await employeeService.getProbationaryEmployeesDueForRegularization(req.allowedBranchIds);
+    res.json(employees);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const approveRegularization = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const oldValues = await audit.fetchOldValues("employees", id);
+    const employee = await employeeService.approveRegularization(id);
+
+    audit.auditLog(req, {
+      action: "REGULARIZATION_APPROVED",
+      table_name: "employees",
+      record_id: Number(id),
+      employee_id: employee.id,
+      branch_id: employee.branch_id,
+      old_values: {
+        employment_status: oldValues?.employment_status,
+        probation_period_months: oldValues?.probation_period_months,
+        regularization_date: oldValues?.regularization_date,
+      },
+      new_values: {
+        employment_status: employee.employment_status,
+        probation_period_months: employee.probation_period_months,
+        regularization_date: employee.regularization_date,
+      },
+      description: `Regularization approved: ${employee.first_name} ${employee.last_name} (${employee.employee_code})`,
+    });
+    res.json(employee);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+const getEmploymentStats = async (req, res) => {
+  try {
+    const stats = await employeeService.getEmploymentStats(req.allowedBranchIds);
+    res.json(stats);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -65,4 +148,7 @@ module.exports = {
   createEmployee,
   getEmployees,
   updateEmployee,
+  getDueForRegularization,
+  approveRegularization,
+  getEmploymentStats,
 };

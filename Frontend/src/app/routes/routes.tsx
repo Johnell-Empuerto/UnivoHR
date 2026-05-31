@@ -77,13 +77,7 @@ const AppRoutes = () => {
         return;
       }
 
-      if (
-        user?.role === "ADMIN" ||
-        user?.role === "HR_USER"
-      ) {
-        setCanAccessOvertime(true);
-        setCanAccessManHours(true);
-      } else if (user?.id) {
+      if (user?.id) {
         try {
           const result = await checkIsApprover();
           setCanAccessOvertime(result.isApprover);
@@ -172,7 +166,7 @@ const AppRoutes = () => {
             path="/payroll"
             element={
               hasPermission("payroll.view") ? (
-                user?.role === "ADMIN" || user?.role === "PAYROLL_USER" ? (
+                hasPermission("payroll.generate") ? (
                   <PayRollPage />
                 ) : (
                   <EmployeePayrollPage />
@@ -185,7 +179,7 @@ const AppRoutes = () => {
           <Route
             path="/leaves"
             element={
-              user?.role === "ADMIN" || user?.role === "HR_USER" ? (
+              hasPermission("leave.manage") || hasPermission("leave.approve") ? (
                 <AdminLeavePage />
               ) : (
                 <LeavePage />
@@ -334,7 +328,7 @@ const AppRoutes = () => {
           <Route
             path="/kpi/templates"
             element={
-              hasPermission("performance.view") ? (
+              hasPermission("performance.templates.manage") ? (
                 <KpiTemplatesPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -344,7 +338,7 @@ const AppRoutes = () => {
           <Route
             path="/kpi/evaluations"
             element={
-              hasPermission("performance.view") ? (
+              hasPermission("performance.evaluations.manage") ? (
                 <KpiEvaluationPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -376,7 +370,7 @@ const AppRoutes = () => {
           <Route
             path="/my-performance"
             element={
-              user?.employee_id ? (
+              (hasPermission("my_performance.view") || hasPermission("performance.view")) && user?.employee_id ? (
                 <MyPerformancePage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -386,7 +380,7 @@ const AppRoutes = () => {
           <Route
             path="/my-performance/kpi-results"
             element={
-              user?.employee_id ? (
+              (hasPermission("my_performance.view") || hasPermission("performance.view")) && user?.employee_id ? (
                 <MyKpiResultsPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -396,7 +390,7 @@ const AppRoutes = () => {
           <Route
             path="/my-performance/probation"
             element={
-              user?.employee_id ? (
+              (hasPermission("my_performance.view") || hasPermission("performance.view")) && user?.employee_id ? (
                 <MyProbationStatusPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -408,7 +402,7 @@ const AppRoutes = () => {
           <Route
             path="/hr-forms"
             element={
-              hasPermission("forms.view") ? (
+              hasPermission("forms.builder.manage") ? (
                 <HrFormsPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -418,7 +412,7 @@ const AppRoutes = () => {
           <Route
             path="/hr-forms/:id/builder"
             element={
-              hasPermission("forms.view") ? (
+              hasPermission("forms.builder.manage") ? (
                 <HrFormBuilderPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -428,7 +422,7 @@ const AppRoutes = () => {
           <Route
             path="/hr-forms/assignments"
             element={
-              hasPermission("forms.view") ? (
+              hasPermission("forms.assignments.manage") ? (
                 <HrFormAssignmentsPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -438,7 +432,7 @@ const AppRoutes = () => {
           <Route
             path="/hr-forms/submissions"
             element={
-              hasPermission("forms.view") ? (
+              hasPermission("forms.submissions.view") ? (
                 <HrFormSubmissionsPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -448,7 +442,7 @@ const AppRoutes = () => {
           <Route
             path="/hr-forms/submissions/:submissionId"
             element={
-              hasPermission("forms.view") ? (
+              hasPermission("forms.submissions.view") ? (
                 <HrFormSubmissionViewPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -458,7 +452,7 @@ const AppRoutes = () => {
           <Route
             path="/my-forms"
             element={
-              user?.employee_id ? (
+              user?.employee_id && (hasPermission("my_performance.view") || hasPermission("forms.view_own")) ? (
                 <MyFormsPage />
               ) : (
                 <Navigate to="/dashboard" replace />
@@ -468,7 +462,7 @@ const AppRoutes = () => {
           <Route
             path="/my-forms/:assignmentId"
             element={
-              user?.employee_id ? (
+              user?.employee_id && (hasPermission("my_performance.view") || hasPermission("forms.view_own")) ? (
                 <MyFormFillPage />
               ) : (
                 <Navigate to="/dashboard" replace />

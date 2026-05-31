@@ -2,49 +2,47 @@ const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/emailTemplate.controller");
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
-const ROLES = require("../constants/roles");
+const requirePermission = require("../middleware/permission.middleware");
 
-// All email template routes require SYSTEM_ADMIN only (technical settings)
 router.get(
   "/",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN]),
+  requirePermission("settings.email_templates"),
   controller.getAllTemplates,
 );
 
 router.get(
   "/:type",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN]),
+  requirePermission("settings.email_templates"),
   controller.getTemplateByType,
 );
 
 router.post(
   "/",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN]),
+  requirePermission("settings.email_templates"),
   controller.upsertTemplate,
 );
 
 router.put(
   "/:id",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN]),
+  requirePermission("settings.email_templates"),
   controller.updateTemplate,
 );
 
 router.patch(
   "/:id/toggle",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN]),
+  requirePermission("settings.email_templates"),
   controller.toggleTemplate,
 );
 
 router.delete(
   "/:id",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN]),
+  requirePermission("settings.email_templates"),
   controller.deleteTemplate,
 );
 

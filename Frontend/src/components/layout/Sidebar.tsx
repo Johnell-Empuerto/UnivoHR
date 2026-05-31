@@ -88,7 +88,6 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
   const canApprove = () => {
     return (
       user?.role === "ADMIN" ||
-      user?.role === "HR_USER" ||
       isUserApprover
     );
   };
@@ -193,7 +192,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           {!collapsed && (canApprove() ? "Manage Leaves" : "My Leaves")}
         </NavLink>
 
-        {hasPermission("performance.view") && !collapsed && (
+        {(hasPermission("performance.templates.manage") || hasPermission("performance.evaluations.manage")) && !collapsed && (
           <div>
             <button
               onClick={() => toggleMenu("performance")}
@@ -211,24 +210,28 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             </button>
             {openMenus["performance"] && (
               <div className="mt-1 space-y-1">
-                <NavLink
-                  to="/kpi/templates"
-                  className={({ isActive }) => dropdownLinkClass(isActive)}
-                >
-                  <FileText className="h-4 w-4" /> KPI Templates
-                </NavLink>
-                <NavLink
-                  to="/kpi/evaluations"
-                  className={({ isActive }) => dropdownLinkClass(isActive)}
-                >
-                  <ClipboardList className="h-4 w-4" /> KPI Evaluations
-                </NavLink>
+                {hasPermission("performance.templates.manage") && (
+                  <NavLink
+                    to="/kpi/templates"
+                    className={({ isActive }) => dropdownLinkClass(isActive)}
+                  >
+                    <FileText className="h-4 w-4" /> KPI Templates
+                  </NavLink>
+                )}
+                {hasPermission("performance.evaluations.manage") && (
+                  <NavLink
+                    to="/kpi/evaluations"
+                    className={({ isActive }) => dropdownLinkClass(isActive)}
+                  >
+                    <ClipboardList className="h-4 w-4" /> KPI Evaluations
+                  </NavLink>
+                )}
               </div>
             )}
           </div>
         )}
 
-        {hasPermission("forms.view") && !collapsed && (
+        {(hasPermission("forms.view") || hasPermission("forms.builder.manage") || hasPermission("forms.assignments.manage") || hasPermission("forms.submissions.view")) && !collapsed && (
           <div>
             <button
               onClick={() => toggleMenu("forms")}
@@ -246,71 +249,87 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             </button>
             {openMenus["forms"] && (
               <div className="mt-1 space-y-1">
-                <NavLink
-                  to="/hr-forms"
-                  className={({ isActive }) => dropdownLinkClass(isActive)}
-                >
-                  <FileText className="h-4 w-4" /> Form Templates
-                </NavLink>
-                <NavLink
-                  to="/hr-forms/assignments"
-                  className={({ isActive }) => dropdownLinkClass(isActive)}
-                >
-                  <ClipboardList className="h-4 w-4" /> Assign Forms
-                </NavLink>
-                <NavLink
-                  to="/hr-forms/submissions"
-                  className={({ isActive }) => dropdownLinkClass(isActive)}
-                >
-                  <ClipboardList className="h-4 w-4" /> Form Submissions
-                </NavLink>
+                {hasPermission("forms.builder.manage") && (
+                  <NavLink
+                    to="/hr-forms"
+                    className={({ isActive }) => dropdownLinkClass(isActive)}
+                  >
+                    <FileText className="h-4 w-4" /> Form Templates
+                  </NavLink>
+                )}
+                {hasPermission("forms.assignments.manage") && (
+                  <NavLink
+                    to="/hr-forms/assignments"
+                    className={({ isActive }) => dropdownLinkClass(isActive)}
+                  >
+                    <ClipboardList className="h-4 w-4" /> Assign Forms
+                  </NavLink>
+                )}
+                {hasPermission("forms.submissions.view") && (
+                  <NavLink
+                    to="/hr-forms/submissions"
+                    className={({ isActive }) => dropdownLinkClass(isActive)}
+                  >
+                    <ClipboardList className="h-4 w-4" /> Form Submissions
+                  </NavLink>
+                )}
               </div>
             )}
           </div>
         )}
 
-        {hasPermission("performance.view") && collapsed && (
+        {(hasPermission("performance.templates.manage") || hasPermission("performance.evaluations.manage")) && collapsed && (
           <>
-            <NavLink
-              to="/kpi/templates"
-              className={({ isActive }) => linkClass(isActive)}
-              title="KPI Templates"
-            >
-              <FileText className="h-5 w-5" />
-            </NavLink>
-            <NavLink
-              to="/kpi/evaluations"
-              className={({ isActive }) => linkClass(isActive)}
-              title="KPI Evaluations"
-            >
-              <ClipboardList className="h-5 w-5" />
-            </NavLink>
+            {hasPermission("performance.templates.manage") && (
+              <NavLink
+                to="/kpi/templates"
+                className={({ isActive }) => linkClass(isActive)}
+                title="KPI Templates"
+              >
+                <FileText className="h-5 w-5" />
+              </NavLink>
+            )}
+            {hasPermission("performance.evaluations.manage") && (
+              <NavLink
+                to="/kpi/evaluations"
+                className={({ isActive }) => linkClass(isActive)}
+                title="KPI Evaluations"
+              >
+                <ClipboardList className="h-5 w-5" />
+              </NavLink>
+            )}
           </>
         )}
 
-        {hasPermission("forms.view") && collapsed && (
+        {(hasPermission("forms.view") || hasPermission("forms.builder.manage") || hasPermission("forms.assignments.manage") || hasPermission("forms.submissions.view")) && collapsed && (
           <>
-            <NavLink
-              to="/hr-forms"
-              className={({ isActive }) => linkClass(isActive)}
-              title="Form Templates"
-            >
-              <FileText className="h-5 w-5" />
-            </NavLink>
-            <NavLink
-              to="/hr-forms/assignments"
-              className={({ isActive }) => linkClass(isActive)}
-              title="Assign Forms"
-            >
-              <ClipboardList className="h-5 w-5" />
-            </NavLink>
-            <NavLink
-              to="/hr-forms/submissions"
-              className={({ isActive }) => linkClass(isActive)}
-              title="Form Submissions"
-            >
-              <ClipboardList className="h-5 w-5" />
-            </NavLink>
+            {hasPermission("forms.builder.manage") && (
+              <NavLink
+                to="/hr-forms"
+                className={({ isActive }) => linkClass(isActive)}
+                title="Form Templates"
+              >
+                <FileText className="h-5 w-5" />
+              </NavLink>
+            )}
+            {hasPermission("forms.assignments.manage") && (
+              <NavLink
+                to="/hr-forms/assignments"
+                className={({ isActive }) => linkClass(isActive)}
+                title="Assign Forms"
+              >
+                <ClipboardList className="h-5 w-5" />
+              </NavLink>
+            )}
+            {hasPermission("forms.submissions.view") && (
+              <NavLink
+                to="/hr-forms/submissions"
+                className={({ isActive }) => linkClass(isActive)}
+                title="Form Submissions"
+              >
+                <ClipboardList className="h-5 w-5" />
+              </NavLink>
+            )}
           </>
         )}
 
@@ -352,7 +371,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           </NavLink>
         )}
 
-        {user?.employee_id && !collapsed && (
+        {(hasPermission("my_performance.view") || hasPermission("performance.view") || hasPermission("forms.view_own")) && !collapsed && (
           <div>
             <button
               onClick={() => toggleMenu("employee")}
@@ -376,12 +395,14 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
                 >
                   <ClipboardList className="h-4 w-4" /> My KPI Results
                 </NavLink>
-                <NavLink
-                  to="/my-performance/probation"
-                  className={({ isActive }) => dropdownLinkClass(isActive)}
-                >
-                  <UserCheck className="h-4 w-4" /> My Probation Status
-                </NavLink>
+                {user?.employment_status === "PROBATIONARY" && (
+                  <NavLink
+                    to="/my-performance/probation"
+                    className={({ isActive }) => dropdownLinkClass(isActive)}
+                  >
+                    <UserCheck className="h-4 w-4" /> My Probation Status
+                  </NavLink>
+                )}
                 <NavLink
                   to="/my-forms"
                   className={({ isActive }) => dropdownLinkClass(isActive)}
@@ -392,7 +413,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             )}
           </div>
         )}
-        {user?.employee_id && collapsed && (
+        {(hasPermission("my_performance.view") || hasPermission("performance.view") || hasPermission("forms.view_own")) && collapsed && (
           <>
             <NavLink
               to="/my-performance/kpi-results"
@@ -401,13 +422,15 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             >
               <ClipboardList className="h-5 w-5" />
             </NavLink>
-            <NavLink
-              to="/my-performance/probation"
-              className={({ isActive }) => linkClass(isActive)}
-              title="My Probation Status"
-            >
-              <UserCheck className="h-5 w-5" />
-            </NavLink>
+            {user?.employment_status === "PROBATIONARY" && (
+              <NavLink
+                to="/my-performance/probation"
+                className={({ isActive }) => linkClass(isActive)}
+                title="My Probation Status"
+              >
+                <UserCheck className="h-5 w-5" />
+              </NavLink>
+            )}
             <NavLink
               to="/my-forms"
               className={({ isActive }) => linkClass(isActive)}

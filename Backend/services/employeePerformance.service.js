@@ -1,5 +1,6 @@
 const model = require("../models/employeePerformance.model");
 const employeeModel = require("../models/employee.model");
+const { EMPLOYMENT_STATUS } = require("../constants/employmentStatus");
 
 const getSummary = async (employeeId) => {
   const summary = await model.getPerformanceSummary(employeeId);
@@ -10,7 +11,7 @@ const getSummary = async (employeeId) => {
     averageScore: summary?.average_score ? parseFloat(summary.average_score) : null,
     completedEvaluations: parseInt(summary?.completed_count || 0),
     pendingEvaluations: parseInt(summary?.pending_count || 0),
-    employmentStatus: summary?.employment_status || "Unknown",
+    employmentStatus: summary?.employment_status || EMPLOYMENT_STATUS.REGULAR,
     latestEvaluation: latest
       ? {
           finalScore: parseFloat(latest.final_score),
@@ -45,7 +46,7 @@ const getProbationInfo = async (employeeId) => {
   }
 
   return {
-    employmentStatus: employee.employment_status || "Probationary",
+    employmentStatus: employee.employment_status || EMPLOYMENT_STATUS.PROBATIONARY,
     hiredDate: employee.hired_date,
     expectedRegularizationDate: expectedDate ? expectedDate.toISOString().split("T")[0] : null,
     daysRemaining,
@@ -54,9 +55,11 @@ const getProbationInfo = async (employeeId) => {
           finalScore: parseFloat(latest.final_score),
           recommendation: latest.recommendation,
           evaluatorName: latest.evaluator_name,
+          templateName: latest.template_name,
           periodStart: latest.evaluation_period_start,
           periodEnd: latest.evaluation_period_end,
           hrComments: latest.hr_comments,
+          status: latest.status,
         }
       : null,
     regularizationReadiness,
@@ -68,9 +71,9 @@ const deriveReadiness = (latest) => {
   if (!latest.recommendation) return "Needs Improvement";
   if (latest.recommendation === "Regularize") return "Recommended for Regularization";
   if (latest.recommendation === "Extend Probation") return "Probation Extension Recommended";
-  if (latest.recommendation === "Training") return "Needs Improvement";
+  if (latest.recommendation === "Training") return "Training Recommended";
   if (latest.recommendation === "Warning") return "Needs Improvement";
-  if (latest.recommendation === "Terminate") return "Not Recommended";
+  if (latest.recommendation === "Terminate") return "Termination Recommended";
   return "Needs Improvement";
 };
 

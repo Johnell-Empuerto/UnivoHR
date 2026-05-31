@@ -79,7 +79,11 @@ const ApplicantDetailPage = () => {
   const [editForm, setEditForm] = useState({ status: "", rating: "", notes: "" });
 
   const [convertDialog, setConvertDialog] = useState(false);
-  const [convertForm, setConvertForm] = useState({ branch_id: "", hired_date: new Date().toISOString().split("T")[0] });
+  const [convertForm, setConvertForm] = useState({
+    branch_id: "",
+    hired_date: new Date().toISOString().split("T")[0],
+    probation_period_months: "",
+  });
   const [converting, setConverting] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -423,9 +427,16 @@ const ApplicantDetailPage = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Convert to Employee</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground mb-4">
-            This will create an employee record for {applicant.first_name} {applicant.last_name} as Probationary.
+            This will create an employee record for {applicant.first_name} {applicant.last_name}.
           </p>
           <div className="space-y-4">
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded border text-sm space-y-1">
+              <p><span className="text-muted-foreground">Employment Status:</span> <strong>PROBATIONARY</strong></p>
+              <p className="text-xs text-muted-foreground">
+                All applicants are hired as Probationary by default.
+              </p>
+            </div>
+
             <div>
               <p className="text-xs text-muted-foreground mb-1">Branch</p>
               <select value={convertForm.branch_id} onChange={(e) => setConvertForm({ ...convertForm, branch_id: e.target.value })} className="w-full border rounded px-2 py-1 bg-background">
@@ -435,10 +446,46 @@ const ApplicantDetailPage = () => {
                 ))}
               </select>
             </div>
+
             <div>
               <p className="text-xs text-muted-foreground mb-1">Hired Date</p>
               <input type="date" value={convertForm.hired_date} onChange={(e) => setConvertForm({ ...convertForm, hired_date: e.target.value })} className="w-full border rounded px-2 py-1 bg-background" />
             </div>
+
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Probation Period (Months)</p>
+              <input
+                type="number"
+                value={convertForm.probation_period_months}
+                onChange={(e) => setConvertForm({ ...convertForm, probation_period_months: e.target.value })}
+                className="w-full border rounded px-2 py-1 bg-background"
+                min={1}
+                max={24}
+                placeholder="Company Default (6 months)"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Leave blank to use company default (6 months)</p>
+            </div>
+
+            {convertForm.hired_date && (
+              <div className="p-3 bg-muted/30 rounded border text-sm">
+                <p className="text-xs text-muted-foreground mb-1">Expected Regularization Date</p>
+                <p className="font-medium">
+                  {(() => {
+                    const hireDate = new Date(convertForm.hired_date);
+                    const months = convertForm.probation_period_months
+                      ? Number(convertForm.probation_period_months)
+                      : 6;
+                    hireDate.setMonth(hireDate.getMonth() + months);
+                    return hireDate.toLocaleDateString("en-US", {
+                      year: "numeric", month: "long", day: "numeric",
+                    });
+                  })()}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Based on {convertForm.probation_period_months || "6"} month{convertForm.probation_period_months !== "1" ? "s" : ""} probation period
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConvertDialog(false)}>Cancel</Button>

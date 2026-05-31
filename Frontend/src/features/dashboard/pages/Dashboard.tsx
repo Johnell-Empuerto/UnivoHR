@@ -9,6 +9,10 @@ import {
 } from "@/services/dashboardService";
 import { getAnomalySummary } from "@/services/anomalyService";
 import { leaveService } from "@/services/leaveService";
+import {
+  getEmploymentStats,
+  getDueForRegularization,
+} from "@/services/employeeService";
 import { formatDateShort } from "@/utils/formatDate";
 import StatsCard from "../components/StatsCard";
 import AttendanceChart from "../components/AttendanceChart";
@@ -66,7 +70,7 @@ interface RecentLeave {
 
 // Extract Admin Dashboard to separate memoized component
 const AdminDashboardContent = React.memo(
-  ({ summary, adminAnalytics, metrics, anomalySummary, onNavigate }: any) => {
+  ({ summary, adminAnalytics, metrics, anomalySummary, employmentStats, dueForRegularization, onNavigate }: any) => {
     //  MEMOIZE all data transformations - CRITICAL FIX
     const dailyBreakdownData = useMemo(() => {
       return (
@@ -204,6 +208,70 @@ const AdminDashboardContent = React.memo(
                     {anomalySummary.resolved_count}
                   </p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Employment Status Stats */}
+        {employmentStats && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatsCard
+              title="Probationary Employees"
+              value={employmentStats.probationary_count || 0}
+              icon={<Users className="h-4 w-4 text-amber-600" />}
+              color="yellow"
+            />
+            <StatsCard
+              title="Regular Employees"
+              value={employmentStats.regular_count || 0}
+              icon={<Users className="h-4 w-4 text-green-600" />}
+              color="green"
+            />
+            <StatsCard
+              title="Due for Regularization"
+              value={employmentStats.due_for_regularization_count || 0}
+              icon={<Calendar className="h-4 w-4 text-red-600" />}
+              color="red"
+            />
+            <StatsCard
+              title="Recent Regularizations"
+              value={employmentStats.recent_regularizations_count || 0}
+              icon={<CheckCircle className="h-4 w-4 text-blue-600" />}
+              color="blue"
+            />
+          </div>
+        )}
+
+        {/* Due for Regularization List */}
+        {dueForRegularization && dueForRegularization.length > 0 && (
+          <Card className="border-amber-200 border-2">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-amber-600" />
+                  <h3 className="font-semibold">Employees Due for Regularization</h3>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  Click to view employee
+                </span>
+              </div>
+              <div className="space-y-2">
+                {dueForRegularization.map((emp: any) => (
+                  <div key={emp.id} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/30 transition cursor-pointer"
+                    onClick={() => onNavigate?.(`/employees`)}>
+                    <div>
+                      <p className="font-medium">{emp.first_name} {emp.last_name}</p>
+                      <p className="text-xs text-muted-foreground">{emp.employee_code} - {emp.department}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-red-600 font-medium">
+                        {emp.regularization_date ? new Date(emp.regularization_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "N/A"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Regularization Date</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -663,6 +731,8 @@ const Dashboard = () => {
   const [recentLeaves, setRecentLeaves] = useState<RecentLeave[]>([]);
   const [adminAnalytics, setAdminAnalytics] = useState<any>(null);
   const [anomalySummary, setAnomalySummary] = useState<any>(null);
+  const [employmentStats, setEmploymentStats] = useState<any>(null);
+  const [dueForRegularization, setDueForRegularization] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [employeeTrends, setEmployeeTrends] = useState<any>(null);
 
@@ -676,14 +746,18 @@ const Dashboard = () => {
       setLoading(true);
 
       if (isAdminLevel) {
-        const [summaryData, analyticsData, anomalyData] = await Promise.all([
+        const [summaryData, analyticsData, anomalyData, empStats, dueReg] = await Promise.all([
           getDashboardSummary(),
           getAdminAnalytics(),
           getAnomalySummary(),
+          getEmploymentStats().catch(() => null),
+          getDueForRegularization().catch(() => []),
         ]);
         setSummary(summaryData);
         setAdminAnalytics(analyticsData);
         setAnomalySummary(anomalyData);
+        setEmploymentStats(empStats);
+        setDueForRegularization(dueReg);
       } else {
         const [analyticsData, todayData, creditsData, leavesData] =
           await Promise.all([
@@ -768,6 +842,8 @@ const Dashboard = () => {
       adminAnalytics={adminAnalytics}
       metrics={metrics}
       anomalySummary={anomalySummary}
+      employmentStats={employmentStats}
+      dueForRegularization={dueForRegularization}
       onNavigate={navigate}
     />
   ) : (

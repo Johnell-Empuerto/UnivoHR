@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
 const pool = require("./config/db");
-const port = 3003;
+const port = 3002;
 const http = require("http");
 const server = http.createServer(app);
 const cors = require("cors");
@@ -58,7 +58,7 @@ const errorHandler = require("./middleware/errorHandler");
 // =====================
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://192.168.1.8:5173"],
+    origin: ["http://localhost:5173", "http://192.168.0.105:5173"],
     credentials: true,
   }),
 );
@@ -193,10 +193,13 @@ pool
     }
     try {
       const permissionModel = require("./models/permission.model");
-      const adminResult = await pool.query("SELECT id FROM users WHERE username = 'admin'");
+      const adminResult = await pool.query(
+        "SELECT id FROM users WHERE username = 'admin'",
+      );
       if (adminResult.rows.length > 0) {
         const adminId = adminResult.rows[0].id;
-        const existingPermissions = await permissionModel.getUserPermissions(adminId);
+        const existingPermissions =
+          await permissionModel.getUserPermissions(adminId);
         if (existingPermissions.length === 0) {
           await permissionModel.seedAdminPermissions(adminId);
           console.log("Admin permissions seeded successfully");

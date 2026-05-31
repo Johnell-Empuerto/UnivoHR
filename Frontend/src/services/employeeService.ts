@@ -29,3 +29,18 @@ export const createEmployee = async (data: any) => {
   const response = await api.post("/employees", data);
   return response.data;
 };
+
+export const getDueForRegularization = async () => {
+  const response = await api.get("/employees/regularization/due");
+  return response.data;
+};
+
+export const approveRegularization = async (id: number) => {
+  const response = await api.post(`/employees/regularization/${id}/approve`);
+  return response.data;
+};
+
+export const getEmploymentStats = async () => {
+  const response = await api.get("/employees/employment-stats");
+  return response.data;
+};

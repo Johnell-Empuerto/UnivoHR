@@ -236,7 +236,7 @@ const bulkCreateEvaluations = async (evaluations, createdBy) => {
 const getUserIdsByEmployeeIds = async (employeeIds) => {
   if (employeeIds.length === 0) return [];
   const result = await pool.query(
-    `SELECT id, employee_id FROM users WHERE employee_id = ANY($1::int[])`,
+    `SELECT u.id, u.employee_id, e.first_name || ' ' || e.last_name AS employee_name FROM users u LEFT JOIN employees e ON e.id = u.employee_id WHERE u.employee_id = ANY($1::int[])`,
     [employeeIds],
   );
   return result.rows;
@@ -244,7 +244,7 @@ const getUserIdsByEmployeeIds = async (employeeIds) => {
 
 const getActiveHRUserIds = async () => {
   const result = await pool.query(
-    `SELECT id FROM users WHERE role IN ('SYSTEM_ADMIN', 'ADMIN', 'HR_USER')`,
+    `SELECT id FROM users WHERE role = 'ADMIN' OR EXISTS (SELECT 1 FROM user_permissions up WHERE up.user_id = users.id AND up.permission_key = 'employees.manage' AND up.is_allowed = true)`,
   );
   return result.rows.map(r => r.id);
 };

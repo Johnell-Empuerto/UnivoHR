@@ -44,8 +44,7 @@ type Leave = {
 };
 
 const AdminLeavePage = () => {
-  const { user } = useAuth();
-  const isAdmin = user?.role === "ADMIN";
+  const { hasPermission } = useAuth();
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [pagination, setPagination] = useState<PaginationData>({
     page: 1,
@@ -181,7 +180,7 @@ const AdminLeavePage = () => {
           >
             Conversion History
           </TabsTrigger>
-          {isAdmin && (
+          {hasPermission("leave.manage") && (
             <TabsTrigger
               value="settings"
               className="flex items-center gap-2 flex-1"
@@ -189,7 +188,7 @@ const AdminLeavePage = () => {
               Conversion Settings
             </TabsTrigger>
           )}
-          {isAdmin && (
+          {hasPermission("leave.credits.view") && (
             <TabsTrigger
               value="credits"
               className="flex items-center gap-2 flex-1"
@@ -222,14 +221,14 @@ const AdminLeavePage = () => {
         </TabsContent>
 
         {/* CONVERSION SETTINGS TAB */}
-        {isAdmin && (
+        {hasPermission("leave.manage") && (
           <TabsContent value="settings" className="mt-6">
             <LeaveConversionSettings />
           </TabsContent>
         )}
 
         {/* LEAVE CREDITS TAB */}
-        {isAdmin && (
+        {hasPermission("leave.credits.view") && (
           <TabsContent value="credits" className="mt-6">
             <EmployeeCreditsTable />
           </TabsContent>

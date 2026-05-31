@@ -34,7 +34,7 @@ const Navbar = ({
   setCollapsed: (val: boolean) => void;
 }) => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   const handleLogout = async () => {
@@ -154,7 +154,7 @@ const Navbar = ({
               Change Password
             </DropdownMenuItem>
 
-            {(user?.role === "SYSTEM_ADMIN") && (
+            {hasPermission("settings.view") && (
               <DropdownMenuItem
                 className="flex items-center gap-2"
                 onClick={() => navigate("/settings")}

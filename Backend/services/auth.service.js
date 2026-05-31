@@ -44,6 +44,7 @@ const generateAccessToken = (user) => {
       first_name: user.first_name,
       last_name: user.last_name,
       email: user.email,
+      employment_status: user.employment_status,
       type: "access",
       jti,
     },
@@ -63,6 +64,7 @@ const buildUserResponse = async (user) => {
     first_name: user.first_name,
     last_name: user.last_name,
     email: user.email,
+    employment_status: user.employment_status,
     permissions,
   };
 };
@@ -78,11 +80,16 @@ const enforceMaxSessions = async (userId) => {
 const createSessionAndIssueTokens = async (user, reqInfo) => {
   await enforceMaxSessions(user.id);
 
-  const access = generateAccessToken(user);
+  const normalizedUser = {
+    ...user,
+    role: user.role,
+  };
+
+  const access = generateAccessToken(normalizedUser);
 
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRY_SECONDS * 1000);
   const session = await sessionModel.createSession({
-    user_id: user.id,
+    user_id: normalizedUser.id,
     refresh_token_hash: "pending",
     ip_address: reqInfo?.ip || "",
     user_agent: reqInfo?.userAgent || "",
@@ -90,14 +97,14 @@ const createSessionAndIssueTokens = async (user, reqInfo) => {
   });
 
   const refreshTokenStr = jwt.sign(
-    { id: user.id, type: "refresh", jti: session.id },
+    { id: normalizedUser.id, type: "refresh", jti: session.id },
     JWT_SECRET,
     { expiresIn: REFRESH_TOKEN_EXPIRY },
   );
 
   await sessionModel.updateSessionHash(session.id, hashToken(refreshTokenStr));
 
-  const userResp = await buildUserResponse(user);
+  const userResp = await buildUserResponse(normalizedUser);
   return { accessToken: access.token, refreshToken: refreshTokenStr, user: userResp };
 };
 

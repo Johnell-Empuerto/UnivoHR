@@ -27,8 +27,8 @@ const statusBadge = (s: string) => {
 };
 
 const KpiEvaluationPage = () => {
-  const { user } = useAuth();
-  const isHr = user?.role === "ADMIN" || user?.role === "HR_USER";
+  const { user, hasPermission } = useAuth();
+  const isHr = hasPermission("performance.evaluations.manage");
   const [evaluations, setEvaluations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -446,7 +446,17 @@ const KpiEvaluationPage = () => {
                           <TableCell className="font-medium">{emp.first_name} {emp.last_name}</TableCell>
                           <TableCell>{emp.department || "-"}</TableCell>
                           <TableCell>{emp.position || "-"}</TableCell>
-                          <TableCell><Badge variant="outline">{emp.employment_status || emp.status}</Badge></TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={
+                              emp.employment_status === "REGULAR"
+                                ? "bg-green-100 text-green-800"
+                                : emp.employment_status === "PROBATIONARY"
+                                  ? "bg-amber-100 text-amber-800"
+                                  : ""
+                            }>
+                              {emp.employment_status || emp.status}
+                            </Badge>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -522,7 +532,7 @@ const KpiEvaluationPage = () => {
               <p className="text-sm">Recommendation: <Badge variant="outline">{selectedEval.recommendation}</Badge></p>
               {selectedEval.recommendation === "Regularize" && (
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded text-sm">
-                  This will change the employee's employment status from <strong>Probationary</strong> to <strong>Regular</strong>.
+                  This will change the employee's employment status from <strong>PROBATIONARY</strong> to <strong>REGULAR</strong>.
                 </div>
               )}
               {selectedEval.recommendation === "Terminate" && (

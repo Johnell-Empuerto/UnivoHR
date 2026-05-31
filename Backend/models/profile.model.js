@@ -30,6 +30,8 @@ const getProfileByEmployeeId = async (employeeId) => {
       e.tin_number,
       e.hired_date,
       e.employment_status,
+      e.probation_period_months,
+      e.regularization_date,
       e.resignation_date,
       e.termination_date,
       e.last_working_date,

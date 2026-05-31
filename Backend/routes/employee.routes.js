@@ -3,17 +3,15 @@ const router = express.Router();
 
 const controller = require("../controllers/employee.controller");
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
+const requirePermission = require("../middleware/permission.middleware");
 const { requireBranchAccessFromQuery, requireBranchAccessFromBody } = require("../middleware/branchAccess.middleware");
-const { ROLES } = require("../constants/roles");
 
-// CREATE (ADMIN and HR_USER only — SYSTEM_ADMIN has limited support)
-router.post("/", authenticate, authorize([ROLES.ADMIN]), controller.createEmployee);
+router.post("/", authenticate, requirePermission("employees.create"), controller.createEmployee);
+router.get("/", authenticate, requirePermission("employees.view"), requireBranchAccessFromQuery("branch_id"), controller.getEmployees);
+router.put("/:id", authenticate, requirePermission("employees.edit"), requireBranchAccessFromBody("branch_id"), controller.updateEmployee);
 
-// GET ALL (WITH FILTERS) — SYSTEM_ADMIN has read-only for support
-router.get("/", authenticate, authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN, ROLES.HR_USER, ROLES.PAYROLL_USER]), requireBranchAccessFromQuery("branch_id"), controller.getEmployees);
-
-// UPDATE
-router.put("/:id", authenticate, authorize([ROLES.ADMIN]), requireBranchAccessFromBody("branch_id"), controller.updateEmployee);
+router.get("/regularization/due", authenticate, requirePermission("employees.edit"), requireBranchAccessFromQuery(), controller.getDueForRegularization);
+router.post("/regularization/:id/approve", authenticate, requirePermission("employees.edit"), controller.approveRegularization);
+router.get("/employment-stats", authenticate, requirePermission("dashboard.view"), requireBranchAccessFromQuery(), controller.getEmploymentStats);
 
 module.exports = router;

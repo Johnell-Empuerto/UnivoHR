@@ -2,13 +2,11 @@ const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/setting.controller");
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
-const { ROLES } = require("../constants/roles");
+const requirePermission = require("../middleware/permission.middleware");
 
-const ADMIN_ONLY = [ROLES.SYSTEM_ADMIN];
-router.get("/", authenticate, authorize(ADMIN_ONLY), controller.getAllSettings);
-router.get("/:key", authenticate, authorize(ADMIN_ONLY), controller.getSetting);
-router.put("/:key", authenticate, authorize(ADMIN_ONLY), controller.updateSetting);
-router.post("/:key/toggle", authenticate, authorize(ADMIN_ONLY), controller.toggleSetting);
+router.get("/", authenticate, requirePermission("settings.view"), controller.getAllSettings);
+router.get("/:key", authenticate, requirePermission("settings.view"), controller.getSetting);
+router.put("/:key", authenticate, requirePermission("settings.view"), controller.updateSetting);
+router.post("/:key/toggle", authenticate, requirePermission("settings.view"), controller.toggleSetting);
 
 module.exports = router;

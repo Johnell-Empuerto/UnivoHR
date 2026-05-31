@@ -33,18 +33,12 @@ type UsersTableProps = {
 
   const getRoleBadge = (role: string) => {
     switch (role) {
-      case "SYSTEM_ADMIN":
-        return <Badge variant="destructive">SYSTEM ADMIN</Badge>;
       case "ADMIN":
         return (
           <Badge variant="default" className="bg-purple-500">
             ADMIN
           </Badge>
         );
-      case "HR_USER":
-        return <Badge variant="secondary">HR USER</Badge>;
-      case "PAYROLL_USER":
-        return <Badge variant="secondary" className="bg-orange-500">PAYROLL USER</Badge>;
       default:
         return <Badge variant="outline">EMPLOYEE</Badge>;
     }

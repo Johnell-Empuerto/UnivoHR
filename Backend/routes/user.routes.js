@@ -2,10 +2,9 @@ const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/user.controller");
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
-const { ROLES } = require("../constants/roles");
+const requirePermission = require("../middleware/permission.middleware");
 
-router.use(authenticate, authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]));
+router.use(authenticate, requirePermission("users.manage"));
 
 // GET users with pagination and filters
 router.get("/", controller.getUsers);

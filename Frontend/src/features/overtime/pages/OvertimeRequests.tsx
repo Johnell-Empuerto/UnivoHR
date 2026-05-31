@@ -52,7 +52,7 @@ type OvertimeRequest = {
 };
 
 const OvertimeRequests = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
@@ -88,12 +88,9 @@ const OvertimeRequests = () => {
     checkApproverStatus();
   }, [user]);
 
-  // User can approve if ADMIN, HR_USER, or assigned as approver
+  // User can approve if has overtime.approve permission or assigned as approver
   const canUserApprove = (request: OvertimeRequest) => {
-    if (
-      user?.role === "ADMIN" ||
-      user?.role === "HR_USER"
-    ) {
+    if (hasPermission("overtime.approve")) {
       return true;
     }
 
@@ -109,8 +106,7 @@ const OvertimeRequests = () => {
   //  Updated: Show approval buttons if user can approve
   const canShowApprovalActions = () => {
     return (
-      user?.role === "ADMIN" ||
-      user?.role === "HR_USER" ||
+      hasPermission("overtime.approve") ||
       isUserApprover
     );
   };

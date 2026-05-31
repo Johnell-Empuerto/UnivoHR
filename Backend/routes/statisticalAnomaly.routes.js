@@ -3,11 +3,9 @@ const router = express.Router();
 
 const controller = require("../controllers/statisticalAnomaly.controller");
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
+const requirePermission = require("../middleware/permission.middleware");
 
-const { ROLES } = require("../constants/roles");
-
-router.post("/scan/daily", authenticate, authorize([ROLES.ADMIN]), controller.runDailyScan);
-router.post("/scan/weekly", authenticate, authorize([ROLES.ADMIN]), controller.runWeeklyScan);
+router.post("/scan/daily", authenticate, requirePermission("anomalies.view"), controller.runDailyScan);
+router.post("/scan/weekly", authenticate, requirePermission("anomalies.view"), controller.runWeeklyScan);
 
 module.exports = router;

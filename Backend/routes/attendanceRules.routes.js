@@ -4,14 +4,13 @@ const router = express.Router();
 const controller = require("../controllers/attendance.controller");
 
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
-const ROLES = require("../constants/roles");
+const requirePermission = require("../middleware/permission.middleware");
 
 //GET ACTIVE RULE (used by system)
 router.get(
   "/active",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
+  requirePermission("settings.attendance_rules"),
   controller.getRules,
 );
 
@@ -19,7 +18,7 @@ router.get(
 router.get(
   "/",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
+  requirePermission("settings.attendance_rules"),
   controller.getAllRules,
 );
 
@@ -27,7 +26,7 @@ router.get(
 router.post(
   "/",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
+  requirePermission("settings.attendance_rules"),
   controller.createRule,
 );
 
@@ -35,7 +34,7 @@ router.post(
 router.put(
   "/:id/activate",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
+  requirePermission("settings.attendance_rules"),
   controller.setActiveRule,
 );
 
@@ -43,7 +42,7 @@ router.put(
 router.delete(
   "/:id",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN]), // ONLY SYSTEM_ADMIN
+  requirePermission("settings.attendance_rules"),
   controller.deleteRule,
 );
 
@@ -51,7 +50,7 @@ router.delete(
 router.put(
   "/:id",
   authenticate,
-  authorize([ROLES.SYSTEM_ADMIN, ROLES.ADMIN]),
+  requirePermission("settings.attendance_rules"),
   controller.updateRule,
 );
 

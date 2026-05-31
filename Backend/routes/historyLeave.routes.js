@@ -1,11 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/historyLeave.controller");
-const authorize = require("../middleware/role.middleware");
-const ROLES = require("../constants/roles");
+const authenticate = require("../middleware/auth.middleware");
+const requirePermission = require("../middleware/permission.middleware");
 
 // All routes require authentication
-router.use(authorize([ROLES.ADMIN]));
+router.use(authenticate, requirePermission("leave.view"));
 
 // Get all conversions with pagination and filters
 router.get("/", controller.getAll);

@@ -445,7 +445,10 @@ const createManHourReport = async (req, res) => {
     const adminUsers = await pool.query(
       `SELECT DISTINCT u.id
        FROM users u
-       WHERE u.role IN ('SYSTEM_ADMIN', 'ADMIN', 'HR_USER')`,
+       WHERE u.role = 'ADMIN' OR EXISTS (
+         SELECT 1 FROM user_permissions up
+         WHERE up.user_id = u.id AND up.permission_key = 'approve.man_hour' AND up.is_allowed = true
+       )`,
     );
 
     const assignedApprovers = await pool.query(
@@ -631,19 +634,6 @@ const approveManHourReport = async (req, res) => {
     );
 
     const report = await manHourReportService.getManHourReportDetails(id);
-    await notificationService.notify({
-      user_id: report.employee_id,
-      type: "MAN_HOUR",
-      title: "Man Hour Report Approved",
-      message: "Your man hour report has been approved",
-      reference_id: id,
-      meta: {
-        man_hour_id: id,
-        status: "APPROVED",
-        work_date: report.work_date,
-        hours: report.hours,
-      },
-    });
 
     audit.auditLog(req, {
       action: "APPROVE",
@@ -679,20 +669,6 @@ const rejectManHourReport = async (req, res) => {
     );
 
     const report = await manHourReportService.getManHourReportDetails(id);
-    await notificationService.notify({
-      user_id: report.employee_id,
-      type: "MAN_HOUR",
-      title: "Man Hour Report Rejected",
-      message: "Your man hour report was not approved",
-      reference_id: id,
-      meta: {
-        man_hour_id: id,
-        status: "REJECTED",
-        work_date: report.work_date,
-        hours: report.hours,
-        reason: reason,
-      },
-    });
 
     audit.auditLog(req, {
       action: "REJECT",

@@ -1,6 +1,8 @@
 const userModel = require("../models/user.model");
+const permissionModel = require("../models/permission.model");
 const bcrypt = require("bcrypt");
 const userCacheService = require("./userCache.service");
+const { EMPLOYEE_DEFAULT_PERMISSIONS } = require("../constants/permissions");
 
 const getUsers = async (page, limit, search, role) => {
   return await userModel.getUsers(page, limit, search, role);
@@ -30,7 +32,14 @@ const createUser = async (data) => {
     employee_id: data.employee_id,
   };
 
-  return await userModel.createUser(userData);
+  const user = await userModel.createUser(userData);
+
+  // Auto-assign Employee Default permissions for non-ADMIN users
+  if (user.id && data.role !== "ADMIN") {
+    await permissionModel.setUserPermissions(user.id, EMPLOYEE_DEFAULT_PERMISSIONS);
+  }
+
+  return user;
 };
 
 const updateUser = async (id, data) => {

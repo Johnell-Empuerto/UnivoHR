@@ -2,6 +2,8 @@ const model = require("../models/notification.model");
 const { getIO } = require("../config/socket");
 const redisClient = require("../config/redis");
 
+const CACHE_TTL = 3600; // 1 hour
+
 const notify = async ({
   user_id,
   type,
@@ -36,7 +38,7 @@ const notify = async ({
       unreadCount = parseInt(unreadCount) + 1;
     }
 
-    await redisClient.set(redisKey, unreadCount);
+    await redisClient.set(redisKey, unreadCount, "EX", CACHE_TTL);
 
     if (io) {
       io.to(`user_${user_id}`).emit("notification", notification);
@@ -67,22 +69,16 @@ const getMyNotifications = async (user_id, page = 1, limit = 20) => {
   };
 };
 
-//  ADD THIS METHOD - Handles Redis caching for unread count
 const getUnreadCount = async (user_id) => {
   const redisKey = `unread:${user_id}`;
 
-  let unreadCount = await redisClient.get(redisKey);
+  // Always read from DB — source of truth
+  const dbCount = await model.getUnreadCount(user_id);
 
-  if (unreadCount === null) {
-    // Cache miss - get from database
-    unreadCount = await model.getUnreadCount(user_id);
-    // Store in Redis with TTL (1 hour)
-    await redisClient.set(redisKey, unreadCount, "EX", 3600);
-  } else {
-    unreadCount = parseInt(unreadCount);
-  }
+  // Update cache (self-heals stale keys from cleanup / migration)
+  await redisClient.set(redisKey, dbCount, "EX", CACHE_TTL);
 
-  return unreadCount;
+  return dbCount;
 };
 
 const markAsRead = async (id, user_id) => {
@@ -94,7 +90,7 @@ const markAsRead = async (id, user_id) => {
 
   if (unreadCount !== null) {
     unreadCount = Math.max(0, parseInt(unreadCount) - 1);
-    await redisClient.set(redisKey, unreadCount);
+    await redisClient.set(redisKey, unreadCount, "EX", CACHE_TTL);
   } else {
     unreadCount = await model.getUnreadCount(user_id);
   }
@@ -113,7 +109,7 @@ const markAllAsRead = async (user_id) => {
   const notifications = await model.markAllAsRead(user_id);
 
   const redisKey = `unread:${user_id}`;
-  await redisClient.set(redisKey, 0);
+  await redisClient.set(redisKey, 0, "EX", CACHE_TTL);
 
   try {
     const io = getIO();
@@ -132,3 +128,6 @@ module.exports = {
   markAsRead,
   markAllAsRead,
 };
+
+
+

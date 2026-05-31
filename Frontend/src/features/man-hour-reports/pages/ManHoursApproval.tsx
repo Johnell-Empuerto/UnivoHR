@@ -59,7 +59,7 @@ type ManHourReport = {
 };
 
 const ManHoursApproval = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
@@ -114,8 +114,7 @@ const ManHoursApproval = () => {
 
   const canShowApprovalActions = () => {
     return (
-      user?.role === "ADMIN" ||
-      user?.role === "HR_USER" ||
+      hasPermission("manhours.approve") ||
       isUserApprover
     );
   };

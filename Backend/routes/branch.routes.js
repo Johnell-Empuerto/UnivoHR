@@ -3,17 +3,13 @@ const router = express.Router();
 
 const controller = require("../controllers/branch.controller");
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
-const { ROLES } = require("../constants/roles");
+const requirePermission = require("../middleware/permission.middleware");
 
-const HR_ACCESS = [ROLES.SYSTEM_ADMIN, ROLES.ADMIN, ROLES.HR_USER, ROLES.PAYROLL_USER];
-const ADMIN_ONLY = [ROLES.SYSTEM_ADMIN, ROLES.ADMIN];
-
-router.get("/", authenticate, authorize(HR_ACCESS), controller.getAll);
-router.get("/active", authenticate, authorize(HR_ACCESS), controller.getActive);
-router.get("/:id", authenticate, authorize(ADMIN_ONLY), controller.getById);
-router.post("/", authenticate, authorize(ADMIN_ONLY), controller.create);
-router.put("/:id", authenticate, authorize(ADMIN_ONLY), controller.update);
-router.patch("/:id/status", authenticate, authorize(ADMIN_ONLY), controller.setActive);
+router.get("/", authenticate, requirePermission("branches.view"), controller.getAll);
+router.get("/active", authenticate, requirePermission("branches.view"), controller.getActive);
+router.get("/:id", authenticate, requirePermission("branches.manage"), controller.getById);
+router.post("/", authenticate, requirePermission("branches.manage"), controller.create);
+router.put("/:id", authenticate, requirePermission("branches.manage"), controller.update);
+router.patch("/:id/status", authenticate, requirePermission("branches.manage"), controller.setActive);
 
 module.exports = router;

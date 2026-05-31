@@ -179,6 +179,7 @@ const EmployeeTable = ({
                 <TableHead>Branch</TableHead>
                 <TableHead>Department</TableHead>
                 <TableHead>Position</TableHead>
+                <TableHead>Employment Status</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -199,6 +200,19 @@ const EmployeeTable = ({
                     <TableCell>{item.branch_name || "Main Branch"}</TableCell>
                     <TableCell>{item.department || "-"}</TableCell>
                     <TableCell>{item.position || "-"}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={item.employment_status === "REGULAR"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                          : item.employment_status === "PROBATIONARY"
+                            ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                            : ""
+                        }
+                      >
+                        {item.employment_status || "REGULAR"}
+                      </Badge>
+                    </TableCell>
                     <TableCell>{getStatusBadge(item.status)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -238,7 +252,7 @@ const EmployeeTable = ({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     <EmptyState message="No employees found" />
                   </TableCell>
                 </TableRow>

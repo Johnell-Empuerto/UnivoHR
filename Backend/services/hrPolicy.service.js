@@ -112,7 +112,7 @@ const isCategoryQuestion = (question) => {
 };
 
 const getAll = async (user) => {
-  if (user.role === "SYSTEM_ADMIN" || user.role === "ADMIN") {
+  if (user.role === "ADMIN") {
     return await hrPolicyModel.getAll({ includeInactive: true });
   }
   return await hrPolicyModel.getAll({ includeInactive: false });

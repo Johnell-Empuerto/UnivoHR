@@ -3,17 +3,13 @@ const router = express.Router();
 
 const controller = require("../controllers/hrPolicy.controller");
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
-const { ROLES } = require("../constants/roles");
+const requirePermission = require("../middleware/permission.middleware");
 
-const ALL = [ROLES.ADMIN, ROLES.HR_USER, ROLES.PAYROLL_USER, ROLES.EMPLOYEE];
-const ADMIN_ONLY = [ROLES.ADMIN];
-
-router.get("/", authenticate, authorize(ALL), controller.getAll);
-router.get("/:id", authenticate, authorize(ALL), controller.getById);
-router.post("/", authenticate, authorize(ADMIN_ONLY), controller.create);
-router.put("/:id", authenticate, authorize(ADMIN_ONLY), controller.update);
-router.delete("/:id", authenticate, authorize(ADMIN_ONLY), controller.remove);
-router.patch("/:id/status", authenticate, authorize(ADMIN_ONLY), controller.setActive);
+router.get("/", authenticate, requirePermission("hr_policies.view"), controller.getAll);
+router.get("/:id", authenticate, requirePermission("hr_policies.view"), controller.getById);
+router.post("/", authenticate, requirePermission("hr_policies.manage"), controller.create);
+router.put("/:id", authenticate, requirePermission("hr_policies.manage"), controller.update);
+router.delete("/:id", authenticate, requirePermission("hr_policies.manage"), controller.remove);
+router.patch("/:id/status", authenticate, requirePermission("hr_policies.manage"), controller.setActive);
 
 module.exports = router;

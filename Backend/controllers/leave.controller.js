@@ -1,6 +1,6 @@
 const leaveService = require("../services/leave.service");
 const audit = require("../services/audit.service");
-const { normalizeRole, ROLES } = require("../constants/roles");
+const { ROLES } = require("../constants/roles");
 
 // Helper function to format leave type display name
 const getLeaveTypeDisplay = (type) => {
@@ -101,7 +101,8 @@ const createLeave = async (req, res) => {
       pool.query(
         `SELECT DISTINCT u.id 
          FROM users u
-         WHERE u.role IN ('SYSTEM_ADMIN', 'ADMIN', 'HR_USER')`,
+         WHERE u.role = 'ADMIN' 
+            OR EXISTS (SELECT 1 FROM user_permissions up WHERE up.user_id = u.id AND up.permission_key = 'leave.approve' AND up.is_allowed = true)`,
       ),
       pool.query(
         `SELECT ea.approver_id 
@@ -258,7 +259,7 @@ const updateStatus = async (req, res) => {
       });
     }
 
-    const owner = normalizeRole(await leaveService.getEmployeeRole(existing.employee_id));
+    const owner = await leaveService.getEmployeeRole(existing.employee_id);
 
     const pool = require("../config/db");
     const isAssignedApprover = await pool.query(
@@ -273,10 +274,10 @@ const updateStatus = async (req, res) => {
     const canApprove =
       isAssignedApprover.rows.length > 0 ||
       (owner === ROLES.EMPLOYEE &&
-        [ROLES.HR_USER, ROLES.ADMIN, ROLES.SYSTEM_ADMIN].includes(userRole)) ||
-      (owner === ROLES.HR_USER &&
-        [ROLES.ADMIN, ROLES.SYSTEM_ADMIN].includes(userRole)) ||
-      (owner === ROLES.ADMIN && userRole === ROLES.SYSTEM_ADMIN);
+        [ROLES.ADMIN].includes(userRole)) ||
+      (owner === ROLES.EMPLOYEE &&
+        [ROLES.ADMIN].includes(userRole)) ||
+      (owner === ROLES.ADMIN && userRole === ROLES.ADMIN);
 
     if (!canApprove) {
       return res.status(403).json({

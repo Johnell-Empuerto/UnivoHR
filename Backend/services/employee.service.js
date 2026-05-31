@@ -1,16 +1,69 @@
 const employeeModel = require("../models/employee.model");
 const pool = require("../config/db");
+const { EMPLOYMENT_STATUS, COMPANY_DEFAULT_PROBATION_MONTHS } = require("../constants/employmentStatus");
 
 const getEmployees = async (page, limit, search, status, allowedBranchIds) => {
   return await employeeModel.getEmployees(page, limit, search, status, allowedBranchIds);
 };
 
 const createEmployee = async (data) => {
+  const employmentStatus = data.employment_status?.toUpperCase() || EMPLOYMENT_STATUS.REGULAR;
+
+  if (employmentStatus === EMPLOYMENT_STATUS.REGULAR) {
+    data.probation_period_months = null;
+    data.regularization_date = null;
+  } else if (employmentStatus === EMPLOYMENT_STATUS.PROBATIONARY) {
+    const probationMonths = data.probation_period_months != null
+      ? Number(data.probation_period_months)
+      : COMPANY_DEFAULT_PROBATION_MONTHS;
+
+    if (probationMonths <= 0) {
+      throw new Error("Probation period must be greater than 0 months for PROBATIONARY employees");
+    }
+
+    data.probation_period_months = probationMonths;
+
+    if (data.hired_date && !data.regularization_date) {
+      const hireDate = new Date(data.hired_date);
+      hireDate.setMonth(hireDate.getMonth() + probationMonths);
+      data.regularization_date = hireDate.toISOString().split("T")[0];
+    }
+  }
+
+  if (data.regularization_date && data.hired_date) {
+    if (new Date(data.regularization_date) < new Date(data.hired_date)) {
+      throw new Error("Regularization date cannot be before hire date");
+    }
+  }
+
+  data.employment_status = employmentStatus;
   return await employeeModel.createEmployee(data);
 };
 
 const updateEmployee = async (id, data) => {
   const currentEmployee = await employeeModel.getEmployeeById(id);
+
+  if (data.employment_status) {
+    const employmentStatus = data.employment_status.toUpperCase();
+
+    if (employmentStatus === EMPLOYMENT_STATUS.REGULAR) {
+      data.probation_period_months = null;
+      data.regularization_date = null;
+    } else if (employmentStatus === EMPLOYMENT_STATUS.PROBATIONARY) {
+      if (data.probation_period_months != null && Number(data.probation_period_months) <= 0) {
+        throw new Error("Probation period must be greater than 0 months for PROBATIONARY employees");
+      }
+    }
+
+    data.employment_status = employmentStatus;
+  }
+
+  if (data.regularization_date && (data.hired_date || currentEmployee?.hired_date)) {
+    const hireDate = data.hired_date || currentEmployee?.hired_date;
+    if (new Date(data.regularization_date) < new Date(hireDate)) {
+      throw new Error("Regularization date cannot be before hire date");
+    }
+  }
 
   const isBranchChanging =
     data.branch_id !== undefined &&
@@ -36,7 +89,7 @@ const updateEmployee = async (id, data) => {
 
     if (userResult.rows.length > 0) {
       const user = userResult.rows[0];
-      if (user.role === "HR_USER") {
+      if (user.role !== "ADMIN") {
         const existing = await client.query(
           `SELECT id FROM user_branch_access WHERE user_id = $1 AND branch_id = $2`,
           [user.id, currentEmployee.branch_id],
@@ -66,8 +119,29 @@ const updateEmployee = async (id, data) => {
   }
 };
 
+const getProbationaryEmployeesDueForRegularization = async (allowedBranchIds) => {
+  return await employeeModel.getProbationaryEmployeesDueForRegularization(allowedBranchIds);
+};
+
+const approveRegularization = async (id) => {
+  const employee = await employeeModel.getEmployeeById(id);
+  if (!employee) throw new Error("Employee not found");
+  if (employee.employment_status !== EMPLOYMENT_STATUS.PROBATIONARY) {
+    throw new Error("Employee is not on probationary status");
+  }
+
+  return await employeeModel.regularizeEmployee(id);
+};
+
+const getEmploymentStats = async (allowedBranchIds) => {
+  return await employeeModel.getEmploymentStats(allowedBranchIds);
+};
+
 module.exports = {
   getEmployees,
   createEmployee,
   updateEmployee,
+  getProbationaryEmployeesDueForRegularization,
+  approveRegularization,
+  getEmploymentStats,
 };

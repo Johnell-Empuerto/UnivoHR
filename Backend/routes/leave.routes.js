@@ -5,10 +5,10 @@ const controller = require("../controllers/leave.controller");
 const leaveCreditController = require("../controllers/leaveCredit.controller");
 
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
+const requirePermission = require("../middleware/permission.middleware");
 const validate = require("../middleware/validate.middleware");
 
-const { ROLES, normalizeRole } = require("../constants/roles");
+const { ROLES } = require("../constants/roles");
 
 // Joi schema for leave validation
 const Joi = require("joi");
@@ -38,13 +38,11 @@ const leaveSchema = Joi.object({
 // LEAVE APPROVERS ROUTE (Allow approvers)
 // ==========================================
 
-const HR_ACCESS = [ROLES.ADMIN, ROLES.HR_USER];
-const ALL = [ROLES.ADMIN, ROLES.HR_USER, ROLES.PAYROLL_USER, ROLES.EMPLOYEE];
-const ADMIN_ONLY = [ROLES.ADMIN];
+const HR_ACCESS = [ROLES.ADMIN];
 
 // Custom middleware to check if user is a leave approver
 const canAccessLeaveApprovers = async (req, res, next) => {
-  const role = normalizeRole(req.user.role);
+  const role = req.user.role;
   if (HR_ACCESS.includes(role)) return next();
 
   try {
@@ -75,14 +73,14 @@ router.get("/approvers", authenticate, canAccessLeaveApprovers, (req, res) => {
 });
 
 // CREATE LEAVE
-router.post("/", authenticate, authorize(ALL), validate(leaveSchema), controller.createLeave);
+router.post("/", authenticate, requirePermission("leave.view"), validate(leaveSchema), controller.createLeave);
 
 // MY LEAVES
-router.get("/my", authenticate, authorize(ALL), controller.getMyLeaves);
+router.get("/my", authenticate, requirePermission("leave.view"), controller.getMyLeaves);
 
 // VIEW ALL LEAVES (+ approvers)
 router.get("/", authenticate, async (req, res, next) => {
-  const role = normalizeRole(req.user.role);
+  const role = req.user.role;
   if (HR_ACCESS.includes(role)) return next();
 
   try {
@@ -110,7 +108,7 @@ router.get("/", authenticate, async (req, res, next) => {
 
 // APPROVE / REJECT
 router.put("/:id/status", authenticate, async (req, res, next) => {
-  const role = normalizeRole(req.user.role);
+  const role = req.user.role;
   if (HR_ACCESS.includes(role)) return next();
 
   try {
@@ -144,11 +142,11 @@ router.put("/:id/status", authenticate, async (req, res, next) => {
 }, controller.updateStatus);
 
 // MY CREDITS
-router.get("/credits", authenticate, authorize(ALL), leaveCreditController.getMyCredits);
+router.get("/credits", authenticate, requirePermission("leave.view"), leaveCreditController.getMyCredits);
 
 // CREDITS MANAGEMENT
-router.get("/credits/all", authenticate, authorize(ADMIN_ONLY), leaveCreditController.getAllCredits);
-router.get("/credits/:employeeId", authenticate, authorize(ADMIN_ONLY), leaveCreditController.getEmployeeCredits);
-router.put("/credits/:employeeId", authenticate, authorize(ADMIN_ONLY), leaveCreditController.updateCredits);
+router.get("/credits/all", authenticate, requirePermission("leave.manage"), leaveCreditController.getAllCredits);
+router.get("/credits/:employeeId", authenticate, requirePermission("leave.manage"), leaveCreditController.getEmployeeCredits);
+router.put("/credits/:employeeId", authenticate, requirePermission("leave.manage"), leaveCreditController.updateCredits);
 
 module.exports = router;

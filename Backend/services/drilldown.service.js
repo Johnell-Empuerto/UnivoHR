@@ -4,7 +4,7 @@ const { getUserBranchIds } = require("../utils/branchAccess");
 const buildScope = (user, params) => {
   let idx = params.length + 1;
   let clause = "";
-  if (user.role === "HR_USER") {
+  if (user.role !== "ADMIN") {
     return { clause: `AND e.branch_id = ANY($${idx}::int[])`, params: [] };
   }
   return { clause: "", params: [] };
@@ -22,7 +22,7 @@ const getDrillDownAttendance = async (user, { status, date_from, date_to, branch
   if (branch_id) { conditions.push(`e.branch_id = $${idx++}`); params.push(branch_id); }
   if (employee_id) { conditions.push(`a.employee_id = $${idx++}`); params.push(employee_id); }
 
-  if (user.role === "HR_USER") {
+  if (user.role !== "ADMIN") {
     const branchIds = await getUserBranchIds(user.id);
     if (branchIds.length === 0) return { data: [], pagination: { total: 0, page, limit, totalPages: 0 } };
     conditions.push(`e.branch_id = ANY($${idx++}::int[])`);
@@ -68,7 +68,7 @@ const getDrillDownPayroll = async (user, { cutoff_start, cutoff_end, branch_id, 
   if (min_net) { conditions.push(`p.net_salary >= $${idx++}`); params.push(min_net); }
   if (max_net) { conditions.push(`p.net_salary <= $${idx++}`); params.push(max_net); }
 
-  if (user.role === "HR_USER") {
+  if (user.role !== "ADMIN") {
     const branchIds = await getUserBranchIds(user.id);
     if (branchIds.length === 0) return { data: [], pagination: { total: 0, page, limit, totalPages: 0 } };
     conditions.push(`e.branch_id = ANY($${idx++}::int[])`);
@@ -113,7 +113,7 @@ const getDrillDownOvertime = async (user, { date_from, date_to, branch_id, emplo
   if (employee_id) { conditions.push(`o.employee_id = $${idx++}`); params.push(employee_id); }
   if (status) { conditions.push(`o.status = $${idx++}`); params.push(status); }
 
-  if (user.role === "HR_USER") {
+  if (user.role !== "ADMIN") {
     const branchIds = await getUserBranchIds(user.id);
     if (branchIds.length === 0) return { data: [], pagination: { total: 0, page, limit, totalPages: 0 } };
     conditions.push(`e.branch_id = ANY($${idx++}::int[])`);
@@ -159,7 +159,7 @@ const getDrillDownLeaves = async (user, { date_from, date_to, branch_id, employe
   if (status) { conditions.push(`l.status = $${idx++}`); params.push(status); }
   if (type) { conditions.push(`l.type = $${idx++}`); params.push(type); }
 
-  if (user.role === "HR_USER") {
+  if (user.role !== "ADMIN") {
     const branchIds = await getUserBranchIds(user.id);
     if (branchIds.length === 0) return { data: [], pagination: { total: 0, page, limit, totalPages: 0 } };
     conditions.push(`e.branch_id = ANY($${idx++}::int[])`);
@@ -206,7 +206,7 @@ const getDrillDownAnomalies = async (user, { date_from, date_to, branch_id, empl
   if (status) { conditions.push(`a.status = $${idx++}`); params.push(status); }
   if (anomaly_type) { conditions.push(`a.anomaly_type = $${idx++}`); params.push(anomaly_type); }
 
-  if (user.role === "HR_USER") {
+  if (user.role !== "ADMIN") {
     const branchIds = await getUserBranchIds(user.id);
     if (branchIds.length === 0) return { data: [], pagination: { total: 0, page, limit, totalPages: 0 } };
     conditions.push(`a.branch_id = ANY($${idx++}::int[])`);
@@ -248,7 +248,7 @@ const getDrillDownBranch = async (user, { branch_id, date_from, date_to, page = 
   if (date_from) { conditions.push(`a.date >= $${idx++}::date`); params.push(date_from); }
   if (date_to) { conditions.push(`a.date <= $${idx++}::date`); params.push(date_to); }
 
-  if (user.role === "HR_USER") {
+  if (user.role !== "ADMIN") {
     const branchIds = await getUserBranchIds(user.id);
     if (branchIds.length === 0) return { data: [], pagination: { total: 0, page, limit, totalPages: 0 } };
     conditions.push(`e.branch_id = ANY($${idx++}::int[])`);

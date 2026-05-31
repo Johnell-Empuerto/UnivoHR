@@ -1,7 +1,6 @@
 const overtimeService = require("../services/overtime.service");
 const notificationService = require("../services/notification.service");
 const audit = require("../services/audit.service");
-const { normalizeRole } = require("../constants/roles");
 
 // Helper function to format date
 const formatDateForMeta = (dateString) => {
@@ -25,7 +24,10 @@ const createOvertime = async (req, res) => {
     const adminUsers = await pool.query(
       `SELECT DISTINCT u.id 
        FROM users u
-       WHERE u.role IN ('SYSTEM_ADMIN', 'ADMIN', 'HR_USER')`,
+       WHERE u.role = 'ADMIN' OR EXISTS (
+         SELECT 1 FROM user_permissions up
+         WHERE up.user_id = u.id AND up.permission_key = 'approve.overtime' AND up.is_allowed = true
+       )`,
     );
 
     const assignedApprovers = await pool.query(
@@ -47,7 +49,7 @@ const createOvertime = async (req, res) => {
         user_id: approverId,
         type: "OVERTIME",
         title: "New Overtime Request",
-        message: `${employeeName} requested overtime`,
+        message: `${employeeName} requested ${req.body.hours}h overtime on ${req.body.date}`,
         reference_id: data.id,
         meta: {
           overtime_id: data.id,
@@ -167,11 +169,11 @@ const approveOvertime = async (req, res) => {
     );
 
     const overtimeRequest = await overtimeService.getOvertimeDetails(id);
-    await notificationService.notify({
-      user_id: overtimeRequest.employee_id,
+    const notificationHelper = require("../services/notificationHelper.service");
+    await notificationHelper.notifyEmployee(overtimeRequest.employee_id, {
       type: "OVERTIME",
       title: "Overtime Approved",
-      message: `Your overtime request has been approved`,
+      message: `Your overtime request for ${overtimeRequest.date} (${overtimeRequest.hours}h) has been approved`,
       reference_id: id,
       meta: {
         overtime_id: id,
@@ -216,11 +218,11 @@ const rejectOvertime = async (req, res) => {
     );
 
     const overtimeRequest = await overtimeService.getOvertimeDetails(id);
-    await notificationService.notify({
-      user_id: overtimeRequest.employee_id,
+    const notificationHelper = require("../services/notificationHelper.service");
+    await notificationHelper.notifyEmployee(overtimeRequest.employee_id, {
       type: "OVERTIME",
       title: "Overtime Declined",
-      message: `Your overtime request was not approved`,
+      message: `Your overtime request for ${overtimeRequest.date} (${overtimeRequest.hours}h) was not approved. Reason: ${reason}`,
       reference_id: id,
       meta: {
         overtime_id: id,

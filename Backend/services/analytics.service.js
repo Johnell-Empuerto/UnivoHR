@@ -6,7 +6,7 @@ const { getUserBranchIds } = require("../utils/branchAccess");
 // Reusable analytics API - Phase 4 prep for AI assistant
 const getCompanyOverview = async (user) => {
   let allowedBranchIds = null;
-  if (user.role === "HR_USER") {
+  if (user.role !== "ADMIN") {
     allowedBranchIds = await getUserBranchIds(user.id);
   }
 

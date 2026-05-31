@@ -3,27 +3,26 @@ const router = express.Router();
 
 const controller = require("../controllers/applicantDocument.controller");
 const authenticate = require("../middleware/auth.middleware");
-const authorize = require("../middleware/role.middleware");
-const ROLES = require("../constants/roles");
+const requirePermission = require("../middleware/permission.middleware");
 
 router.get(
   "/:applicantId",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_USER]),
+  requirePermission("recruitment.view"),
   controller.getByApplicantId,
 );
 
 router.post(
   "/:applicantId",
   authenticate,
-  authorize([ROLES.ADMIN, ROLES.HR_USER]),
+  requirePermission("recruitment.applicants.manage"),
   controller.create,
 );
 
 router.delete(
   "/:id",
   authenticate,
-  authorize([ROLES.ADMIN]),
+  requirePermission("recruitment.applicants.manage"),
   controller.remove,
 );
 
