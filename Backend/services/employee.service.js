@@ -1,5 +1,8 @@
 const employeeModel = require("../models/employee.model");
 const pool = require("../config/db");
+const { generateEmployeeCode } = require("./applicant.service");
+const { initializeNewEmployee } = require("./employeeInit.service");
+const notificationHelper = require("./notificationHelper.service");
 const { EMPLOYMENT_STATUS, COMPANY_DEFAULT_PROBATION_MONTHS } = require("../constants/employmentStatus");
 
 const getEmployees = async (page, limit, search, status, allowedBranchIds) => {
@@ -7,6 +10,13 @@ const getEmployees = async (page, limit, search, status, allowedBranchIds) => {
 };
 
 const createEmployee = async (data) => {
+  let generatedCode = null;
+  if (!data.employee_code?.trim()) {
+    const gen = await generateEmployeeCode();
+    data.employee_code = gen.code;
+    generatedCode = gen.number;
+  }
+
   const employmentStatus = data.employment_status?.toUpperCase() || EMPLOYMENT_STATUS.REGULAR;
 
   if (employmentStatus === EMPLOYMENT_STATUS.REGULAR) {
@@ -37,7 +47,39 @@ const createEmployee = async (data) => {
   }
 
   data.employment_status = employmentStatus;
-  return await employeeModel.createEmployee(data);
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const result = await employeeModel.createEmployee(data, client);
+
+    await initializeNewEmployee(result.id, client);
+
+    await client.query("COMMIT");
+
+    if (generatedCode !== null) {
+      await pool.query(
+        `UPDATE system_settings SET value = $1, updated_at = NOW() WHERE key = 'employee_code_counter'`,
+        [String(generatedCode)],
+      );
+    }
+
+    notificationHelper.notifyUsersWithPermission("employees.view", {
+      type: "EMPLOYEE",
+      title: "New Employee Created",
+      message: `${result.first_name} ${result.last_name} (${result.employee_code}) has been added to the system.`,
+      reference_id: result.id,
+      meta: { employee_id: result.id },
+    }).catch(err => console.error("[employee] Welcome notification error:", err.message));
+
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 const updateEmployee = async (id, data) => {

@@ -99,6 +99,7 @@ const ApplicantDetailPage = () => {
     branch_id: "",
     hired_date: new Date().toISOString().split("T")[0],
     probation_period_months: "",
+    employee_code: "",
   });
   const [converting, setConverting] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -429,7 +430,7 @@ const ApplicantDetailPage = () => {
       } else if (message.includes("requirements")) {
         toast.error(message);
       } else {
-        toast.error("Unable to convert applicant. Please try again.");
+        toast.error(message);
       }
       fetchAll();
     } finally {
@@ -1120,6 +1121,22 @@ const ApplicantDetailPage = () => {
                 placeholder="Company Default (6 months)"
               />
               <p className="text-xs text-muted-foreground mt-1">Leave blank to use company default (6 months)</p>
+            </div>
+
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">
+                Employee Code <span className="text-muted-foreground">(optional)</span>
+              </p>
+              <input
+                type="text"
+                value={convertForm.employee_code}
+                onChange={(e) => setConvertForm({ ...convertForm, employee_code: e.target.value })}
+                className="w-full border rounded px-2 py-1 bg-background"
+                placeholder="Leave blank to auto-generate"
+              />
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Auto-generated if left blank and auto-generation is enabled.
+              </p>
             </div>
 
             {convertForm.hired_date && (

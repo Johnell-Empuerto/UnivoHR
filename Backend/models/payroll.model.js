@@ -251,7 +251,8 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
         status,
         check_in_time,
         check_out_time,
-        work_fraction
+        work_fraction,
+        shift_id
       FROM attendance
       WHERE employee_id = ANY($1::int[])
         AND date BETWEEN $2::date AND $3::date
@@ -291,7 +292,38 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
     const rules = await attendanceModel.getRules();
 
     // ============================================
-    // BATCH 9: FETCH OVERTIME DATA FOR ALL EMPLOYEES (1 query)
+    // BATCH 9a: FETCH ALL SHIFTS (for shift-aware late calculation)
+    // ============================================
+    const shiftsRes = await client.query(`SELECT * FROM shift_schedules`);
+    const shiftMap = new Map();
+    shiftsRes.rows.forEach((s) => {
+      shiftMap.set(s.id, s);
+    });
+
+    // ============================================
+    // BATCH 9b: FETCH EMPLOYEE SHIFT ASSIGNMENTS (for records without shift_id)
+    // ============================================
+    const shiftAssignmentsRes = await client.query(`
+      SELECT employee_id, shift_id, effective_date, end_date
+      FROM employee_shift_assignments
+      WHERE employee_id = ANY($1::int[])
+        AND effective_date <= $2::date
+        AND (end_date IS NULL OR end_date >= $3::date)
+    `, [employeeIds, cutoff_end, cutoff_start]);
+
+    const shiftAssignmentsByEmployee = new Map();
+    for (const row of shiftAssignmentsRes.rows) {
+      if (!shiftAssignmentsByEmployee.has(row.employee_id)) {
+        shiftAssignmentsByEmployee.set(row.employee_id, []);
+      }
+      shiftAssignmentsByEmployee.get(row.employee_id).push(row);
+    }
+    for (const assignments of shiftAssignmentsByEmployee.values()) {
+      assignments.sort((a, b) => new Date(b.effective_date) - new Date(a.effective_date));
+    }
+
+    // ============================================
+    // BATCH 10: FETCH OVERTIME DATA FOR ALL EMPLOYEES (1 query)
     // ============================================
     const overtimeRes = await client.query(
       `

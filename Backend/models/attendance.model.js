@@ -49,18 +49,32 @@ const getTodayRecord = async (employeeId, timestamp) => {
   return result.rows[0];
 };
 
+// Get open attendance record (check-in without check-out) — used by night shift
+const getOpenAttendanceRecord = async (employeeId) => {
+  const query = `
+    SELECT * FROM attendance
+    WHERE employee_id = $1
+    AND check_in_time IS NOT NULL
+    AND check_out_time IS NULL
+    ORDER BY check_in_time DESC
+    LIMIT 1
+  `;
+  const result = await pool.query(query, [employeeId]);
+  return result.rows[0];
+};
+
 // CHECK IN
-const checkIn = async (employeeId, timestamp, status) => {
-  console.log("CHECK-IN:", { employeeId, timestamp, status });
+const checkIn = async (employeeId, timestamp, status, shiftId = null, shiftDate = null) => {
+  console.log("CHECK-IN:", { employeeId, timestamp, status, shiftId, shiftDate });
 
   const query = `
-    INSERT INTO attendance (employee_id, check_in_time, date, status)
-    VALUES ($1, $2, $3, $4)
+    INSERT INTO attendance (employee_id, check_in_time, date, status, shift_id, shift_date)
+    VALUES ($1, $2, $3, $4, $5, $6)
     RETURNING *;
   `;
 
   const localDate = getLocalDate(timestamp);
-  const values = [employeeId, timestamp, localDate, status];
+  const values = [employeeId, timestamp, localDate, status, shiftId, shiftDate || localDate];
 
   const result = await pool.query(query, values);
   return result.rows[0];
@@ -772,6 +786,7 @@ const applyTimeModification = async (attendanceId, checkIn, checkOut) => {
 
 module.exports = {
   getTodayRecord,
+  getOpenAttendanceRecord,
   checkIn,
   checkOut,
   getAttendance,

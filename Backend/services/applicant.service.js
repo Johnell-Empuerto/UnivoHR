@@ -4,6 +4,7 @@ const employeeModel = require("../models/employee.model");
 const pool = require("../config/db");
 const leaveCreditModel = require("../models/leaveCredit.model");
 const notificationService = require("./notification.service");
+const { initializeNewEmployee } = require("./employeeInit.service");
 const { EMPLOYMENT_STATUS, COMPANY_DEFAULT_PROBATION_MONTHS } = require("../constants/employmentStatus");
 
 const normalizeApplicantStatus = (status) => {
@@ -149,12 +150,22 @@ const convertToEmployee = async (applicantId, additionalData) => {
       regularizationDate = regDate.toISOString().split("T")[0];
     }
 
+    let generatedCode = null;
+    let employeeCode;
+    if (additionalData.employee_code) {
+      employeeCode = additionalData.employee_code;
+    } else {
+      const gen = await generateEmployeeCode(client);
+      employeeCode = gen.code;
+      generatedCode = gen.number;
+    }
+
     const employeeData = {
       first_name: applicant.first_name,
       middle_name: applicant.middle_name,
       last_name: applicant.last_name,
       suffix: applicant.suffix,
-      employee_code: additionalData.employee_code || (await generateEmployeeCode(client)),
+      employee_code: employeeCode,
       department: applicant.job_department || additionalData.department || null,
       position: applicant.job_title || additionalData.position || null,
       contact_number: applicant.phone || null,
@@ -203,7 +214,7 @@ const convertToEmployee = async (applicantId, additionalData) => {
       throw new Error("Employee was created but employee ID was not returned.");
     }
 
-    await leaveCreditModel.createDefault(newEmployee.id, client);
+    await initializeNewEmployee(newEmployee.id, client);
 
     await client.query(
       `UPDATE applicants SET employee_id = $1, updated_at = NOW() WHERE id = $2`,
@@ -254,6 +265,14 @@ const convertToEmployee = async (applicantId, additionalData) => {
     }
 
     await client.query("COMMIT");
+
+    if (generatedCode !== null) {
+      await pool.query(
+        `UPDATE system_settings SET value = $1, updated_at = NOW() WHERE key = 'employee_code_counter'`,
+        [String(generatedCode)],
+      );
+    }
+
     applicantModel.getActiveHRUserIds().then(userIds => {
       notifyParty(userIds, "Applicant Hired", `${applicant.first_name} ${applicant.last_name} has been hired as ${newEmployee.employee_code}`, applicantId);
     });
@@ -266,37 +285,68 @@ const convertToEmployee = async (applicantId, additionalData) => {
   }
 };
 
+const getEmployeeCodeSettings = async (db) => {
+  const result = await db.query(
+    `SELECT key, value FROM system_settings WHERE key = ANY($1)`,
+    [['employee_code_auto_generate', 'employee_code_prefix', 'employee_code_separator', 'employee_code_padding', 'employee_code_counter']],
+  );
+  const settings = { prefix: 'EMP', separator: '', padding: '4', counter: '0', autoGenerate: 'true' };
+  result.rows.forEach(r => {
+    switch (r.key) {
+      case 'employee_code_prefix': settings.prefix = r.value; break;
+      case 'employee_code_separator': settings.separator = r.value; break;
+      case 'employee_code_padding': settings.padding = r.value; break;
+      case 'employee_code_counter': settings.counter = r.value; break;
+      case 'employee_code_auto_generate': settings.autoGenerate = r.value; break;
+    }
+  });
+  return settings;
+};
+
 const generateEmployeeCode = async (client) => {
   const db = client || pool;
+  const settings = await getEmployeeCodeSettings(db);
+
+  if (settings.autoGenerate !== 'true') {
+    throw new Error('Auto-generation is disabled. Please provide an employee code manually.');
+  }
+
+  const prefix = typeof settings.prefix === 'string' ? settings.prefix : 'EMP';
+  const separator = settings.separator || '';
+  const padding = Math.max(0, parseInt(settings.padding) || 4);
+  const counter = Math.max(0, parseInt(settings.counter) || 0);
+
+  const escapedPrefix = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escapedSep = separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = `^${escapedPrefix}${escapedSep}[0-9]+$`;
+
   const result = await db.query(
-    `SELECT employee_code
-     FROM employees
-     WHERE employee_code ~ '^EMP[0-9]+$'
-     ORDER BY CAST(SUBSTRING(employee_code FROM 4) AS INTEGER) DESC
-     LIMIT 1`,
+    `SELECT employee_code FROM employees
+     WHERE employee_code ~ $1
+     ORDER BY CAST(SUBSTRING(employee_code FROM $2) AS INTEGER) DESC LIMIT 1`,
+    [pattern, prefix.length + separator.length + 1],
   );
 
-  let nextNumber = 1;
+  let nextNumber = counter + 1;
+
   if (result.rows.length > 0) {
-    const lastCode = result.rows[0].employee_code;
-    const match = lastCode.match(/^EMP(\d+)$/);
-    if (match) {
-      nextNumber = parseInt(match[1], 10) + 1;
-    }
+    const numStr = result.rows[0].employee_code.slice(prefix.length + separator.length);
+    const num = parseInt(numStr, 10);
+    if (!isNaN(num)) nextNumber = Math.max(nextNumber, num + 1);
   }
 
   let code;
   while (true) {
-    code = `EMP${String(nextNumber).padStart(4, "0")}`;
+    code = `${prefix}${separator}${String(nextNumber).padStart(padding, '0')}`;
     const exists = await db.query(
-      "SELECT id FROM employees WHERE employee_code = $1 LIMIT 1",
+      'SELECT id FROM employees WHERE employee_code = $1 LIMIT 1',
       [code],
     );
     if (exists.rows.length === 0) break;
     nextNumber++;
   }
 
-  return code;
+  return { code, number: nextNumber };
 };
 
 module.exports = {
@@ -307,4 +357,6 @@ module.exports = {
   updateStatus,
   remove,
   convertToEmployee,
+  generateEmployeeCode,
+  getEmployeeCodeSettings,
 };

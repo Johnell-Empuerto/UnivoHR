@@ -27,6 +27,8 @@ import {
   updateEmployeeExperience,
   deleteEmployeeExperience,
 } from "@/services/employeeBiodataService";
+import { getActiveShifts, assignShift } from "@/services/shiftService";
+import type { Shift } from "@/services/shiftService";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers/AuthProvider";
 
@@ -159,6 +161,7 @@ const EmployeeDrawer = ({
   const [form, setForm] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [branches, setBranches] = useState<{ id: number; name: string; code: string }[]>([]);
+  const [shifts, setShifts] = useState<Shift[]>([]);
 
   const [familyOpen, setFamilyOpen] = useState(false);
   const [familyData, setFamilyData] = useState<any[]>([]);
@@ -185,6 +188,10 @@ const EmployeeDrawer = ({
       }
     };
     fetchBranches();
+    const fetchShifts = async () => {
+      try { setShifts(await getActiveShifts()); } catch { /* silent */ }
+    };
+    fetchShifts();
   }, []);
 
   const canEditMode =
@@ -260,6 +267,7 @@ const EmployeeDrawer = ({
         termination_reason: "",
         last_working_date: "",
         branch_id: branches.length > 0 ? branches[0].id : "",
+        shift_id: "",
       });
     } else if (mode === "view" && employee) {
       setForm(employee);
@@ -426,11 +434,6 @@ const EmployeeDrawer = ({
         return;
       }
 
-      if (!form.employee_code?.trim()) {
-        toast.error("Employee code is required");
-        return;
-      }
-
       if (!form.department?.trim()) {
         toast.error("Department is required");
         return;
@@ -462,6 +465,16 @@ const EmployeeDrawer = ({
         toast.success("Employee created successfully");
       } else {
         return;
+      }
+
+      const employeeId = result.id || result.employee_id;
+      if (form.shift_id && employeeId) {
+        const effectiveDate = form.hired_date || new Date().toISOString().split("T")[0];
+        try {
+          await assignShift(employeeId, Number(form.shift_id), effectiveDate, null);
+        } catch {
+          console.warn("Shift assignment failed (non-critical)");
+        }
       }
 
       onUpdate(result);
@@ -990,10 +1003,12 @@ const EmployeeDrawer = ({
                   name="employee_code"
                   value={form.employee_code}
                   onChange={handleChange}
-                  required={true}
                   placeholder="EMP-001"
                   disabled={!canEditMode}
                 />
+                <p className="text-xs text-muted-foreground -mt-2">
+                  Leave blank to auto-generate when enabled.
+                </p>
 
                 <InputField
                   label="First Name"
@@ -1427,6 +1442,23 @@ const EmployeeDrawer = ({
                     className="w-full border rounded px-2 py-1 bg-background cursor-pointer"
                     style={{ position: "relative", zIndex: 10000 }}
                   />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Shift Assignment</p>
+                  <select
+                    name="shift_id"
+                    value={form.shift_id || ""}
+                    onChange={handleChange}
+                    disabled={!canEditMode}
+                    className="w-full border rounded px-2 py-1 bg-background"
+                  >
+                    <option value="">Default (8AM-5PM)</option>
+                    {shifts.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

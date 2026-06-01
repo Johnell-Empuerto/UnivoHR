@@ -11,6 +11,8 @@ import ApprovalSettings from "../components/ApprovalSettings";
 import NotificationSettings from "../components/NotificationSettings";
 import EmailTemplateEditor from "../components/EmailTemplateEditor";
 import CompanyBranding from "../components/CompanyBranding";
+import EmployeeCodeSettings from "../components/EmployeeCodeSettings";
+import ShiftManagement from "../components/ShiftManagement";
 
 const Setting = () => {
   const { hasPermission } = useAuth();
@@ -23,6 +25,8 @@ const Setting = () => {
   const canViewNotifications = hasPermission("settings.notifications");
   const canViewEmailTemplates = hasPermission("settings.email_templates");
   const canViewBranding = hasPermission("settings.branding");
+  const canViewEmployeeCodes = hasPermission("settings.branding");
+  const canViewShifts = hasPermission("settings.attendance_rules");
 
   return (
     <div className="space-y-6 p-6">
@@ -56,6 +60,8 @@ const Setting = () => {
           {canViewNotifications && <TabsTrigger value="notifications">Notifications</TabsTrigger>}
           {canViewEmailTemplates && <TabsTrigger value="email-templates">Email Templates</TabsTrigger>}
           {canViewBranding && <TabsTrigger value="branding">Branding</TabsTrigger>}
+          {canViewEmployeeCodes && <TabsTrigger value="employee-codes">Employee Codes</TabsTrigger>}
+          {canViewShifts && <TabsTrigger value="shifts">Shifts</TabsTrigger>}
         </TabsList>
 
         {canViewAttendance && (
@@ -97,6 +103,16 @@ const Setting = () => {
         {canViewBranding && (
           <TabsContent value="branding" className="mt-0">
             <CompanyBranding />
+          </TabsContent>
+        )}
+        {canViewEmployeeCodes && (
+          <TabsContent value="employee-codes" className="mt-0">
+            <EmployeeCodeSettings />
+          </TabsContent>
+        )}
+        {canViewShifts && (
+          <TabsContent value="shifts" className="mt-0">
+            <ShiftManagement />
           </TabsContent>
         )}
       </Tabs>

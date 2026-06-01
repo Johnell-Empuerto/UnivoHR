@@ -41,6 +41,52 @@ const updateSetting = async (req, res) => {
   }
 };
 
+// Get next employee code (preview)
+const getNextEmployeeCode = async (req, res) => {
+  try {
+    const pool = require("../config/db");
+    const { getEmployeeCodeSettings } = require("../services/applicant.service");
+    const settings = await getEmployeeCodeSettings(pool);
+    const prefix = settings.prefix || 'EMP';
+    const separator = settings.separator || '';
+    const padding = Math.max(1, parseInt(settings.padding) || 4);
+    const counter = Math.max(0, parseInt(settings.counter) || 0);
+
+    const escapedPrefix = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedSep = separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = `^${escapedPrefix}${escapedSep}[0-9]+$`;
+
+    const result = await pool.query(
+      `SELECT employee_code FROM employees
+       WHERE employee_code ~ $1
+       ORDER BY CAST(SUBSTRING(employee_code FROM $2) AS INTEGER) DESC LIMIT 1`,
+      [pattern, prefix.length + separator.length + 1],
+    );
+
+    let nextNumber = counter + 1;
+    if (result.rows.length > 0) {
+      const numStr = result.rows[0].employee_code.slice(prefix.length + separator.length);
+      const num = parseInt(numStr, 10);
+      if (!isNaN(num)) nextNumber = Math.max(nextNumber, num + 1);
+    }
+
+    const nextCode = `${prefix}${separator}${String(nextNumber).padStart(padding, '0')}`;
+
+    res.json({
+      prefix,
+      separator,
+      padding,
+      counter,
+      nextNumber,
+      nextCode,
+      autoGenerate: settings.autoGenerate,
+      format: `${prefix}${separator}${'#'.repeat(padding)}`,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Toggle boolean setting
 const toggleSetting = async (req, res) => {
   try {
@@ -63,5 +109,6 @@ module.exports = {
   getAllSettings,
   getSetting,
   updateSetting,
+  getNextEmployeeCode,
   toggleSetting,
 };

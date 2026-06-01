@@ -1,5 +1,6 @@
 const payrollModel = require("../models/payroll.model");
 const queueService = require("./queue.service");
+const notificationHelper = require("./notificationHelper.service");
 const pool = require("../config/db");
 
 const getEmployeesWithPayrollForCutoff = async (cutoff_start, cutoff_end) => {
@@ -23,8 +24,28 @@ const getEmployeesWithPayrollForCutoff = async (cutoff_start, cutoff_end) => {
   return result.rows;
 };
 
-const generatePayroll = (cutoff_start, cutoff_end, pay_date, branch_id) =>
-  payrollModel.generatePayroll(cutoff_start, cutoff_end, pay_date, branch_id);
+const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id) => {
+  const result = await payrollModel.generatePayroll(cutoff_start, cutoff_end, pay_date, branch_id);
+
+  if (result && !result.message) {
+    const adminUsers = await pool.query(
+      `SELECT id FROM users WHERE role = 'ADMIN'`
+    );
+    for (const admin of adminUsers.rows) {
+      const notificationService = require("./notification.service");
+      notificationService.notify({
+        user_id: admin.id,
+        type: "PAYROLL",
+        title: "Payroll Generated",
+        message: "Your payroll for the selected cutoff has been generated and is ready for review.",
+        reference_id: null,
+        meta: { cutoff_start, cutoff_end, branch_id },
+      }).catch(err => console.error("[payroll] Notification error:", err.message));
+    }
+  }
+
+  return result;
+};
 
 const getPayroll = async (cutoff_start, cutoff_end, page, limit, search, allowedBranchIds) => {
   return await payrollModel.getPayroll(
@@ -90,6 +111,14 @@ const markAsPaid = async (id) => {
       // Add to queue for background processing
       await queueService.addPayslipToQueue(payroll, employee);
     }
+
+    notificationHelper.notifyEmployee(payroll.employee_id, {
+      type: "PAYROLL",
+      title: "Payroll Paid",
+      message: "Your payroll for the selected cutoff has been marked as paid and is available for viewing.",
+      reference_id: payroll.id,
+      meta: { payroll_id: payroll.id, cutoff_start: payroll.cutoff_start, cutoff_end: payroll.cutoff_end },
+    }).catch(err => console.error("[payroll] Employee notification error:", err.message));
   }
 
   return payroll;
@@ -176,6 +205,16 @@ const markAllAsPaid = async (cutoff_start, cutoff_end) => {
   // Add all to queue for background processing
   if (payrollsWithEmployees.length > 0) {
     await queueService.addBulkPayslipsToQueue(payrollsWithEmployees);
+  }
+
+  for (const p of result.rows) {
+    notificationHelper.notifyEmployee(p.employee_id, {
+      type: "PAYROLL",
+      title: "Payroll Paid",
+      message: "Your payroll for the selected cutoff has been marked as paid and is available for viewing.",
+      reference_id: p.id,
+      meta: { payroll_id: p.id, cutoff_start: p.cutoff_start, cutoff_end: p.cutoff_end },
+    }).catch(err => console.error("[payroll] Bulk employee notification error:", err.message));
   }
 
   return {

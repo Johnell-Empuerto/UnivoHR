@@ -27,6 +27,7 @@ const overtimeRoutes = require("./routes/overtime.routes");
 const notificationRoutes = require("./routes/notification.routes");
 const userRoutes = require("./routes/user.routes");
 const smtpRoutes = require("./routes/smtp.routes");
+const shiftRoutes = require("./routes/shift.routes");
 const settingRoutes = require("./routes/setting.routes");
 const emailTemplateRoutes = require("./routes/emailTemplate.routes");
 const manHourReportRoutes = require("./routes/man_hour_report.routes");
@@ -111,6 +112,8 @@ app.use("/api/overtime", authenticate, overtimeRoutes);
 app.use("/api/notifications", authenticate, notificationRoutes);
 
 app.use("/api/users", authenticate, userRoutes);
+
+app.use("/api/shifts", authenticate, shiftRoutes);
 
 app.use("/api/smtp", authenticate, smtpRoutes);
 

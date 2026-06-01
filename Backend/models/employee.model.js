@@ -73,7 +73,8 @@ const getEmployees = async (page = 1, limit = 10, search = "", status = "", allo
   };
 };
 
-const createEmployee = async (data) => {
+const createEmployee = async (data, client = null) => {
+  const db = client || pool;
   const branchId = data.branch_id || (await getDefaultBranchId());
 
   const query = `
@@ -133,7 +134,7 @@ const createEmployee = async (data) => {
     data.regularization_date || null,
   ];
 
-  const result = await pool.query(query, values);
+  const result = await db.query(query, values);
   return result.rows[0];
 };
 

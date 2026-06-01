@@ -36,6 +36,21 @@ export const updateSetting = async (
   return response.data;
 };
 
+// Get next employee code preview
+export const getNextEmployeeCode = async (): Promise<{
+  prefix: string;
+  separator: string;
+  padding: number;
+  counter: number;
+  nextNumber: number;
+  nextCode: string;
+  autoGenerate: string;
+  format: string;
+}> => {
+  const response = await api.get("/settings/employee-code/next");
+  return response.data;
+};
+
 // Toggle boolean setting
 export const toggleSetting = async (key: string): Promise<ToggleResponse> => {
   const response = await api.post(`/settings/${key}/toggle`);

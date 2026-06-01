@@ -1,6 +1,8 @@
 const attendanceModel = require("../models/attendance.model");
 const rulesModel = require("../models/attendance.model");
+const shiftService = require("./shift.service");
 const STATUS = require("../constants/status");
+const { getLocalDate } = require("../utils/date");
 
 //check duplication
 const isDuplicateScan = (lastTime, currentTime, minutes = 2) => {
@@ -12,10 +14,23 @@ const isDuplicateScan = (lastTime, currentTime, minutes = 2) => {
 const createAttendance = async ({ employee_id, timestamp }) => {
   console.log("SERVICE INPUT:", { employee_id, timestamp });
 
-  const todayRecord = await attendanceModel.getTodayRecord(
-    employee_id,
-    timestamp,
-  );
+  const localDate = getLocalDate(timestamp);
+
+  // Look up employee's assigned shift for today
+  const shift = await shiftService.getEmployeeShiftForDate(employee_id, localDate);
+
+  const isNightShift = shift && shift.is_night_shift;
+  const isFlexitime = shift && shift.is_flexitime;
+
+  let todayRecord;
+
+  if (isNightShift) {
+    // Night shift: find open record (check-in without check-out) for checkout
+    todayRecord = await attendanceModel.getOpenAttendanceRecord(employee_id);
+  } else {
+    // Regular shifts & fallback: look up by calendar date
+    todayRecord = await attendanceModel.getTodayRecord(employee_id, timestamp);
+  }
 
   console.log("TODAY RECORD:", todayRecord);
 
@@ -38,19 +53,51 @@ const createAttendance = async ({ employee_id, timestamp }) => {
   let status = STATUS.PRESENT;
 
   if (rules) {
-    const shiftStart = new Date(timestamp);
-    shiftStart.setHours(8, 0, 0);
+    const scanTime = new Date(timestamp);
+    let referenceTime;
 
-    const lateMinutes = (new Date(timestamp) - shiftStart) / 1000 / 60;
+    if (shift) {
+      const refTimeStr = isFlexitime && shift.flex_end_window
+        ? shift.flex_end_window
+        : shift.start_time;
+      const [h, m] = refTimeStr.split(':').map(Number);
+      referenceTime = new Date(timestamp);
+      referenceTime.setHours(h, m, 0, 0);
+    } else {
+      // No shift assigned: fallback to 8AM
+      referenceTime = new Date(timestamp);
+      referenceTime.setHours(8, 0, 0, 0);
+    }
 
-    if (lateMinutes > rules.late_threshold) {
+    const lateMinutes = (scanTime - referenceTime) / 1000 / 60;
+
+    // Priority 1: Assigned Shift Grace
+    // Priority 2: Attendance Rule Grace Period
+    // Priority 3: Attendance Rule Late Threshold
+    let allowedLateMinutes;
+
+    if (shift) {
+      allowedLateMinutes = shift.grace_minutes ?? 0;
+    } else {
+      allowedLateMinutes = (rules.grace_period != null && rules.grace_period > 0)
+        ? rules.grace_period
+        : (rules.late_threshold ?? 0);
+    }
+
+    if (lateMinutes > allowedLateMinutes) {
       status = STATUS.LATE;
     }
   }
 
   // CASE 1: No record → CHECK-IN
   if (!todayRecord) {
-    return await attendanceModel.checkIn(employee_id, timestamp, status);
+    return await attendanceModel.checkIn(
+      employee_id,
+      timestamp,
+      status,
+      shift ? shift.id : null,
+      localDate,
+    );
   }
 
   // CASE 2: Has check-in only → CHECK-OUT

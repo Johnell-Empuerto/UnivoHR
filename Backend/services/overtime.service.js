@@ -1,6 +1,7 @@
 const overtimeModel = require("../models/overtime.model");
 const smtpService = require("./smtp.service");
 const settingService = require("./setting.service");
+const notificationHelper = require("./notificationHelper.service");
 const pool = require("../config/db");
 const emailTemplateService = require("./emailTemplate.service");
 
@@ -180,6 +181,14 @@ const approveOvertime = async (id, approver_id, comment, userRole) => {
     console.error("Email notification failed:", emailError);
   }
 
+  notificationHelper.notifyEmployee(request.employee_id, {
+    type: "OVERTIME",
+    title: "Overtime Approved",
+    message: "Your overtime request has been approved.",
+    reference_id: id,
+    meta: { overtime_id: id, status: "APPROVED" },
+  }).catch(err => console.error("[overtime] In-app notification error:", err.message));
+
   return result;
 };
 
@@ -217,6 +226,14 @@ const rejectOvertime = async (id, approver_id, reason, userRole) => {
   } catch (emailError) {
     console.error("Email notification failed:", emailError);
   }
+
+  notificationHelper.notifyEmployee(request.employee_id, {
+    type: "OVERTIME",
+    title: "Overtime Rejected",
+    message: "Your overtime request has been rejected.",
+    reference_id: id,
+    meta: { overtime_id: id, status: "REJECTED", rejection_reason: reason },
+  }).catch(err => console.error("[overtime] In-app notification error:", err.message));
 
   return result;
 };
