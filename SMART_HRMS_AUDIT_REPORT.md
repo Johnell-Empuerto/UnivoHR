@@ -1414,7 +1414,7 @@ Calendar
 2. **Frontend-only Route Protection**: Some pages (e.g., /branches, /settings) use conditional rendering but backend still has protection
 3. **Password Reset**: SMS/email OTP verification present but implementation depends on SMTP configuration
 4. **File Upload**: Only calendar bulk upload has multer; applicant documents may need file validation
-5. **CORS Configuration**: Limited to localhost:5173 and 192.168.0.105:5173 — production-ready CORS needed
+5. **CORS Configuration**: Limited to localhost:5173 and 192.168.2.59:5173 — production-ready CORS needed
 6. **No CSRF Protection**: Not implemented (REST API with JWT, risk depends on deployment)
 7. **No API Request Logging Middleware for Sensitive Routes**: Logger exists but may need enhancement for PCI compliance
 8. **EMPLOYEE role has broad access**: Can view all attendance (not just own) — GET /api/attendance allows EMPLOYEE to view all attendance records (potential data leak)

@@ -210,6 +210,49 @@ const convertToEmployee = async (applicantId, additionalData) => {
       [newEmployee.id, applicantId],
     );
 
+    // Copy applicant biodata → employee biodata
+    const familyRows = await client.query(
+      "SELECT * FROM applicant_family_members WHERE applicant_id = $1",
+      [applicantId],
+    );
+    for (const m of familyRows.rows) {
+      await client.query(
+        `INSERT INTO employee_family_members
+         (employee_id, relationship_type, full_name, birthdate, occupation, contact_number, address, is_dependent)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [newEmployee.id, m.relationship_type, m.full_name,
+         m.birthdate, m.occupation, m.contact_number, m.address, m.is_dependent],
+      );
+    }
+
+    const eduRows = await client.query(
+      "SELECT * FROM applicant_education WHERE applicant_id = $1",
+      [applicantId],
+    );
+    for (const e of eduRows.rows) {
+      await client.query(
+        `INSERT INTO employee_education
+         (employee_id, education_level, school_name, course_or_degree, year_started, year_graduated, honors_awards)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [newEmployee.id, e.education_level, e.school_name,
+         e.course_or_degree, e.year_started, e.year_graduated, e.honors_awards],
+      );
+    }
+
+    const expRows = await client.query(
+      "SELECT * FROM applicant_work_experience WHERE applicant_id = $1",
+      [applicantId],
+    );
+    for (const x of expRows.rows) {
+      await client.query(
+        `INSERT INTO employee_work_experience
+         (employee_id, company_name, position, start_date, end_date, reason_for_leaving)
+         VALUES ($1,$2,$3,$4,$5,$6)`,
+        [newEmployee.id, x.company_name, x.position,
+         x.start_date, x.end_date, x.reason_for_leaving],
+      );
+    }
+
     await client.query("COMMIT");
     applicantModel.getActiveHRUserIds().then(userIds => {
       notifyParty(userIds, "Applicant Hired", `${applicant.first_name} ${applicant.last_name} has been hired as ${newEmployee.employee_code}`, applicantId);

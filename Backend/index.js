@@ -42,11 +42,15 @@ const hrPolicyRoutes = require("./routes/hrPolicy.routes");
 const jobPositionRoutes = require("./routes/jobPosition.routes");
 const applicantRoutes = require("./routes/applicant.routes");
 const applicantRequirementRoutes = require("./routes/applicantRequirement.routes");
+const applicantBiodataRoutes = require("./routes/applicantBiodata.routes");
 const kpiTemplateRoutes = require("./routes/kpiTemplate.routes");
 const kpiEvaluationRoutes = require("./routes/kpiEvaluation.routes");
 const hrFormRoutes = require("./routes/hrForm.routes");
 const reportRoutes = require("./routes/report.routes");
 const permissionRoutes = require("./routes/permission.routes");
+const employeeFamilyRoutes = require("./routes/employeeFamily.routes");
+const employeeEducationRoutes = require("./routes/employeeEducation.routes");
+const employeeWorkExperienceRoutes = require("./routes/employeeWorkExperience.routes");
 
 // Middleware
 const authenticate = require("./middleware/auth.middleware");
@@ -58,7 +62,7 @@ const errorHandler = require("./middleware/errorHandler");
 // =====================
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://192.168.0.105:5173"],
+    origin: ["http://localhost:5173", "http://192.168.2.59:5173"],
     credentials: true,
   }),
 );
@@ -146,6 +150,24 @@ app.use("/api/applicants", authenticate, applicantRequirementRoutes);
 app.use("/api/reports", authenticate, reportRoutes);
 
 app.use("/api/permissions", authenticate, permissionRoutes);
+
+app.use(
+  "/api/employees/:employeeId/family",
+  authenticate,
+  employeeFamilyRoutes,
+);
+app.use(
+  "/api/employees/:employeeId/education",
+  authenticate,
+  employeeEducationRoutes,
+);
+app.use(
+  "/api/employees/:employeeId/experience",
+  authenticate,
+  employeeWorkExperienceRoutes,
+);
+
+app.use("/api/applicants/:applicantId", authenticate, applicantBiodataRoutes);
 
 const queueService = require("./services/queue.service");
 

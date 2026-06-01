@@ -1,9 +1,17 @@
 import { useState, useEffect, useMemo } from "react";
-import { Shield, Loader2, Save, RotateCcw, Search, CheckSquare, Square, X } from "lucide-react";
+import {
+  Shield,
+  Loader2,
+  Save,
+  RotateCcw,
+  Search,
+  CheckSquare,
+  Square,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/Input";
 import {
   Select,
   SelectContent,
@@ -105,7 +113,7 @@ const PERMISSION_LABELS: Record<string, string> = {
   "notifications.view": "View Notifications",
   "profile.view": "View Profile",
   "profile.edit_own": "Edit Own Profile",
-  "change_password": "Change Password",
+  change_password: "Change Password",
   "benefits.view_own": "View Own Benefits",
   "policies.view": "View HR Policies",
   "self_service.view": "Self Service Access",
@@ -245,7 +253,9 @@ const PRESETS: { name: string; label: string; keys: string[] }[] = [
 const UserPermissionsPage = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
-  const [permissionGroups, setPermissionGroups] = useState<Record<string, string[]>>({});
+  const [permissionGroups, setPermissionGroups] = useState<
+    Record<string, string[]>
+  >({});
   const [allPermissionKeys, setAllPermissionKeys] = useState<string[]>([]);
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -303,7 +313,8 @@ const UserPermissionsPage = () => {
   const isAdminUser = selectedUser?.role === "ADMIN";
   const current = Array.isArray(userPermissions) ? userPermissions : [];
   const saved = Array.isArray(savedPermissions) ? savedPermissions : [];
-  const hasChanges = [...current].sort().join(",") !== [...saved].sort().join(",");
+  const hasChanges =
+    [...current].sort().join(",") !== [...saved].sort().join(",");
 
   const filteredUsers = useMemo(() => {
     if (!userSearch) return users;
@@ -452,13 +463,7 @@ const UserPermissionsPage = () => {
                 filteredUsers.map((u) => (
                   <SelectItem key={u.id} value={String(u.id)}>
                     <span>
-                      {u.first_name} {u.last_name} ({u.username}) -{" "}
-                      <Badge
-                        variant={u.role === "ADMIN" ? "default" : "secondary"}
-                        className="text-xs"
-                      >
-                        {u.role}
-                      </Badge>
+                      {u.first_name} {u.last_name} ({u.username}) - {u.role}
                     </span>
                   </SelectItem>
                 ))
