@@ -1,5 +1,12 @@
 const pool = require("../config/db");
 
+const validateRating = (rating) => {
+  if (rating === null || rating === undefined || rating === "") return null;
+  const parsed = parseFloat(rating);
+  if (isNaN(parsed) || parsed < 0 || parsed > 10) return null;
+  return parsed;
+};
+
 const getAll = async (page = 1, limit = 10, search = "", status = "", jobPositionId = "") => {
   const offset = (page - 1) * limit;
   const searchValue = `%${search}%`;
@@ -51,7 +58,7 @@ const create = async (data) => {
   const result = await pool.query(
     `INSERT INTO applicants (job_position_id, first_name, middle_name, last_name, suffix, email, phone, address, resume_url, status, rating, source, notes, applied_date)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
-    [job_position_id || null, first_name, middle_name || null, last_name, suffix || null, email || null, phone || null, address || null, resume_url || null, status || 'Initial', rating ? Math.min(9.99, parseFloat(rating)) : null, source || null, notes || null, applied_date || new Date().toISOString().split('T')[0]],
+    [job_position_id || null, first_name, middle_name || null, last_name, suffix || null, email || null, phone || null, address || null, resume_url || null, status || 'Initial', validateRating(rating), source || null, notes || null, applied_date || new Date().toISOString().split('T')[0]],
   );
   return result.rows[0];
 };
@@ -61,7 +68,7 @@ const update = async (id, data) => {
   const result = await pool.query(
     `UPDATE applicants SET job_position_id = $1, first_name = $2, middle_name = $3, last_name = $4, suffix = $5, email = $6, phone = $7, address = $8, resume_url = $9, status = $10, rating = $11, source = $12, notes = $13, applied_date = $14, updated_at = NOW()
      WHERE id = $15 RETURNING *`,
-    [job_position_id || null, first_name, middle_name || null, last_name, suffix || null, email || null, phone || null, address || null, resume_url || null, status || 'Initial', rating ? Math.min(9.99, parseFloat(rating)) : null, source || null, notes || null, applied_date || null, id],
+    [job_position_id || null, first_name, middle_name || null, last_name, suffix || null, email || null, phone || null, address || null, resume_url || null, status || 'Initial', validateRating(rating), source || null, notes || null, applied_date || null, id],
   );
   return result.rows[0];
 };

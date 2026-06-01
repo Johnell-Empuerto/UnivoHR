@@ -5,6 +5,8 @@ import {
   updateApplicant,
   convertApplicantToEmployee,
 } from "@/services/applicantService";
+import { getApplicantInterviews } from "@/services/applicantInterviewService";
+import { getApplicantApprovals } from "@/services/applicantApprovalService";
 import {
   getApplicantRequirements,
   createApplicantRequirement,
@@ -120,6 +122,55 @@ const ApplicantDetailPage = () => {
   const [experienceDialog, setExperienceDialog] = useState<{ open: boolean; mode: "create" | "edit"; item: any }>({ open: false, mode: "create", item: null });
   const [editingExperience, setEditingExperience] = useState<any>({});
 
+  const [interviews, setInterviews] = useState<any[]>([]);
+  const [approvals, setApprovals] = useState<any[]>([]);
+
+  const getStageInfo = () => {
+    const stages = [
+      { key: "applied", label: "Applied" },
+      { key: "initial", label: "Initial Interview" },
+      { key: "exam", label: "Exam Interview" },
+      { key: "final", label: "Final Interview" },
+      { key: "approval", label: "Approval" },
+      { key: "converted", label: "Employee" },
+    ];
+
+    const status = (applicant.status || "").toUpperCase();
+    const isFailed = ["REJECTED", "WITHDRAWN", "FAIL"].some(s => status.includes(s));
+    const isHired = status === "HIRED" || !!applicant.employee_id;
+
+    let currentIdx: number;
+    if (isHired) {
+      currentIdx = 5;
+    } else if (["APPROVED", "COMPLETED", "FOR_APPROVAL"].some(s => status.includes(s))) {
+      currentIdx = 4;
+    } else if (status.includes("FINAL")) {
+      currentIdx = 3;
+    } else if (status.includes("EXAM")) {
+      currentIdx = 2;
+    } else if (status.includes("INITIAL")) {
+      currentIdx = 1;
+    } else {
+      currentIdx = 0;
+    }
+
+    const statuses: ("completed" | "current" | "future" | "failed")[] = [];
+    for (let i = 0; i < stages.length; i++) {
+      if (i < currentIdx) {
+        statuses.push("completed");
+      } else if (i === currentIdx) {
+        statuses.push(isFailed ? "failed" : "current");
+      } else {
+        statuses.push("future");
+      }
+    }
+
+    const currentStage = isFailed ? "Failed" : stages[currentIdx].label;
+    const completedCount = isFailed ? currentIdx : currentIdx + 1;
+
+    return { stages, statuses, currentStage, completedCount, total: stages.length };
+  };
+
   useEffect(() => {
     if (id) fetchAll();
   }, [id]);
@@ -127,14 +178,18 @@ const ApplicantDetailPage = () => {
   const fetchAll = async () => {
     try {
       setLoading(true);
-      const [app, reqs, brs] = await Promise.all([
+      const [app, reqs, brs, ivs, apps] = await Promise.all([
         getApplicantById(Number(id)),
         getApplicantRequirements(Number(id)).catch(() => []),
         getActiveBranches().catch(() => []),
+        getApplicantInterviews(Number(id)).catch(() => []),
+        getApplicantApprovals(Number(id)).catch(() => []),
       ]);
       setApplicant(app);
       setRequirements(reqs);
       setBranches(brs);
+      setInterviews(ivs);
+      setApprovals(apps);
       setEditForm({ status: app.status, rating: app.rating || "", notes: app.notes || "" });
     } catch (err: any) {
       toast.error("Failed to load applicant details");
@@ -431,10 +486,177 @@ const ApplicantDetailPage = () => {
             <p><span className="text-muted-foreground">Applied:</span> {applicant.applied_date ? formatDateShort(applicant.applied_date) : "-"}</p>
             <p><span className="text-muted-foreground">Source:</span> {applicant.source || "-"}</p>
             <p><span className="text-muted-foreground">Rating:</span> {applicant.rating || "-"}</p>
+            <p><span className="text-muted-foreground">Current Recruitment Stage:</span>{" "}
+              <span className={"font-semibold " + (getStageInfo().currentStage === "Failed" ? "text-red-600" : "text-blue-700")}>{getStageInfo().currentStage}</span>
+            </p>
+            <p><span className="text-muted-foreground">Progress:</span> {getStageInfo().completedCount} / {getStageInfo().total} Stages Completed</p>
             {applicant.notes && <p><span className="text-muted-foreground">Notes:</span> {applicant.notes}</p>}
           </CardContent>
         </Card>
       </div>
+
+      {(() => {
+        const { stages, statuses, currentStage } = getStageInfo();
+        return (
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="flex items-center">
+                {stages.map((stage, i) => {
+                  const st = statuses[i];
+                  const isCompleted = st === "completed";
+                  const isCurrent = st === "current";
+                  const isFailed = st === "failed";
+                  const isFuture = st === "future";
+                  const connectorColor = isCompleted ? "bg-green-500" : isCurrent ? "bg-blue-400" : isFailed ? "bg-red-400" : "bg-gray-200";
+                  return (
+                    <div key={stage.key} className="flex items-center flex-1 min-w-0">
+                      {i > 0 && (
+                        <div className={"flex-1 h-0.5 mr-1 " + connectorColor} />
+                      )}
+                      <div className="flex flex-col items-center">
+                        <div className={"w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 " + (
+                          isCompleted ? "bg-green-500 border-green-500 text-white" :
+                          isCurrent ? "border-blue-500 bg-blue-50 text-blue-700" :
+                          isFailed ? "border-red-500 bg-red-50 text-red-600" :
+                          "border-gray-300 bg-gray-50 text-gray-400"
+                        )}>
+                          {isCompleted ? "✓" : isFailed ? "✕" : i + 1}
+                        </div>
+                        <span className={"text-[11px] mt-1 text-center leading-tight " + (
+                          isCompleted ? "text-green-700 font-medium" :
+                          isCurrent ? "text-blue-700 font-medium" :
+                          isFailed ? "text-red-600 font-medium" :
+                          "text-gray-400"
+                        )}>
+                          {stage.label}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="text-center mt-4 pt-3 border-t text-sm">
+                <span className="text-muted-foreground">Current Stage:</span>{" "}
+                <span className={"font-semibold " + (currentStage === "Failed" ? "text-red-600" : "text-blue-700")}>{currentStage}</span>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Interview / Stage History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {interviews.length === 0 ? (
+            <EmptyState message="No interviews recorded yet." />
+          ) : (
+            <div className="space-y-0">
+              {[...interviews]
+                .sort((a, b) => {
+                  const dateA = a.interview_date || a.created_at;
+                  const dateB = b.interview_date || b.created_at;
+                  return new Date(dateA).getTime() - new Date(dateB).getTime();
+                })
+                .map((iv, i) => {
+                  const dotColor =
+                    iv.status === "COMPLETED" ? "border-green-500 bg-green-50 text-green-700" :
+                    iv.status === "SCHEDULED" ? "border-blue-500 bg-blue-50 text-blue-700" :
+                    iv.status === "CANCELLED" ? "border-red-300 bg-red-50 text-red-600" :
+                    "border-gray-300 bg-gray-50 text-gray-500";
+                  const getNextStage = () => {
+                    if (iv.status === "COMPLETED") {
+                      switch (iv.interview_type) {
+                        case "Initial Interview": return "Exam Interview";
+                        case "Exam Interview": return "Final Interview";
+                        case "Final Interview": return "Approval";
+                        default: return "Next stage";
+                      }
+                    }
+                    if (iv.status === "SCHEDULED") return "Pending";
+                    if (iv.status === "CANCELLED") return "—";
+                    return "—";
+                  };
+                  return (
+                    <div key={iv.id} className="relative pl-8 pb-6 last:pb-0">
+                      {i < interviews.length - 1 && (
+                        <div className="absolute left-[11px] top-6 bottom-0 w-0.5 bg-border" />
+                      )}
+                      <div className={"absolute left-0 top-1.5 w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold " + dotColor}>
+                        {i + 1}
+                      </div>
+                      <div className="rounded-lg border p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-semibold text-base">{iv.interview_type || "-"}</h4>
+                          <Badge className={
+                            iv.status === "COMPLETED" ? "bg-green-100 text-green-800" :
+                            iv.status === "SCHEDULED" ? "bg-blue-100 text-blue-800" :
+                            iv.status === "CANCELLED" ? "bg-red-100 text-red-800" :
+                            "bg-gray-100 text-gray-800"
+                          }>{iv.status || "-"}</Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-y-1.5 gap-x-4 text-sm mb-3">
+                          <div><span className="text-muted-foreground">Rating/Score:</span> {iv.rating ?? "-"}</div>
+                          <div><span className="text-muted-foreground">Interviewer:</span> {iv.interviewer || "-"}</div>
+                          <div><span className="text-muted-foreground">Date:</span> {iv.interview_date ? formatDateShort(iv.interview_date) : "-"}</div>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">HR Notes / Comments:</span>
+                          <p className="mt-0.5 whitespace-pre-wrap">{iv.notes || "-"}</p>
+                        </div>
+                        <div className="text-sm mt-2 pt-2 border-t">
+                          <span className="text-muted-foreground">Next Stage:</span>
+                          <p className={"mt-0.5 font-medium " + (
+                            iv.status === "COMPLETED" ? "text-green-700" :
+                            iv.status === "SCHEDULED" ? "text-blue-700" :
+                            iv.status === "CANCELLED" ? "text-red-600" :
+                            "text-muted-foreground"
+                          )}>{getNextStage()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Approval History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {approvals.length === 0 ? (
+            <EmptyState message="No approval records yet." />
+          ) : (
+            <div className="space-y-3">
+              {approvals.map((a: any) => (
+                <div key={a.id} className="rounded-lg border p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-base">{a.approval_type || "-"}</h4>
+                    <Badge className={
+                      a.decision === "APPROVED" ? "bg-green-100 text-green-800" :
+                      a.decision === "REJECTED" ? "bg-red-100 text-red-800" :
+                      a.decision === "PENDING" ? "bg-yellow-100 text-yellow-800" :
+                      "bg-gray-100 text-gray-800"
+                    }>{a.decision || "-"}</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-y-1.5 gap-x-4 text-sm mb-3">
+                    <div><span className="text-muted-foreground">Approved By:</span> {a.approved_by_name || a.approved_by || "-"}</div>
+                    <div><span className="text-muted-foreground">Date:</span> {a.decided_at ? formatDateShort(a.decided_at) : a.created_at ? formatDateShort(a.created_at) : "-"}</div>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Comments:</span>
+                    <p className="mt-0.5 whitespace-pre-wrap">{a.comments || "-"}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -776,6 +998,8 @@ const ApplicantDetailPage = () => {
           </CardContent>
         )}
       </Card>
+
+
 
       <Dialog open={editDialog} onOpenChange={setEditDialog}>
         <DialogContent className="sm:max-w-md">

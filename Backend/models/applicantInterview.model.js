@@ -1,5 +1,12 @@
 const pool = require("../config/db");
 
+const validateRating = (rating) => {
+  if (rating === null || rating === undefined || rating === "") return null;
+  const parsed = parseFloat(rating);
+  if (isNaN(parsed) || parsed < 0 || parsed > 10) return null;
+  return parsed;
+};
+
 const getByApplicantId = async (applicantId) => {
   const result = await pool.query(
     `SELECT * FROM applicant_interviews WHERE applicant_id = $1 ORDER BY interview_date DESC`,
@@ -18,7 +25,7 @@ const create = async (data) => {
   const result = await pool.query(
     `INSERT INTO applicant_interviews (applicant_id, interview_date, interviewer, interview_type, notes, rating, status)
      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-    [applicant_id, interview_date, interviewer || null, interview_type || null, notes || null, rating ? Math.min(9.99, parseFloat(rating)) : null, status || 'SCHEDULED'],
+    [applicant_id, interview_date, interviewer || null, interview_type || null, notes || null, validateRating(rating), status || 'SCHEDULED'],
   );
   return result.rows[0];
 };
@@ -28,7 +35,7 @@ const update = async (id, data) => {
   const result = await pool.query(
     `UPDATE applicant_interviews SET interview_date = $1, interviewer = $2, interview_type = $3, notes = $4, rating = $5, status = $6, updated_at = NOW()
      WHERE id = $7 RETURNING *`,
-    [interview_date, interviewer || null, interview_type || null, notes || null, rating ? Math.min(9.99, parseFloat(rating)) : null, status || 'SCHEDULED', id],
+    [interview_date, interviewer || null, interview_type || null, notes || null, validateRating(rating), status || 'SCHEDULED', id],
   );
   return result.rows[0];
 };

@@ -42,6 +42,8 @@ const hrPolicyRoutes = require("./routes/hrPolicy.routes");
 const jobPositionRoutes = require("./routes/jobPosition.routes");
 const applicantRoutes = require("./routes/applicant.routes");
 const applicantRequirementRoutes = require("./routes/applicantRequirement.routes");
+const applicantInterviewRoutes = require("./routes/applicantInterview.routes");
+const applicantApprovalRoutes = require("./routes/applicantApproval.routes");
 const applicantBiodataRoutes = require("./routes/applicantBiodata.routes");
 const kpiTemplateRoutes = require("./routes/kpiTemplate.routes");
 const kpiEvaluationRoutes = require("./routes/kpiEvaluation.routes");
@@ -136,6 +138,10 @@ app.use("/api/hr-policies", authenticate, hrPolicyRoutes);
 
 app.use("/api/job-positions", authenticate, jobPositionRoutes);
 app.use("/api/applicants", authenticate, applicantRoutes);
+
+app.use("/api/applicant-interviews", authenticate, applicantInterviewRoutes);
+
+app.use("/api/applicant-approvals", authenticate, applicantApprovalRoutes);
 
 app.use("/api/kpi/templates", authenticate, kpiTemplateRoutes);
 app.use("/api/kpi/evaluations", authenticate, kpiEvaluationRoutes);
