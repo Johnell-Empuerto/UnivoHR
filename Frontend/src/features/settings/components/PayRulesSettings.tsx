@@ -52,6 +52,7 @@ const PayRulesSettings = () => {
     { value: "SPECIAL_NON_WORKING", label: "Special Non-Working Day" },
     { value: "SPECIAL_HOLIDAY", label: "Special Holiday" },
     { value: "REGULAR_HOLIDAY", label: "Regular Holiday" },
+    { value: "REST_DAY", label: "Rest Day" },
   ];
 
   const getDayTypeLabel = (value: string) => {

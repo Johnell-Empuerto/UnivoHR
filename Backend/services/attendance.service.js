@@ -1,6 +1,7 @@
 const attendanceModel = require("../models/attendance.model");
 const rulesModel = require("../models/attendance.model");
 const shiftService = require("./shift.service");
+const rotationService = require("./rotation.service");
 const STATUS = require("../constants/status");
 const { getLocalDate } = require("../utils/date");
 
@@ -17,7 +18,7 @@ const createAttendance = async ({ employee_id, timestamp }) => {
   const localDate = getLocalDate(timestamp);
 
   // Look up employee's assigned shift for today
-  const shift = await shiftService.getEmployeeShiftForDate(employee_id, localDate);
+  const shift = await rotationService.resolveEmployeeShift(employee_id, localDate);
 
   const isNightShift = shift && shift.is_night_shift;
   const isFlexitime = shift && shift.is_flexitime;

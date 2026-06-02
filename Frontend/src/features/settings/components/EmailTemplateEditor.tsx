@@ -80,7 +80,6 @@ const TEMPLATE_VARIABLES: Record<string, string[]> = {
     "rejection_reason",
   ],
   PAYROLL_MARKED_PAID: [
-    // 🔥 ADDED
     "employee_name",
     "company_name",
     "cutoff_start",
@@ -290,39 +289,53 @@ const EmailTemplateEditor = () => {
   const variables = TEMPLATE_VARIABLES[selectedType] || ["employee_name"];
 
   return (
-    <Card className="border-border/50 shadow-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Edit className="h-5 w-5" />
-          Email Template Editor
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Customize email content for system notifications (layout and branding
-          are fixed)
-        </p>
-      </CardHeader>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+          <Edit className="h-5 w-5 text-primary dark:text-black" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-muted-foreground">
+            Email Template Editor
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Customize email content for system notifications (layout and
+            branding are fixed)
+          </p>
+        </div>
+      </div>
 
-      <CardContent>
-        <Tabs
-          value={selectedType}
-          onValueChange={setSelectedType}
-          className="space-y-6"
+      {/* Tabs Navigation */}
+      <Tabs
+        value={selectedType}
+        onValueChange={setSelectedType}
+        className="gap-0"
+      >
+        <TabsList
+          className="flex flex-wrap !w-full gap-2 bg-transparent !p-0 !h-auto rounded-none shadow-none border-none"
+          style={{ height: "auto !important" }}
         >
-          <TabsList className="flex w-full gap-2 overflow-x-auto">
-            {TEMPLATE_TYPES.map((type) => {
-              const status = getTemplateStatus(type.value);
-              return (
-                <TabsTrigger key={type.value} value={type.value}>
-                  {type.label}
-                  {getStatusBadge(status)}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+          {TEMPLATE_TYPES.map((type) => {
+            const status = getTemplateStatus(type.value);
+            return (
+              <TabsTrigger
+                key={type.value}
+                className="rounded-full px-5 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm bg-muted hover:bg-muted/80 text-muted-foreground border-0 transition-all"
+                style={{ height: "auto", flex: "none" }}
+                value={type.value}
+              >
+                {type.label}
+                <span className="ml-2">{getStatusBadge(status)}</span>
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
 
-          <TabsContent value={selectedType} className="space-y-4">
+        <div style={{ marginTop: "24px" }}>
+          <TabsContent value={selectedType} className="mt-0">
             {/* Variables Section */}
-            <div className="p-3 bg-muted/30 rounded-lg">
+            <div className="p-3 bg-muted/30 rounded-lg mb-4">
               <p className="text-sm font-medium mb-2">
                 Available Variables (click to insert):
               </p>
@@ -342,7 +355,7 @@ const EmailTemplateEditor = () => {
             </div>
 
             {/* Subject */}
-            <div>
+            <div className="mb-4">
               <Label htmlFor="subject">Email Subject</Label>
               <Input
                 id="subject"
@@ -354,7 +367,7 @@ const EmailTemplateEditor = () => {
             </div>
 
             {/* Email Body Editor / Preview Toggle */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-2">
               <Label>Email Content</Label>
               <Button
                 variant="ghost"
@@ -371,13 +384,13 @@ const EmailTemplateEditor = () => {
             </div>
 
             {previewMode ? (
-              <div className="border rounded-lg p-4 min-h-87.5 bg-white overflow-auto">
+              <div className="border rounded-lg p-4 min-h-87.5 bg-white overflow-auto mb-4">
                 <div
                   dangerouslySetInnerHTML={{ __html: editor?.getHTML() || "" }}
                 />
               </div>
             ) : (
-              <div className="border rounded-lg overflow-hidden">
+              <div className="border rounded-lg overflow-hidden mb-4">
                 {/* TipTap Toolbar */}
                 <div className="border-b p-2 flex flex-wrap gap-1 bg-muted/30">
                   <div className="flex items-center gap-0.5 border-r pr-1 mr-1">
@@ -489,7 +502,7 @@ const EmailTemplateEditor = () => {
             )}
 
             {/* Active Toggle */}
-            <div className="flex items-center justify-between pt-4">
+            <div className="flex items-center justify-between pt-4 mb-4">
               <div>
                 <p className="font-medium">Active Template</p>
                 <p className="text-sm text-muted-foreground">
@@ -516,7 +529,7 @@ const EmailTemplateEditor = () => {
               </Button>
             </div>
 
-            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg text-sm">
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg text-sm mt-4">
               <p className="font-medium mb-1">💡 Note:</p>
               <p className="text-muted-foreground">
                 The email layout (header, footer, colors) is fixed and cannot be
@@ -525,9 +538,9 @@ const EmailTemplateEditor = () => {
               </p>
             </div>
           </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+        </div>
+      </Tabs>
+    </div>
   );
 };
 

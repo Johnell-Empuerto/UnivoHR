@@ -323,6 +323,112 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
     }
 
     // ============================================
+    // BATCH 9c: FETCH REST DAY CONFIGURATION (for REST_DAY payroll activation, Phase 2D.2)
+    // ============================================
+    const empRestDaysRes = await client.query(`
+      SELECT employee_id, day_of_week
+      FROM employee_rest_days
+      WHERE employee_id = ANY($1::int[])
+        AND effective_date <= $2::date
+        AND (end_date IS NULL OR end_date >= $3::date)
+    `, [employeeIds, cutoff_end, cutoff_start]);
+
+    const empRestDaysByEmployee = new Map();
+    for (const row of empRestDaysRes.rows) {
+      if (!empRestDaysByEmployee.has(row.employee_id)) {
+        empRestDaysByEmployee.set(row.employee_id, new Set());
+      }
+      empRestDaysByEmployee.get(row.employee_id).add(row.day_of_week);
+    }
+
+    const branchRestDaysRes = await client.query(`
+      SELECT branch_id, day_of_week
+      FROM branch_rest_days
+      WHERE is_active = true
+    `);
+
+    const branchRestDaysByBranch = new Map();
+    for (const row of branchRestDaysRes.rows) {
+      if (!branchRestDaysByBranch.has(row.branch_id)) {
+        branchRestDaysByBranch.set(row.branch_id, new Set());
+      }
+      branchRestDaysByBranch.get(row.branch_id).add(row.day_of_week);
+    }
+
+    // ============================================
+    // BATCH 9d: FETCH PAYROLL RULES (night differential, future rates)
+    // ============================================
+    const payrollRulesRes = await client.query(
+      `SELECT rule_key, rule_value FROM payroll_rules`,
+    );
+
+    const payrollRulesMap = new Map();
+    payrollRulesRes.rows.forEach((r) => {
+      payrollRulesMap.set(r.rule_key, Number(r.rule_value));
+    });
+
+    // ============================================
+    // BATCH 9e: FETCH ROTATION GROUP DATA (for rotation shift resolution, Phase 2G.1)
+    // ============================================
+    const empRotationGroupRes = await client.query(`
+      SELECT employee_id, rotation_group_id
+      FROM employee_rotation_group_assignments
+      WHERE employee_id = ANY($1::int[])
+        AND effective_date <= $2::date
+        AND (end_date IS NULL OR end_date >= $3::date)
+    `, [employeeIds, cutoff_end, cutoff_start]);
+
+    const employeeRotationGroupMap = new Map();
+    for (const row of empRotationGroupRes.rows) {
+      employeeRotationGroupMap.set(row.employee_id, row.rotation_group_id);
+    }
+
+    const groupIds = [...new Set(empRotationGroupRes.rows.map(r => r.rotation_group_id))];
+
+    const rotationAssignmentsByGroup = new Map();
+    if (groupIds.length > 0) {
+      const assignRes = await client.query(`
+        SELECT rga.*, rp.cycle_days
+        FROM rotation_group_assignments rga
+        JOIN rotation_patterns rp ON rp.id = rga.pattern_id
+        WHERE rga.group_id = ANY($1::int[])
+          AND rga.effective_date <= $2::date
+          AND (rga.end_date IS NULL OR rga.end_date >= $3::date)
+      `, [groupIds, cutoff_end, cutoff_start]);
+
+      for (const row of assignRes.rows) {
+        if (!rotationAssignmentsByGroup.has(row.group_id)) {
+          rotationAssignmentsByGroup.set(row.group_id, []);
+        }
+        rotationAssignmentsByGroup.get(row.group_id).push(row);
+      }
+      for (const assignments of rotationAssignmentsByGroup.values()) {
+        assignments.sort((a, b) => new Date(b.effective_date) - new Date(a.effective_date));
+      }
+    }
+
+    const patternIds = [...new Set(
+      [...rotationAssignmentsByGroup.values()]
+        .flatMap(a => a.map(r => r.pattern_id))
+    )];
+
+    const rotationStepsByPattern = new Map();
+    if (patternIds.length > 0) {
+      const stepsRes = await client.query(`
+        SELECT * FROM rotation_pattern_steps
+        WHERE pattern_id = ANY($1::int[])
+        ORDER BY pattern_id, day_offset ASC
+      `, [patternIds]);
+
+      for (const row of stepsRes.rows) {
+        if (!rotationStepsByPattern.has(row.pattern_id)) {
+          rotationStepsByPattern.set(row.pattern_id, new Map());
+        }
+        rotationStepsByPattern.get(row.pattern_id).set(row.day_offset, row);
+      }
+    }
+
+    // ============================================
     // BATCH 10: FETCH OVERTIME DATA FOR ALL EMPLOYEES (1 query)
     // ============================================
     const overtimeRes = await client.query(
@@ -355,6 +461,54 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
         overtimeMap.set(empId, { total_hours: 0, request_ids: [] });
       }
     }
+
+    // ============================================
+    // HELPER: Resolve shift for a date (attendance.shift_id OR employee_shift_assignments OR rotation)
+    // ============================================
+    const resolveShiftForDate = (employeeId, date) => {
+      const dateStr = date.toLocaleDateString("en-CA");
+      const dateObj = new Date(dateStr);
+
+      // Step 1: Direct assignment
+      const assignments = shiftAssignmentsByEmployee.get(employeeId);
+      if (assignments) {
+        for (const assignment of assignments) {
+          const effDate = new Date(assignment.effective_date);
+          if (effDate <= dateObj) {
+            if (!assignment.end_date || new Date(assignment.end_date) >= dateObj) {
+              return shiftMap.get(assignment.shift_id) || null;
+            }
+          }
+        }
+      }
+
+      // Step 2: Rotation group fallback
+      const groupId = employeeRotationGroupMap.get(employeeId);
+      if (!groupId) return null;
+
+      const groupAssignments = rotationAssignmentsByGroup.get(groupId);
+      if (!groupAssignments) return null;
+
+      for (const ga of groupAssignments) {
+        const effDate = new Date(ga.effective_date);
+        if (effDate <= dateObj) {
+          if (!ga.end_date || new Date(ga.end_date) >= dateObj) {
+            const msPerDay = 1000 * 60 * 60 * 24;
+            const daysSinceStart = Math.floor((dateObj - effDate) / msPerDay);
+            const dayOffset = ((daysSinceStart % ga.cycle_days) + ga.cycle_days) % ga.cycle_days;
+
+            const steps = rotationStepsByPattern.get(ga.pattern_id);
+            const step = steps ? steps.get(dayOffset) : null;
+            if (step && !step.is_rest_day) {
+              return shiftMap.get(step.shift_id) || null;
+            }
+            return null;
+          }
+        }
+      }
+
+      return null;
+    };
 
     // ============================================
     // PROCESS EACH EMPLOYEE (WITHIN TRANSACTION)
@@ -437,7 +591,27 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
           check_out_time: attendance.check_out_time,
           work_fraction: attendance.work_fraction,
           day_type: dayType,
+          shift_id: attendance.shift_id || null,
         });
+      }
+
+      // ============================================
+      // REST DAY OVERRIDE: Employee Override → Branch Default → Keep
+      // Only overrides REGULAR days; holidays and special days are preserved.
+      // ============================================
+      const empRestDays = empRestDaysByEmployee.get(emp.id);
+      const empBranchRestDays = emp.branch_id ? branchRestDaysByBranch.get(emp.branch_id) : null;
+
+      for (const row of attendanceFull) {
+        if (row.day_type !== "REGULAR") continue;
+
+        const dow = row.date.getDay();
+
+        if (empRestDays?.has(dow)) {
+          row.day_type = "REST_DAY";
+        } else if (empBranchRestDays?.has(dow)) {
+          row.day_type = "REST_DAY";
+        }
       }
 
       // ============================================
@@ -485,6 +659,18 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
         },
       };
 
+      // Phase 2F.3: Holiday-type-specific unworked policy key mapping
+      const UNWORKED_POLICY_KEYS = {
+        REGULAR_HOLIDAY: "unworked_regular_holiday_policy",
+        SPECIAL_HOLIDAY: "unworked_special_holiday_policy",
+        SPECIAL_NON_WORKING: "unworked_special_non_working_policy",
+      };
+      const UNWORKED_POLICY_DEFAULTS = {
+        REGULAR_HOLIDAY: 2,
+        SPECIAL_HOLIDAY: 1,
+        SPECIAL_NON_WORKING: 1,
+      };
+
       for (const row of attendanceFull) {
         const dateStr = row.date.toLocaleDateString("en-CA");
         const dayType = row.day_type;
@@ -495,20 +681,63 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
 
         let multiplier = payRulesMap[dayType] || DEFAULT_MULTIPLIER;
 
+        const isHolidayDay = dayType === "REGULAR_HOLIDAY" || dayType === "SPECIAL_HOLIDAY" || dayType === "SPECIAL_NON_WORKING";
+        const hasAttendance = row.status === "PRESENT" || row.status === "LATE" || row.status === "HALF_DAY";
+        const isUnworkedHoliday = isHolidayDay && !hasAttendance && !isLeave;
+        const unworkedPolicy = isUnworkedHoliday && UNWORKED_POLICY_KEYS[dayType]
+          ? Number(payrollRulesMap.get(UNWORKED_POLICY_KEYS[dayType])
+            ?? UNWORKED_POLICY_DEFAULTS[dayType] ?? 1)
+          : 0;
+
+        // Unworked Holiday Policy: override multiplier for non-attended holidays
+        if (isUnworkedHoliday) {
+          if (unworkedPolicy === 2) { // DAILY_RATE
+            multiplier = 1;
+          }
+          // HOLIDAY_RATE (3): keep holiday multiplier
+          // NO_PAY (1): day will produce 0 pay
+        }
+
+        // Holiday on Rest Day: composite multiplier — only when employee worked
+        if (hasAttendance && (dayType === "REGULAR_HOLIDAY" || dayType === "SPECIAL_HOLIDAY")) {
+          const dow = row.date.getDay();
+          const isRestDay = empRestDays?.has(dow) || empBranchRestDays?.has(dow);
+          if (isRestDay) {
+            const rdMult = payRulesMap.REST_DAY || 1;
+            const method = Number(payrollRulesMap.get("holiday_rest_day_method") || 1);
+            if (method === 1) {
+              multiplier = multiplier * rdMult;
+            } else if (method === 2) {
+              multiplier = multiplier + rdMult - 1;
+            } else if (method === 3) {
+              multiplier = Math.max(multiplier, rdMult);
+            }
+          }
+        }
+
         if (isLeave) {
           multiplier = 1;
         }
 
+        const isSpecialNonWorking = dayType === "SPECIAL_NON_WORKING";
         const isWorkingDay =
-          dayType !== "REST_DAY" && dayType !== "NON_WORKING";
+          dayType !== "REST_DAY" && dayType !== "NON_WORKING" && !isSpecialNonWorking;
         const isHoliday =
           dayType === "REGULAR_HOLIDAY" || dayType === "SPECIAL_HOLIDAY";
 
         if (isWorkingDay || isHoliday) {
-          working_days_in_cutoff++;
+          if (!isUnworkedHoliday || unworkedPolicy !== 1) {
+            working_days_in_cutoff++;
+          }
         }
 
-        if (!isWorkingDay && !isHoliday && dayType !== "REST_DAY") {
+        if (isSpecialNonWorking) {
+          if (!row.status || row.status === "ABSENT") {
+            if (unworkedPolicy === 1) {
+              continue;
+            }
+          }
+        } else if (!isWorkingDay && !isHoliday && dayType !== "REST_DAY") {
           continue;
         }
 
@@ -522,14 +751,32 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
 
           if (row.check_in_time) {
             const checkInTime = new Date(row.check_in_time);
-            const scheduledStart = new Date(row.check_in_time);
-            scheduledStart.setHours(8, 0, 0, 0);
+
+            // Resolve shift: attendance.shift_id -> employee_shift_assignments -> fallback
+            const resolvedShift = row.shift_id
+              ? (shiftMap.get(row.shift_id) || null)
+              : resolveShiftForDate(emp.id, row.date);
+
+            let scheduledStart;
+            if (resolvedShift) {
+              if (resolvedShift.is_flexitime && resolvedShift.flex_end_window) {
+                const [fh, fm] = resolvedShift.flex_end_window.split(':').map(Number);
+                scheduledStart = new Date(checkInTime);
+                scheduledStart.setHours(fh, fm, 0, 0);
+              } else {
+                const [sh, sm] = resolvedShift.start_time.split(':').map(Number);
+                scheduledStart = new Date(checkInTime);
+                scheduledStart.setHours(sh, sm, 0, 0);
+              }
+            } else {
+              scheduledStart = new Date(checkInTime);
+              scheduledStart.setHours(8, 0, 0, 0);
+            }
 
             const rawLateMinutes = (checkInTime - scheduledStart) / 1000 / 60;
             const threshold = rules?.late_threshold || 0;
-            const grace = rules?.grace_period || 0;
 
-            let penaltyMinutes = rawLateMinutes - threshold - grace;
+            let penaltyMinutes = rawLateMinutes - threshold;
 
             if (penaltyMinutes > 0) {
               const cappedMinutes = Math.min(penaltyMinutes, 30);
@@ -547,7 +794,11 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
             unpaid_leave_days++;
           }
         } else if (!row.status || row.status === "ABSENT") {
-          rawWorkUnits = 0;
+          if (isHolidayDay && unworkedPolicy >= 2) {
+            rawWorkUnits = 1;
+          } else {
+            rawWorkUnits = 0;
+          }
         }
 
         const weightedWorkUnits = rawWorkUnits * multiplier;
@@ -560,6 +811,50 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
           breakdown[dayType].units += weightedWorkUnits;
           breakdown[dayType].pay += daily_rate * weightedWorkUnits;
         }
+      }
+
+      // ============================================
+      // NIGHT DIFFERENTIAL CALCULATION (10PM–6AM window)
+      // ============================================
+      let night_differential_hours = 0;
+      let night_differential_pay = 0;
+
+      if (payrollRulesMap.get('night_differential_enabled')) {
+        const ndRate = Number(payrollRulesMap.get('night_differential_rate') || 0.10);
+        const hourlyRate = daily_rate / (rules?.max_work_hours || 8);
+
+        for (const row of attendanceFull) {
+          if (!row.check_in_time || !row.check_out_time) continue;
+          if (row.status === 'ABSENT' || row.status === 'LEAVE' || (!row.status)) continue;
+
+          const checkIn = new Date(row.check_in_time);
+          const checkOut = new Date(row.check_out_time);
+
+          // Window 1: checkIn day 22:00 → checkIn day+1 06:00
+          const w1Start = new Date(checkIn);
+          w1Start.setHours(22, 0, 0, 0);
+          const w1End = new Date(w1Start);
+          w1End.setDate(w1End.getDate() + 1);
+          w1End.setHours(6, 0, 0, 0);
+
+          const s1 = Math.max(checkIn.getTime(), w1Start.getTime());
+          const e1 = Math.min(checkOut.getTime(), w1End.getTime());
+          if (e1 > s1) night_differential_hours += (e1 - s1) / (1000 * 60 * 60);
+
+          // Window 2: (checkIn day-1) 22:00 → checkIn day 06:00 (pre-6AM work)
+          const w2Start = new Date(checkIn);
+          w2Start.setDate(w2Start.getDate() - 1);
+          w2Start.setHours(22, 0, 0, 0);
+          const w2End = new Date(checkIn);
+          w2End.setHours(6, 0, 0, 0);
+
+          const s2 = Math.max(checkIn.getTime(), w2Start.getTime());
+          const e2 = Math.min(checkOut.getTime(), w2End.getTime());
+          if (e2 > s2) night_differential_hours += (e2 - s2) / (1000 * 60 * 60);
+        }
+
+        night_differential_hours = Math.round(night_differential_hours * 100) / 100;
+        night_differential_pay = Math.round(night_differential_hours * hourlyRate * ndRate * 100) / 100;
       }
 
       // ============================================
@@ -615,7 +910,8 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
       const net_salary =
         Math.max(0, basic_pay - total_deductions) +
         leave_conversion_cash +
-        overtime_pay;
+        overtime_pay +
+        night_differential_pay;
 
       if (net_salary === 0 && monthly_salary > 0 && attendanceMap.size > 0) {
         console.warn("[PAYROLL] ZERO NET SALARY despite salary+attendance", {
@@ -642,6 +938,8 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
         total_work_units_with_multiplier,
         basic_pay,
         overtime_pay,
+        night_differential_hours,
+        night_differential_pay,
         late_deduction,
         government_deduction,
         total_deductions,
@@ -678,9 +976,10 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
           employee_id, cutoff_start, cutoff_end, pay_date,
           basic_salary, overtime_pay, deductions, net_salary,
           late_deduction, absent_deduction, government_deduction,
-          leave_conversion, rule_snapshot, branch_id
+          leave_conversion, rule_snapshot, branch_id,
+          night_differential_hours, night_differential_pay
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
         ON CONFLICT (employee_id, cutoff_start, cutoff_end)
         DO UPDATE SET
           overtime_pay = EXCLUDED.overtime_pay,
@@ -690,7 +989,9 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
           absent_deduction = EXCLUDED.absent_deduction,
           leave_conversion = EXCLUDED.leave_conversion,
           rule_snapshot = EXCLUDED.rule_snapshot,
-          branch_id = EXCLUDED.branch_id
+          branch_id = EXCLUDED.branch_id,
+          night_differential_hours = EXCLUDED.night_differential_hours,
+          night_differential_pay = EXCLUDED.night_differential_pay
         RETURNING id`,
         [
           emp.id,
@@ -736,8 +1037,15 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
               pay: overtime_pay,
               request_ids: overtime.request_ids,
             },
+            night_differential: {
+              hours: night_differential_hours,
+              rate: payrollRulesMap.get('night_differential_rate') || 0.10,
+              pay: night_differential_pay,
+            },
             }),
           empBranchId,
+          night_differential_hours,
+          night_differential_pay,
         ],
       );
 

@@ -54,6 +54,9 @@ const permissionRoutes = require("./routes/permission.routes");
 const employeeFamilyRoutes = require("./routes/employeeFamily.routes");
 const employeeEducationRoutes = require("./routes/employeeEducation.routes");
 const employeeWorkExperienceRoutes = require("./routes/employeeWorkExperience.routes");
+const employeeRestDayRoutes = require("./routes/employeeRestDay.routes");
+const branchRestDayRoutes = require("./routes/branchRestDay.routes");
+const rotationRoutes = require("./routes/rotation.routes");
 
 // Middleware
 const authenticate = require("./middleware/auth.middleware");
@@ -114,6 +117,8 @@ app.use("/api/notifications", authenticate, notificationRoutes);
 app.use("/api/users", authenticate, userRoutes);
 
 app.use("/api/shifts", authenticate, shiftRoutes);
+
+app.use("/api/rotation", authenticate, rotationRoutes);
 
 app.use("/api/smtp", authenticate, smtpRoutes);
 
@@ -177,6 +182,16 @@ app.use(
 );
 
 app.use("/api/applicants/:applicantId", authenticate, applicantBiodataRoutes);
+
+app.use(
+  "/api/employees/:employeeId/rest-days",
+  authenticate,
+  employeeRestDayRoutes,
+);
+app.use("/api/branch-rest-days", authenticate, branchRestDayRoutes);
+
+const payrollRuleRoutes = require("./routes/payrollRule.routes");
+app.use("/api/payroll-rules", authenticate, payrollRuleRoutes);
 
 const queueService = require("./services/queue.service");
 

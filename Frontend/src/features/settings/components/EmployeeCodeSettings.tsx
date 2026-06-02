@@ -1,9 +1,14 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Loader2, Hash, Eye } from "lucide-react";
 import { toast } from "sonner";
-import { getAllSettings, updateSetting, getNextEmployeeCode } from "@/services/settingsService";
+import {
+  getAllSettings,
+  updateSetting,
+  getNextEmployeeCode,
+} from "@/services/settingsService";
 
 const EmployeeCodeSettings = () => {
   const [loading, setLoading] = useState(true);
@@ -36,8 +41,11 @@ const EmployeeCodeSettings = () => {
       const data = await getAllSettings();
       const map = new Map(data.map((s) => [s.key, s.value]));
       setSettings({
-        employee_code_auto_generate: map.get("employee_code_auto_generate") || "true",
-        employee_code_prefix: map.has("employee_code_prefix") ? map.get("employee_code_prefix") : "EMP",
+        employee_code_auto_generate:
+          map.get("employee_code_auto_generate") || "true",
+        employee_code_prefix: map.has("employee_code_prefix")
+          ? map.get("employee_code_prefix")
+          : "EMP",
         employee_code_separator: map.get("employee_code_separator") || "",
         employee_code_padding: map.get("employee_code_padding") || "4",
         employee_code_counter: map.get("employee_code_counter") || "0",
@@ -55,7 +63,10 @@ const EmployeeCodeSettings = () => {
     const padding = Math.max(0, parseInt(settings.employee_code_padding) || 0);
     const counter = Math.max(0, parseInt(settings.employee_code_counter) || 0);
     const nextNumber = counter + 1;
-    const formattedNumber = padding > 0 ? String(nextNumber).padStart(padding, "0") : String(nextNumber);
+    const formattedNumber =
+      padding > 0
+        ? String(nextNumber).padStart(padding, "0")
+        : String(nextNumber);
     const nextCode = `${prefix}${separator}${formattedNumber}`;
     const fmt = `${prefix}${separator}${padding > 0 ? "#".repeat(padding) : "N"}`;
     setPreview({ nextCode, nextNumber, format: fmt });
@@ -65,7 +76,11 @@ const EmployeeCodeSettings = () => {
     try {
       setPreviewLoading(true);
       const result = await getNextEmployeeCode();
-      setPreview({ nextCode: result.nextCode, nextNumber: result.nextNumber, format: result.format });
+      setPreview({
+        nextCode: result.nextCode,
+        nextNumber: result.nextNumber,
+        format: result.format,
+      });
     } catch {
       toast.error("Failed to fetch next code from database");
     } finally {
@@ -104,6 +119,7 @@ const EmployeeCodeSettings = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
+          {/* Auto Generate Toggle - Updated to use Switch component */}
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Enable Auto Generation</p>
@@ -111,52 +127,79 @@ const EmployeeCodeSettings = () => {
                 Automatically generate employee codes for new employees
               </p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                checked={settings.employee_code_auto_generate === "true"}
-                onChange={(e) => handleSave("employee_code_auto_generate", e.target.checked ? "true" : "false")}
-              />
-              <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600" />
-            </label>
+            <Switch
+              checked={settings.employee_code_auto_generate === "true"}
+              onCheckedChange={(checked) =>
+                handleSave(
+                  "employee_code_auto_generate",
+                  checked ? "true" : "false",
+                )
+              }
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Prefix (optional)</p>
+              <p className="text-xs text-muted-foreground mb-1">
+                Prefix (optional)
+              </p>
               <input
                 type="text"
                 value={settings.employee_code_prefix}
-                onChange={(e) => setSettings((p) => ({ ...p, employee_code_prefix: e.target.value }))}
-                onBlur={(e) => { handleSave("employee_code_prefix", e.target.value); }}
+                onChange={(e) =>
+                  setSettings((p) => ({
+                    ...p,
+                    employee_code_prefix: e.target.value,
+                  }))
+                }
+                onBlur={(e) => {
+                  handleSave("employee_code_prefix", e.target.value);
+                }}
                 className="w-full border rounded px-2 py-1 bg-background text-sm"
                 placeholder="EMP"
                 maxLength={10}
               />
-              <p className="text-xs text-muted-foreground mt-0.5">e.g., EMP, MCF, or blank for numeric codes</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                e.g., EMP, MCF, or blank for numeric codes
+              </p>
             </div>
 
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Separator (optional)</p>
+              <p className="text-xs text-muted-foreground mb-1">
+                Separator (optional)
+              </p>
               <input
                 type="text"
                 value={settings.employee_code_separator}
-                onChange={(e) => setSettings((p) => ({ ...p, employee_code_separator: e.target.value }))}
-                onBlur={(e) => { handleSave("employee_code_separator", e.target.value); }}
+                onChange={(e) =>
+                  setSettings((p) => ({
+                    ...p,
+                    employee_code_separator: e.target.value,
+                  }))
+                }
+                onBlur={(e) => {
+                  handleSave("employee_code_separator", e.target.value);
+                }}
                 className="w-full border rounded px-2 py-1 bg-background text-sm"
                 placeholder="- / . _"
                 maxLength={5}
               />
-              <p className="text-xs text-muted-foreground mt-0.5">e.g., -, /, ., _ or blank</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                e.g., -, /, ., _ or blank
+              </p>
             </div>
 
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Number Format</p>
+              <p className="text-xs text-muted-foreground mb-1">
+                Number Format
+              </p>
               <select
                 value={settings.employee_code_padding}
                 onChange={(e) => {
-                  setSettings((p) => ({ ...p, employee_code_padding: e.target.value }));
+                  setSettings((p) => ({
+                    ...p,
+                    employee_code_padding: e.target.value,
+                  }));
                   handleSave("employee_code_padding", e.target.value);
                 }}
                 className="w-full border rounded px-2 py-1 bg-background text-sm"
@@ -175,10 +218,18 @@ const EmployeeCodeSettings = () => {
               <input
                 type="number"
                 value={settings.employee_code_counter}
-                onChange={(e) => setSettings((p) => ({ ...p, employee_code_counter: e.target.value }))}
+                onChange={(e) =>
+                  setSettings((p) => ({
+                    ...p,
+                    employee_code_counter: e.target.value,
+                  }))
+                }
                 onBlur={(e) => {
                   const val = Math.max(0, parseInt(e.target.value) || 0);
-                  setSettings((p) => ({ ...p, employee_code_counter: String(val) }));
+                  setSettings((p) => ({
+                    ...p,
+                    employee_code_counter: String(val),
+                  }));
                   handleSave("employee_code_counter", String(val));
                 }}
                 className="w-full border rounded px-2 py-1 bg-background text-sm"
@@ -202,7 +253,9 @@ const EmployeeCodeSettings = () => {
                 disabled={previewLoading}
                 className="text-xs"
               >
-                {previewLoading && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                {previewLoading && (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                )}
                 Check Next Code
               </Button>
             </div>
@@ -215,10 +268,14 @@ const EmployeeCodeSettings = () => {
               </p>
               <p>
                 <span className="text-muted-foreground">Next Number:</span>{" "}
-                <span className="font-semibold">{preview?.nextNumber ?? "—"}</span>
+                <span className="font-semibold">
+                  {preview?.nextNumber ?? "—"}
+                </span>
               </p>
               <p>
-                <span className="text-muted-foreground">Next Employee Code:</span>{" "}
+                <span className="text-muted-foreground">
+                  Next Employee Code:
+                </span>{" "}
                 <span className="font-mono font-bold text-lg text-blue-700">
                   {preview?.nextCode || "—"}
                 </span>
@@ -228,8 +285,9 @@ const EmployeeCodeSettings = () => {
 
           <div className="border-t pt-4 text-xs text-muted-foreground space-y-1">
             <p>
-              <strong>Note:</strong> Changes apply immediately to new employee creation and
-              applicant-to-employee conversion. Existing employee codes will not be changed.
+              <strong>Note:</strong> Changes apply immediately to new employee
+              creation and applicant-to-employee conversion. Existing employee
+              codes will not be changed.
             </p>
           </div>
         </CardContent>
