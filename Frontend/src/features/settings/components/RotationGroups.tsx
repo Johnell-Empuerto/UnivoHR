@@ -381,7 +381,7 @@ const RotationGroups = () => {
       {/* Members Dialog - FIXED: Added proper scrolling and height management */}
       <Dialog open={membersOpen} onOpenChange={setMembersOpen}>
         <DialogContent className="max-w-xl! max-h-[85vh] flex flex-col">
-          <DialogHeader className="flex-shrink-0">
+          <DialogHeader className="shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
               Members — {selectedGroup?.name}

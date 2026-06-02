@@ -56,13 +56,9 @@ const Setting = () => {
       </div>
 
       {/* Tabs Navigation */}
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="gap-0"
-      >
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-0">
         <TabsList
-          className="flex flex-wrap !w-full gap-2 bg-transparent !p-0 !h-auto rounded-none shadow-none border-none"
+          className="flex flex-wrap w-full! gap-2 bg-transparent p-0! h-auto! rounded-none shadow-none border-none"
           style={{ height: "auto !important" }}
         >
           {canViewAttendance && (

@@ -989,7 +989,7 @@ const ReportsPage = () => {
 
     return (
       <div className="flex flex-wrap items-end gap-3">
-        <div className="flex-1 min-w-[200px]">
+        <div className="flex-1 min-w-50">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -1007,7 +1007,7 @@ const ReportsPage = () => {
           isPayrollTab ||
           isPerformanceTab) && (
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-35">
               <SelectValue
                 placeholder={
                   isPayrollTab
@@ -1059,7 +1059,7 @@ const ReportsPage = () => {
 
         {isBenefitsTab && (
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-35">
               <SelectValue placeholder="Active Status" />
             </SelectTrigger>
             <SelectContent>
@@ -1083,7 +1083,7 @@ const ReportsPage = () => {
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="w-[150px]"
+                className="w-37.5"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -1094,7 +1094,7 @@ const ReportsPage = () => {
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="w-[150px]"
+                className="w-37.5"
               />
             </div>
           </>
@@ -1108,7 +1108,7 @@ const ReportsPage = () => {
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="w-[150px]"
+                className="w-37.5"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -1117,7 +1117,7 @@ const ReportsPage = () => {
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="w-[150px]"
+                className="w-37.5"
               />
             </div>
           </>
@@ -1164,7 +1164,7 @@ const ReportsPage = () => {
         className="gap-0"
       >
         <TabsList
-          className="flex flex-wrap !w-full gap-2 bg-transparent !p-0 !h-auto rounded-none shadow-none border-none"
+          className="flex flex-wrap w-full! gap-2 bg-transparent p-0! h-auto! rounded-none shadow-none border-none"
           style={{ height: "auto !important" }}
         >
           <TabsTrigger
@@ -1228,7 +1228,7 @@ const ReportsPage = () => {
                       setData([]);
                     }}
                   >
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-45">
                       <SelectValue placeholder="Select report" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1362,7 +1362,7 @@ const ReportsPage = () => {
                       setData([]);
                     }}
                   >
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-45">
                       <SelectValue placeholder="Select report" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1494,7 +1494,7 @@ const ReportsPage = () => {
                       setData([]);
                     }}
                   >
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-45">
                       <SelectValue placeholder="Select report" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1629,7 +1629,7 @@ const ReportsPage = () => {
                         setData([]);
                       }}
                     >
-                      <SelectTrigger className="w-[180px]">
+                      <SelectTrigger className="w-45">
                         <SelectValue placeholder="Select report" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1766,7 +1766,7 @@ const ReportsPage = () => {
                       setData([]);
                     }}
                   >
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-45">
                       <SelectValue placeholder="Select report" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1900,7 +1900,7 @@ const ReportsPage = () => {
                       setData([]);
                     }}
                   >
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-45">
                       <SelectValue placeholder="Select report" />
                     </SelectTrigger>
                     <SelectContent>

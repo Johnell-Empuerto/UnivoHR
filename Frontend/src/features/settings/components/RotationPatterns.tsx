@@ -378,10 +378,10 @@ const RotationPatterns = () => {
                         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted text-sm font-semibold text-muted-foreground">
                           {step.day_offset + 1}
                         </div>
-                        <div className="flex items-center gap-2 min-w-[90px]">
+                        <div className="flex items-center gap-2 min-w-22.5">
                           {getStepBadge(step)}
                         </div>
-                        <div className="flex items-center gap-2 min-w-[100px]">
+                        <div className="flex items-center gap-2 min-w-25">
                           <Switch
                             checked={step.is_rest_day}
                             onCheckedChange={(v) => {
