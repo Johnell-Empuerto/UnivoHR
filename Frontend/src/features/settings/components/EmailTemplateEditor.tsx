@@ -40,6 +40,7 @@ import {
 import {
   getAllTemplates,
   updateTemplate,
+  toggleTemplate,
   type EmailTemplate,
 } from "@/services/emailTemplateService";
 
@@ -238,6 +239,27 @@ const EmailTemplateEditor = () => {
       toast.error("Failed to save template");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleToggle = async (newValue: boolean) => {
+    const existing = templates.find((t) => t.type === selectedType);
+    if (!existing) {
+      toast.warning("Save the template first before toggling");
+      return;
+    }
+
+    setIsActive(newValue);
+
+    try {
+      await toggleTemplate(existing.id, newValue);
+      setTemplates((prev) =>
+        prev.map((t) => (t.id === existing.id ? { ...t, is_active: newValue } : t)),
+      );
+      toast.success(`Template ${newValue ? "activated" : "deactivated"}`);
+    } catch {
+      setIsActive(!newValue);
+      toast.error("Failed to update template status");
     }
   };
 
@@ -509,7 +531,7 @@ const EmailTemplateEditor = () => {
                   When active, this template will be used for notifications
                 </p>
               </div>
-              <Switch checked={isActive} onCheckedChange={setIsActive} />
+              <Switch checked={isActive} onCheckedChange={handleToggle} />
             </div>
 
             {/* Save Button */}

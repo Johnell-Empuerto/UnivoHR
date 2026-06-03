@@ -80,8 +80,9 @@ const AppRoutes = () => {
       if (user?.id) {
         try {
           const result = await checkIsApprover();
-          setCanAccessOvertime(result.isApprover);
-          setCanAccessManHours(result.isApprover);
+          const isAdminOrApprover = user?.role === "ADMIN" || result.isApprover;
+          setCanAccessOvertime(isAdminOrApprover);
+          setCanAccessManHours(isAdminOrApprover);
         } catch (error) {
           setCanAccessOvertime(false);
           setCanAccessManHours(false);

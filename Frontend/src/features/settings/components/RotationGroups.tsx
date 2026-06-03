@@ -32,6 +32,13 @@ import {
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   Users,
@@ -42,6 +49,8 @@ import {
   X,
   Search,
   UserPlus,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   getRotationGroups,
@@ -52,6 +61,8 @@ import {
   addGroupMembers,
   removeGroupMember,
   searchEmployees,
+  getEmployeeFilterOptions,
+  getBranches,
 } from "@/services/rotationService";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 import { formatDate } from "@/utils/formatDate";
@@ -59,6 +70,8 @@ import type {
   RotationGroup,
   GroupMember,
   SimpleEmployee,
+  FilterOptions,
+  Branch,
 } from "@/services/rotationService";
 
 const defaultForm = {
@@ -91,6 +104,17 @@ const RotationGroups = () => {
     new Date().toISOString().split("T")[0],
   );
   const [assignSaving, setAssignSaving] = useState(false);
+  const [employeePage, setEmployeePage] = useState(1);
+  const [employeeTotalPages, setEmployeeTotalPages] = useState(0);
+  const [employeeTotal, setEmployeeTotal] = useState(0);
+  const [employeeLoading, setEmployeeLoading] = useState(false);
+  const EMPLOYEES_PER_PAGE = 20;
+
+  const [filterOptions, setFilterOptions] = useState<FilterOptions | null>(null);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [filterDepartment, setFilterDepartment] = useState("");
+  const [filterPosition, setFilterPosition] = useState("");
+  const [filterBranch, setFilterBranch] = useState("");
 
   const [deleteTarget, setDeleteTarget] = useState<RotationGroup | null>(null);
   const [removeTarget, setRemoveTarget] = useState<GroupMember | null>(null);
@@ -183,18 +207,94 @@ const RotationGroups = () => {
     }
   };
 
-  const handleSearchEmployees = async (term: string) => {
-    setEmployeeSearch(term);
-    if (term.length < 1) {
-      setSearchResults([]);
-      return;
-    }
+  const loadEmployeePage = useCallback(async (term: string, page: number, dept?: string, pos?: string, branch?: string) => {
+    setEmployeeLoading(true);
     try {
-      const results = await searchEmployees(term);
-      setSearchResults(Array.isArray(results) ? results : []);
+      const result = await searchEmployees(term, page, EMPLOYEES_PER_PAGE, {
+        department: dept || undefined,
+        position: pos || undefined,
+        branch_id: branch || undefined,
+      });
+      setSearchResults(result.data);
+      setEmployeePage(result.pagination.page);
+      setEmployeeTotalPages(result.pagination.totalPages);
+      setEmployeeTotal(result.pagination.total);
     } catch {
       setSearchResults([]);
+      setEmployeeTotalPages(0);
+      setEmployeeTotal(0);
+    } finally {
+      setEmployeeLoading(false);
     }
+  }, []);
+
+  const reloadEmployeePage = async (term: string, page: number) => {
+    await loadEmployeePage(term, page, filterDepartment, filterPosition, filterBranch);
+  };
+
+  const handleSearchEmployees = async (term: string) => {
+    setEmployeeSearch(term);
+    setEmployeePage(1);
+    await reloadEmployeePage(term, 1);
+  };
+
+  const handleFilterChange = async (field: "department" | "position" | "branch", value: string) => {
+    const v = value === "__all__" ? "" : value;
+    const newDept = field === "department" ? v : filterDepartment;
+    const newPos = field === "position" ? v : filterPosition;
+    const newBranch = field === "branch" ? v : filterBranch;
+    if (field === "department") setFilterDepartment(v);
+    if (field === "position") setFilterPosition(v);
+    if (field === "branch") setFilterBranch(v);
+    setEmployeePage(1);
+    await loadEmployeePage(employeeSearch, 1, newDept, newPos, newBranch);
+  };
+
+  const goToEmployeePage = async (page: number) => {
+    if (page < 1 || page > employeeTotalPages) return;
+    await reloadEmployeePage(employeeSearch, page);
+  };
+
+  const getEmployeePageNumbers = () => {
+    const pageNumbers: (number | string)[] = [];
+    const maxPagesToShow = 5;
+    const tp = employeeTotalPages || 1;
+    if (tp <= maxPagesToShow) {
+      for (let i = 1; i <= tp; i++) pageNumbers.push(i);
+    } else {
+      if (employeePage <= 3) {
+        for (let i = 1; i <= 4; i++) pageNumbers.push(i);
+        pageNumbers.push("...");
+        pageNumbers.push(tp);
+      } else if (employeePage >= tp - 2) {
+        pageNumbers.push(1);
+        pageNumbers.push("...");
+        for (let i = tp - 3; i <= tp; i++) pageNumbers.push(i);
+      } else {
+        pageNumbers.push(1);
+        pageNumbers.push("...");
+        for (let i = employeePage - 1; i <= employeePage + 1; i++) pageNumbers.push(i);
+        pageNumbers.push("...");
+        pageNumbers.push(tp);
+      }
+    }
+    return pageNumbers;
+  };
+
+  const openAssignDialog = () => {
+    setAssignOpen(true);
+    setEmployeeSearch("");
+    setSelectedEmployees([]);
+    setSearchResults([]);
+    setEmployeePage(1);
+    setEmployeeTotalPages(0);
+    setEmployeeTotal(0);
+    setFilterDepartment("");
+    setFilterPosition("");
+    setFilterBranch("");
+    loadEmployeePage("", 1);
+    getEmployeeFilterOptions().then(setFilterOptions).catch(() => {});
+    getBranches().then(setBranches).catch(() => {});
   };
 
   const toggleEmployeeSelection = (empId: number) => {
@@ -391,12 +491,7 @@ const RotationGroups = () => {
             <div className="flex justify-end sticky top-0 bg-background z-10 pb-2">
               <Button
                 size="sm"
-                onClick={() => {
-                  setAssignOpen(true);
-                  setEmployeeSearch("");
-                  setSearchResults([]);
-                  setSelectedEmployees([]);
-                }}
+                onClick={openAssignDialog}
               >
                 <UserPlus className="h-4 w-4 mr-1" />
                 Assign Employee
@@ -464,30 +559,87 @@ const RotationGroups = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Assign Employee Dialog */}
-      <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
+      {/* Assign Employee Dialog with Pagination */}
+      <Dialog open={assignOpen} onOpenChange={(open) => { if (!open) { setAssignOpen(false); setSelectedEmployees([]); setEmployeeSearch(""); setSearchResults([]); } }}>
+        <DialogContent className="max-w-xl! max-h-[85vh] flex flex-col">
+          <DialogHeader className="shrink-0">
             <DialogTitle>Assign Employees to Group</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="flex-1 overflow-y-auto min-h-0 space-y-4">
             <div className="space-y-2">
               <Label>Search Employees</Label>
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   className="pl-8"
-                  placeholder="Type name or code..."
+                  placeholder="Type name or code to filter..."
                   value={employeeSearch}
                   onChange={(e) => handleSearchEmployees(e.target.value)}
                 />
               </div>
-              {searchResults.length > 0 && (
-                <div className="border rounded-md max-h-48 overflow-y-auto mt-1">
+            </div>
+
+            {/* Filters Row */}
+            <div className="flex flex-wrap gap-2">
+              <div className="flex-1 min-w-[140px]">
+                <Select value={filterDepartment || "__all__"} onValueChange={(v) => handleFilterChange("department", v)}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="All Departments" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All Departments</SelectItem>
+                    {filterOptions?.departments.map((d) => (
+                      <SelectItem key={d} value={d}>{d}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1 min-w-[140px]">
+                <Select value={filterPosition || "__all__"} onValueChange={(v) => handleFilterChange("position", v)}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="All Positions" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All Positions</SelectItem>
+                    {filterOptions?.positions.map((p) => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex-1 min-w-[140px]">
+                <Select value={filterBranch || "__all__"} onValueChange={(v) => handleFilterChange("branch", v)}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="All Branches" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All Branches</SelectItem>
+                    {branches.map((b) => (
+                      <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {employeeLoading ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                Loading employees...
+              </div>
+            ) : searchResults.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                No employees found.
+              </div>
+            ) : (
+              <>
+                <div className="text-xs text-muted-foreground">
+                  Showing page {employeePage} of {employeeTotalPages || 1} ({employeeTotal} total employees)
+                </div>
+                <div className="border rounded-md">
                   {searchResults.map((emp) => (
                     <div
                       key={emp.id}
-                      className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent text-sm ${
+                      className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-accent text-sm border-b last:border-b-0 ${
                         selectedEmployees.includes(emp.id) ? "bg-accent" : ""
                       }`}
                       onClick={() => toggleEmployeeSelection(emp.id)}
@@ -496,24 +648,68 @@ const RotationGroups = () => {
                         type="checkbox"
                         checked={selectedEmployees.includes(emp.id)}
                         onChange={() => {}}
-                        className="h-4 w-4"
+                        className="h-4 w-4 shrink-0"
                       />
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {emp.employee_code}
-                      </span>
-                      <span>
-                        {emp.last_name}, {emp.first_name}
-                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs text-muted-foreground">
+                            {emp.employee_code}
+                          </span>
+                          <span className="font-medium truncate">
+                            {emp.last_name}, {emp.first_name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          {emp.department && <span>{emp.department}</span>}
+                          {emp.position && <span>&middot; {emp.position}</span>}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
-              )}
-              {selectedEmployees.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {selectedEmployees.length} employee(s) selected
-                </p>
-              )}
-            </div>
+
+                {/* Pagination Controls */}
+                <div className="flex items-center justify-center gap-2 pt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => goToEmployeePage(employeePage - 1)}
+                    disabled={employeePage <= 1 || employeeLoading}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  {getEmployeePageNumbers().map((page, index) => (
+                    <Button
+                      key={index}
+                      variant={employeePage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => typeof page === "number" && goToEmployeePage(page)}
+                      disabled={page === "..." || employeeLoading}
+                      className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => goToEmployeePage(employeePage + 1)}
+                    disabled={employeePage >= employeeTotalPages || employeeLoading}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {selectedEmployees.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {selectedEmployees.length} employee(s) selected
+              </p>
+            )}
+
             <div className="space-y-2">
               <Label>Start Date</Label>
               <Input
@@ -523,7 +719,7 @@ const RotationGroups = () => {
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="shrink-0">
             <Button
               variant="outline"
               onClick={() => {

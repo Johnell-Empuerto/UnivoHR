@@ -5,7 +5,7 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-background">
       <Helmet>
-        <title>Login | HRMS</title>
+        <title>Login | UnivoHR</title>
       </Helmet>
       <LoginForm />
     </div>

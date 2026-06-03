@@ -14,7 +14,7 @@ router.post("/", authenticate, requirePermission("manhours.manage"), controller.
 router.put("/:id", authenticate, requirePermission("manhours.manage"), controller.updateManHourReport);
 router.delete("/:id", authenticate, requirePermission("manhours.manage"), controller.deleteManHourReport);
 
-router.get("/is-approver", authenticate, requirePermission("manhours.view"));
+router.get("/is-approver", authenticate, requirePermission("manhours.view"), controller.isApprover);
 router.get("/download", authenticate, requirePermission("manhours.view"), controller.downloadManHourReports);
 
 router.get("/:id", authenticate, async (req, res, next) => {

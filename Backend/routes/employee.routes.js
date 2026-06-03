@@ -13,5 +13,6 @@ router.put("/:id", authenticate, requirePermission("employees.edit"), requireBra
 router.get("/regularization/due", authenticate, requirePermission("employees.edit"), requireBranchAccessFromQuery(), controller.getDueForRegularization);
 router.post("/regularization/:id/approve", authenticate, requirePermission("employees.edit"), controller.approveRegularization);
 router.get("/employment-stats", authenticate, requirePermission("dashboard.view"), requireBranchAccessFromQuery(), controller.getEmploymentStats);
+router.get("/filter-options", authenticate, controller.getFilterOptions);
 
 module.exports = router;

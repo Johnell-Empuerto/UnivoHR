@@ -18,15 +18,14 @@ import {
   Loader2,
   TrendingUp,
   AlertCircle,
-  DollarSign,
   Moon,
   Sun,
-  BookOpen,
   Users,
   ArrowRight,
   Shield,
   Zap,
   BarChart3,
+  ListChecks,
 } from "lucide-react";
 import { useTheme } from "@/app/providers/ThemeProvider";
 import smallIcon from "@/assets/images/small-icon.png";
@@ -123,7 +122,7 @@ const LoginForm = () => {
   const attendanceRate = useCountUp(94.8, 2000, "%");
   const pendingLeaves = useCountUp(12, 1500, "");
   const totalEmployees = useCountUp(156, 1800, "");
-  const monthlyPayroll = useCountUp(21845, 2000, "", "$");
+  const activeTasks = useCountUp(24, 1500, "");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,17 +194,8 @@ const LoginForm = () => {
 
   return (
     <div className="min-h-screen bg-linear-to-brrom-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex flex-col justify-start md:items-center md:justify-center px-2 py-4 md:p-8 lg:p-10 w-full">
-      {/* Docs + Theme (top-right) */}
+      {/* Theme toggle (top-right) */}
       <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => navigate("/docs")}
-          className="p-2.5 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300"
-          aria-label="Open user manual"
-          title="User Manual"
-        >
-          <BookOpen className="h-5 w-5 text-primary" />
-        </button>
         <button
           type="button"
           onClick={toggleTheme}
@@ -239,13 +229,13 @@ const LoginForm = () => {
                   UnivoHR
                 </h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Enterprise HR & Payroll Solution
+                  Unified HR & Operations Platform
                 </p>
               </div>
             </div>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Complete attendance tracking, leave management, and automated
-              payroll system for modern businesses.
+              Manage attendance, leave, payroll, employee self-service, and daily
+              operations in one secure platform.
             </p>
           </div>
 
@@ -320,17 +310,17 @@ const LoginForm = () => {
               <div className="relative">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm font-medium text-muted-foreground">
-                    Monthly Payroll
+                    Active Tasks
                   </p>
-                  <DollarSign className="h-5 w-5 text-violet-500" />
+                  <ListChecks className="h-5 w-5 text-violet-500" />
                 </div>
                 <p
-                  ref={monthlyPayroll.ref}
+                  ref={activeTasks.ref}
                   className="text-3xl font-bold text-violet-600 dark:text-violet-400"
                 >
-                  {monthlyPayroll.count}
+                  {activeTasks.count}
                 </p>
-                <p className="text-xs text-muted-foreground mt-2">This month</p>
+                <p className="text-xs text-muted-foreground mt-2">Ongoing operations</p>
               </div>
             </div>
           </div>
@@ -400,7 +390,7 @@ const LoginForm = () => {
                   Welcome Back
                 </CardTitle>
                 <CardDescription className="text-center lg:text-left">
-                  Sign in to access your dashboard
+                  Sign in to access your workspace
                 </CardDescription>
               </CardHeader>
 
@@ -408,7 +398,7 @@ const LoginForm = () => {
                 <form onSubmit={handleLogin} className="space-y-5">
                   <div className="space-y-2">
                     <Label htmlFor="username" className="text-sm font-medium">
-                      Email / Username
+                      Email or Username
                     </Label>
                     <Input
                       id="username"
@@ -417,7 +407,7 @@ const LoginForm = () => {
                       onChange={(e) =>
                         setForm({ ...form, username: e.target.value })
                       }
-                      placeholder="Enter your email or username"
+                      placeholder="Email or Username"
                       disabled={isLoading}
                       className="h-11 focus:ring-2 focus:ring-primary/20 transition-all"
                     />
@@ -443,7 +433,7 @@ const LoginForm = () => {
                       onChange={(e) =>
                         setForm({ ...form, password: e.target.value })
                       }
-                      placeholder="Enter your password"
+                      placeholder="Password"
                       disabled={isLoading}
                       className="h-11 focus:ring-2 focus:ring-primary/20 transition-all"
                     />
@@ -486,16 +476,6 @@ const LoginForm = () => {
                 </p>
 
                 <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                  <button
-                    type="button"
-                    className="hover:text-foreground transition-colors inline-flex items-center gap-1"
-                    onClick={() => navigate("/docs")}
-                    title="User Manual"
-                  >
-                    <BookOpen className="h-3.5 w-3.5" />
-                    User Manual
-                  </button>
-                  <span className="hidden sm:inline">•</span>
                   <button
                     type="button"
                     className="hover:text-foreground transition-colors"

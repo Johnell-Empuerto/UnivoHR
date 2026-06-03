@@ -33,10 +33,11 @@ import {
   getEmployeeRestDays,
   createEmployeeRestDay,
   deleteEmployeeRestDay,
+  getBranchRestDays,
   getDayLabel,
   getAllDayLabels,
 } from "@/services/restDayService";
-import type { EmployeeRestDay } from "@/services/restDayService";
+import type { EmployeeRestDay, BranchRestDay } from "@/services/restDayService";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers/AuthProvider";
 
@@ -172,6 +173,8 @@ const EmployeeDrawer = ({
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [restDays, setRestDays] = useState<EmployeeRestDay[]>([]);
   const [restDaysLoading, setRestDaysLoading] = useState(false);
+  const [branchRestDays, setBranchRestDays] = useState<BranchRestDay[]>([]);
+  const [branchRestDaysLoading, setBranchRestDaysLoading] = useState(false);
 
   const [familyOpen, setFamilyOpen] = useState(false);
   const [familyData, setFamilyData] = useState<any[]>([]);
@@ -213,6 +216,19 @@ const EmployeeDrawer = ({
         .finally(() => setRestDaysLoading(false));
     }
   }, [employee?.id, mode]);
+
+  useEffect(() => {
+    const branchId = employee?.branch_id;
+    if (branchId && (mode === "edit" || mode === "view")) {
+      setBranchRestDaysLoading(true);
+      getBranchRestDays(branchId)
+        .then(setBranchRestDays)
+        .catch(() => setBranchRestDays([]))
+        .finally(() => setBranchRestDaysLoading(false));
+    } else {
+      setBranchRestDays([]);
+    }
+  }, [employee?.branch_id, mode]);
 
   const canEditMode =
     (mode === "edit" && canEdit) || (mode === "create" && canCreate);
@@ -1481,76 +1497,111 @@ const EmployeeDrawer = ({
                   </select>
                 </div>
 
-                {/* REST DAYS */}
+                {/* REST DAY OVERRIDES */}
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">
-                    Rest Days {restDaysLoading && <span className="text-xs italic">(loading...)</span>}
+                    Rest Day Overrides {restDaysLoading && <span className="text-xs italic">(loading...)</span>}
                   </p>
-                  {restDays.length === 0 && !restDaysLoading && (
-                    <p className="text-xs text-muted-foreground italic">No rest days configured.</p>
-                  )}
-                  {restDays.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {restDays.map((rd) => (
-                        <span
-                          key={rd.id}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-800"
-                        >
-                          {getDayLabel(rd.day_of_week)}
-                          {canEditMode && (
-                            <button
-                              onClick={async () => {
-                                try {
-                                  await deleteEmployeeRestDay(rd.id);
-                                  setRestDays((prev) => prev.filter((r) => r.id !== rd.id));
-                                  toast.success("Rest day removed");
-                                } catch { toast.error("Failed to remove rest day"); }
-                              }}
-                              className="text-blue-800 hover:text-red-600 ml-0.5"
+
+                  {!employee?.id ? (
+                    // ── CREATE MODE: explain inheritance, no Add button ──
+                    <p className="text-xs text-muted-foreground italic">
+                      Rest days are inherited from the selected branch. Save employee first to configure individual overrides.
+                    </p>
+                  ) : (
+                    // ── EDIT / VIEW MODE ──
+                    <>
+                      <p className="text-xs text-muted-foreground italic">
+                        Overrides the branch default rest days for this employee.
+                      </p>
+
+                      {/* Branch default rest days (informational) */}
+                      {branchRestDays.length > 0 && (
+                        <div>
+                          <p className="text-[10px] text-muted-foreground">Branch Default Rest Days</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {branchRestDays.map((brd) => (
+                              <span
+                                key={brd.id}
+                                className="inline-flex items-center px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                              >
+                                {getDayLabel(brd.day_of_week)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Employee overrides */}
+                      {restDays.length === 0 && !restDaysLoading && (
+                        <p className="text-xs text-muted-foreground italic">No rest days configured.</p>
+                      )}
+                      {restDays.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {restDays.map((rd) => (
+                            <span
+                              key={rd.id}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
                             >
-                              ×
-                            </button>
-                          )}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {canEditMode && (
-                    <div className="flex gap-1">
-                      <select
-                        id="rest-day-select"
-                        className="flex-1 border rounded px-2 py-1 text-xs bg-background"
-                        defaultValue=""
-                      >
-                        <option value="" disabled>Select day...</option>
-                        {getAllDayLabels().map((label, idx) => (
-                          <option key={idx} value={idx}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          const sel = document.getElementById("rest-day-select") as HTMLSelectElement;
-                          const dow = parseInt(sel?.value);
-                          if (isNaN(dow) || !employee?.id) return;
-                          if (restDays.some((r) => r.day_of_week === dow)) {
-                            toast.error("Rest day already added");
-                            return;
-                          }
-                          try {
-                            const created = await createEmployeeRestDay(employee.id, { day_of_week: dow });
-                            setRestDays((prev) => [...prev, created]);
-                            sel.value = "";
-                            toast.success("Rest day added");
-                          } catch { toast.error("Failed to add rest day"); }
-                        }}
-                        className="px-2 py-1 text-xs bg-primary text-white rounded hover:bg-primary/90 disabled:opacity-50"
-                      >
-                        + Add
-                      </button>
-                    </div>
+                              {getDayLabel(rd.day_of_week)}
+                              {canEditMode && (
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      await deleteEmployeeRestDay(rd.id);
+                                      setRestDays((prev) => prev.filter((r) => r.id !== rd.id));
+                                      toast.success("Rest day removed");
+                                    } catch { toast.error("Failed to remove rest day"); }
+                                  }}
+                                  className="text-blue-800 hover:text-red-600 ml-0.5 dark:text-blue-400"
+                                >
+                                  ×
+                                </button>
+                              )}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Add button and selector (edit mode only) */}
+                      {canEditMode && (
+                        <div className="flex gap-1">
+                          <select
+                            id="rest-day-select"
+                            className="flex-1 border rounded px-2 py-1 text-xs bg-background"
+                            defaultValue=""
+                          >
+                            <option value="" disabled>Select day...</option>
+                            {getAllDayLabels().map((label, idx) => (
+                              <option key={idx} value={idx}>
+                                {label}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const sel = document.getElementById("rest-day-select") as HTMLSelectElement;
+                              const dow = parseInt(sel?.value);
+                              if (isNaN(dow) || !employee?.id) return;
+                              if (restDays.some((r) => r.day_of_week === dow)) {
+                                toast.error("Rest day already added");
+                                return;
+                              }
+                              try {
+                                const created = await createEmployeeRestDay(employee.id, { day_of_week: dow });
+                                setRestDays((prev) => [...prev, created]);
+                                sel.value = "";
+                                toast.success("Rest day added");
+                              } catch { toast.error("Failed to add rest day"); }
+                            }}
+                            className="px-2 py-1 text-xs bg-primary text-white rounded hover:bg-primary/90 disabled:opacity-50"
+                          >
+                            + Add
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

@@ -1,24 +1,46 @@
 const pool = require("../config/db");
 const { EMPLOYMENT_STATUS } = require("../constants/employmentStatus");
 
-const getEmployees = async (page = 1, limit = 10, search = "", status = "", allowedBranchIds = null) => {
+const getEmployees = async (page = 1, limit = 10, search = "", status = "", allowedBranchIds = null, department = "", position = "") => {
   const offset = (page - 1) * limit;
   const searchValue = `%${search}%`;
 
-  const isUnrestricted = allowedBranchIds === null;
-  let dataBranchClause = "";
-  let countBranchClause = "";
-  let branchParams = [];
+  const dataParams = [limit, offset, searchValue, status];
+  const countParams = [searchValue, status];
+  let dataWhere = "";
+  let countWhere = "";
+  let dataParamIdx = 5;
+  let countParamIdx = 3;
 
+  const isUnrestricted = allowedBranchIds === null;
   if (!isUnrestricted && Array.isArray(allowedBranchIds)) {
     if (allowedBranchIds.length === 0) {
-      dataBranchClause = "AND 1=0";
-      countBranchClause = "AND 1=0";
+      dataWhere = "AND 1=0";
+      countWhere = "AND 1=0";
     } else {
-      branchParams = [allowedBranchIds];
-      dataBranchClause = `AND e.branch_id = ANY($5)`;
-      countBranchClause = `AND e.branch_id = ANY($3)`;
+      dataParams.push(allowedBranchIds);
+      countParams.push(allowedBranchIds);
+      dataWhere = `AND e.branch_id = ANY($${dataParamIdx})`;
+      countWhere = `AND e.branch_id = ANY($${countParamIdx})`;
+      dataParamIdx++;
+      countParamIdx++;
     }
+  }
+
+  if (department) {
+    dataParams.push(department);
+    countParams.push(department);
+    dataWhere += ` AND e.department = $${dataParamIdx}`;
+    countWhere += ` AND e.department = $${countParamIdx}`;
+    dataParamIdx++;
+    countParamIdx++;
+  }
+
+  if (position) {
+    dataParams.push(position);
+    countParams.push(position);
+    dataWhere += ` AND e.position = $${dataParamIdx}`;
+    countWhere += ` AND e.position = $${countParamIdx}`;
   }
 
   const dataQuery = await pool.query(
@@ -35,11 +57,11 @@ const getEmployees = async (page = 1, limit = 10, search = "", status = "", allo
         CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $3
       )
       AND ($4 = '' OR e.status = $4)
-      ${dataBranchClause}
+      ${dataWhere}
     ORDER BY e.id DESC
     LIMIT $1 OFFSET $2
     `,
-    [limit, offset, searchValue, status, ...branchParams],
+    dataParams,
   );
 
   const countQuery = await pool.query(
@@ -55,9 +77,9 @@ const getEmployees = async (page = 1, limit = 10, search = "", status = "", allo
         CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $1
       )
       AND ($2 = '' OR e.status = $2)
-      ${countBranchClause}
+      ${countWhere}
     `,
-    [searchValue, status, ...branchParams],
+    countParams,
   );
 
   const total = parseInt(countQuery.rows[0].count);
@@ -71,6 +93,20 @@ const getEmployees = async (page = 1, limit = 10, search = "", status = "", allo
       totalPages: Math.ceil(total / limit),
     },
   };
+};
+
+const getDepartments = async () => {
+  const result = await pool.query(
+    `SELECT DISTINCT department FROM employees WHERE department IS NOT NULL AND department != '' ORDER BY department ASC`
+  );
+  return result.rows.map(r => r.department);
+};
+
+const getPositions = async () => {
+  const result = await pool.query(
+    `SELECT DISTINCT position FROM employees WHERE position IS NOT NULL AND position != '' ORDER BY position ASC`
+  );
+  return result.rows.map(r => r.position);
 };
 
 const createEmployee = async (data, client = null) => {
@@ -339,4 +375,6 @@ module.exports = {
   updateEmployeeStatusToTerminated,
   getProbationaryEmployeesDueForRegularization,
   getEmploymentStats,
+  getDepartments,
+  getPositions,
 };

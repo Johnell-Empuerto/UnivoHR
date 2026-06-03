@@ -5,8 +5,16 @@ const { initializeNewEmployee } = require("./employeeInit.service");
 const notificationHelper = require("./notificationHelper.service");
 const { EMPLOYMENT_STATUS, COMPANY_DEFAULT_PROBATION_MONTHS } = require("../constants/employmentStatus");
 
-const getEmployees = async (page, limit, search, status, allowedBranchIds) => {
-  return await employeeModel.getEmployees(page, limit, search, status, allowedBranchIds);
+const getEmployees = async (page, limit, search, status, allowedBranchIds, department, position) => {
+  return await employeeModel.getEmployees(page, limit, search, status, allowedBranchIds, department, position);
+};
+
+const getFilterOptions = async () => {
+  const [departments, positions] = await Promise.all([
+    employeeModel.getDepartments(),
+    employeeModel.getPositions(),
+  ]);
+  return { departments, positions };
 };
 
 const createEmployee = async (data) => {
@@ -186,4 +194,5 @@ module.exports = {
   getProbationaryEmployeesDueForRegularization,
   approveRegularization,
   getEmploymentStats,
+  getFilterOptions,
 };

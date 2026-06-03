@@ -204,16 +204,60 @@ export interface SimpleEmployee {
   employee_code: string;
   first_name: string;
   last_name: string;
+  middle_name?: string;
   department: string;
+  position?: string;
   status: string;
+}
+
+export interface PaginationInfo {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface PaginatedEmployees {
+  data: SimpleEmployee[];
+  pagination: PaginationInfo;
 }
 
 export const searchEmployees = async (
   search: string = "",
-  limit: number = 50
-): Promise<SimpleEmployee[]> => {
-  const response = await api.get("/employees", {
-    params: { page: 1, limit, search, status: "ACTIVE" },
-  });
-  return response.data?.data || response.data?.employees || response.data || [];
+  page: number = 1,
+  limit: number = 20,
+  filters?: { department?: string; position?: string; branch_id?: string }
+): Promise<PaginatedEmployees> => {
+  const params: Record<string, string | number> = { page, limit, search, status: "ACTIVE" };
+  if (filters?.department) params.department = filters.department;
+  if (filters?.position) params.position = filters.position;
+  if (filters?.branch_id) params.branch_id = filters.branch_id;
+  const response = await api.get("/employees", { params });
+  const result = response.data;
+  return {
+    data: result?.data || result?.employees || [],
+    pagination: result?.pagination || { total: 0, page: 1, limit: 20, totalPages: 0 },
+  };
+};
+
+export interface FilterOptions {
+  departments: string[];
+  positions: string[];
+}
+
+export interface Branch {
+  id: number;
+  name: string;
+  code: string;
+  is_active?: boolean;
+}
+
+export const getEmployeeFilterOptions = async (): Promise<FilterOptions> => {
+  const response = await api.get("/employees/filter-options");
+  return response.data;
+};
+
+export const getBranches = async (): Promise<Branch[]> => {
+  const response = await api.get("/branches/active");
+  return response.data;
 };

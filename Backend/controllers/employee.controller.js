@@ -32,7 +32,7 @@ const createEmployee = async (req, res) => {
 
 const getEmployees = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = "", status = "" } = req.query;
+    const { page = 1, limit = 10, search = "", status = "", department = "", position = "" } = req.query;
 
     const data = await employeeService.getEmployees(
       page,
@@ -40,9 +40,20 @@ const getEmployees = async (req, res) => {
       search,
       status,
       req.allowedBranchIds,
+      department,
+      position,
     );
 
     res.json(data);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const getFilterOptions = async (req, res) => {
+  try {
+    const options = await employeeService.getFilterOptions();
+    res.json(options);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -151,4 +162,5 @@ module.exports = {
   getDueForRegularization,
   approveRegularization,
   getEmploymentStats,
+  getFilterOptions,
 };

@@ -25,7 +25,7 @@ const create = async (req, res) => {
 
 const update = async (req, res) => {
   try {
-    const row = await employeeRestDayService.update(req.params.id, req.body);
+    const row = await employeeRestDayService.update(req.params.employeeId, req.body);
     if (!row) return res.status(404).json({ message: "Rest day not found" });
     res.json(row);
   } catch (error) {
@@ -35,7 +35,7 @@ const update = async (req, res) => {
 
 const remove = async (req, res) => {
   try {
-    const row = await employeeRestDayService.remove(req.params.id);
+    const row = await employeeRestDayService.remove(req.params.employeeId);
     if (!row) return res.status(404).json({ message: "Rest day not found" });
     res.json({ message: "Rest day removed", data: row });
   } catch (error) {

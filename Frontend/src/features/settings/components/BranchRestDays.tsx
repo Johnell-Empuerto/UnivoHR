@@ -22,6 +22,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Sun, Trash2, Plus } from "lucide-react";
 
 interface Branch {
@@ -35,6 +42,8 @@ const BranchRestDays = () => {
   const [branchRestDays, setBranchRestDays] = useState<BranchRestDay[]>([]);
   const [loading, setLoading] = useState(false);
   const [branchFilter, setBranchFilter] = useState("");
+  const [selectedBranchId, setSelectedBranchId] = useState("");
+  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState("");
 
   const fetchData = async () => {
     setLoading(true);
@@ -53,7 +62,7 @@ const BranchRestDays = () => {
     fetchData();
   }, []);
 
-  const filtered = branchFilter
+  const filtered = branchFilter && branchFilter !== "all"
     ? branchRestDays.filter((r) => r.branch_id === parseInt(branchFilter))
     : branchRestDays;
 
@@ -61,10 +70,8 @@ const BranchRestDays = () => {
     branches.find((b) => b.id === branchId)?.name || `Branch #${branchId}`;
 
   const handleAdd = async () => {
-    const sel = document.getElementById("branch-select") as HTMLSelectElement;
-    const dowSel = document.getElementById("branch-dow-select") as HTMLSelectElement;
-    const branchId = parseInt(sel?.value);
-    const dow = parseInt(dowSel?.value);
+    const branchId = parseInt(selectedBranchId);
+    const dow = parseInt(selectedDayOfWeek);
 
     if (isNaN(branchId) || isNaN(dow)) {
       toast.error("Select a branch and day");
@@ -79,7 +86,8 @@ const BranchRestDays = () => {
     try {
       const created = await createBranchRestDay(branchId, { day_of_week: dow });
       setBranchRestDays((prev) => [...prev, created]);
-      dowSel.value = "";
+      setSelectedBranchId("");
+      setSelectedDayOfWeek("");
       toast.success("Branch rest day added");
     } catch {
       toast.error("Failed to add");
@@ -113,29 +121,29 @@ const BranchRestDays = () => {
         <div className="flex gap-2 items-end">
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Branch</p>
-            <select
-              id="branch-select"
-              className="border rounded px-2 py-1.5 text-sm bg-background"
-              defaultValue=""
-            >
-              <option value="" disabled>Select branch...</option>
-              {branches.map((b) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
+            <Select value={selectedBranchId} onValueChange={setSelectedBranchId}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select branch..." />
+              </SelectTrigger>
+              <SelectContent>
+                {branches.map((b) => (
+                  <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Rest Day</p>
-            <select
-              id="branch-dow-select"
-              className="border rounded px-2 py-1.5 text-sm bg-background"
-              defaultValue=""
-            >
-              <option value="" disabled>Select day...</option>
-              {getAllDayLabels().map((label, idx) => (
-                <option key={idx} value={idx}>{label}</option>
-              ))}
-            </select>
+            <Select value={selectedDayOfWeek} onValueChange={setSelectedDayOfWeek}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select day..." />
+              </SelectTrigger>
+              <SelectContent>
+                {getAllDayLabels().map((label, idx) => (
+                  <SelectItem key={idx} value={String(idx)}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <Button onClick={handleAdd} size="sm" className="gap-1">
             <Plus className="w-4 h-4" /> Add
@@ -143,16 +151,17 @@ const BranchRestDays = () => {
         </div>
 
         <div className="flex gap-2">
-          <select
-            className="border rounded px-2 py-1 text-xs bg-background"
-            value={branchFilter}
-            onChange={(e) => setBranchFilter(e.target.value)}
-          >
-            <option value="">All Branches</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
+          <Select value={branchFilter} onValueChange={setBranchFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="All Branches" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Branches</SelectItem>
+              {branches.map((b) => (
+                <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {loading ? (

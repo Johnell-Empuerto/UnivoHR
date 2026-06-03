@@ -45,6 +45,8 @@ import {
   UserPlus,
   X,
   History,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   getRotationGroups,
@@ -52,12 +54,16 @@ import {
   addGroupMembers,
   removeGroupMember,
   searchEmployees,
+  getEmployeeFilterOptions,
+  getBranches,
 } from "@/services/rotationService";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 import type {
   RotationGroup,
   EmployeeRotationAssignment,
   SimpleEmployee,
+  FilterOptions,
+  Branch,
 } from "@/services/rotationService";
 
 const EmployeeRotation = () => {
@@ -78,6 +84,17 @@ const EmployeeRotation = () => {
 
   const [endConfirmTarget, setEndConfirmTarget] = useState(false);
 
+  const [searchPage, setSearchPage] = useState(1);
+  const [searchTotalPages, setSearchTotalPages] = useState(0);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const EMPLOYEES_PER_PAGE = 20;
+
+  const [filterOptions, setFilterOptions] = useState<FilterOptions | null>(null);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [filterDepartment, setFilterDepartment] = useState("");
+  const [filterPosition, setFilterPosition] = useState("");
+  const [filterBranch, setFilterBranch] = useState("");
+
   const fetchGroups = useCallback(async () => {
     try {
       const data = await getRotationGroups();
@@ -89,20 +106,87 @@ const EmployeeRotation = () => {
 
   useEffect(() => {
     fetchGroups();
+    getEmployeeFilterOptions().then(setFilterOptions).catch(() => {});
+    getBranches().then(setBranches).catch(() => {});
   }, [fetchGroups]);
+
+  const loadSearchPage = async (term: string, page: number, dept?: string, pos?: string, branch?: string) => {
+    setSearchLoading(true);
+    try {
+      const result = await searchEmployees(term, page, EMPLOYEES_PER_PAGE, {
+        department: dept || undefined,
+        position: pos || undefined,
+        branch_id: branch || undefined,
+      });
+      setSearchResults(result.data);
+      setSearchPage(result.pagination.page);
+      setSearchTotalPages(result.pagination.totalPages);
+    } catch {
+      if (term.length >= 1) setSearchResults([]);
+      setSearchTotalPages(0);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const reloadSearchPage = async (term: string, page: number) => {
+    await loadSearchPage(term, page, filterDepartment, filterPosition, filterBranch);
+  };
 
   const handleSearch = async (term: string) => {
     setSearchTerm(term);
+    setSearchPage(1);
     if (term.length < 1) {
       setSearchResults([]);
+      setSearchTotalPages(0);
       return;
     }
-    try {
-      const results = await searchEmployees(term);
-      setSearchResults(Array.isArray(results) ? results : []);
-    } catch {
-      setSearchResults([]);
+    await reloadSearchPage(term, 1);
+  };
+
+  const handleFilterChange = async (field: "department" | "position" | "branch", value: string) => {
+    const v = value === "__all__" ? "" : value;
+    const newDept = field === "department" ? v : filterDepartment;
+    const newPos = field === "position" ? v : filterPosition;
+    const newBranch = field === "branch" ? v : filterBranch;
+    if (field === "department") setFilterDepartment(v);
+    if (field === "position") setFilterPosition(v);
+    if (field === "branch") setFilterBranch(v);
+    setSearchPage(1);
+    if (searchTerm.length >= 1) {
+      await loadSearchPage(searchTerm, 1, newDept, newPos, newBranch);
     }
+  };
+
+  const goToSearchPage = async (page: number) => {
+    if (page < 1 || page > searchTotalPages) return;
+    await reloadSearchPage(searchTerm, page);
+  };
+
+  const getSearchPageNumbers = () => {
+    const pageNumbers: (number | string)[] = [];
+    const maxPagesToShow = 5;
+    const tp = searchTotalPages || 1;
+    if (tp <= maxPagesToShow) {
+      for (let i = 1; i <= tp; i++) pageNumbers.push(i);
+    } else {
+      if (searchPage <= 3) {
+        for (let i = 1; i <= 4; i++) pageNumbers.push(i);
+        pageNumbers.push("...");
+        pageNumbers.push(tp);
+      } else if (searchPage >= tp - 2) {
+        pageNumbers.push(1);
+        pageNumbers.push("...");
+        for (let i = tp - 3; i <= tp; i++) pageNumbers.push(i);
+      } else {
+        pageNumbers.push(1);
+        pageNumbers.push("...");
+        for (let i = searchPage - 1; i <= searchPage + 1; i++) pageNumbers.push(i);
+        pageNumbers.push("...");
+        pageNumbers.push(tp);
+      }
+    }
+    return pageNumbers;
   };
 
   const selectEmployee = async (emp: SimpleEmployee) => {
@@ -202,26 +286,114 @@ const EmployeeRotation = () => {
                 </Button>
               )}
             </div>
-            {searchResults.length > 0 && !selectedEmployee && (
-              <div className="border rounded-md max-h-48 overflow-y-auto mt-1">
-                {searchResults.map((emp) => (
-                  <div
-                    key={emp.id}
-                    className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent text-sm"
-                    onClick={() => selectEmployee(emp)}
-                  >
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {emp.employee_code}
-                    </span>
-                    <span>
-                      {emp.last_name}, {emp.first_name}
-                    </span>
-                    <span className="text-xs text-muted-foreground ml-auto">
-                      {emp.department}
-                    </span>
-                  </div>
-                ))}
+
+            {/* Filters Row */}
+            {!selectedEmployee && (
+              <div className="flex flex-wrap gap-2">
+                <div className="flex-1 min-w-[130px]">
+                  <Select value={filterDepartment || "__all__"} onValueChange={(v) => handleFilterChange("department", v)}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="All Departments" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All Departments</SelectItem>
+                      {filterOptions?.departments.map((d) => (
+                        <SelectItem key={d} value={d}>{d}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1 min-w-[130px]">
+                  <Select value={filterPosition || "__all__"} onValueChange={(v) => handleFilterChange("position", v)}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="All Positions" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All Positions</SelectItem>
+                      {filterOptions?.positions.map((p) => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1 min-w-[130px]">
+                  <Select value={filterBranch || "__all__"} onValueChange={(v) => handleFilterChange("branch", v)}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="All Branches" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__all__">All Branches</SelectItem>
+                      {branches.map((b) => (
+                        <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+            )}
+
+            {searchLoading && (
+              <div className="text-center py-3 text-xs text-muted-foreground">
+                Searching...
+              </div>
+            )}
+            {!searchLoading && searchResults.length > 0 && !selectedEmployee && (
+              <>
+                <div className="border rounded-md">
+                  {searchResults.map((emp) => (
+                    <div
+                      key={emp.id}
+                      className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-accent text-sm border-b last:border-b-0"
+                      onClick={() => selectEmployee(emp)}
+                    >
+                      <span className="font-mono text-xs text-muted-foreground shrink-0">
+                        {emp.employee_code}
+                      </span>
+                      <span className="font-medium truncate">
+                        {emp.last_name}, {emp.first_name}
+                      </span>
+                      <span className="text-xs text-muted-foreground ml-auto shrink-0">
+                        {emp.department}
+                        {emp.position ? ` · ${emp.position}` : ""}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {searchTotalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => goToSearchPage(searchPage - 1)}
+                      disabled={searchPage <= 1}
+                      className="h-7 w-7 p-0"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                    </Button>
+                    {getSearchPageNumbers().map((page, index) => (
+                      <Button
+                        key={index}
+                        variant={searchPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => typeof page === "number" && goToSearchPage(page)}
+                        disabled={page === "..."}
+                        className={`h-7 w-7 p-0 text-xs ${page === "..." ? "cursor-default" : ""}`}
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => goToSearchPage(searchPage + 1)}
+                      disabled={searchPage >= searchTotalPages}
+                      className="h-7 w-7 p-0"
+                    >
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
