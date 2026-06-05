@@ -155,6 +155,16 @@ const getEmploymentStats = async (req, res) => {
   }
 };
 
+const searchEmployees = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search, employee_code, employee_name } = req.query;
+    const result = await employeeService.searchEmployees({ page, limit, search, employee_code, employee_name });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createEmployee,
   getEmployees,
@@ -163,4 +173,5 @@ module.exports = {
   approveRegularization,
   getEmploymentStats,
   getFilterOptions,
+  searchEmployees,
 };

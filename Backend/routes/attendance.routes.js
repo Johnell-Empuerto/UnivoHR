@@ -44,6 +44,12 @@ router.put("/time-requests/:id/status", authenticate, requirePermission("attenda
 // ATTENDANCE
 router.post("/", authenticate, requirePermission("attendance.manage"), controller.createAttendance);
 router.get("/", authenticate, requirePermission("attendance.view"), requireBranchAccessFromQuery("branch_id"), controller.getAttendance);
+
+// WEB CLOCK IN/OUT — must be before /:id to avoid Express matching "clock-in" as a parameter
+router.post("/clock-in", authenticate, requirePermission("attendance.clock_in"), controller.webClockIn);
+router.post("/clock-out", authenticate, requirePermission("attendance.clock_in"), controller.webClockOut);
+
+// Parameterized route — must be last to avoid catching static paths
 router.get("/:id", authenticate, requirePermission("attendance.view"), controller.getByEmployee);
 
 module.exports = router;

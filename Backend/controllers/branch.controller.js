@@ -48,7 +48,7 @@ const create = async (req, res) => {
       table_name: "branches",
       record_id: branch.id,
       branch_id: branch.id,
-      new_values: { code: branch.code, name: branch.name, address: branch.address, city: branch.city, province: branch.province, phone: branch.phone, is_active: branch.is_active },
+      new_values: { code: branch.code, name: branch.name, address: branch.address, city: branch.city, province: branch.province, phone: branch.phone, timezone: branch.timezone, is_active: branch.is_active },
       description: `Branch created: ${branch.name} (${branch.code})`,
     });
     res.status(201).json(branch);
@@ -66,8 +66,8 @@ const update = async (req, res) => {
       table_name: "branches",
       record_id: branch.id,
       branch_id: branch.id,
-      old_values: oldValues ? { code: oldValues.code, name: oldValues.name, address: oldValues.address, city: oldValues.city, province: oldValues.province, phone: oldValues.phone, is_active: oldValues.is_active } : null,
-      new_values: { code: branch.code, name: branch.name, address: branch.address, city: branch.city, province: branch.province, phone: branch.phone, is_active: branch.is_active },
+      old_values: oldValues ? { code: oldValues.code, name: oldValues.name, address: oldValues.address, city: oldValues.city, province: oldValues.province, phone: oldValues.phone, timezone: oldValues.timezone, is_active: oldValues.is_active } : null,
+      new_values: { code: branch.code, name: branch.name, address: branch.address, city: branch.city, province: branch.province, phone: branch.phone, timezone: branch.timezone, is_active: branch.is_active },
       description: `Branch updated: ${branch.name} (${branch.code})`,
     });
     res.json(branch);

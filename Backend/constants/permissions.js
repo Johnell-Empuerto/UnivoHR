@@ -10,6 +10,7 @@ const ALL_PERMISSIONS = [
   'attendance.view_own',
   'attendance.manage',
   'attendance.time_requests.approve',
+  'attendance.clock_in',
 
   'leave.view',
   'leave.view_own',
@@ -87,6 +88,7 @@ const ALL_PERMISSIONS = [
   'devices.view',
   'devices.manage',
   'device_logs.view',
+  'device_logs.manage',
 
   'audit_logs.view',
   'anomalies.view',
@@ -112,7 +114,7 @@ const ALL_PERMISSIONS = [
 const PERMISSION_GROUPS = {
   Dashboard: ['dashboard.view'],
   Employees: ['employees.view', 'employees.create', 'employees.edit', 'employees.delete'],
-  Attendance: ['attendance.view', 'attendance.view_own', 'attendance.manage', 'attendance.time_requests.approve'],
+  Attendance: ['attendance.view', 'attendance.view_own', 'attendance.manage', 'attendance.time_requests.approve', 'attendance.clock_in'],
   Leave: ['leave.view', 'leave.view_own', 'leave.create', 'leave.manage', 'leave.approve', 'leave.credits.view', 'leave.credits.manage', 'leave.conversion.view', 'leave.conversion.manage'],
   Overtime: ['overtime.view', 'overtime.view_own', 'overtime.create', 'overtime.manage', 'overtime.approve'],
   'Man Hours': ['manhours.view', 'manhours.view_own', 'manhours.manage', 'manhours.approve'],
@@ -125,7 +127,7 @@ const PERMISSION_GROUPS = {
   Settings: ['settings.view', 'settings.system', 'settings.attendance_rules', 'settings.approvals', 'settings.notifications', 'settings.smtp', 'settings.email_templates', 'settings.branding'],
   Users: ['users.view', 'users.manage'],
   Branches: ['branches.view', 'branches.manage'],
-  Devices: ['devices.view', 'devices.manage', 'device_logs.view'],
+  Devices: ['devices.view', 'devices.manage', 'device_logs.view', 'device_logs.manage'],
   'Audit Logs': ['audit_logs.view'],
   Anomalies: ['anomalies.view'],
   Analytics: ['analytics.view'],
@@ -141,6 +143,7 @@ const PERMISSION_GROUPS = {
 const EMPLOYEE_DEFAULT_PERMISSIONS = [
   'dashboard.view',
   'attendance.view',
+  'attendance.clock_in',
   'leave.view',
   'overtime.view',
   'manhours.view',

@@ -9,6 +9,7 @@ import {
   activateAttendanceRule,
   deleteAttendanceRule,
 } from "@/services/attendanceService";
+import { getSetting, toggleSetting } from "@/services/settingsService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -20,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Clock, Trash2, CheckCircle, XCircle, Edit } from "lucide-react";
+import { Clock, Trash2, CheckCircle, XCircle, Edit, LogIn } from "lucide-react";
 
 interface AttendanceRule {
   id: number;
@@ -65,6 +67,34 @@ const AttendanceSettings = () => {
     late_deduction_enabled: true,
   });
 
+  // WEB CLOCK TOGGLE
+  const [webClockEnabled, setWebClockEnabled] = useState(false);
+  const [toggling, setToggling] = useState<string | null>(null);
+
+  const fetchWebClockSetting = async () => {
+    try {
+      const setting = await getSetting("enable_web_clock_in_out");
+      setWebClockEnabled(setting?.value === "true");
+    } catch {
+      console.warn("Failed to load web clock setting");
+    }
+  };
+
+  const handleWebClockToggle = async () => {
+    try {
+      setToggling("enable_web_clock_in_out");
+      const result = await toggleSetting("enable_web_clock_in_out");
+      setWebClockEnabled(result.value);
+      toast.success(
+        `Web Clock In/Out ${result.value ? "enabled" : "disabled"}`,
+      );
+    } catch {
+      toast.error("Failed to update setting");
+    } finally {
+      setToggling(null);
+    }
+  };
+
   // LOAD RULES
   const fetchRules = async () => {
     try {
@@ -78,6 +108,7 @@ const AttendanceSettings = () => {
 
   useEffect(() => {
     fetchRules();
+    fetchWebClockSetting();
   }, []);
 
   // HANDLE INPUT
@@ -244,6 +275,31 @@ const AttendanceSettings = () => {
 
   return (
     <div className="space-y-6">
+      {/* Web Clock In/Out Toggle */}
+      <Card className="border-border/50 shadow-sm">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <LogIn className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium">Web Clock In / Clock Out</p>
+                <p className="text-sm text-muted-foreground">
+                  Allow employees to clock in and clock out using the web
+                  application
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={webClockEnabled}
+              onCheckedChange={handleWebClockToggle}
+              disabled={toggling === "enable_web_clock_in_out"}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Create Form Card */}
       <Card className="border-border/50 shadow-sm">
         <CardHeader>

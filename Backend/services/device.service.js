@@ -22,7 +22,9 @@ const processLogs = async (data) => {
   // Process attendance
   const attendance = await attendanceService.createAttendance({
     employee_id: employee.id,
-    timestamp, //IMPORTANT
+    timestamp,
+    source: "BIOMETRIC",
+    device_id,
   });
 
   // EMIT AFTER PROCESSING

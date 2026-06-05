@@ -27,24 +27,24 @@ const getByCode = async (code) => {
 };
 
 const create = async (data) => {
-  const { code, name, address, city, province, phone } = data;
+  const { code, name, address, city, province, phone, timezone } = data;
   const result = await pool.query(
-    `INSERT INTO branches (code, name, address, city, province, phone)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO branches (code, name, address, city, province, phone, timezone)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING *`,
-    [code, name, address || null, city || null, province || null, phone || null],
+    [code, name, address || null, city || null, province || null, phone || null, timezone || 'Asia/Manila'],
   );
   return result.rows[0];
 };
 
 const update = async (id, data) => {
-  const { code, name, address, city, province, phone } = data;
+  const { code, name, address, city, province, phone, timezone } = data;
   const result = await pool.query(
     `UPDATE branches
-     SET code = $1, name = $2, address = $3, city = $4, province = $5, phone = $6, updated_at = NOW()
-     WHERE id = $7
+     SET code = $1, name = $2, address = $3, city = $4, province = $5, phone = $6, timezone = $7, updated_at = NOW()
+     WHERE id = $8
      RETURNING *`,
-    [code, name, address || null, city || null, province || null, phone || null, id],
+    [code, name, address || null, city || null, province || null, phone || null, timezone || 'Asia/Manila', id],
   );
   return result.rows[0];
 };

@@ -187,6 +187,10 @@ const getEmploymentStats = async (allowedBranchIds) => {
   return await employeeModel.getEmploymentStats(allowedBranchIds);
 };
 
+const searchEmployees = async (params) => {
+  return await employeeModel.searchEmployees(params);
+};
+
 module.exports = {
   getEmployees,
   createEmployee,
@@ -195,4 +199,5 @@ module.exports = {
   approveRegularization,
   getEmploymentStats,
   getFilterOptions,
+  searchEmployees,
 };

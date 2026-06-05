@@ -11,6 +11,7 @@ import ApprovalSettings from "../components/ApprovalSettings";
 import NotificationSettings from "../components/NotificationSettings";
 import EmailTemplateEditor from "../components/EmailTemplateEditor";
 import CompanyBranding from "../components/CompanyBranding";
+import CompanyTimezoneSettings from "../components/CompanyTimezoneSettings";
 import EmployeeCodeSettings from "../components/EmployeeCodeSettings";
 import ShiftManagement from "../components/ShiftManagement";
 import BranchRestDays from "../components/BranchRestDays";
@@ -19,6 +20,7 @@ import RotationGroups from "../components/RotationGroups";
 import RotationPatterns from "../components/RotationPatterns";
 import RotationAssignments from "../components/RotationAssignments";
 import EmployeeRotation from "../components/EmployeeRotation";
+import DeviceIntegration from "../components/DeviceIntegration";
 
 const Setting = () => {
   const { hasPermission } = useAuth();
@@ -36,6 +38,7 @@ const Setting = () => {
   const canViewBranchRestDays = hasPermission("settings.branding");
   const canViewPayrollRules = hasPermission("payroll.settings");
   const canViewRotation = hasPermission("settings.attendance_rules");
+  const canViewDeviceIntegration = hasPermission("settings.branding");
 
   return (
     <div className="space-y-6 p-6">
@@ -124,6 +127,15 @@ const Setting = () => {
               Branding
             </TabsTrigger>
           )}
+          {canViewBranding && (
+            <TabsTrigger
+              className="rounded-full px-5 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm bg-muted hover:bg-muted/80 text-muted-foreground border-0 transition-all"
+              style={{ height: "auto", flex: "none" }}
+              value="company-timezone"
+            >
+              Timezone
+            </TabsTrigger>
+          )}
           {canViewEmployeeCodes && (
             <TabsTrigger
               className="rounded-full px-5 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm bg-muted hover:bg-muted/80 text-muted-foreground border-0 transition-all"
@@ -196,6 +208,15 @@ const Setting = () => {
               Employee Rotation
             </TabsTrigger>
           )}
+          {canViewDeviceIntegration && (
+            <TabsTrigger
+              className="rounded-full px-5 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm bg-muted hover:bg-muted/80 text-muted-foreground border-0 transition-all"
+              style={{ height: "auto", flex: "none" }}
+              value="device-integration"
+            >
+              Devices
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <div style={{ marginTop: "24px" }}>
@@ -240,6 +261,11 @@ const Setting = () => {
               <CompanyBranding />
             </TabsContent>
           )}
+          {canViewBranding && (
+            <TabsContent value="company-timezone" className="mt-0">
+              <CompanyTimezoneSettings />
+            </TabsContent>
+          )}
           {canViewEmployeeCodes && (
             <TabsContent value="employee-codes" className="mt-0">
               <EmployeeCodeSettings />
@@ -278,6 +304,11 @@ const Setting = () => {
           {canViewRotation && (
             <TabsContent value="employee-rotation" className="mt-0">
               <EmployeeRotation />
+            </TabsContent>
+          )}
+          {canViewDeviceIntegration && (
+            <TabsContent value="device-integration" className="mt-0">
+              <DeviceIntegration />
             </TabsContent>
           )}
         </div>

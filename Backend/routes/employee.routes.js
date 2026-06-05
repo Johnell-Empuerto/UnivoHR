@@ -6,6 +6,7 @@ const authenticate = require("../middleware/auth.middleware");
 const requirePermission = require("../middleware/permission.middleware");
 const { requireBranchAccessFromQuery, requireBranchAccessFromBody } = require("../middleware/branchAccess.middleware");
 
+router.get("/search", authenticate, requirePermission("employees.view"), controller.searchEmployees);
 router.post("/", authenticate, requirePermission("employees.create"), controller.createEmployee);
 router.get("/", authenticate, requirePermission("employees.view"), requireBranchAccessFromQuery("branch_id"), controller.getEmployees);
 router.put("/:id", authenticate, requirePermission("employees.edit"), requireBranchAccessFromBody("branch_id"), controller.updateEmployee);

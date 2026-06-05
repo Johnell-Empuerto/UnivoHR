@@ -57,6 +57,7 @@ const employeeWorkExperienceRoutes = require("./routes/employeeWorkExperience.ro
 const employeeRestDayRoutes = require("./routes/employeeRestDay.routes");
 const branchRestDayRoutes = require("./routes/branchRestDay.routes");
 const rotationRoutes = require("./routes/rotation.routes");
+const deviceIntegrationRoutes = require("./routes/deviceIntegration.routes");
 
 // Middleware
 const authenticate = require("./middleware/auth.middleware");
@@ -68,7 +69,7 @@ const errorHandler = require("./middleware/errorHandler");
 // =====================
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://192.168.2.59:5173"],
+    origin: ["http://localhost:5173", "http://192.168.0.102:5173"],
     credentials: true,
   }),
 );
@@ -119,6 +120,8 @@ app.use("/api/users", authenticate, userRoutes);
 app.use("/api/shifts", authenticate, shiftRoutes);
 
 app.use("/api/rotation", authenticate, rotationRoutes);
+
+app.use("/api/device-integration", authenticate, deviceIntegrationRoutes);
 
 app.use("/api/smtp", authenticate, smtpRoutes);
 
@@ -194,10 +197,18 @@ const payrollRuleRoutes = require("./routes/payrollRule.routes");
 app.use("/api/payroll-rules", authenticate, payrollRuleRoutes);
 
 const queueService = require("./services/queue.service");
+const deviceProcessingQueue = require("./services/deviceProcessing.queue");
 
 // Start the leave conversion scheduler
 const scheduler = require("./scheduler");
 scheduler.startScheduler();
+
+// Start the device processing worker
+const startDeviceProcessingWorker =
+  require("./workers/deviceProcessing.worker").startWorker;
+startDeviceProcessingWorker().catch((err) => {
+  console.error("[DeviceWorker] Failed to start worker:", err.message);
+});
 
 // =====================
 // ROOT TEST
@@ -211,16 +222,18 @@ app.get("/", (req, res) => {
 // =====================
 app.use(errorHandler);
 
-// Graceful shutdown - clean up queue
+// Graceful shutdown - clean up queues
 process.on("SIGTERM", async () => {
-  console.log("SIGTERM received, closing queue...");
+  console.log("SIGTERM received, closing queues...");
   await queueService.payslipQueue.close();
+  await deviceProcessingQueue.deviceProcessingQueue.close();
   process.exit(0);
 });
 
 process.on("SIGINT", async () => {
-  console.log("SIGINT received, closing queue...");
+  console.log("SIGINT received, closing queues...");
   await queueService.payslipQueue.close();
+  await deviceProcessingQueue.deviceProcessingQueue.close();
   process.exit(0);
 });
 

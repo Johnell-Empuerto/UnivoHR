@@ -1,7 +1,9 @@
 const attendanceService = require("../services/attendance.service");
 const rulesService = require("../services/attendance.service");
 const attendanceModel = require("../models/attendance.model");
+const settingService = require("../services/setting.service");
 const audit = require("../services/audit.service");
+const timezoneResolver = require("../utils/timezone");
 
 // Create attendance (check-in / check-out logic)
 const createAttendance = async (req, res) => {
@@ -416,6 +418,77 @@ const updateTimeModificationStatus = async (req, res) => {
   }
 };
 
+// WEB CLOCK IN — employee self-service
+const webClockIn = async (req, res) => {
+  try {
+    const isEnabled = await settingService.getBoolSetting("enable_web_clock_in_out");
+    if (!isEnabled) {
+      return res.status(403).json({
+        message: "Web clock-in/out is currently disabled by administrator.",
+      });
+    }
+
+    const employeeId = req.user.employee_id;
+    const timezone = await timezoneResolver.resolveEmployeeTimezone(employeeId);
+    const timestamp = new Date().toLocaleString('sv-SE', { timeZone: timezone }).replace(' ', 'T');
+
+    const result = await attendanceService.webClockIn(employeeId, timestamp);
+
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "attendance",
+      record_id: result.id,
+      employee_id: employeeId,
+      new_values: { employee_id: employeeId, check_in_time: result.check_in_time, date: result.date, source: "WEB" },
+      description: `Web clock-in: employee ${employeeId} at ${result.check_in_time}`,
+    });
+
+    res.status(201).json(result);
+  } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
+    console.error("Web clock-in error:", error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// WEB CLOCK OUT — employee self-service
+const webClockOut = async (req, res) => {
+  try {
+    const isEnabled = await settingService.getBoolSetting("enable_web_clock_in_out");
+    if (!isEnabled) {
+      return res.status(403).json({
+        message: "Web clock-in/out is currently disabled by administrator.",
+      });
+    }
+
+    const employeeId = req.user.employee_id;
+    const existingRecord = await attendanceModel.getTodayRecord(employeeId, new Date().toISOString());
+    const timezone = existingRecord?.timezone_used || await timezoneResolver.resolveEmployeeTimezone(employeeId);
+    const timestamp = new Date().toLocaleString('sv-SE', { timeZone: timezone }).replace(' ', 'T');
+
+    const result = await attendanceService.webClockOut(employeeId, timestamp);
+
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "attendance",
+      record_id: result.id,
+      employee_id: employeeId,
+      new_values: { employee_id: employeeId, check_out_time: result.check_out_time, date: result.date },
+      description: `Web clock-out: employee ${employeeId} at ${result.check_out_time}`,
+    });
+
+    res.json(result);
+  } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
+    console.error("Web clock-out error:", error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createAttendance,
   getAttendance,
@@ -431,4 +504,6 @@ module.exports = {
   getTimeModificationRequests,
   getMyTimeModificationRequests,
   updateTimeModificationStatus,
+  webClockIn,
+  webClockOut,
 };

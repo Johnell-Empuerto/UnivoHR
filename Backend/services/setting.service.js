@@ -1,5 +1,24 @@
 const pool = require("../config/db");
 
+const TZ_VALIDATOR = (() => {
+  try {
+    return Intl.supportedValuesOf("timeZone");
+  } catch {
+    return null;
+  }
+})();
+
+const isValidTimezone = (tz) => {
+  if (!tz) return false;
+  if (TZ_VALIDATOR) return TZ_VALIDATOR.includes(tz);
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 // Get setting value by key
 const getSetting = async (key) => {
   const result = await pool.query(
@@ -28,6 +47,9 @@ const getNumberSetting = async (key) => {
 
 // Update setting
 const updateSetting = async (key, value) => {
+  if (key === 'company_timezone' && !isValidTimezone(value)) {
+    throw new Error(`Invalid timezone: ${value}`);
+  }
   const result = await pool.query(
     `INSERT INTO system_settings (key, value, updated_at) 
      VALUES ($1, $2, CURRENT_TIMESTAMP)

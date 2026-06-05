@@ -365,6 +365,62 @@ const getEmploymentStats = async (allowedBranchIds = null) => {
   return result.rows[0];
 };
 
+const searchEmployees = async ({ page = 1, limit = 20, search, employee_code, employee_name }) => {
+  const conditions = [];
+  const params = [];
+  let idx = 1;
+
+  if (search) {
+    conditions.push(
+      `(e.employee_code ILIKE $${idx} OR e.first_name ILIKE $${idx} OR e.last_name ILIKE $${idx} OR CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $${idx})`
+    );
+    params.push(`%${search}%`);
+    idx++;
+  }
+  if (employee_code) {
+    conditions.push(`e.employee_code ILIKE $${idx}`);
+    params.push(`%${employee_code}%`);
+    idx++;
+  }
+  if (employee_name) {
+    conditions.push(
+      `(e.first_name ILIKE $${idx} OR e.last_name ILIKE $${idx} OR CONCAT_WS(' ', e.first_name, e.middle_name, e.last_name, e.suffix) ILIKE $${idx})`
+    );
+    params.push(`%${employee_name}%`);
+    idx++;
+  }
+
+  conditions.push(`e.status = 'ACTIVE'`);
+
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const offset = (page - 1) * limit;
+
+  const countQuery = `SELECT COUNT(*) FROM employees e ${where}`;
+  const { rows: [{ count }] } = await pool.query(countQuery, params);
+
+  const dataQuery = `
+    SELECT e.id, e.employee_code, e.first_name, e.last_name, e.department, e.position
+    FROM employees e
+    ${where}
+    ORDER BY e.first_name ASC, e.last_name ASC
+    LIMIT $${idx++} OFFSET $${idx++}
+  `;
+  params.push(limit, offset);
+
+  const { rows } = await pool.query(dataQuery, params);
+
+  return {
+    data: rows,
+    pagination: {
+      total: parseInt(count),
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(parseInt(count) / limit),
+    },
+  };
+};
+
 module.exports = {
   getEmployees,
   createEmployee,
@@ -377,4 +433,5 @@ module.exports = {
   getEmploymentStats,
   getDepartments,
   getPositions,
+  searchEmployees,
 };

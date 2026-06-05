@@ -1,5 +1,17 @@
 import api from "./api";
 
+// WEB CLOCK IN/OUT
+
+export const webClockIn = async () => {
+  const res = await api.post("/attendance/clock-in");
+  return res.data;
+};
+
+export const webClockOut = async () => {
+  const res = await api.post("/attendance/clock-out");
+  return res.data;
+};
+
 // ATTENDANCE
 
 export const attendance = async (

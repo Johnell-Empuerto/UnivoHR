@@ -787,8 +787,6 @@ const EmployeeDrawer = ({
                 <p className="text-xs font-semibold text-muted-foreground uppercase">
                   System Information
                 </p>
-                <Info label="RFID Tag" value={employee?.rfid_tag} />
-                <Info label="Fingerprint ID" value={employee?.fingerprint_id} />
                 <Info
                   label="Hired Date"
                   value={
@@ -801,6 +799,11 @@ const EmployeeDrawer = ({
                     employee?.created_at ? formatDate(employee.created_at) : "-"
                   }
                 />
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    Device IDs such as RFID, fingerprint, face ID, or biometric user ID are managed in <strong>Device Integrations → Device User Mapping</strong>.
+                  </p>
+                </div>
               </div>
 
               {/* FAMILY MEMBERS VIEW */}
@@ -1450,22 +1453,9 @@ const EmployeeDrawer = ({
                 <p className="text-xs font-semibold text-muted-foreground uppercase">
                   System Information
                 </p>
-                <InputField
-                  label="RFID Tag"
-                  name="rfid_tag"
-                  value={form.rfid_tag}
-                  onChange={handleChange}
-                  placeholder="RFID card number"
-                  disabled={!canEditMode}
-                />
-                <InputField
-                  label="Fingerprint ID"
-                  name="fingerprint_id"
-                  value={form.fingerprint_id}
-                  onChange={handleChange}
-                  placeholder="Fingerprint scanner ID"
-                  disabled={!canEditMode}
-                />
+                <div className="p-3 bg-muted/30 rounded border text-sm text-muted-foreground">
+                  Device IDs such as RFID, fingerprint, face ID, or biometric user ID are managed in <strong>Device Integrations → Device User Mapping</strong>.
+                </div>
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">Hired Date</p>
                   <input

@@ -64,24 +64,44 @@ const getOpenAttendanceRecord = async (employeeId) => {
 };
 
 // CHECK IN
-const checkIn = async (employeeId, timestamp, status, shiftId = null, shiftDate = null) => {
-  console.log("CHECK-IN:", { employeeId, timestamp, status, shiftId, shiftDate });
-
-  const query = `
-    INSERT INTO attendance (employee_id, check_in_time, date, status, shift_id, shift_date)
-    VALUES ($1, $2, $3, $4, $5, $6)
-    RETURNING *;
-  `;
+const checkIn = async (employeeId, timestamp, status, shiftId = null, shiftDate = null, source = 'BIOMETRIC', branchId = null, timezoneUsed = null, deviceId = null) => {
+  console.log("CHECK-IN:", { employeeId, timestamp, status, shiftId, shiftDate, source, branchId, timezoneUsed, deviceId });
 
   const localDate = getLocalDate(timestamp);
-  const values = [employeeId, timestamp, localDate, status, shiftId, shiftDate || localDate];
+
+  const columns = ['employee_id', 'check_in_time', 'date', 'status', 'shift_id', 'shift_date', 'source'];
+  const values = [employeeId, timestamp, localDate, status, shiftId, shiftDate || localDate, source];
+  const placeholders = ['$1', '$2', '$3', '$4', '$5', '$6', '$7'];
+  let idx = 8;
+
+  if (branchId != null) {
+    columns.push('branch_id');
+    placeholders.push(`$${idx++}`);
+    values.push(branchId);
+  }
+  if (timezoneUsed != null) {
+    columns.push('timezone_used');
+    placeholders.push(`$${idx++}`);
+    values.push(timezoneUsed);
+  }
+  if (deviceId != null) {
+    columns.push('device_id');
+    placeholders.push(`$${idx++}`);
+    values.push(deviceId);
+  }
+
+  const query = `
+    INSERT INTO attendance (${columns.join(', ')})
+    VALUES (${placeholders.join(', ')})
+    RETURNING *;
+  `;
 
   const result = await pool.query(query, values);
   return result.rows[0];
 };
 
 // CHECK OUT
-const checkOut = async (attendanceId, timestamp) => {
+const checkOut = async (attendanceId, timestamp, branchId = null, timezoneUsed = null) => {
   const result = await pool.query(`SELECT * FROM attendance WHERE id = $1`, [
     attendanceId,
   ]);
@@ -98,7 +118,6 @@ const checkOut = async (attendanceId, timestamp) => {
   let status = record.status;
   let work_fraction = 1;
 
-  // 🔥 HALF DAY LOGIC
   if (hoursWorked < 4) {
     status = "ABSENT";
     work_fraction = 0;
@@ -109,17 +128,24 @@ const checkOut = async (attendanceId, timestamp) => {
     work_fraction = 1;
   }
 
+  const setClauses = ['check_out_time = $1', 'status = $2', 'work_fraction = $3'];
+  const values = [timestamp, status, work_fraction, attendanceId];
+  let paramIdx = 4;
+
+  if (branchId != null) {
+    paramIdx++;
+    setClauses.push(`branch_id = $${paramIdx}`);
+    values.push(branchId);
+  }
+  if (timezoneUsed != null) {
+    paramIdx++;
+    setClauses.push(`timezone_used = $${paramIdx}`);
+    values.push(timezoneUsed);
+  }
+
   const update = await pool.query(
-    `
-    UPDATE attendance
-    SET 
-      check_out_time = $1,
-      status = $2,
-      work_fraction = $3
-    WHERE id = $4
-    RETURNING *
-    `,
-    [timestamp, status, work_fraction, attendanceId],
+    `UPDATE attendance SET ${setClauses.join(', ')} WHERE id = $4 RETURNING *`,
+    values,
   );
 
   return update.rows[0];
@@ -705,42 +731,28 @@ const applyTimeModification = async (attendanceId, checkIn, checkOut) => {
   const attendance = attendanceResult.rows[0];
   if (!attendance) throw new Error("Attendance not found");
 
-  //FORCE ISO DATE
-  const dateOnly = new Date(attendance.date).toISOString().split("T")[0];
+  const dateOnly = attendance.date;
 
-  const toISO = (time) => {
+  const toLocal = (time) => {
     if (!time) return null;
 
-    // Already full ISO
     if (time.includes("T")) return time;
 
-    // Normalize time (remove seconds if already present)
     let cleanTime = time;
 
     if (time.split(":").length === 3) {
-      // already HH:mm:ss
       cleanTime = time;
     } else {
-      // HH:mm → add seconds
       cleanTime = `${time}:00`;
     }
 
-    const isoString = `${dateOnly}T${cleanTime}`;
-
-    const dateObj = new Date(isoString);
-
-    if (isNaN(dateObj.getTime())) {
-      console.error("INVALID DATE:", isoString);
-      throw new Error("Invalid time value");
-    }
-
-    return dateObj.toISOString();
+    return `${dateOnly}T${cleanTime}`;
   };
 
-  const fullCheckIn = toISO(checkIn);
-  const fullCheckOut = toISO(checkOut);
+  const fullCheckIn = toLocal(checkIn);
+  const fullCheckOut = toLocal(checkOut);
 
-  console.log("ISO VALUES:", { fullCheckIn, fullCheckOut });
+  console.log("LOCAL VALUES:", { fullCheckIn, fullCheckOut });
 
   // GET RULES
   const rulesResult = await pool.query(
@@ -753,9 +765,7 @@ const applyTimeModification = async (attendanceId, checkIn, checkOut) => {
 
   if (rules && fullCheckIn) {
     const checkInDate = new Date(fullCheckIn);
-
-    // SHIFT START in ISO
-    const shiftStart = new Date(`${dateOnly}T08:00:00.000Z`);
+    const shiftStart = new Date(`${dateOnly}T08:00:00`);
 
     const lateMinutes = (checkInDate - shiftStart) / 1000 / 60;
 

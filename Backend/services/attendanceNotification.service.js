@@ -204,7 +204,7 @@ const checkAndSendAbsentWithoutLeaveNotices = async () => {
         AND a.date = CURRENT_DATE
         AND u.role != 'ADMIN'
         AND NOT EXISTS (
-          SELECT 1 FROM leave_requests lr
+          SELECT 1 FROM leaves lr
           WHERE lr.employee_id = e.id
             AND lr.from_date <= a.date
             AND lr.to_date >= a.date

@@ -34,8 +34,27 @@ import {
   Pencil,
   Power,
   PowerOff,
+  Globe,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const TIMEZONES = [
+  "Asia/Manila",
+  "Asia/Tokyo",
+  "Asia/Singapore",
+  "Asia/Kuala_Lumpur",
+  "Asia/Hong_Kong",
+  "Asia/Seoul",
+  "Asia/Dubai",
+  "UTC",
+];
 
 interface Branch {
   id: number;
@@ -45,6 +64,7 @@ interface Branch {
   city: string | null;
   province: string | null;
   phone: string | null;
+  timezone: string;
   is_active: boolean;
 }
 
@@ -55,6 +75,7 @@ const emptyForm = {
   city: "",
   province: "",
   phone: "",
+  timezone: "Asia/Manila",
 };
 
 const BranchesPage = () => {
@@ -96,6 +117,7 @@ const BranchesPage = () => {
       city: branch.city || "",
       province: branch.province || "",
       phone: branch.phone || "",
+      timezone: branch.timezone || "Asia/Manila",
     });
     setDialogOpen(true);
   };
@@ -182,6 +204,7 @@ const BranchesPage = () => {
                   <TableRow className="bg-muted">
                     <TableHead>Code</TableHead>
                     <TableHead>Name</TableHead>
+                    <TableHead>Timezone</TableHead>
                     <TableHead>Address</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
@@ -194,6 +217,12 @@ const BranchesPage = () => {
                         {branch.code}
                       </TableCell>
                       <TableCell>{branch.name}</TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-1 text-xs font-mono bg-muted px-2 py-0.5 rounded">
+                          <Globe className="h-3 w-3" />
+                          {branch.timezone || "Asia/Manila"}
+                        </span>
+                      </TableCell>
                       <TableCell>
                         {[branch.address, branch.city, branch.province]
                           .filter(Boolean)
@@ -273,6 +302,24 @@ const BranchesPage = () => {
                 onChange={handleChange}
                 placeholder="e.g., Makati Branch"
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Timezone</Label>
+              <Select
+                value={form.timezone}
+                onValueChange={(v) => setForm({ ...form, timezone: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIMEZONES.map((tz) => (
+                    <SelectItem key={tz} value={tz}>
+                      {tz}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Address</Label>

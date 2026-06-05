@@ -645,12 +645,17 @@ const detectManHourAnomalies = async (req) => {
       mhr.employee_id,
       e.branch_id,
       mhr.work_date,
-      mhr.total_hours
+      mhr.hours
     FROM man_hour_reports mhr
     JOIN employees e ON e.id = mhr.employee_id
-    WHERE mhr.status = 'APPROVED'
-      AND mhr.total_hours > 12
+    WHERE mhr.hours > 12
       AND mhr.work_date >= CURRENT_DATE - INTERVAL '7 days'
+      AND EXISTS (
+        SELECT 1 FROM approval_logs al
+        WHERE al.request_type = 'MAN_HOUR'
+          AND al.request_id = mhr.id
+          AND al.action = 'APPROVED'
+      )
   `);
 
   for (const row of excessiveHours.rows) {
@@ -662,10 +667,10 @@ const detectManHourAnomalies = async (req) => {
       source_module: "man_hours",
       severity: "MEDIUM",
       title: "Man-Hour Report Exceeds Expected Hours",
-      description: `Employee reported ${row.total_hours} hours on ${row.work_date.toISOString().split("T")[0]}`,
-      detected_value: `${row.total_hours} hours`,
+      description: `Employee reported ${row.hours} hours on ${row.work_date.toISOString().split("T")[0]}`,
+      detected_value: `${row.hours} hours`,
       expected_value: "12 hours or less",
-      metadata: { work_date: row.work_date, total_hours: parseFloat(row.total_hours) },
+      metadata: { work_date: row.work_date, hours: parseFloat(row.hours) },
     });
     results.detected++;
   }
@@ -680,12 +685,18 @@ const detectManHourAnomalies = async (req) => {
     JOIN employees e ON e.id = mhr.employee_id
     WHERE mhr.work_date >= CURRENT_DATE - INTERVAL '7 days'
       AND EXISTS (
+        SELECT 1 FROM approval_logs al
+        WHERE al.request_type = 'MAN_HOUR'
+          AND al.request_id = mhr.id
+          AND al.action = 'APPROVED'
+      )
+      AND EXISTS (
         SELECT 1 FROM man_hour_report_details d1
-        JOIN man_hour_report_details d2 ON d2.man_hour_report_id = d1.man_hour_report_id
+        JOIN man_hour_report_details d2 ON d2.report_id = d1.report_id
           AND d2.id <> d1.id
-          AND d2.start_time < d1.end_time
-          AND d2.end_time > d1.start_time
-        WHERE d1.man_hour_report_id = mhr.id
+          AND d2.time_from < d1.time_to
+          AND d2.time_to > d1.time_from
+        WHERE d1.report_id = mhr.id
       )
   `);
 

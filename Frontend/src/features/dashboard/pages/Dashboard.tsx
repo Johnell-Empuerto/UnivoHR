@@ -34,11 +34,27 @@ import {
   LayoutDashboard,
   Wallet,
   ShieldAlert,
+  Loader2,
+  LogIn,
+  LogOut,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { webClockIn, webClockOut } from "@/services/attendanceService";
+import { getSetting } from "@/services/settingsService";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import AttendanceTrendChart from "../components/AttendanceTrendChart";
 import EmployeeGrowthChart from "@/features/dashboard/components/EmployeeGrowthChart";
 import AbsentTrendChart from "@/features/dashboard/components/AbsentTrendChart";
@@ -325,7 +341,6 @@ const AdminDashboardContent = React.memo(
 );
 
 //  Extract Employee Dashboard to separate memoized component
-// Extract Employee Dashboard to separate memoized component
 const EmployeeDashboardContent = React.memo(
   ({
     user,
@@ -335,6 +350,9 @@ const EmployeeDashboardContent = React.memo(
     recentLeaves,
     employeeTrends,
     navigate,
+    hasPermission,
+    webClockEnabled,
+    onRefresh,
   }: {
     user: any;
     summary: any;
@@ -343,8 +361,54 @@ const EmployeeDashboardContent = React.memo(
     recentLeaves: RecentLeave[];
     employeeTrends: any;
     navigate: (path: string) => void;
+    hasPermission: (key: string) => boolean;
+    webClockEnabled: boolean;
+    onRefresh: () => void;
   }) => {
+    const [clocking, setClocking] = useState(false);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+
+    const hasClockIn = hasPermission("attendance.clock_in");
+
+    const notClockedIn = !today || !today.check_in_time;
+    const clockedIn = today?.check_in_time && !today?.check_out_time;
+    const clockedOut = today?.check_in_time && today?.check_out_time;
+
+    const handleClockIn = async () => {
+      setClocking(true);
+      try {
+        await webClockIn();
+        toast.success("Clocked in successfully");
+        onRefresh();
+      } catch (error: any) {
+        const msg = error?.response?.data?.message || "Failed to clock in";
+        toast.error(msg);
+      } finally {
+        setClocking(false);
+      }
+    };
+
+    const handleClockOut = () => {
+      setConfirmOpen(true);
+    };
+
+    const confirmClockOut = async () => {
+      setConfirmOpen(false);
+      setClocking(true);
+      try {
+        await webClockOut();
+        toast.success("Clocked out successfully");
+        onRefresh();
+      } catch (error: any) {
+        const msg = error?.response?.data?.message || "Failed to clock out";
+        toast.error(msg);
+      } finally {
+        setClocking(false);
+      }
+    };
+
     return (
+      <>
       <div className="space-y-6 p-6">
         {/* Header */}
         <div className="flex items-center gap-3">
@@ -406,16 +470,110 @@ const EmployeeDashboardContent = React.memo(
                     </div>
                   </div>
                 </div>
-                <div
-                  className={`h-16 w-16 rounded-full flex items-center justify-center ${
-                    today.status === "PRESENT"
-                      ? "bg-green-100 dark:bg-green-900/30"
-                      : today.status === "LATE"
-                        ? "bg-yellow-100 dark:bg-yellow-900/30"
-                        : "bg-gray-100 dark:bg-gray-800"
-                  }`}
-                >
-                  <Activity className="h-8 w-8 text-muted-foreground" />
+                <div className="flex flex-col items-end gap-3">
+                  <div
+                    className={`h-16 w-16 rounded-full flex items-center justify-center ${
+                      today.status === "PRESENT"
+                        ? "bg-green-100 dark:bg-green-900/30"
+                        : today.status === "LATE"
+                          ? "bg-yellow-100 dark:bg-yellow-900/30"
+                          : "bg-gray-100 dark:bg-gray-800"
+                    }`}
+                  >
+                    <Activity className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  {hasClockIn && webClockEnabled && notClockedIn && (
+                    <Button
+                      onClick={handleClockIn}
+                      disabled={clocking}
+                      size="sm"
+                      className="w-full"
+                    >
+                      {clocking ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <LogIn className="h-4 w-4 mr-1" />
+                      )}
+                      Clock In
+                    </Button>
+                  )}
+                  {hasClockIn && webClockEnabled && clockedIn && (
+                    <Button
+                      onClick={handleClockOut}
+                      disabled={clocking}
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                    >
+                      {clocking ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <LogOut className="h-4 w-4 mr-1" />
+                      )}
+                      Clock Out
+                    </Button>
+                  )}
+                  {clockedOut && (
+                    <Badge variant="outline" className="text-green-600 border-green-300">
+                      Completed
+                    </Badge>
+                  )}
+                  {hasClockIn && !webClockEnabled && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      Web clock-in/out disabled by administrator.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* No record card — show when today is null (no attendance yet) */}
+        {!today && (
+          <Card className="border-border/50 shadow-sm bg-linear-to-br from-primary/5 to-transparent">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Today's Status
+                  </p>
+                  <p className="text-3xl font-bold">No Record</p>
+                  <div className="flex gap-4 text-sm">
+                    <div className="space-y-1">
+                      <p className="text-muted-foreground">Check-in</p>
+                      <p className="font-medium">--:--</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-muted-foreground">Check-out</p>
+                      <p className="font-medium">--:--</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-3">
+                  <div className="h-16 w-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                    <Activity className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  {hasClockIn && webClockEnabled && (
+                    <Button
+                      onClick={handleClockIn}
+                      disabled={clocking}
+                      size="sm"
+                      className="w-full"
+                    >
+                      {clocking ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <LogIn className="h-4 w-4 mr-1" />
+                      )}
+                      Clock In
+                    </Button>
+                  )}
+                  {hasClockIn && !webClockEnabled && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      Web clock-in/out disabled by administrator.
+                    </p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -717,16 +875,43 @@ const EmployeeDashboardContent = React.memo(
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Clock Out</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are clocking out now.
+              <br /><br />
+              If you have not completed your required work hours, this may be
+              counted as undertime, half-day, or absent based on company rules.
+              <br /><br />
+              You may submit a Time Modification Request later if a correction
+              is needed.
+              <br /><br />
+              Do you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmClockOut} disabled={clocking}>
+              Continue Clock Out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
     );
   },
 );
 
 // Main Dashboard Component
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const navigate = useNavigate();
   const [summary, setSummary] = useState<any>(null);
   const [today, setToday] = useState<any>(null);
+  const [webClockEnabled, setWebClockEnabled] = useState(true);
   const [leaveCredits, setLeaveCredits] = useState<LeaveCredits | null>(null);
   const [recentLeaves, setRecentLeaves] = useState<RecentLeave[]>([]);
   const [adminAnalytics, setAdminAnalytics] = useState<any>(null);
@@ -759,12 +944,13 @@ const Dashboard = () => {
         setEmploymentStats(empStats);
         setDueForRegularization(dueReg);
       } else {
-        const [analyticsData, todayData, creditsData, leavesData] =
+        const [analyticsData, todayData, creditsData, leavesData, setting] =
           await Promise.all([
             getMyAnalytics(),
             getTodayStatus(),
             leaveService.getLeaveCredits(),
             leaveService.getMyLeaves(),
+            getSetting("enable_web_clock_in_out").catch(() => ({ value: "true" })),
           ]);
 
         setSummary(analyticsData.summary);
@@ -772,6 +958,7 @@ const Dashboard = () => {
         setToday(todayData);
         setLeaveCredits(creditsData);
         setRecentLeaves(leavesData.data.slice(0, 3));
+        setWebClockEnabled(setting?.value === "true");
       }
     } catch (error) {
       console.error("Dashboard error:", error);
@@ -855,6 +1042,9 @@ const Dashboard = () => {
       recentLeaves={recentLeaves}
       employeeTrends={employeeTrends}
       navigate={navigate}
+      hasPermission={hasPermission}
+      webClockEnabled={webClockEnabled}
+      onRefresh={fetchData}
     />
   );
 };
