@@ -114,6 +114,7 @@ const getAllOvertime = async (
       e.employee_code,
       e.id AS employee_id,
       approver_emp.first_name || ' ' || approver_emp.last_name AS approved_by_name,
+      rejector_emp.first_name || ' ' || rejector_emp.last_name AS rejected_by_name,
       EXISTS (
         SELECT 1 FROM employee_approvers ea
         WHERE ea.employee_id = o.employee_id
@@ -124,6 +125,8 @@ const getAllOvertime = async (
     JOIN employees e ON e.id = o.employee_id
     LEFT JOIN users approver_user ON approver_user.id = o.approved_by
     LEFT JOIN employees approver_emp ON approver_emp.id = approver_user.employee_id
+    LEFT JOIN users rejected_user ON rejected_user.id = o.rejected_by
+    LEFT JOIN employees rejector_emp ON rejector_emp.id = rejected_user.employee_id
     WHERE 1=1
   `;
 
@@ -533,7 +536,8 @@ const getApprovers = async (page, limit, search, type) => {
       e1.first_name || ' ' || e1.last_name AS employee_name,
       e1.employee_code,
       e2.first_name || ' ' || e2.last_name AS approver_name,
-      e2.employee_code AS approver_code
+      e2.employee_code AS approver_code,
+      e2.id AS approver_employee_id
     FROM employee_approvers ea
     JOIN employees e1 ON e1.id = ea.employee_id
     JOIN users u ON u.id = ea.approver_id
@@ -669,6 +673,78 @@ const getEmployeesForDropdown = async () => {
   return result.rows;
 };
 
+const searchEmployeesPaginated = async (page, limit, search, status, hasUser) => {
+  const offset = (page - 1) * limit;
+  const params = [];
+  let paramIndex = 1;
+  const conditions = [];
+
+  if (status) {
+    conditions.push(`e.status = $${paramIndex++}`);
+    params.push(status);
+  }
+
+  if (search) {
+    conditions.push(`(
+      e.employee_code ILIKE $${paramIndex} OR
+      e.first_name ILIKE $${paramIndex} OR
+      e.last_name ILIKE $${paramIndex} OR
+      e.department ILIKE $${paramIndex}
+    )`);
+    params.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  let joinClause = '';
+  if (hasUser) {
+    joinClause = 'JOIN users u ON u.employee_id = e.id';
+  }
+
+  const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+
+  const dataQuery = `
+    SELECT 
+      e.id,
+      e.employee_code,
+      e.first_name,
+      e.last_name,
+      e.department,
+      e.position,
+      e.employment_status,
+      e.status,
+      e.branch_id,
+      b.name AS branch_name
+    FROM employees e
+    LEFT JOIN branches b ON b.id = e.branch_id
+    ${joinClause}
+    ${whereClause}
+    ORDER BY e.first_name, e.last_name
+    LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+  `;
+  params.push(limit, offset);
+
+  const result = await pool.query(dataQuery, params);
+
+  const countParams = params.slice(0, -2);
+  const countQuery = `
+    SELECT COUNT(*) FROM employees e
+    ${joinClause}
+    ${whereClause}
+  `;
+  const totalResult = await pool.query(countQuery, countParams);
+  const total = parseInt(totalResult.rows[0].count);
+
+  return {
+    data: result.rows,
+    pagination: {
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
 const isApprover = async (user_id) => {
   const result = await pool.query(
     `SELECT EXISTS (
@@ -699,5 +775,6 @@ module.exports = {
   updateApprover,
   deleteApprover,
   getEmployeesForDropdown,
+  searchEmployeesPaginated,
   isApprover,
 };

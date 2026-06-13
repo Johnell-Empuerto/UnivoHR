@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, FileClock } from "lucide-react";
 import EmptyState from "@/components/shared/EmptyState";
-import { formatDate, formatTime } from "@/utils/formatDate";
+import { formatDateLocal, formatTimeLocal, getTimezoneAbbr } from "@/utils/formatDate";
 
 type Attendance = {
   id: number;
@@ -22,6 +22,12 @@ type Attendance = {
   employee_code: string;
   check_in_time: string;
   check_out_time: string;
+  check_in_time_utc?: string | null;
+  check_out_time_utc?: string | null;
+  timezone_used?: string | null;
+  attendance_branch_id?: number | null;
+  device_id?: number | null;
+  source?: string | null;
   date: string;
   status: string;
   branch_name?: string | null;
@@ -153,16 +159,17 @@ const AttendanceTable = ({
     <div className="rounded-md border">
       <Table>
         <TableHeader>
-          <TableRow className="bg-muted">
-            <TableHead>Employee Code</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Branch</TableHead>
-            <TableHead>Check In</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Check Out</TableHead>
-            <TableHead>Status</TableHead>
-            {onRequestModification && <TableHead>Actions</TableHead>}
-          </TableRow>
+            <TableRow className="bg-muted">
+              <TableHead>Employee Code</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Branch</TableHead>
+              <TableHead>Source</TableHead>
+              <TableHead>Check In</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Check Out</TableHead>
+              <TableHead>Status</TableHead>
+              {onRequestModification && <TableHead>Actions</TableHead>}
+            </TableRow>
         </TableHeader>
 
         <TableBody>
@@ -175,20 +182,57 @@ const AttendanceTable = ({
                 <TableCell>{getFullName(item)}</TableCell>
                 <TableCell>{item.branch_name || "Main Branch"}</TableCell>
                 <TableCell>
-                  <span className="font-mono text-sm">
-                    {formatTime(item.check_in_time)}
-                  </span>
+                  {item.source && (
+                    <Badge
+                      variant={
+                        item.source === "BIOMETRIC" ? "default"
+                        : item.source === "WEB" ? "secondary"
+                        : item.source === "MANUAL" ? "outline"
+                        : "secondary"
+                      }
+                      className={
+                        item.source === "BIOMETRIC"
+                          ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                        : item.source === "WEB"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                        : item.source === "MANUAL"
+                          ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
+                        : "bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400"
+                      }
+                    >
+                      {item.source === "IMPORT" ? "IMPORT" : item.source}
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <span className="font-mono text-sm">
+                      {formatTimeLocal(item.check_in_time_utc || item.check_in_time, item.timezone_used)}
+                    </span>
+                    {item.timezone_used && (
+                      <Badge variant="outline" className="text-[10px] h-4 px-1 leading-none">
+                        {getTimezoneAbbr(item.timezone_used)}
+                      </Badge>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <span className="text-muted-foreground">
-                    {formatDate(item.date)}
+                    {formatDateLocal(item.date)}
                   </span>
                 </TableCell>
                 <TableCell>
                   {item.check_out_time ? (
-                    <span className="font-mono text-sm">
-                      {formatTime(item.check_out_time)}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <span className="font-mono text-sm">
+                        {formatTimeLocal(item.check_out_time_utc || item.check_out_time, item.timezone_used)}
+                      </span>
+                      {item.timezone_used && (
+                        <Badge variant="outline" className="text-[10px] h-4 px-1 leading-none">
+                          {getTimezoneAbbr(item.timezone_used)}
+                        </Badge>
+                      )}
+                    </div>
                   ) : (
                     <span className="text-muted-foreground">—</span>
                   )}
@@ -211,7 +255,7 @@ const AttendanceTable = ({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={onRequestModification ? 8 : 7} className="text-center py-8">
+              <TableCell colSpan={onRequestModification ? 9 : 8} className="text-center py-8">
                 <EmptyState message="No attendance records found" />
               </TableCell>
             </TableRow>

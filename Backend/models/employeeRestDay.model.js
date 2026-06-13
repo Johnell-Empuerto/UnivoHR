@@ -40,7 +40,7 @@ const update = async (id, data) => {
     `UPDATE employee_rest_days
      SET day_of_week = COALESCE($1, day_of_week),
          effective_date = COALESCE($2, effective_date),
-         end_date = $3,
+         end_date = COALESCE($3, end_date),
          updated_at = NOW()
      WHERE id = $4
      RETURNING *`,

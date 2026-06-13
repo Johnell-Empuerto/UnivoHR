@@ -288,6 +288,10 @@ const getEmployeesForDropdown = async () => {
   return await overtimeModel.getEmployeesForDropdown();
 };
 
+const searchEmployeesPaginated = async (page, limit, search, status, hasUser) => {
+  return await overtimeModel.searchEmployeesPaginated(page, limit, search, status, hasUser);
+};
+
 const isApprover = async (user_id) => {
   return await overtimeModel.isApprover(user_id);
 };
@@ -307,6 +311,7 @@ module.exports = {
   updateApprover,
   deleteApprover,
   getEmployeesForDropdown,
+  searchEmployeesPaginated,
   isApprover,
   sendOvertimeEmailNotification,
 };

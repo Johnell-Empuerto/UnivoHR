@@ -2,6 +2,7 @@ const permissionModel = require("../models/permission.model");
 const userModel = require("../models/user.model");
 const { ALL_PERMISSIONS, PERMISSION_GROUPS, EMPLOYEE_DEFAULT_PERMISSIONS } = require("../constants/permissions");
 const { ROLES } = require("../constants/roles");
+const audit = require("../services/audit.service");
 
 const getAllPermissions = async (req, res) => {
   try {
@@ -37,7 +38,14 @@ const setUserPermissions = async (req, res) => {
     if (invalid.length > 0) {
       return res.status(400).json({ message: `Invalid permission keys: ${invalid.join(", ")}` });
     }
+    const oldPerms = await permissionModel.getUserPermissions(id);
     await permissionModel.setUserPermissions(id, permissions);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "user_permissions",
+      record_id: Number(id),
+      description: `Permissions updated for user ${id}: ${oldPerms.length} → ${permissions.length} permissions`,
+    });
     res.json({ message: "Permissions updated successfully" });
   } catch (error) {
     console.error("Error setting user permissions:", error);
@@ -53,13 +61,31 @@ const resetUserPermissions = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
     if (user.role === ROLES.ADMIN) {
+      audit.auditLog(req, {
+        action: "UPDATE",
+        table_name: "user_permissions",
+        record_id: Number(id),
+        description: `Attempted to reset ADMIN permissions for user ${id} (username: ${user.username}) — blocked`,
+      });
       return res.json({ message: "ADMIN permissions cannot be reset. ADMIN always has full access." });
     }
     if (user.role === ROLES.EMPLOYEE) {
       await permissionModel.setUserPermissions(id, EMPLOYEE_DEFAULT_PERMISSIONS);
+      audit.auditLog(req, {
+        action: "UPDATE",
+        table_name: "user_permissions",
+        record_id: Number(id),
+        description: `Permissions reset to Employee Default for user ${id} (username: ${user.username})`,
+      });
       return res.json({ message: "Permissions reset to Employee Default" });
     }
     await permissionModel.resetUserPermissions(id);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "user_permissions",
+      record_id: Number(id),
+      description: `Permissions cleared for user ${id} (username: ${user.username})`,
+    });
     res.json({ message: "Permissions reset" });
   } catch (error) {
     console.error("Error resetting user permissions:", error);

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Building } from "lucide-react";
+import { Loader2, Building, Image as ImageIcon, X, AlertCircle } from "lucide-react";
 import {
   getAllSettings,
   updateSetting,
@@ -20,6 +20,7 @@ const CompanyBranding = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
+  const [logoError, setLogoError] = useState(false);
 
   // Fetch all settings
   const fetchSettings = async () => {
@@ -45,6 +46,7 @@ const CompanyBranding = () => {
 
   const handleChange = (key: string, value: string) => {
     setSettings((prev) => new Map(prev).set(key, value));
+    if (key === "company_logo") setLogoError(false);
   };
 
   const handleSwitchChange = (key: string, checked: boolean) => {
@@ -96,6 +98,9 @@ const CompanyBranding = () => {
   const primaryColor = settings.get("primary_color") || "#4F46E5";
   const secondaryColor = settings.get("secondary_color") || "#7C3AED";
 
+  const isValidHex = (color: string): boolean =>
+    /^#[0-9A-Fa-f]{6}$/.test(color);
+
   return (
     <Card className="border-border/50 shadow-sm">
       <CardHeader>
@@ -146,11 +151,38 @@ const CompanyBranding = () => {
                   placeholder="https://yourcompany.com/logo.png"
                   className="flex-1"
                 />
+                {settings.get("company_logo") && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleChange("company_logo", "")}
+                    title="Remove logo"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 Enter a URL to your company logo (optional, appears in email
                 headers)
               </p>
+              {settings.get("company_logo") && (
+                <div className="mt-3 p-3 bg-muted/30 rounded-lg border flex items-center justify-center min-h-[60px]">
+                  {logoError ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <ImageIcon className="h-5 w-5" />
+                      Unable to load image
+                    </div>
+                  ) : (
+                    <img
+                      src={settings.get("company_logo")!}
+                      alt="Company Logo Preview"
+                      className="max-h-16 max-w-[200px] object-contain"
+                      onError={() => setLogoError(true)}
+                    />
+                  )}
+                </div>
+              )}
             </div>
 
             <div>
@@ -171,6 +203,17 @@ const CompanyBranding = () => {
 
             <div className="border-t pt-4">
               <h3 className="text-sm font-medium mb-3">Display Settings</h3>
+
+              {!companyName &&
+                (settings.get("payslip_show_company_name") === "true" ||
+                  settings.get("email_show_company_name") === "true") && (
+                  <div className="flex items-center gap-2 p-3 mb-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-700 dark:text-amber-400">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>
+                      Company name is empty. "UnivoHR" will be used as fallback.
+                    </span>
+                  </div>
+                )}
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -232,20 +275,27 @@ const CompanyBranding = () => {
                   <Input
                     id="primary_color"
                     type="color"
-                    value={primaryColor}
+                    value={isValidHex(primaryColor) ? primaryColor : "#4F46E5"}
                     onChange={(e) =>
                       handleChange("primary_color", e.target.value)
                     }
                     className="w-16 h-10 p-1"
                   />
-                  <Input
-                    value={primaryColor}
-                    onChange={(e) =>
-                      handleChange("primary_color", e.target.value)
-                    }
-                    placeholder="#4F46E5"
-                    className="flex-1"
-                  />
+                  <div className="flex-1 relative">
+                    <Input
+                      value={primaryColor}
+                      onChange={(e) =>
+                        handleChange("primary_color", e.target.value)
+                      }
+                      placeholder="#4F46E5"
+                      className="w-full"
+                    />
+                    {primaryColor && !isValidHex(primaryColor) && (
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2" title="Invalid hex color">
+                        <AlertCircle className="h-4 w-4 text-destructive" />
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Used for email headers and buttons
@@ -258,20 +308,27 @@ const CompanyBranding = () => {
                   <Input
                     id="secondary_color"
                     type="color"
-                    value={secondaryColor}
+                    value={isValidHex(secondaryColor) ? secondaryColor : "#7C3AED"}
                     onChange={(e) =>
                       handleChange("secondary_color", e.target.value)
                     }
                     className="w-16 h-10 p-1"
                   />
-                  <Input
-                    value={secondaryColor}
-                    onChange={(e) =>
-                      handleChange("secondary_color", e.target.value)
-                    }
-                    placeholder="#7C3AED"
-                    className="flex-1"
-                  />
+                  <div className="flex-1 relative">
+                    <Input
+                      value={secondaryColor}
+                      onChange={(e) =>
+                        handleChange("secondary_color", e.target.value)
+                      }
+                      placeholder="#7C3AED"
+                      className="w-full"
+                    />
+                    {secondaryColor && !isValidHex(secondaryColor) && (
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2" title="Invalid hex color">
+                        <AlertCircle className="h-4 w-4 text-destructive" />
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Used for email headers (gradient end)

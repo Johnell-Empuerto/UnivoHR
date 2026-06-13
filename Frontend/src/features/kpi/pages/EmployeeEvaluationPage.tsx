@@ -4,6 +4,10 @@ import {
 } from "@/services/kpiService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -37,10 +41,6 @@ const EmployeeEvaluationPage = () => {
   const end = Math.min(page * pageSize, total);
 
   const goToPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
-  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setPageSize(Number(e.target.value));
-    setPage(1);
-  };
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisible = 5;
@@ -147,12 +147,15 @@ const EmployeeEvaluationPage = () => {
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
-            <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="border rounded px-3 py-1.5 text-sm bg-background">
-              <option value="">All Status</option>
-              <option value="Draft">Draft</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Submitted">Submitted</option>
-            </select>
+            <Select value={statusFilter || undefined} onValueChange={(val) => { setStatusFilter(val === "_all" ? "" : val); setPage(1); }}>
+              <SelectTrigger className="w-40"><SelectValue placeholder="All Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">All Status</SelectItem>
+                <SelectItem value="Draft">Draft</SelectItem>
+                <SelectItem value="In Progress">In Progress</SelectItem>
+                <SelectItem value="Submitted">Submitted</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
@@ -196,13 +199,15 @@ const EmployeeEvaluationPage = () => {
             <div className="p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Rows per page:</span>
-                <select value={pageSize} onChange={handleRowsPerPageChange}
-                  className="border rounded px-2 py-1 text-sm bg-background">
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                </select>
+                <Select value={String(pageSize)} onValueChange={(val) => { setPageSize(Number(val)); setPage(1); }}>
+                  <SelectTrigger className="w-16 h-8"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="text-sm text-muted-foreground">
                 Showing {start} to {end} of {total} entries
@@ -257,14 +262,14 @@ const EmployeeEvaluationPage = () => {
                           <TableCell className="font-medium">{sc.kpi_name}</TableCell>
                           <TableCell>{sc.weight}%</TableCell>
                           <TableCell>
-                            <input type="number" min="1" max="5" step="0.5" value={sc.manager_score}
+                            <Input type="number" min={1} max={5} step="0.5" value={sc.manager_score}
                               onChange={(e) => handleScoreChange(sc.template_item_id, Number(e.target.value))}
-                              className="w-16 border rounded px-2 py-1 text-sm bg-background" disabled={currentEval.status !== "Draft" && currentEval.status !== "In Progress"} />
+                              className="w-20" disabled={currentEval.status !== "Draft" && currentEval.status !== "In Progress"} />
                           </TableCell>
                           <TableCell>{sc.manager_score > 0 ? ws : 0}</TableCell>
                           <TableCell>
-                            <input value={sc.remarks || ""} onChange={(e) => setScores(scores.map(s => s.template_item_id === sc.template_item_id ? { ...s, remarks: e.target.value } : s))}
-                              className="w-full border rounded px-2 py-1 text-sm bg-background" placeholder="Optional" disabled={currentEval.status !== "Draft" && currentEval.status !== "In Progress"} />
+                            <Input value={sc.remarks || ""} onChange={(e) => setScores(scores.map(s => s.template_item_id === sc.template_item_id ? { ...s, remarks: e.target.value } : s))}
+                              placeholder="Optional" disabled={currentEval.status !== "Draft" && currentEval.status !== "In Progress"} />
                           </TableCell>
                         </TableRow>
                       );
@@ -276,22 +281,22 @@ const EmployeeEvaluationPage = () => {
 
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Manager Comments</p>
-                <textarea value={managerComments} onChange={(e) => setManagerComments(e.target.value)}
-                  className="w-full border rounded px-2 py-1 bg-background min-h-[60px]"
+                <Textarea value={managerComments} onChange={(e) => setManagerComments(e.target.value)}
                   disabled={currentEval.status !== "Draft" && currentEval.status !== "In Progress"} />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Recommendation</p>
-                <select value={recommendation} onChange={(e) => setRecommendation(e.target.value)}
-                  className="w-full border rounded px-2 py-1 bg-background"
+                <Select value={recommendation || undefined} onValueChange={setRecommendation}
                   disabled={currentEval.status !== "Draft" && currentEval.status !== "In Progress"}>
-                  <option value="">Select recommendation</option>
-                  <option value="Regularize">Regularize</option>
-                  <option value="Extend Probation">Extend Probation</option>
-                  <option value="Training">Training</option>
-                  <option value="Warning">Warning</option>
-                  <option value="Terminate">Terminate</option>
-                </select>
+                  <SelectTrigger><SelectValue placeholder="Select recommendation" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Regularize">Regularize</SelectItem>
+                    <SelectItem value="Extend Probation">Extend Probation</SelectItem>
+                    <SelectItem value="Training">Training</SelectItem>
+                    <SelectItem value="Warning">Warning</SelectItem>
+                    <SelectItem value="Terminate">Terminate</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex gap-2 justify-end">

@@ -19,3 +19,13 @@ export const deleteApplicantInterview = async (id: number) => {
   const response = await api.delete(`/applicant-interviews/${id}`);
   return response.data;
 };
+
+export const getMyInterviews = async () => {
+  const response = await api.get("/applicant-interviews/my");
+  return response.data;
+};
+
+export const getPossibleInterviewers = async () => {
+  const response = await api.get("/applicant-interviews/possible-interviewers");
+  return response.data;
+};

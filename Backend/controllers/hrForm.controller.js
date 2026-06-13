@@ -133,7 +133,8 @@ const getMyAssignments = async (req, res) => {
   try {
     const employeeId = req.user?.employee_id;
     if (!employeeId) return res.status(400).json({ message: "Employee ID not found" });
-    const result = await service.getMyAssignments(employeeId);
+    const { page = 1, limit = 10 } = req.query;
+    const result = await service.getMyAssignments(employeeId, Number(page), Number(limit));
     res.json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });

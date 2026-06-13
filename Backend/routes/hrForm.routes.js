@@ -9,7 +9,7 @@ router.get("/assignments/all", authenticate, requirePermission("forms.view"), co
 router.get("/assignments/:assignmentId", authenticate, controller.getAssignmentById);
 router.post("/assignments/:assignmentId/submit", authenticate, controller.submitForm);
 router.get("/submissions/all", authenticate, requirePermission("forms.view"), controller.getSubmissions);
-router.get("/submissions/:submissionId", authenticate, controller.getSubmissionById);
+router.get("/submissions/:submissionId", authenticate, requirePermission("forms.submissions.view"), controller.getSubmissionById);
 router.patch("/submissions/:submissionId/review", authenticate, requirePermission("forms.builder.manage"), controller.reviewSubmission);
 router.put("/fields/:fieldId", authenticate, requirePermission("forms.builder.manage"), controller.editField);
 router.delete("/fields/:fieldId", authenticate, requirePermission("forms.builder.manage"), controller.removeField);

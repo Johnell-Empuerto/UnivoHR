@@ -251,6 +251,12 @@ const createManHourReportWithDetails = async (data) => {
     // Calculate total hours from details
     let totalHours = 0;
     for (const detail of details) {
+      if (!detail.time_from || !detail.time_to) {
+        throw new Error(
+          `Time from and time to are required for activity: ${detail.activity}`,
+        );
+      }
+
       const [fromHour, fromMin] = detail.time_from.split(":").map(Number);
       const [toHour, toMin] = detail.time_to.split(":").map(Number);
       const fromMinutes = fromHour * 60 + fromMin;
@@ -269,6 +275,25 @@ const createManHourReportWithDetails = async (data) => {
     // Validate total hours
     if (totalHours <= 0 || totalHours > 24) {
       throw new Error("Total man hours must be between 0.5 and 24 hours");
+    }
+
+    // Detect overlapping time entries
+    for (let i = 0; i < details.length; i++) {
+      const [iFromH, iFromM] = details[i].time_from.split(":").map(Number);
+      const [iToH, iToM] = details[i].time_to.split(":").map(Number);
+      const iStart = iFromH * 60 + iFromM;
+      const iEnd = iToH * 60 + iToM;
+      for (let j = i + 1; j < details.length; j++) {
+        const [jFromH, jFromM] = details[j].time_from.split(":").map(Number);
+        const [jToH, jToM] = details[j].time_to.split(":").map(Number);
+        const jStart = jFromH * 60 + jFromM;
+        const jEnd = jToH * 60 + jToM;
+        if (iStart < jEnd && jStart < iEnd) {
+          throw new Error(
+            `Time entries overlap: "${details[i].activity}" and "${details[j].activity}"`,
+          );
+        }
+      }
     }
 
     // Create main report
@@ -347,6 +372,12 @@ const updateManHourReportWithDetails = async (id, employee_id, data) => {
     // Calculate total hours from details
     let totalHours = 0;
     for (const detail of details) {
+      if (!detail.time_from || !detail.time_to) {
+        throw new Error(
+          `Time from and time to are required for activity: ${detail.activity}`,
+        );
+      }
+
       const [fromHour, fromMin] = detail.time_from.split(":").map(Number);
       const [toHour, toMin] = detail.time_to.split(":").map(Number);
       const fromMinutes = fromHour * 60 + fromMin;
@@ -360,6 +391,25 @@ const updateManHourReportWithDetails = async (id, employee_id, data) => {
       }
 
       totalHours += diffMinutes / 60;
+    }
+
+    // Detect overlapping time entries
+    for (let i = 0; i < details.length; i++) {
+      const [iFromH, iFromM] = details[i].time_from.split(":").map(Number);
+      const [iToH, iToM] = details[i].time_to.split(":").map(Number);
+      const iStart = iFromH * 60 + iFromM;
+      const iEnd = iToH * 60 + iToM;
+      for (let j = i + 1; j < details.length; j++) {
+        const [jFromH, jFromM] = details[j].time_from.split(":").map(Number);
+        const [jToH, jToM] = details[j].time_to.split(":").map(Number);
+        const jStart = jFromH * 60 + jFromM;
+        const jEnd = jToH * 60 + jToM;
+        if (iStart < jEnd && jStart < iEnd) {
+          throw new Error(
+            `Time entries overlap: "${details[i].activity}" and "${details[j].activity}"`,
+          );
+        }
+      }
     }
 
     // Update main report

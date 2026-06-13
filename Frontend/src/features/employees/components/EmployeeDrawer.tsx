@@ -169,7 +169,9 @@ const EmployeeDrawer = ({
   useAuth();
   const [form, setForm] = useState<any>({});
   const [loading, setLoading] = useState(false);
-  const [branches, setBranches] = useState<{ id: number; name: string; code: string }[]>([]);
+  const [branches, setBranches] = useState<
+    { id: number; name: string; code: string }[]
+  >([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [restDays, setRestDays] = useState<EmployeeRestDay[]>([]);
   const [restDaysLoading, setRestDaysLoading] = useState(false);
@@ -178,20 +180,33 @@ const EmployeeDrawer = ({
 
   const [familyOpen, setFamilyOpen] = useState(false);
   const [familyData, setFamilyData] = useState<any[]>([]);
-  const [familyDialog, setFamilyDialog] = useState<{ open: boolean; mode: "create" | "edit"; item: any }>({ open: false, mode: "create", item: null });
+  const [familyDialog, setFamilyDialog] = useState<{
+    open: boolean;
+    mode: "create" | "edit";
+    item: any;
+  }>({ open: false, mode: "create", item: null });
   const [editingFamily, setEditingFamily] = useState<any>({});
 
   const [educationOpen, setEducationOpen] = useState(false);
   const [educationData, setEducationData] = useState<any[]>([]);
-  const [educationDialog, setEducationDialog] = useState<{ open: boolean; mode: "create" | "edit"; item: any }>({ open: false, mode: "create", item: null });
+  const [educationDialog, setEducationDialog] = useState<{
+    open: boolean;
+    mode: "create" | "edit";
+    item: any;
+  }>({ open: false, mode: "create", item: null });
   const [editingEducation, setEditingEducation] = useState<any>({});
 
   const [experienceOpen, setExperienceOpen] = useState(false);
   const [experienceData, setExperienceData] = useState<any[]>([]);
-  const [experienceDialog, setExperienceDialog] = useState<{ open: boolean; mode: "create" | "edit"; item: any }>({ open: false, mode: "create", item: null });
+  const [experienceDialog, setExperienceDialog] = useState<{
+    open: boolean;
+    mode: "create" | "edit";
+    item: any;
+  }>({ open: false, mode: "create", item: null });
   const [editingExperience, setEditingExperience] = useState<any>({});
 
   useEffect(() => {
+    if (!open) return;
     const fetchBranches = async () => {
       try {
         const data = await getActiveBranches();
@@ -202,10 +217,14 @@ const EmployeeDrawer = ({
     };
     fetchBranches();
     const fetchShifts = async () => {
-      try { setShifts(await getActiveShifts()); } catch { /* silent */ }
+      try {
+        setShifts(await getActiveShifts());
+      } catch {
+        /* silent */
+      }
     };
     fetchShifts();
-  }, []);
+  }, [open]);
 
   useEffect(() => {
     if (employee?.id && (mode === "edit" || mode === "view")) {
@@ -302,13 +321,19 @@ const EmployeeDrawer = ({
         termination_date: "",
         termination_reason: "",
         last_working_date: "",
-        branch_id: branches.length > 0 ? branches[0].id : "",
+        branch_id: "",
         shift_id: "",
       });
     } else if (mode === "view" && employee) {
       setForm(employee);
     }
-  }, [employee, mode, branches]);
+  }, [employee, mode]);
+
+  useEffect(() => {
+    if (mode === "create" && branches.length > 0 && !form.branch_id) {
+      setForm((prev: any) => ({ ...prev, branch_id: branches[0].id }));
+    }
+  }, [branches, mode]);
 
   const handleChange = (e: any) => {
     if (isViewOnly) return;
@@ -348,20 +373,38 @@ const EmployeeDrawer = ({
 
   const loadFamily = async () => {
     if (!employee?.id) return;
-    try { setFamilyData(await getEmployeeFamily(employee.id)); } catch { /* silent */ }
+    try {
+      setFamilyData(await getEmployeeFamily(employee.id));
+    } catch {
+      /* silent */
+    }
   };
 
   const loadEducation = async () => {
     if (!employee?.id) return;
-    try { setEducationData(await getEmployeeEducation(employee.id)); } catch { /* silent */ }
+    try {
+      setEducationData(await getEmployeeEducation(employee.id));
+    } catch {
+      /* silent */
+    }
   };
 
   const loadExperience = async () => {
     if (!employee?.id) return;
-    try { setExperienceData(await getEmployeeExperience(employee.id)); } catch { /* silent */ }
+    try {
+      setExperienceData(await getEmployeeExperience(employee.id));
+    } catch {
+      /* silent */
+    }
   };
 
-  useEffect(() => { if (employee?.id) { loadFamily(); loadEducation(); loadExperience(); } }, [employee?.id]);
+  useEffect(() => {
+    if (employee?.id) {
+      loadFamily();
+      loadEducation();
+      loadExperience();
+    }
+  }, [employee?.id]);
 
   const handleCreateFamily = async () => {
     if (!employee?.id) return;
@@ -371,18 +414,26 @@ const EmployeeDrawer = ({
       setFamilyDialog({ open: false, mode: "create", item: null });
       setEditingFamily({});
       loadFamily();
-    } catch (err: any) { toast.error(err.message); }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const handleUpdateFamily = async () => {
     if (!employee?.id || !familyDialog.item) return;
     try {
-      await updateEmployeeFamily(employee.id, familyDialog.item.id, editingFamily);
+      await updateEmployeeFamily(
+        employee.id,
+        familyDialog.item.id,
+        editingFamily,
+      );
       toast.success("Family member updated");
       setFamilyDialog({ open: false, mode: "create", item: null });
       setEditingFamily({});
       loadFamily();
-    } catch (err: any) { toast.error(err.message); }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const handleDeleteFamily = async (id: number) => {
@@ -392,7 +443,9 @@ const EmployeeDrawer = ({
       await deleteEmployeeFamily(employee.id, id);
       toast.success("Family member deleted");
       loadFamily();
-    } catch (err: any) { toast.error(err.message); }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const handleCreateEducation = async () => {
@@ -403,18 +456,26 @@ const EmployeeDrawer = ({
       setEducationDialog({ open: false, mode: "create", item: null });
       setEditingEducation({});
       loadEducation();
-    } catch (err: any) { toast.error(err.message); }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const handleUpdateEducation = async () => {
     if (!employee?.id || !educationDialog.item) return;
     try {
-      await updateEmployeeEducation(employee.id, educationDialog.item.id, editingEducation);
+      await updateEmployeeEducation(
+        employee.id,
+        educationDialog.item.id,
+        editingEducation,
+      );
       toast.success("Education record updated");
       setEducationDialog({ open: false, mode: "create", item: null });
       setEditingEducation({});
       loadEducation();
-    } catch (err: any) { toast.error(err.message); }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const handleDeleteEducation = async (id: number) => {
@@ -424,7 +485,9 @@ const EmployeeDrawer = ({
       await deleteEmployeeEducation(employee.id, id);
       toast.success("Education record deleted");
       loadEducation();
-    } catch (err: any) { toast.error(err.message); }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const handleCreateExperience = async () => {
@@ -435,18 +498,26 @@ const EmployeeDrawer = ({
       setExperienceDialog({ open: false, mode: "create", item: null });
       setEditingExperience({});
       loadExperience();
-    } catch (err: any) { toast.error(err.message); }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const handleUpdateExperience = async () => {
     if (!employee?.id || !experienceDialog.item) return;
     try {
-      await updateEmployeeExperience(employee.id, experienceDialog.item.id, editingExperience);
+      await updateEmployeeExperience(
+        employee.id,
+        experienceDialog.item.id,
+        editingExperience,
+      );
       toast.success("Work experience updated");
       setExperienceDialog({ open: false, mode: "create", item: null });
       setEditingExperience({});
       loadExperience();
-    } catch (err: any) { toast.error(err.message); }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const handleDeleteExperience = async (id: number) => {
@@ -456,7 +527,9 @@ const EmployeeDrawer = ({
       await deleteEmployeeExperience(employee.id, id);
       toast.success("Work experience deleted");
       loadExperience();
-    } catch (err: any) { toast.error(err.message); }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const handleSave = async () => {
@@ -480,12 +553,15 @@ const EmployeeDrawer = ({
         return;
       }
 
-      const probationMonths = form.probation_period_months !== "" && form.probation_period_months != null
-        ? Number(form.probation_period_months)
-        : null;
+      const probationMonths =
+        form.probation_period_months !== "" &&
+        form.probation_period_months != null
+          ? Number(form.probation_period_months)
+          : null;
 
       const apiData = {
         ...form,
+        branch_id: form.branch_id ? Number(form.branch_id) : null,
         probation_period_months: probationMonths,
         name: form.name || `${form.first_name} ${form.last_name || ""}`.trim(),
       };
@@ -505,9 +581,15 @@ const EmployeeDrawer = ({
 
       const employeeId = result.id || result.employee_id;
       if (form.shift_id && employeeId) {
-        const effectiveDate = form.hired_date || new Date().toISOString().split("T")[0];
+        const effectiveDate =
+          form.hired_date || new Date().toISOString().split("T")[0];
         try {
-          await assignShift(employeeId, Number(form.shift_id), effectiveDate, null);
+          await assignShift(
+            employeeId,
+            Number(form.shift_id),
+            effectiveDate,
+            null,
+          );
         } catch {
           console.warn("Shift assignment failed (non-critical)");
         }
@@ -583,14 +665,18 @@ const EmployeeDrawer = ({
                 <Info label="Department" value={employee?.department} />
                 <Info label="Position" value={employee?.position} />
                 <div>
-                  <p className="text-xs text-muted-foreground">Employment Status</p>
-                  <span className={`inline-block mt-1 px-2 py-1 text-xs rounded font-semibold ${
-                    employee?.employment_status === "REGULAR"
-                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                      : employee?.employment_status === "PROBATIONARY"
-                        ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
-                        : "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
-                  }`}>
+                  <p className="text-xs text-muted-foreground">
+                    Employment Status
+                  </p>
+                  <span
+                    className={`inline-block mt-1 px-2 py-1 text-xs rounded font-semibold ${
+                      employee?.employment_status === "REGULAR"
+                        ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                        : employee?.employment_status === "PROBATIONARY"
+                          ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                          : "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
+                    }`}
+                  >
                     {employee?.employment_status || "REGULAR"}
                   </span>
                 </div>
@@ -598,38 +684,45 @@ const EmployeeDrawer = ({
                   <>
                     <Info
                       label="Probation Period"
-                      value={employee?.probation_period_months
-                        ? `${employee.probation_period_months} months`
-                        : "Company Default (6 months)"
+                      value={
+                        employee?.probation_period_months
+                          ? `${employee.probation_period_months} months`
+                          : "Company Default (6 months)"
                       }
                     />
                     <Info
                       label="Regularization Date"
-                      value={employee?.regularization_date
-                        ? formatDate(employee.regularization_date)
-                        : "Not set"
+                      value={
+                        employee?.regularization_date
+                          ? formatDate(employee.regularization_date)
+                          : "Not set"
                       }
                     />
-                    {employee?.regularization_date && (() => {
-                      const daysLeft = Math.ceil(
-                        (new Date(employee.regularization_date!).getTime() - new Date().getTime()) /
-                        (1000 * 60 * 60 * 24)
-                      );
-                      return (
-                        <div>
-                          <p className="text-xs text-muted-foreground">Days Remaining</p>
-                          <p className={`text-sm font-medium ${daysLeft <= 0 ? "text-red-600" : daysLeft <= 30 ? "text-amber-600" : "text-green-600"}`}>
-                            {daysLeft <= 0 ? "Due for Regularization" : `${daysLeft} days`}
-                          </p>
-                        </div>
-                      );
-                    })()}
+                    {employee?.regularization_date &&
+                      (() => {
+                        const daysLeft = Math.ceil(
+                          (new Date(employee.regularization_date!).getTime() -
+                            new Date().getTime()) /
+                            (1000 * 60 * 60 * 24),
+                        );
+                        return (
+                          <div>
+                            <p className="text-xs text-muted-foreground">
+                              Days Remaining
+                            </p>
+                            <p
+                              className={`text-sm font-medium ${daysLeft <= 0 ? "text-red-600" : daysLeft <= 30 ? "text-amber-600" : "text-green-600"}`}
+                            >
+                              {daysLeft <= 0
+                                ? "Due for Regularization"
+                                : `${daysLeft} days`}
+                            </p>
+                          </div>
+                        );
+                      })()}
                   </>
                 ) : (
-                  <Info
-                    label="Probation Period"
-                    value="Not Applicable"
-                  />
+                  <Info label="Probation Period" value="Not Applicable" />
                 )}
                 <div>
                   <p className="text-xs text-muted-foreground">Status</p>
@@ -779,7 +872,7 @@ const EmployeeDrawer = ({
                 </p>
                 <Info
                   label="Branch"
-                  value={employee?.branch_name || "Main Branch"}
+                  value={employee?.branch_name || "No Branch"}
                 />
               </div>
 
@@ -801,43 +894,89 @@ const EmployeeDrawer = ({
                 />
                 <div className="pt-2 border-t">
                   <p className="text-xs text-muted-foreground">
-                    Device IDs such as RFID, fingerprint, face ID, or biometric user ID are managed in <strong>Device Integrations → Device User Mapping</strong>.
+                    Device IDs such as RFID, fingerprint, face ID, or biometric
+                    user ID are managed in{" "}
+                    <strong>Device Integrations → Device User Mapping</strong>.
                   </p>
                 </div>
               </div>
 
               {/* FAMILY MEMBERS VIEW */}
               <div className="rounded-lg border p-4 space-y-3">
-                <div className="flex items-center justify-between cursor-pointer" onClick={() => setFamilyOpen(!familyOpen)}>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase">Family Members</p>
-                  <span className="text-xs text-muted-foreground">{familyOpen ? '▲' : '▼'}</span>
+                <div
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => setFamilyOpen(!familyOpen)}
+                >
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">
+                    Family Members
+                  </p>
+                  <span className="text-xs text-muted-foreground">
+                    {familyOpen ? "▲" : "▼"}
+                  </span>
                 </div>
                 {familyOpen && (
                   <>
                     {familyData.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No family members recorded.</p>
+                      <p className="text-sm text-muted-foreground">
+                        No family members recorded.
+                      </p>
                     ) : (
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="border-b text-muted-foreground">
                             <th className="text-left py-1 font-medium">Name</th>
-                            <th className="text-left py-1 font-medium">Relationship</th>
-                            <th className="text-left py-1 font-medium">Occupation</th>
-                            <th className="text-left py-1 font-medium">Contact</th>
-                            {canEdit && <th className="text-right py-1 font-medium">Actions</th>}
+                            <th className="text-left py-1 font-medium">
+                              Relationship
+                            </th>
+                            <th className="text-left py-1 font-medium">
+                              Occupation
+                            </th>
+                            <th className="text-left py-1 font-medium">
+                              Contact
+                            </th>
+                            {canEdit && (
+                              <th className="text-right py-1 font-medium">
+                                Actions
+                              </th>
+                            )}
                           </tr>
                         </thead>
                         <tbody>
                           {familyData.map((m: any) => (
                             <tr key={m.id} className="border-b last:border-0">
                               <td className="py-1.5">{m.full_name}</td>
-                              <td className="py-1.5 capitalize">{m.relationship_type}</td>
-                              <td className="py-1.5">{m.occupation || '—'}</td>
-                              <td className="py-1.5">{m.contact_number || '—'}</td>
+                              <td className="py-1.5 capitalize">
+                                {m.relationship_type}
+                              </td>
+                              <td className="py-1.5">{m.occupation || "—"}</td>
+                              <td className="py-1.5">
+                                {m.contact_number || "—"}
+                              </td>
                               {canEdit && (
                                 <td className="py-1.5 text-right whitespace-nowrap">
-                                  <button onClick={() => { setEditingFamily({ ...m, birthdate: m.birthdate?.split('T')[0] || '' }); setFamilyDialog({ open: true, mode: "edit", item: m }); }} className="text-primary hover:underline mr-2">Edit</button>
-                                  <button onClick={() => handleDeleteFamily(m.id)} className="text-red-500 hover:underline">Delete</button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingFamily({
+                                        ...m,
+                                        birthdate:
+                                          m.birthdate?.split("T")[0] || "",
+                                      });
+                                      setFamilyDialog({
+                                        open: true,
+                                        mode: "edit",
+                                        item: m,
+                                      });
+                                    }}
+                                    className="text-primary hover:underline mr-2"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteFamily(m.id)}
+                                    className="text-red-500 hover:underline"
+                                  >
+                                    Delete
+                                  </button>
                                 </td>
                               )}
                             </tr>
@@ -846,17 +985,72 @@ const EmployeeDrawer = ({
                       </table>
                     )}
                     {canEdit && (
-                      <button onClick={() => { setEditingFamily({ relationship_type: "spouse", is_dependent: false }); setFamilyDialog({ open: true, mode: "create", item: null }); }} className="text-xs text-primary hover:underline">+ Add Family Member</button>
+                      <button
+                        onClick={() => {
+                          setEditingFamily({
+                            relationship_type: "spouse",
+                            is_dependent: false,
+                          });
+                          setFamilyDialog({
+                            open: true,
+                            mode: "create",
+                            item: null,
+                          });
+                        }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        + Add Family Member
+                      </button>
                     )}
                     {familyDialog.open && (
-                      <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40" onClick={() => setFamilyDialog({ open: false, mode: "create", item: null })}>
-                        <div className="bg-background rounded-lg border p-4 w-full max-w-md mx-4 space-y-3 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                          <p className="text-sm font-semibold">{familyDialog.mode === "create" ? "Add Family Member" : "Edit Family Member"}</p>
+                      <div
+                        className="fixed inset-0 z-10000 flex items-center justify-center bg-black/40"
+                        onClick={() =>
+                          setFamilyDialog({
+                            open: false,
+                            mode: "create",
+                            item: null,
+                          })
+                        }
+                      >
+                        <div
+                          className="bg-background rounded-lg border p-4 w-full max-w-md mx-4 space-y-3 max-h-[80vh] overflow-y-auto"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <p className="text-sm font-semibold">
+                            {familyDialog.mode === "create"
+                              ? "Add Family Member"
+                              : "Edit Family Member"}
+                          </p>
                           <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-                            <InputField label="Full Name" name="full_name" value={editingFamily.full_name} onChange={e => setEditingFamily({ ...editingFamily, full_name: e.target.value })} required />
+                            <InputField
+                              label="Full Name"
+                              name="full_name"
+                              value={editingFamily.full_name}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingFamily({
+                                  ...editingFamily,
+                                  full_name: e.target.value,
+                                })
+                              }
+                              required
+                            />
                             <div>
-                              <p className="text-xs text-muted-foreground">Relationship <span className="text-red-500">*</span></p>
-                              <select name="relationship_type" value={editingFamily.relationship_type || ""} onChange={e => setEditingFamily({ ...editingFamily, relationship_type: e.target.value })} className="w-full border rounded px-2 py-1 bg-background text-sm">
+                              <p className="text-xs text-muted-foreground">
+                                Relationship{" "}
+                                <span className="text-red-500">*</span>
+                              </p>
+                              <select
+                                name="relationship_type"
+                                value={editingFamily.relationship_type || ""}
+                                onChange={(e) =>
+                                  setEditingFamily({
+                                    ...editingFamily,
+                                    relationship_type: e.target.value,
+                                  })
+                                }
+                                className="w-full border rounded px-2 py-1 bg-background text-sm"
+                              >
                                 <option value="">Select...</option>
                                 <option value="spouse">Spouse</option>
                                 <option value="child">Child</option>
@@ -866,18 +1060,89 @@ const EmployeeDrawer = ({
                                 <option value="dependent">Dependent</option>
                               </select>
                             </div>
-                            <InputField label="Birthdate" name="birthdate" type="date" value={editingFamily.birthdate || ""} onChange={e => setEditingFamily({ ...editingFamily, birthdate: e.target.value })} />
-                            <InputField label="Occupation" name="occupation" value={editingFamily.occupation || ""} onChange={e => setEditingFamily({ ...editingFamily, occupation: e.target.value })} />
-                            <InputField label="Contact Number" name="contact_number" value={editingFamily.contact_number || ""} onChange={e => setEditingFamily({ ...editingFamily, contact_number: e.target.value })} />
-                            <InputField label="Address" name="address" value={editingFamily.address || ""} onChange={e => setEditingFamily({ ...editingFamily, address: e.target.value })} />
+                            <InputField
+                              label="Birthdate"
+                              name="birthdate"
+                              type="date"
+                              value={editingFamily.birthdate || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingFamily({
+                                  ...editingFamily,
+                                  birthdate: e.target.value,
+                                })
+                              }
+                            />
+                            <InputField
+                              label="Occupation"
+                              name="occupation"
+                              value={editingFamily.occupation || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingFamily({
+                                  ...editingFamily,
+                                  occupation: e.target.value,
+                                })
+                              }
+                            />
+                            <InputField
+                              label="Contact Number"
+                              name="contact_number"
+                              value={editingFamily.contact_number || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingFamily({
+                                  ...editingFamily,
+                                  contact_number: e.target.value,
+                                })
+                              }
+                            />
+                            <InputField
+                              label="Address"
+                              name="address"
+                              value={editingFamily.address || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingFamily({
+                                  ...editingFamily,
+                                  address: e.target.value,
+                                })
+                              }
+                            />
                             <label className="flex items-center gap-2 text-sm">
-                              <input type="checkbox" checked={editingFamily.is_dependent || false} onChange={e => setEditingFamily({ ...editingFamily, is_dependent: e.target.checked })} className="accent-primary" />
+                              <input
+                                type="checkbox"
+                                checked={editingFamily.is_dependent || false}
+                                onChange={(e) =>
+                                  setEditingFamily({
+                                    ...editingFamily,
+                                    is_dependent: e.target.checked,
+                                  })
+                                }
+                                className="accent-primary"
+                              />
                               Is Dependent
                             </label>
                           </div>
                           <div className="flex justify-end gap-2 pt-2">
-                            <button onClick={() => setFamilyDialog({ open: false, mode: "create", item: null })} className="px-3 py-1.5 text-sm border rounded hover:bg-muted">Cancel</button>
-                            <button onClick={familyDialog.mode === "create" ? handleCreateFamily : handleUpdateFamily} className="px-3 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90">{familyDialog.mode === "create" ? "Add" : "Save"}</button>
+                            <button
+                              onClick={() =>
+                                setFamilyDialog({
+                                  open: false,
+                                  mode: "create",
+                                  item: null,
+                                })
+                              }
+                              className="px-3 py-1.5 text-sm border rounded hover:bg-muted"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={
+                                familyDialog.mode === "create"
+                                  ? handleCreateFamily
+                                  : handleUpdateFamily
+                              }
+                              className="px-3 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90"
+                            >
+                              {familyDialog.mode === "create" ? "Add" : "Save"}
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -888,36 +1153,81 @@ const EmployeeDrawer = ({
 
               {/* EDUCATION VIEW */}
               <div className="rounded-lg border p-4 space-y-3">
-                <div className="flex items-center justify-between cursor-pointer" onClick={() => setEducationOpen(!educationOpen)}>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase">Education</p>
-                  <span className="text-xs text-muted-foreground">{educationOpen ? '▲' : '▼'}</span>
+                <div
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => setEducationOpen(!educationOpen)}
+                >
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">
+                    Education
+                  </p>
+                  <span className="text-xs text-muted-foreground">
+                    {educationOpen ? "▲" : "▼"}
+                  </span>
                 </div>
                 {educationOpen && (
                   <>
                     {educationData.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No education records.</p>
+                      <p className="text-sm text-muted-foreground">
+                        No education records.
+                      </p>
                     ) : (
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="border-b text-muted-foreground">
-                            <th className="text-left py-1 font-medium">School</th>
-                            <th className="text-left py-1 font-medium">Level</th>
-                            <th className="text-left py-1 font-medium">Course</th>
+                            <th className="text-left py-1 font-medium">
+                              School
+                            </th>
+                            <th className="text-left py-1 font-medium">
+                              Level
+                            </th>
+                            <th className="text-left py-1 font-medium">
+                              Course
+                            </th>
                             <th className="text-left py-1 font-medium">Year</th>
-                            {canEdit && <th className="text-right py-1 font-medium">Actions</th>}
+                            {canEdit && (
+                              <th className="text-right py-1 font-medium">
+                                Actions
+                              </th>
+                            )}
                           </tr>
                         </thead>
                         <tbody>
                           {educationData.map((e: any) => (
                             <tr key={e.id} className="border-b last:border-0">
                               <td className="py-1.5">{e.school_name}</td>
-                              <td className="py-1.5 capitalize">{e.education_level.replace('_', ' ')}</td>
-                              <td className="py-1.5">{e.course_or_degree || '—'}</td>
-                              <td className="py-1.5">{e.year_started || '—'}{e.year_graduated ? ` - ${e.year_graduated}` : ''}</td>
+                              <td className="py-1.5 capitalize">
+                                {e.education_level.replace("_", " ")}
+                              </td>
+                              <td className="py-1.5">
+                                {e.course_or_degree || "—"}
+                              </td>
+                              <td className="py-1.5">
+                                {e.year_started || "—"}
+                                {e.year_graduated
+                                  ? ` - ${e.year_graduated}`
+                                  : ""}
+                              </td>
                               {canEdit && (
                                 <td className="py-1.5 text-right whitespace-nowrap">
-                                  <button onClick={() => { setEditingEducation({ ...e }); setEducationDialog({ open: true, mode: "edit", item: e }); }} className="text-primary hover:underline mr-2">Edit</button>
-                                  <button onClick={() => handleDeleteEducation(e.id)} className="text-red-500 hover:underline">Delete</button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingEducation({ ...e });
+                                      setEducationDialog({
+                                        open: true,
+                                        mode: "edit",
+                                        item: e,
+                                      });
+                                    }}
+                                    className="text-primary hover:underline mr-2"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteEducation(e.id)}
+                                    className="text-red-500 hover:underline"
+                                  >
+                                    Delete
+                                  </button>
                                 </td>
                               )}
                             </tr>
@@ -926,16 +1236,57 @@ const EmployeeDrawer = ({
                       </table>
                     )}
                     {canEdit && (
-                      <button onClick={() => { setEditingEducation({ education_level: "college" }); setEducationDialog({ open: true, mode: "create", item: null }); }} className="text-xs text-primary hover:underline">+ Add Education</button>
+                      <button
+                        onClick={() => {
+                          setEditingEducation({ education_level: "college" });
+                          setEducationDialog({
+                            open: true,
+                            mode: "create",
+                            item: null,
+                          });
+                        }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        + Add Education
+                      </button>
                     )}
                     {educationDialog.open && (
-                      <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40" onClick={() => setEducationDialog({ open: false, mode: "create", item: null })}>
-                        <div className="bg-background rounded-lg border p-4 w-full max-w-md mx-4 space-y-3 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                          <p className="text-sm font-semibold">{educationDialog.mode === "create" ? "Add Education" : "Edit Education"}</p>
+                      <div
+                        className="fixed inset-0 z-10000 flex items-center justify-center bg-black/40"
+                        onClick={() =>
+                          setEducationDialog({
+                            open: false,
+                            mode: "create",
+                            item: null,
+                          })
+                        }
+                      >
+                        <div
+                          className="bg-background rounded-lg border p-4 w-full max-w-md mx-4 space-y-3 max-h-[80vh] overflow-y-auto"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <p className="text-sm font-semibold">
+                            {educationDialog.mode === "create"
+                              ? "Add Education"
+                              : "Edit Education"}
+                          </p>
                           <div className="space-y-2 max-h-[60vh] overflow-y-auto">
                             <div>
-                              <p className="text-xs text-muted-foreground">Education Level <span className="text-red-500">*</span></p>
-                              <select name="education_level" value={editingEducation.education_level || ""} onChange={e => setEditingEducation({ ...editingEducation, education_level: e.target.value })} className="w-full border rounded px-2 py-1 bg-background text-sm">
+                              <p className="text-xs text-muted-foreground">
+                                Education Level{" "}
+                                <span className="text-red-500">*</span>
+                              </p>
+                              <select
+                                name="education_level"
+                                value={editingEducation.education_level || ""}
+                                onChange={(e) =>
+                                  setEditingEducation({
+                                    ...editingEducation,
+                                    education_level: e.target.value,
+                                  })
+                                }
+                                className="w-full border rounded px-2 py-1 bg-background text-sm"
+                              >
                                 <option value="">Select...</option>
                                 <option value="elementary">Elementary</option>
                                 <option value="high_school">High School</option>
@@ -946,15 +1297,90 @@ const EmployeeDrawer = ({
                                 <option value="other">Other</option>
                               </select>
                             </div>
-                            <InputField label="School Name" name="school_name" value={editingEducation.school_name || ""} onChange={e => setEditingEducation({ ...editingEducation, school_name: e.target.value })} required />
-                            <InputField label="Course / Degree" name="course_or_degree" value={editingEducation.course_or_degree || ""} onChange={e => setEditingEducation({ ...editingEducation, course_or_degree: e.target.value })} />
-                            <InputField label="Year Started" name="year_started" type="number" value={editingEducation.year_started || ""} onChange={e => setEditingEducation({ ...editingEducation, year_started: e.target.value })} />
-                            <InputField label="Year Graduated" name="year_graduated" type="number" value={editingEducation.year_graduated || ""} onChange={e => setEditingEducation({ ...editingEducation, year_graduated: e.target.value })} />
-                            <InputField label="Honors / Awards" name="honors_awards" value={editingEducation.honors_awards || ""} onChange={e => setEditingEducation({ ...editingEducation, honors_awards: e.target.value })} />
+                            <InputField
+                              label="School Name"
+                              name="school_name"
+                              value={editingEducation.school_name || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingEducation({
+                                  ...editingEducation,
+                                  school_name: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                            <InputField
+                              label="Course / Degree"
+                              name="course_or_degree"
+                              value={editingEducation.course_or_degree || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingEducation({
+                                  ...editingEducation,
+                                  course_or_degree: e.target.value,
+                                })
+                              }
+                            />
+                            <InputField
+                              label="Year Started"
+                              name="year_started"
+                              type="number"
+                              value={editingEducation.year_started || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingEducation({
+                                  ...editingEducation,
+                                  year_started: e.target.value,
+                                })
+                              }
+                            />
+                            <InputField
+                              label="Year Graduated"
+                              name="year_graduated"
+                              type="number"
+                              value={editingEducation.year_graduated || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingEducation({
+                                  ...editingEducation,
+                                  year_graduated: e.target.value,
+                                })
+                              }
+                            />
+                            <InputField
+                              label="Honors / Awards"
+                              name="honors_awards"
+                              value={editingEducation.honors_awards || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingEducation({
+                                  ...editingEducation,
+                                  honors_awards: e.target.value,
+                                })
+                              }
+                            />
                           </div>
                           <div className="flex justify-end gap-2 pt-2">
-                            <button onClick={() => setEducationDialog({ open: false, mode: "create", item: null })} className="px-3 py-1.5 text-sm border rounded hover:bg-muted">Cancel</button>
-                            <button onClick={educationDialog.mode === "create" ? handleCreateEducation : handleUpdateEducation} className="px-3 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90">{educationDialog.mode === "create" ? "Add" : "Save"}</button>
+                            <button
+                              onClick={() =>
+                                setEducationDialog({
+                                  open: false,
+                                  mode: "create",
+                                  item: null,
+                                })
+                              }
+                              className="px-3 py-1.5 text-sm border rounded hover:bg-muted"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={
+                                educationDialog.mode === "create"
+                                  ? handleCreateEducation
+                                  : handleUpdateEducation
+                              }
+                              className="px-3 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90"
+                            >
+                              {educationDialog.mode === "create"
+                                ? "Add"
+                                : "Save"}
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -965,23 +1391,44 @@ const EmployeeDrawer = ({
 
               {/* WORK EXPERIENCE VIEW */}
               <div className="rounded-lg border p-4 space-y-3">
-                <div className="flex items-center justify-between cursor-pointer" onClick={() => setExperienceOpen(!experienceOpen)}>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase">Work Experience</p>
-                  <span className="text-xs text-muted-foreground">{experienceOpen ? '▲' : '▼'}</span>
+                <div
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => setExperienceOpen(!experienceOpen)}
+                >
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">
+                    Work Experience
+                  </p>
+                  <span className="text-xs text-muted-foreground">
+                    {experienceOpen ? "▲" : "▼"}
+                  </span>
                 </div>
                 {experienceOpen && (
                   <>
                     {experienceData.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No work experience recorded.</p>
+                      <p className="text-sm text-muted-foreground">
+                        No work experience recorded.
+                      </p>
                     ) : (
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="border-b text-muted-foreground">
-                            <th className="text-left py-1 font-medium">Company</th>
-                            <th className="text-left py-1 font-medium">Position</th>
-                            <th className="text-left py-1 font-medium">Period</th>
-                            <th className="text-left py-1 font-medium">Reason for Leaving</th>
-                            {canEdit && <th className="text-right py-1 font-medium">Actions</th>}
+                            <th className="text-left py-1 font-medium">
+                              Company
+                            </th>
+                            <th className="text-left py-1 font-medium">
+                              Position
+                            </th>
+                            <th className="text-left py-1 font-medium">
+                              Period
+                            </th>
+                            <th className="text-left py-1 font-medium">
+                              Reason for Leaving
+                            </th>
+                            {canEdit && (
+                              <th className="text-right py-1 font-medium">
+                                Actions
+                              </th>
+                            )}
                           </tr>
                         </thead>
                         <tbody>
@@ -989,12 +1436,40 @@ const EmployeeDrawer = ({
                             <tr key={x.id} className="border-b last:border-0">
                               <td className="py-1.5">{x.company_name}</td>
                               <td className="py-1.5">{x.position}</td>
-                              <td className="py-1.5">{x.start_date?.split('T')[0] || '—'} to {x.end_date?.split('T')[0] || 'Present'}</td>
-                              <td className="py-1.5">{x.reason_for_leaving || '—'}</td>
+                              <td className="py-1.5">
+                                {x.start_date?.split("T")[0] || "—"} to{" "}
+                                {x.end_date?.split("T")[0] || "Present"}
+                              </td>
+                              <td className="py-1.5">
+                                {x.reason_for_leaving || "—"}
+                              </td>
                               {canEdit && (
                                 <td className="py-1.5 text-right whitespace-nowrap">
-                                  <button onClick={() => { setEditingExperience({ ...x, start_date: x.start_date?.split('T')[0] || '', end_date: x.end_date?.split('T')[0] || '' }); setExperienceDialog({ open: true, mode: "edit", item: x }); }} className="text-primary hover:underline mr-2">Edit</button>
-                                  <button onClick={() => handleDeleteExperience(x.id)} className="text-red-500 hover:underline">Delete</button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingExperience({
+                                        ...x,
+                                        start_date:
+                                          x.start_date?.split("T")[0] || "",
+                                        end_date:
+                                          x.end_date?.split("T")[0] || "",
+                                      });
+                                      setExperienceDialog({
+                                        open: true,
+                                        mode: "edit",
+                                        item: x,
+                                      });
+                                    }}
+                                    className="text-primary hover:underline mr-2"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteExperience(x.id)}
+                                    className="text-red-500 hover:underline"
+                                  >
+                                    Delete
+                                  </button>
                                 </td>
                               )}
                             </tr>
@@ -1003,25 +1478,133 @@ const EmployeeDrawer = ({
                       </table>
                     )}
                     {canEdit && (
-                      <button onClick={() => { setEditingExperience({}); setExperienceDialog({ open: true, mode: "create", item: null }); }} className="text-xs text-primary hover:underline">+ Add Work Experience</button>
+                      <button
+                        onClick={() => {
+                          setEditingExperience({});
+                          setExperienceDialog({
+                            open: true,
+                            mode: "create",
+                            item: null,
+                          });
+                        }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        + Add Work Experience
+                      </button>
                     )}
                     {experienceDialog.open && (
-                      <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40" onClick={() => setExperienceDialog({ open: false, mode: "create", item: null })}>
-                        <div className="bg-background rounded-lg border p-4 w-full max-w-md mx-4 space-y-3 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                          <p className="text-sm font-semibold">{experienceDialog.mode === "create" ? "Add Work Experience" : "Edit Work Experience"}</p>
+                      <div
+                        className="fixed inset-0 z-10000 flex items-center justify-center bg-black/40"
+                        onClick={() =>
+                          setExperienceDialog({
+                            open: false,
+                            mode: "create",
+                            item: null,
+                          })
+                        }
+                      >
+                        <div
+                          className="bg-background rounded-lg border p-4 w-full max-w-md mx-4 space-y-3 max-h-[80vh] overflow-y-auto"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <p className="text-sm font-semibold">
+                            {experienceDialog.mode === "create"
+                              ? "Add Work Experience"
+                              : "Edit Work Experience"}
+                          </p>
                           <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-                            <InputField label="Company Name" name="company_name" value={editingExperience.company_name || ""} onChange={e => setEditingExperience({ ...editingExperience, company_name: e.target.value })} required />
-                            <InputField label="Position" name="position" value={editingExperience.position || ""} onChange={e => setEditingExperience({ ...editingExperience, position: e.target.value })} required />
-                            <InputField label="Start Date" name="start_date" type="date" value={editingExperience.start_date || ""} onChange={e => setEditingExperience({ ...editingExperience, start_date: e.target.value })} />
-                            <InputField label="End Date" name="end_date" type="date" value={editingExperience.end_date || ""} onChange={e => setEditingExperience({ ...editingExperience, end_date: e.target.value })} />
+                            <InputField
+                              label="Company Name"
+                              name="company_name"
+                              value={editingExperience.company_name || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingExperience({
+                                  ...editingExperience,
+                                  company_name: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                            <InputField
+                              label="Position"
+                              name="position"
+                              value={editingExperience.position || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingExperience({
+                                  ...editingExperience,
+                                  position: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                            <InputField
+                              label="Start Date"
+                              name="start_date"
+                              type="date"
+                              value={editingExperience.start_date || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingExperience({
+                                  ...editingExperience,
+                                  start_date: e.target.value,
+                                })
+                              }
+                            />
+                            <InputField
+                              label="End Date"
+                              name="end_date"
+                              type="date"
+                              value={editingExperience.end_date || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingExperience({
+                                  ...editingExperience,
+                                  end_date: e.target.value,
+                                })
+                              }
+                            />
                             <div className="space-y-1">
-                              <p className="text-xs text-muted-foreground">Reason for Leaving</p>
-                              <textarea name="reason_for_leaving" value={editingExperience.reason_for_leaving || ""} onChange={e => setEditingExperience({ ...editingExperience, reason_for_leaving: e.target.value })} className="w-full border rounded px-2 py-1 bg-background text-sm min-h-[60px]" />
+                              <p className="text-xs text-muted-foreground">
+                                Reason for Leaving
+                              </p>
+                              <textarea
+                                name="reason_for_leaving"
+                                value={
+                                  editingExperience.reason_for_leaving || ""
+                                }
+                                onChange={(e) =>
+                                  setEditingExperience({
+                                    ...editingExperience,
+                                    reason_for_leaving: e.target.value,
+                                  })
+                                }
+                                className="w-full border rounded px-2 py-1 bg-background text-sm min-h-15"
+                              />
                             </div>
                           </div>
                           <div className="flex justify-end gap-2 pt-2">
-                            <button onClick={() => setExperienceDialog({ open: false, mode: "create", item: null })} className="px-3 py-1.5 text-sm border rounded hover:bg-muted">Cancel</button>
-                            <button onClick={experienceDialog.mode === "create" ? handleCreateExperience : handleUpdateExperience} className="px-3 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90">{experienceDialog.mode === "create" ? "Add" : "Save"}</button>
+                            <button
+                              onClick={() =>
+                                setExperienceDialog({
+                                  open: false,
+                                  mode: "create",
+                                  item: null,
+                                })
+                              }
+                              className="px-3 py-1.5 text-sm border rounded hover:bg-muted"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={
+                                experienceDialog.mode === "create"
+                                  ? handleCreateExperience
+                                  : handleUpdateExperience
+                              }
+                              className="px-3 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90"
+                            >
+                              {experienceDialog.mode === "create"
+                                ? "Add"
+                                : "Save"}
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1142,7 +1725,9 @@ const EmployeeDrawer = ({
                 />
 
                 <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">Employment Status</p>
+                  <p className="text-xs text-muted-foreground">
+                    Employment Status
+                  </p>
                   <div className="flex gap-4">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -1178,7 +1763,9 @@ const EmployeeDrawer = ({
                 ) : (
                   <>
                     <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">Probation Period (Months)</p>
+                      <p className="text-xs text-muted-foreground">
+                        Probation Period (Months)
+                      </p>
                       <input
                         type="number"
                         name="probation_period_months"
@@ -1190,26 +1777,38 @@ const EmployeeDrawer = ({
                         placeholder="Company Default (6 months)"
                         className="w-full border rounded px-2 py-1 bg-background"
                       />
-                      <p className="text-[10px] text-muted-foreground">Leave blank to use company default (6 months)</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Leave blank to use company default (6 months)
+                      </p>
                     </div>
-                    {form.hired_date && (form.probation_period_months || form.probation_period_months === "") && (
-                      <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded border text-sm">
-                        <p className="text-xs text-muted-foreground mb-1">Expected Regularization Date</p>
-                        <p className="font-medium">
-                          {(() => {
-                            const hireDate = new Date(form.hired_date);
-                            const months = form.probation_period_months
-                              ? Number(form.probation_period_months)
-                              : 6;
-                            hireDate.setMonth(hireDate.getMonth() + months);
-                            return formatDate(hireDate.toISOString().split("T")[0]);
-                          })()}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Based on {form.probation_period_months || "6"} month{form.probation_period_months !== "1" ? "s" : ""} from hire date
-                        </p>
-                      </div>
-                    )}
+                    {form.hired_date &&
+                      (form.probation_period_months ||
+                        form.probation_period_months === "") && (
+                        <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded border text-sm">
+                          <p className="text-xs text-muted-foreground mb-1">
+                            Expected Regularization Date
+                          </p>
+                          <p className="font-medium">
+                            {(() => {
+                              const hireDate = new Date(form.hired_date);
+                              const months = form.probation_period_months
+                                ? Number(form.probation_period_months)
+                                : 6;
+                              hireDate.setMonth(hireDate.getMonth() + months);
+                              return formatDate(
+                                hireDate.toISOString().split("T")[0],
+                              );
+                            })()}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Based on {form.probation_period_months || "6"} month
+                            {form.probation_period_months !== "1"
+                              ? "s"
+                              : ""}{" "}
+                            from hire date
+                          </p>
+                        </div>
+                      )}
                   </>
                 )}
 
@@ -1280,7 +1879,7 @@ const EmployeeDrawer = ({
                             value={form.termination_reason || ""}
                             onChange={handleChange}
                             disabled={!canEditMode}
-                            className="w-full border rounded px-2 py-1 bg-background min-h-[60px]"
+                            className="w-full border rounded px-2 py-1 bg-background min-h-15"
                             placeholder="e.g., Failed probationary, Violation of company policy"
                           />
                         </div>
@@ -1454,7 +2053,9 @@ const EmployeeDrawer = ({
                   System Information
                 </p>
                 <div className="p-3 bg-muted/30 rounded border text-sm text-muted-foreground">
-                  Device IDs such as RFID, fingerprint, face ID, or biometric user ID are managed in <strong>Device Integrations → Device User Mapping</strong>.
+                  Device IDs such as RFID, fingerprint, face ID, or biometric
+                  user ID are managed in{" "}
+                  <strong>Device Integrations → Device User Mapping</strong>.
                 </div>
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">Hired Date</p>
@@ -1470,7 +2071,9 @@ const EmployeeDrawer = ({
                   />
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">Shift Assignment</p>
+                  <p className="text-xs text-muted-foreground">
+                    Shift Assignment
+                  </p>
                   <select
                     name="shift_id"
                     value={form.shift_id || ""}
@@ -1490,25 +2093,32 @@ const EmployeeDrawer = ({
                 {/* REST DAY OVERRIDES */}
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">
-                    Rest Day Overrides {restDaysLoading && <span className="text-xs italic">(loading...)</span>}
+                    Rest Day Overrides{" "}
+                    {restDaysLoading && (
+                      <span className="text-xs italic">(loading...)</span>
+                    )}
                   </p>
 
                   {!employee?.id ? (
                     // ── CREATE MODE: explain inheritance, no Add button ──
                     <p className="text-xs text-muted-foreground italic">
-                      Rest days are inherited from the selected branch. Save employee first to configure individual overrides.
+                      Rest days are inherited from the selected branch. Save
+                      employee first to configure individual overrides.
                     </p>
                   ) : (
                     // ── EDIT / VIEW MODE ──
                     <>
                       <p className="text-xs text-muted-foreground italic">
-                        Overrides the branch default rest days for this employee.
+                        Overrides the branch default rest days for this
+                        employee.
                       </p>
 
                       {/* Branch default rest days (informational) */}
                       {branchRestDays.length > 0 && (
                         <div>
-                          <p className="text-[10px] text-muted-foreground">Branch Default Rest Days</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            Branch Default Rest Days
+                          </p>
                           <div className="flex flex-wrap gap-1 mt-1">
                             {branchRestDays.map((brd) => (
                               <span
@@ -1524,7 +2134,9 @@ const EmployeeDrawer = ({
 
                       {/* Employee overrides */}
                       {restDays.length === 0 && !restDaysLoading && (
-                        <p className="text-xs text-muted-foreground italic">No rest days configured.</p>
+                        <p className="text-xs text-muted-foreground italic">
+                          No rest days configured.
+                        </p>
                       )}
                       {restDays.length > 0 && (
                         <div className="flex flex-wrap gap-1">
@@ -1539,9 +2151,13 @@ const EmployeeDrawer = ({
                                   onClick={async () => {
                                     try {
                                       await deleteEmployeeRestDay(rd.id);
-                                      setRestDays((prev) => prev.filter((r) => r.id !== rd.id));
+                                      setRestDays((prev) =>
+                                        prev.filter((r) => r.id !== rd.id),
+                                      );
                                       toast.success("Rest day removed");
-                                    } catch { toast.error("Failed to remove rest day"); }
+                                    } catch {
+                                      toast.error("Failed to remove rest day");
+                                    }
                                   }}
                                   className="text-blue-800 hover:text-red-600 ml-0.5 dark:text-blue-400"
                                 >
@@ -1561,7 +2177,9 @@ const EmployeeDrawer = ({
                             className="flex-1 border rounded px-2 py-1 text-xs bg-background"
                             defaultValue=""
                           >
-                            <option value="" disabled>Select day...</option>
+                            <option value="" disabled>
+                              Select day...
+                            </option>
                             {getAllDayLabels().map((label, idx) => (
                               <option key={idx} value={idx}>
                                 {label}
@@ -1571,7 +2189,9 @@ const EmployeeDrawer = ({
                           <button
                             type="button"
                             onClick={async () => {
-                              const sel = document.getElementById("rest-day-select") as HTMLSelectElement;
+                              const sel = document.getElementById(
+                                "rest-day-select",
+                              ) as HTMLSelectElement;
                               const dow = parseInt(sel?.value);
                               if (isNaN(dow) || !employee?.id) return;
                               if (restDays.some((r) => r.day_of_week === dow)) {
@@ -1579,11 +2199,16 @@ const EmployeeDrawer = ({
                                 return;
                               }
                               try {
-                                const created = await createEmployeeRestDay(employee.id, { day_of_week: dow });
+                                const created = await createEmployeeRestDay(
+                                  employee.id,
+                                  { day_of_week: dow },
+                                );
                                 setRestDays((prev) => [...prev, created]);
                                 sel.value = "";
                                 toast.success("Rest day added");
-                              } catch { toast.error("Failed to add rest day"); }
+                              } catch {
+                                toast.error("Failed to add rest day");
+                              }
                             }}
                             className="px-2 py-1 text-xs bg-primary text-white rounded hover:bg-primary/90 disabled:opacity-50"
                           >
@@ -1598,36 +2223,80 @@ const EmployeeDrawer = ({
 
               {/* FAMILY MEMBERS EDIT */}
               <div className="rounded-lg border p-4 space-y-3">
-                <div className="flex items-center justify-between cursor-pointer" onClick={() => setFamilyOpen(!familyOpen)}>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase">Family Members</p>
-                  <span className="text-xs text-muted-foreground">{familyOpen ? '▲' : '▼'}</span>
+                <div
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => setFamilyOpen(!familyOpen)}
+                >
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">
+                    Family Members
+                  </p>
+                  <span className="text-xs text-muted-foreground">
+                    {familyOpen ? "▲" : "▼"}
+                  </span>
                 </div>
                 {familyOpen && (
                   <>
                     {familyData.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No family members recorded.</p>
+                      <p className="text-sm text-muted-foreground">
+                        No family members recorded.
+                      </p>
                     ) : (
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="border-b text-muted-foreground">
                             <th className="text-left py-1 font-medium">Name</th>
-                            <th className="text-left py-1 font-medium">Relationship</th>
-                            <th className="text-left py-1 font-medium">Occupation</th>
-                            <th className="text-left py-1 font-medium">Contact</th>
-                            {canEdit && <th className="text-right py-1 font-medium">Actions</th>}
+                            <th className="text-left py-1 font-medium">
+                              Relationship
+                            </th>
+                            <th className="text-left py-1 font-medium">
+                              Occupation
+                            </th>
+                            <th className="text-left py-1 font-medium">
+                              Contact
+                            </th>
+                            {canEdit && (
+                              <th className="text-right py-1 font-medium">
+                                Actions
+                              </th>
+                            )}
                           </tr>
                         </thead>
                         <tbody>
                           {familyData.map((m: any) => (
                             <tr key={m.id} className="border-b last:border-0">
                               <td className="py-1.5">{m.full_name}</td>
-                              <td className="py-1.5 capitalize">{m.relationship_type}</td>
-                              <td className="py-1.5">{m.occupation || '—'}</td>
-                              <td className="py-1.5">{m.contact_number || '—'}</td>
+                              <td className="py-1.5 capitalize">
+                                {m.relationship_type}
+                              </td>
+                              <td className="py-1.5">{m.occupation || "—"}</td>
+                              <td className="py-1.5">
+                                {m.contact_number || "—"}
+                              </td>
                               {canEdit && (
                                 <td className="py-1.5 text-right whitespace-nowrap">
-                                  <button onClick={() => { setEditingFamily({ ...m, birthdate: m.birthdate?.split('T')[0] || '' }); setFamilyDialog({ open: true, mode: "edit", item: m }); }} className="text-primary hover:underline mr-2">Edit</button>
-                                  <button onClick={() => handleDeleteFamily(m.id)} className="text-red-500 hover:underline">Delete</button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingFamily({
+                                        ...m,
+                                        birthdate:
+                                          m.birthdate?.split("T")[0] || "",
+                                      });
+                                      setFamilyDialog({
+                                        open: true,
+                                        mode: "edit",
+                                        item: m,
+                                      });
+                                    }}
+                                    className="text-primary hover:underline mr-2"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteFamily(m.id)}
+                                    className="text-red-500 hover:underline"
+                                  >
+                                    Delete
+                                  </button>
                                 </td>
                               )}
                             </tr>
@@ -1636,17 +2305,72 @@ const EmployeeDrawer = ({
                       </table>
                     )}
                     {canEdit && (
-                      <button onClick={() => { setEditingFamily({ relationship_type: "spouse", is_dependent: false }); setFamilyDialog({ open: true, mode: "create", item: null }); }} className="text-xs text-primary hover:underline">+ Add Family Member</button>
+                      <button
+                        onClick={() => {
+                          setEditingFamily({
+                            relationship_type: "spouse",
+                            is_dependent: false,
+                          });
+                          setFamilyDialog({
+                            open: true,
+                            mode: "create",
+                            item: null,
+                          });
+                        }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        + Add Family Member
+                      </button>
                     )}
                     {familyDialog.open && (
-                      <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40" onClick={() => setFamilyDialog({ open: false, mode: "create", item: null })}>
-                        <div className="bg-background rounded-lg border p-4 w-full max-w-md mx-4 space-y-3 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                          <p className="text-sm font-semibold">{familyDialog.mode === "create" ? "Add Family Member" : "Edit Family Member"}</p>
+                      <div
+                        className="fixed inset-0 z-10000 flex items-center justify-center bg-black/40"
+                        onClick={() =>
+                          setFamilyDialog({
+                            open: false,
+                            mode: "create",
+                            item: null,
+                          })
+                        }
+                      >
+                        <div
+                          className="bg-background rounded-lg border p-4 w-full max-w-md mx-4 space-y-3 max-h-[80vh] overflow-y-auto"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <p className="text-sm font-semibold">
+                            {familyDialog.mode === "create"
+                              ? "Add Family Member"
+                              : "Edit Family Member"}
+                          </p>
                           <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-                            <InputField label="Full Name" name="full_name" value={editingFamily.full_name} onChange={e => setEditingFamily({ ...editingFamily, full_name: e.target.value })} required />
+                            <InputField
+                              label="Full Name"
+                              name="full_name"
+                              value={editingFamily.full_name}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingFamily({
+                                  ...editingFamily,
+                                  full_name: e.target.value,
+                                })
+                              }
+                              required
+                            />
                             <div>
-                              <p className="text-xs text-muted-foreground">Relationship <span className="text-red-500">*</span></p>
-                              <select name="relationship_type" value={editingFamily.relationship_type || ""} onChange={e => setEditingFamily({ ...editingFamily, relationship_type: e.target.value })} className="w-full border rounded px-2 py-1 bg-background text-sm">
+                              <p className="text-xs text-muted-foreground">
+                                Relationship{" "}
+                                <span className="text-red-500">*</span>
+                              </p>
+                              <select
+                                name="relationship_type"
+                                value={editingFamily.relationship_type || ""}
+                                onChange={(e) =>
+                                  setEditingFamily({
+                                    ...editingFamily,
+                                    relationship_type: e.target.value,
+                                  })
+                                }
+                                className="w-full border rounded px-2 py-1 bg-background text-sm"
+                              >
                                 <option value="">Select...</option>
                                 <option value="spouse">Spouse</option>
                                 <option value="child">Child</option>
@@ -1656,18 +2380,89 @@ const EmployeeDrawer = ({
                                 <option value="dependent">Dependent</option>
                               </select>
                             </div>
-                            <InputField label="Birthdate" name="birthdate" type="date" value={editingFamily.birthdate || ""} onChange={e => setEditingFamily({ ...editingFamily, birthdate: e.target.value })} />
-                            <InputField label="Occupation" name="occupation" value={editingFamily.occupation || ""} onChange={e => setEditingFamily({ ...editingFamily, occupation: e.target.value })} />
-                            <InputField label="Contact Number" name="contact_number" value={editingFamily.contact_number || ""} onChange={e => setEditingFamily({ ...editingFamily, contact_number: e.target.value })} />
-                            <InputField label="Address" name="address" value={editingFamily.address || ""} onChange={e => setEditingFamily({ ...editingFamily, address: e.target.value })} />
+                            <InputField
+                              label="Birthdate"
+                              name="birthdate"
+                              type="date"
+                              value={editingFamily.birthdate || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingFamily({
+                                  ...editingFamily,
+                                  birthdate: e.target.value,
+                                })
+                              }
+                            />
+                            <InputField
+                              label="Occupation"
+                              name="occupation"
+                              value={editingFamily.occupation || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingFamily({
+                                  ...editingFamily,
+                                  occupation: e.target.value,
+                                })
+                              }
+                            />
+                            <InputField
+                              label="Contact Number"
+                              name="contact_number"
+                              value={editingFamily.contact_number || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingFamily({
+                                  ...editingFamily,
+                                  contact_number: e.target.value,
+                                })
+                              }
+                            />
+                            <InputField
+                              label="Address"
+                              name="address"
+                              value={editingFamily.address || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingFamily({
+                                  ...editingFamily,
+                                  address: e.target.value,
+                                })
+                              }
+                            />
                             <label className="flex items-center gap-2 text-sm">
-                              <input type="checkbox" checked={editingFamily.is_dependent || false} onChange={e => setEditingFamily({ ...editingFamily, is_dependent: e.target.checked })} className="accent-primary" />
+                              <input
+                                type="checkbox"
+                                checked={editingFamily.is_dependent || false}
+                                onChange={(e) =>
+                                  setEditingFamily({
+                                    ...editingFamily,
+                                    is_dependent: e.target.checked,
+                                  })
+                                }
+                                className="accent-primary"
+                              />
                               Is Dependent
                             </label>
                           </div>
                           <div className="flex justify-end gap-2 pt-2">
-                            <button onClick={() => setFamilyDialog({ open: false, mode: "create", item: null })} className="px-3 py-1.5 text-sm border rounded hover:bg-muted">Cancel</button>
-                            <button onClick={familyDialog.mode === "create" ? handleCreateFamily : handleUpdateFamily} className="px-3 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90">{familyDialog.mode === "create" ? "Add" : "Save"}</button>
+                            <button
+                              onClick={() =>
+                                setFamilyDialog({
+                                  open: false,
+                                  mode: "create",
+                                  item: null,
+                                })
+                              }
+                              className="px-3 py-1.5 text-sm border rounded hover:bg-muted"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={
+                                familyDialog.mode === "create"
+                                  ? handleCreateFamily
+                                  : handleUpdateFamily
+                              }
+                              className="px-3 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90"
+                            >
+                              {familyDialog.mode === "create" ? "Add" : "Save"}
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1678,36 +2473,81 @@ const EmployeeDrawer = ({
 
               {/* EDUCATION EDIT */}
               <div className="rounded-lg border p-4 space-y-3">
-                <div className="flex items-center justify-between cursor-pointer" onClick={() => setEducationOpen(!educationOpen)}>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase">Education</p>
-                  <span className="text-xs text-muted-foreground">{educationOpen ? '▲' : '▼'}</span>
+                <div
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => setEducationOpen(!educationOpen)}
+                >
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">
+                    Education
+                  </p>
+                  <span className="text-xs text-muted-foreground">
+                    {educationOpen ? "▲" : "▼"}
+                  </span>
                 </div>
                 {educationOpen && (
                   <>
                     {educationData.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No education records.</p>
+                      <p className="text-sm text-muted-foreground">
+                        No education records.
+                      </p>
                     ) : (
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="border-b text-muted-foreground">
-                            <th className="text-left py-1 font-medium">School</th>
-                            <th className="text-left py-1 font-medium">Level</th>
-                            <th className="text-left py-1 font-medium">Course</th>
+                            <th className="text-left py-1 font-medium">
+                              School
+                            </th>
+                            <th className="text-left py-1 font-medium">
+                              Level
+                            </th>
+                            <th className="text-left py-1 font-medium">
+                              Course
+                            </th>
                             <th className="text-left py-1 font-medium">Year</th>
-                            {canEdit && <th className="text-right py-1 font-medium">Actions</th>}
+                            {canEdit && (
+                              <th className="text-right py-1 font-medium">
+                                Actions
+                              </th>
+                            )}
                           </tr>
                         </thead>
                         <tbody>
                           {educationData.map((e: any) => (
                             <tr key={e.id} className="border-b last:border-0">
                               <td className="py-1.5">{e.school_name}</td>
-                              <td className="py-1.5 capitalize">{e.education_level.replace('_', ' ')}</td>
-                              <td className="py-1.5">{e.course_or_degree || '—'}</td>
-                              <td className="py-1.5">{e.year_started || '—'}{e.year_graduated ? ` - ${e.year_graduated}` : ''}</td>
+                              <td className="py-1.5 capitalize">
+                                {e.education_level.replace("_", " ")}
+                              </td>
+                              <td className="py-1.5">
+                                {e.course_or_degree || "—"}
+                              </td>
+                              <td className="py-1.5">
+                                {e.year_started || "—"}
+                                {e.year_graduated
+                                  ? ` - ${e.year_graduated}`
+                                  : ""}
+                              </td>
                               {canEdit && (
                                 <td className="py-1.5 text-right whitespace-nowrap">
-                                  <button onClick={() => { setEditingEducation({ ...e }); setEducationDialog({ open: true, mode: "edit", item: e }); }} className="text-primary hover:underline mr-2">Edit</button>
-                                  <button onClick={() => handleDeleteEducation(e.id)} className="text-red-500 hover:underline">Delete</button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingEducation({ ...e });
+                                      setEducationDialog({
+                                        open: true,
+                                        mode: "edit",
+                                        item: e,
+                                      });
+                                    }}
+                                    className="text-primary hover:underline mr-2"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteEducation(e.id)}
+                                    className="text-red-500 hover:underline"
+                                  >
+                                    Delete
+                                  </button>
                                 </td>
                               )}
                             </tr>
@@ -1716,16 +2556,57 @@ const EmployeeDrawer = ({
                       </table>
                     )}
                     {canEdit && (
-                      <button onClick={() => { setEditingEducation({ education_level: "college" }); setEducationDialog({ open: true, mode: "create", item: null }); }} className="text-xs text-primary hover:underline">+ Add Education</button>
+                      <button
+                        onClick={() => {
+                          setEditingEducation({ education_level: "college" });
+                          setEducationDialog({
+                            open: true,
+                            mode: "create",
+                            item: null,
+                          });
+                        }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        + Add Education
+                      </button>
                     )}
                     {educationDialog.open && (
-                      <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40" onClick={() => setEducationDialog({ open: false, mode: "create", item: null })}>
-                        <div className="bg-background rounded-lg border p-4 w-full max-w-md mx-4 space-y-3 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                          <p className="text-sm font-semibold">{educationDialog.mode === "create" ? "Add Education" : "Edit Education"}</p>
+                      <div
+                        className="fixed inset-0 z-10000 flex items-center justify-center bg-black/40"
+                        onClick={() =>
+                          setEducationDialog({
+                            open: false,
+                            mode: "create",
+                            item: null,
+                          })
+                        }
+                      >
+                        <div
+                          className="bg-background rounded-lg border p-4 w-full max-w-md mx-4 space-y-3 max-h-[80vh] overflow-y-auto"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <p className="text-sm font-semibold">
+                            {educationDialog.mode === "create"
+                              ? "Add Education"
+                              : "Edit Education"}
+                          </p>
                           <div className="space-y-2 max-h-[60vh] overflow-y-auto">
                             <div>
-                              <p className="text-xs text-muted-foreground">Education Level <span className="text-red-500">*</span></p>
-                              <select name="education_level" value={editingEducation.education_level || ""} onChange={e => setEditingEducation({ ...editingEducation, education_level: e.target.value })} className="w-full border rounded px-2 py-1 bg-background text-sm">
+                              <p className="text-xs text-muted-foreground">
+                                Education Level{" "}
+                                <span className="text-red-500">*</span>
+                              </p>
+                              <select
+                                name="education_level"
+                                value={editingEducation.education_level || ""}
+                                onChange={(e) =>
+                                  setEditingEducation({
+                                    ...editingEducation,
+                                    education_level: e.target.value,
+                                  })
+                                }
+                                className="w-full border rounded px-2 py-1 bg-background text-sm"
+                              >
                                 <option value="">Select...</option>
                                 <option value="elementary">Elementary</option>
                                 <option value="high_school">High School</option>
@@ -1736,15 +2617,90 @@ const EmployeeDrawer = ({
                                 <option value="other">Other</option>
                               </select>
                             </div>
-                            <InputField label="School Name" name="school_name" value={editingEducation.school_name || ""} onChange={e => setEditingEducation({ ...editingEducation, school_name: e.target.value })} required />
-                            <InputField label="Course / Degree" name="course_or_degree" value={editingEducation.course_or_degree || ""} onChange={e => setEditingEducation({ ...editingEducation, course_or_degree: e.target.value })} />
-                            <InputField label="Year Started" name="year_started" type="number" value={editingEducation.year_started || ""} onChange={e => setEditingEducation({ ...editingEducation, year_started: e.target.value })} />
-                            <InputField label="Year Graduated" name="year_graduated" type="number" value={editingEducation.year_graduated || ""} onChange={e => setEditingEducation({ ...editingEducation, year_graduated: e.target.value })} />
-                            <InputField label="Honors / Awards" name="honors_awards" value={editingEducation.honors_awards || ""} onChange={e => setEditingEducation({ ...editingEducation, honors_awards: e.target.value })} />
+                            <InputField
+                              label="School Name"
+                              name="school_name"
+                              value={editingEducation.school_name || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingEducation({
+                                  ...editingEducation,
+                                  school_name: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                            <InputField
+                              label="Course / Degree"
+                              name="course_or_degree"
+                              value={editingEducation.course_or_degree || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingEducation({
+                                  ...editingEducation,
+                                  course_or_degree: e.target.value,
+                                })
+                              }
+                            />
+                            <InputField
+                              label="Year Started"
+                              name="year_started"
+                              type="number"
+                              value={editingEducation.year_started || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingEducation({
+                                  ...editingEducation,
+                                  year_started: e.target.value,
+                                })
+                              }
+                            />
+                            <InputField
+                              label="Year Graduated"
+                              name="year_graduated"
+                              type="number"
+                              value={editingEducation.year_graduated || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingEducation({
+                                  ...editingEducation,
+                                  year_graduated: e.target.value,
+                                })
+                              }
+                            />
+                            <InputField
+                              label="Honors / Awards"
+                              name="honors_awards"
+                              value={editingEducation.honors_awards || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingEducation({
+                                  ...editingEducation,
+                                  honors_awards: e.target.value,
+                                })
+                              }
+                            />
                           </div>
                           <div className="flex justify-end gap-2 pt-2">
-                            <button onClick={() => setEducationDialog({ open: false, mode: "create", item: null })} className="px-3 py-1.5 text-sm border rounded hover:bg-muted">Cancel</button>
-                            <button onClick={educationDialog.mode === "create" ? handleCreateEducation : handleUpdateEducation} className="px-3 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90">{educationDialog.mode === "create" ? "Add" : "Save"}</button>
+                            <button
+                              onClick={() =>
+                                setEducationDialog({
+                                  open: false,
+                                  mode: "create",
+                                  item: null,
+                                })
+                              }
+                              className="px-3 py-1.5 text-sm border rounded hover:bg-muted"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={
+                                educationDialog.mode === "create"
+                                  ? handleCreateEducation
+                                  : handleUpdateEducation
+                              }
+                              className="px-3 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90"
+                            >
+                              {educationDialog.mode === "create"
+                                ? "Add"
+                                : "Save"}
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1755,23 +2711,44 @@ const EmployeeDrawer = ({
 
               {/* WORK EXPERIENCE EDIT */}
               <div className="rounded-lg border p-4 space-y-3">
-                <div className="flex items-center justify-between cursor-pointer" onClick={() => setExperienceOpen(!experienceOpen)}>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase">Work Experience</p>
-                  <span className="text-xs text-muted-foreground">{experienceOpen ? '▲' : '▼'}</span>
+                <div
+                  className="flex items-center justify-between cursor-pointer"
+                  onClick={() => setExperienceOpen(!experienceOpen)}
+                >
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">
+                    Work Experience
+                  </p>
+                  <span className="text-xs text-muted-foreground">
+                    {experienceOpen ? "▲" : "▼"}
+                  </span>
                 </div>
                 {experienceOpen && (
                   <>
                     {experienceData.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No work experience recorded.</p>
+                      <p className="text-sm text-muted-foreground">
+                        No work experience recorded.
+                      </p>
                     ) : (
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="border-b text-muted-foreground">
-                            <th className="text-left py-1 font-medium">Company</th>
-                            <th className="text-left py-1 font-medium">Position</th>
-                            <th className="text-left py-1 font-medium">Period</th>
-                            <th className="text-left py-1 font-medium">Reason for Leaving</th>
-                            {canEdit && <th className="text-right py-1 font-medium">Actions</th>}
+                            <th className="text-left py-1 font-medium">
+                              Company
+                            </th>
+                            <th className="text-left py-1 font-medium">
+                              Position
+                            </th>
+                            <th className="text-left py-1 font-medium">
+                              Period
+                            </th>
+                            <th className="text-left py-1 font-medium">
+                              Reason for Leaving
+                            </th>
+                            {canEdit && (
+                              <th className="text-right py-1 font-medium">
+                                Actions
+                              </th>
+                            )}
                           </tr>
                         </thead>
                         <tbody>
@@ -1779,12 +2756,40 @@ const EmployeeDrawer = ({
                             <tr key={x.id} className="border-b last:border-0">
                               <td className="py-1.5">{x.company_name}</td>
                               <td className="py-1.5">{x.position}</td>
-                              <td className="py-1.5">{x.start_date?.split('T')[0] || '—'} to {x.end_date?.split('T')[0] || 'Present'}</td>
-                              <td className="py-1.5">{x.reason_for_leaving || '—'}</td>
+                              <td className="py-1.5">
+                                {x.start_date?.split("T")[0] || "—"} to{" "}
+                                {x.end_date?.split("T")[0] || "Present"}
+                              </td>
+                              <td className="py-1.5">
+                                {x.reason_for_leaving || "—"}
+                              </td>
                               {canEdit && (
                                 <td className="py-1.5 text-right whitespace-nowrap">
-                                  <button onClick={() => { setEditingExperience({ ...x, start_date: x.start_date?.split('T')[0] || '', end_date: x.end_date?.split('T')[0] || '' }); setExperienceDialog({ open: true, mode: "edit", item: x }); }} className="text-primary hover:underline mr-2">Edit</button>
-                                  <button onClick={() => handleDeleteExperience(x.id)} className="text-red-500 hover:underline">Delete</button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingExperience({
+                                        ...x,
+                                        start_date:
+                                          x.start_date?.split("T")[0] || "",
+                                        end_date:
+                                          x.end_date?.split("T")[0] || "",
+                                      });
+                                      setExperienceDialog({
+                                        open: true,
+                                        mode: "edit",
+                                        item: x,
+                                      });
+                                    }}
+                                    className="text-primary hover:underline mr-2"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteExperience(x.id)}
+                                    className="text-red-500 hover:underline"
+                                  >
+                                    Delete
+                                  </button>
                                 </td>
                               )}
                             </tr>
@@ -1793,25 +2798,133 @@ const EmployeeDrawer = ({
                       </table>
                     )}
                     {canEdit && (
-                      <button onClick={() => { setEditingExperience({}); setExperienceDialog({ open: true, mode: "create", item: null }); }} className="text-xs text-primary hover:underline">+ Add Work Experience</button>
+                      <button
+                        onClick={() => {
+                          setEditingExperience({});
+                          setExperienceDialog({
+                            open: true,
+                            mode: "create",
+                            item: null,
+                          });
+                        }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        + Add Work Experience
+                      </button>
                     )}
                     {experienceDialog.open && (
-                      <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40" onClick={() => setExperienceDialog({ open: false, mode: "create", item: null })}>
-                        <div className="bg-background rounded-lg border p-4 w-full max-w-md mx-4 space-y-3 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                          <p className="text-sm font-semibold">{experienceDialog.mode === "create" ? "Add Work Experience" : "Edit Work Experience"}</p>
+                      <div
+                        className="fixed inset-0 z-10000 flex items-center justify-center bg-black/40"
+                        onClick={() =>
+                          setExperienceDialog({
+                            open: false,
+                            mode: "create",
+                            item: null,
+                          })
+                        }
+                      >
+                        <div
+                          className="bg-background rounded-lg border p-4 w-full max-w-md mx-4 space-y-3 max-h-[80vh] overflow-y-auto"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <p className="text-sm font-semibold">
+                            {experienceDialog.mode === "create"
+                              ? "Add Work Experience"
+                              : "Edit Work Experience"}
+                          </p>
                           <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-                            <InputField label="Company Name" name="company_name" value={editingExperience.company_name || ""} onChange={e => setEditingExperience({ ...editingExperience, company_name: e.target.value })} required />
-                            <InputField label="Position" name="position" value={editingExperience.position || ""} onChange={e => setEditingExperience({ ...editingExperience, position: e.target.value })} required />
-                            <InputField label="Start Date" name="start_date" type="date" value={editingExperience.start_date || ""} onChange={e => setEditingExperience({ ...editingExperience, start_date: e.target.value })} />
-                            <InputField label="End Date" name="end_date" type="date" value={editingExperience.end_date || ""} onChange={e => setEditingExperience({ ...editingExperience, end_date: e.target.value })} />
+                            <InputField
+                              label="Company Name"
+                              name="company_name"
+                              value={editingExperience.company_name || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingExperience({
+                                  ...editingExperience,
+                                  company_name: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                            <InputField
+                              label="Position"
+                              name="position"
+                              value={editingExperience.position || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingExperience({
+                                  ...editingExperience,
+                                  position: e.target.value,
+                                })
+                              }
+                              required
+                            />
+                            <InputField
+                              label="Start Date"
+                              name="start_date"
+                              type="date"
+                              value={editingExperience.start_date || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingExperience({
+                                  ...editingExperience,
+                                  start_date: e.target.value,
+                                })
+                              }
+                            />
+                            <InputField
+                              label="End Date"
+                              name="end_date"
+                              type="date"
+                              value={editingExperience.end_date || ""}
+                              onChange={(e: { target: { value: any } }) =>
+                                setEditingExperience({
+                                  ...editingExperience,
+                                  end_date: e.target.value,
+                                })
+                              }
+                            />
                             <div className="space-y-1">
-                              <p className="text-xs text-muted-foreground">Reason for Leaving</p>
-                              <textarea name="reason_for_leaving" value={editingExperience.reason_for_leaving || ""} onChange={e => setEditingExperience({ ...editingExperience, reason_for_leaving: e.target.value })} className="w-full border rounded px-2 py-1 bg-background text-sm min-h-[60px]" />
+                              <p className="text-xs text-muted-foreground">
+                                Reason for Leaving
+                              </p>
+                              <textarea
+                                name="reason_for_leaving"
+                                value={
+                                  editingExperience.reason_for_leaving || ""
+                                }
+                                onChange={(e) =>
+                                  setEditingExperience({
+                                    ...editingExperience,
+                                    reason_for_leaving: e.target.value,
+                                  })
+                                }
+                                className="w-full border rounded px-2 py-1 bg-background text-sm min-h-15"
+                              />
                             </div>
                           </div>
                           <div className="flex justify-end gap-2 pt-2">
-                            <button onClick={() => setExperienceDialog({ open: false, mode: "create", item: null })} className="px-3 py-1.5 text-sm border rounded hover:bg-muted">Cancel</button>
-                            <button onClick={experienceDialog.mode === "create" ? handleCreateExperience : handleUpdateExperience} className="px-3 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90">{experienceDialog.mode === "create" ? "Add" : "Save"}</button>
+                            <button
+                              onClick={() =>
+                                setExperienceDialog({
+                                  open: false,
+                                  mode: "create",
+                                  item: null,
+                                })
+                              }
+                              className="px-3 py-1.5 text-sm border rounded hover:bg-muted"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={
+                                experienceDialog.mode === "create"
+                                  ? handleCreateExperience
+                                  : handleUpdateExperience
+                              }
+                              className="px-3 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90"
+                            >
+                              {experienceDialog.mode === "create"
+                                ? "Add"
+                                : "Save"}
+                            </button>
                           </div>
                         </div>
                       </div>

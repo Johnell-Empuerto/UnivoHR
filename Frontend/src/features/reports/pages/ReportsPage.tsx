@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/badge";
 import EmptyState from "@/components/shared/EmptyState";
 import Loader from "@/components/shared/Loader";
-import { formatTime } from "@/utils/formatDate";
+import { formatTimeLocal, getTimezoneAbbr } from "@/utils/formatDate";
 import {
   Table,
   TableBody,
@@ -599,10 +599,24 @@ const ReportsPage = () => {
                 </Badge>
               </TableCell>
               <TableCell className="font-mono text-xs">
-                {row.check_in_time ? formatTime(row.check_in_time) : "-"}
+                <div className="flex items-center gap-1">
+                  <span>{formatTimeLocal(row.check_in_time_utc || row.check_in_time, row.timezone_used)}</span>
+                  {row.timezone_used && (
+                    <Badge variant="outline" className="text-[10px] h-4 px-1 leading-none">
+                      {getTimezoneAbbr(row.timezone_used)}
+                    </Badge>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="font-mono text-xs">
-                {row.check_out_time ? formatTime(row.check_out_time) : "-"}
+                <div className="flex items-center gap-1">
+                  <span>{formatTimeLocal(row.check_out_time_utc || row.check_out_time, row.timezone_used)}</span>
+                  {row.timezone_used && (
+                    <Badge variant="outline" className="text-[10px] h-4 px-1 leading-none">
+                      {getTimezoneAbbr(row.timezone_used)}
+                    </Badge>
+                  )}
+                </div>
               </TableCell>
               <TableCell>{row.department}</TableCell>
               <TableCell>{row.branch_name}</TableCell>

@@ -4,10 +4,20 @@ import { getHrSubmissionById, reviewHrSubmission } from "@/services/hrFormServic
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Loader2, ArrowLeft, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
+import { formatDateShort } from "@/utils/formatDate";
+
+const statusBadge = (s: string) => {
+  const map: Record<string, string> = {
+    Submitted: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    Reviewed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  };
+  return <Badge className={map[s] || ""}>{s}</Badge>;
+};
 
 const AnswerDisplay = ({ field, answer }: { field: any; answer: any }) => {
   const val = answer?.answer || "";
@@ -88,9 +98,10 @@ const HrFormSubmissionViewPage = () => {
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/hr-forms/submissions")}><ArrowLeft className="h-5 w-5" /></Button>
           <div>
-            <h1 className="text-2xl font-bold text-muted-foreground">{submission?.form_title}</h1>
+              <h1 className="text-2xl font-bold text-muted-foreground">{submission?.form_title}</h1>
             <p className="text-sm text-muted-foreground">
-              Submitted by {submission?.employee_name} | Status: {submission?.status && <Badge className={submission.status === "Reviewed" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"}>{submission.status}</Badge>}
+              Submitted by {submission?.employee_name} ({submission?.employee_code}) | {formatDateShort(submission?.submitted_at)} | Status: {submission?.status && statusBadge(submission.status)}
+              {submission?.reviewed_at && <> | Reviewed: {formatDateShort(submission.reviewed_at)}</>}
             </p>
           </div>
         </div>
@@ -110,13 +121,22 @@ const HrFormSubmissionViewPage = () => {
         </CardContent>
       </Card>
 
-      {submission?.status !== "Reviewed" && (
+      {submission?.status === "Reviewed" ? (
+        submission?.remarks && (
+          <Card className="shadow-sm">
+            <CardHeader><CardTitle className="text-base">Review Details</CardTitle></CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground mb-1">Review Remarks</p>
+              <p className="text-sm bg-muted p-3 rounded">{submission.remarks}</p>
+            </CardContent>
+          </Card>
+        )
+      ) : (
         <Card className="shadow-sm">
           <CardContent className="p-4 space-y-3">
             <div>
               <p className="text-xs text-muted-foreground mb-1">Review Remarks</p>
-              <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)}
-                className="w-full border rounded px-2 py-1 bg-background min-h-[80px]" placeholder="Add review remarks..." />
+              <Textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Add review remarks..." />
             </div>
             <Button onClick={handleReview} disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}

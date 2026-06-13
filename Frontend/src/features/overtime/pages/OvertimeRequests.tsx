@@ -47,8 +47,10 @@ type OvertimeRequest = {
   created_at: string;
   approved_by_name?: string | null;
   approved_at?: string | null;
+  rejected_by_name?: string | null;
+  rejected_at?: string | null;
   rejected_reason?: string | null;
-  is_assigned_approver?: boolean; // ✅ Use snake_case to match backend
+  is_assigned_approver?: boolean;
 };
 
 const OvertimeRequests = () => {
@@ -146,6 +148,8 @@ const OvertimeRequests = () => {
           created_at: request.created_at,
           approved_by_name: request.approved_by_name,
           approved_at: request.approved_at,
+          rejected_by_name: request.rejected_by_name,
+          rejected_at: request.rejected_at,
           rejected_reason: request.rejected_reason,
           is_assigned_approver: request.is_assigned_approver ?? false,
         }));

@@ -197,17 +197,18 @@ const EmployeeTable = ({
                     <TableCell>
                       {`${item.first_name || ""} ${item.middle_name || ""} ${item.last_name || ""}${item.suffix ? `, ${item.suffix}` : ""}`.trim()}
                     </TableCell>
-                    <TableCell>{item.branch_name || "Main Branch"}</TableCell>
+                    <TableCell>{item.branch_name || "No Branch"}</TableCell>
                     <TableCell>{item.department || "-"}</TableCell>
                     <TableCell>{item.position || "-"}</TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className={item.employment_status === "REGULAR"
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                          : item.employment_status === "PROBATIONARY"
-                            ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
-                            : ""
+                        className={
+                          item.employment_status === "REGULAR"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                            : item.employment_status === "PROBATIONARY"
+                              ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                              : ""
                         }
                       >
                         {item.employment_status || "REGULAR"}

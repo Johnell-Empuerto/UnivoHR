@@ -61,8 +61,14 @@ const LeaveConversionSettings = () => {
       setLoading(true);
 
       const [types, settings] = await Promise.all([
-        getLeaveTypes(),
-        getConversionSettings(),
+        getLeaveTypes().catch((err) => {
+          console.error("Failed to load leave types:", err);
+          return [];
+        }),
+        getConversionSettings().catch((err) => {
+          console.error("Failed to load conversion settings:", err);
+          return null;
+        }),
       ]);
 
       setLeaveTypes(types);
@@ -72,9 +78,16 @@ const LeaveConversionSettings = () => {
         sil_min_days: settings?.sil_min_days ?? 5,
         conversion_rate: settings?.conversion_rate ?? 1.0,
       });
+
+      if (!types.length) {
+        toast.error("Leave types failed to load.");
+      }
+      if (!settings) {
+        toast.warning("Company conversion settings used defaults.");
+      }
     } catch (error) {
-      console.error("Error fetching settings:", error);
-      toast.error("Failed to load conversion settings");
+      console.error("Unexpected error:", error);
+      toast.error("An unexpected error occurred");
     } finally {
       setLoading(false);
     }

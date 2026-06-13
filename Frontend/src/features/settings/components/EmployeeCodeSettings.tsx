@@ -1,18 +1,37 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Hash, Eye } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2, Hash, Eye, Save, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   getAllSettings,
   updateSetting,
   getNextEmployeeCode,
+  type Setting,
 } from "@/services/settingsService";
+
+const SETTINGS_KEYS = [
+  "employee_code_auto_generate",
+  "employee_code_prefix",
+  "employee_code_separator",
+  "employee_code_padding",
+  "employee_code_counter",
+];
 
 const EmployeeCodeSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [savingAll, setSavingAll] = useState(false);
   const [settings, setSettings] = useState({
     employee_code_auto_generate: "true",
     employee_code_prefix: "EMP",
@@ -38,13 +57,13 @@ const EmployeeCodeSettings = () => {
   const loadSettings = async () => {
     try {
       setLoading(true);
-      const data = await getAllSettings();
+      const data: Setting[] = await getAllSettings();
       const map = new Map(data.map((s) => [s.key, s.value]));
       setSettings({
         employee_code_auto_generate:
           map.get("employee_code_auto_generate") || "true",
         employee_code_prefix: map.has("employee_code_prefix")
-          ? map.get("employee_code_prefix")
+          ? map.get("employee_code_prefix")!
           : "EMP",
         employee_code_separator: map.get("employee_code_separator") || "",
         employee_code_padding: map.get("employee_code_padding") || "4",
@@ -100,6 +119,25 @@ const EmployeeCodeSettings = () => {
     }
   };
 
+  const handleSaveAll = async () => {
+    try {
+      setSavingAll(true);
+      const promises = SETTINGS_KEYS.map((key) => {
+        const value = settings[key as keyof typeof settings];
+        return updateSetting(key, value);
+      });
+      await Promise.all(promises);
+      toast.success("Employee code settings saved successfully");
+    } catch {
+      toast.error("Failed to save employee code settings");
+    } finally {
+      setSavingAll(false);
+    }
+  };
+
+  const isAutoGen = settings.employee_code_auto_generate === "true";
+  const prefixEmpty = !settings.employee_code_prefix.trim();
+
   if (loading) {
     return (
       <Card>
@@ -119,7 +157,16 @@ const EmployeeCodeSettings = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
-          {/* Auto Generate Toggle - Updated to use Switch component */}
+          {isAutoGen && prefixEmpty && (
+            <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-700 dark:text-amber-400">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>
+                Prefix is empty. Generated codes will be purely numeric (e.g.,{" "}
+                {preview?.nextCode || "0001"}).
+              </span>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Enable Auto Generation</p>
@@ -128,7 +175,7 @@ const EmployeeCodeSettings = () => {
               </p>
             </div>
             <Switch
-              checked={settings.employee_code_auto_generate === "true"}
+              checked={isAutoGen}
               onCheckedChange={(checked) =>
                 handleSave(
                   "employee_code_auto_generate",
@@ -139,12 +186,10 @@ const EmployeeCodeSettings = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">
-                Prefix (optional)
-              </p>
-              <input
-                type="text"
+            <div className="space-y-1.5">
+              <Label htmlFor="employee_code_prefix">Prefix (optional)</Label>
+              <Input
+                id="employee_code_prefix"
                 value={settings.employee_code_prefix}
                 onChange={(e) =>
                   setSettings((p) => ({
@@ -155,21 +200,20 @@ const EmployeeCodeSettings = () => {
                 onBlur={(e) => {
                   handleSave("employee_code_prefix", e.target.value);
                 }}
-                className="w-full border rounded px-2 py-1 bg-background text-sm"
                 placeholder="EMP"
                 maxLength={10}
               />
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground">
                 e.g., EMP, MCF, or blank for numeric codes
               </p>
             </div>
 
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="employee_code_separator">
                 Separator (optional)
-              </p>
-              <input
-                type="text"
+              </Label>
+              <Input
+                id="employee_code_separator"
                 value={settings.employee_code_separator}
                 onChange={(e) =>
                   setSettings((p) => ({
@@ -180,42 +224,44 @@ const EmployeeCodeSettings = () => {
                 onBlur={(e) => {
                   handleSave("employee_code_separator", e.target.value);
                 }}
-                className="w-full border rounded px-2 py-1 bg-background text-sm"
                 placeholder="- / . _"
                 maxLength={5}
               />
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground">
                 e.g., -, /, ., _ or blank
               </p>
             </div>
 
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">
-                Number Format
-              </p>
-              <select
+            <div className="space-y-1.5">
+              <Label htmlFor="employee_code_padding">Number Format</Label>
+              <Select
                 value={settings.employee_code_padding}
-                onChange={(e) => {
+                onValueChange={(value) => {
                   setSettings((p) => ({
                     ...p,
-                    employee_code_padding: e.target.value,
+                    employee_code_padding: value,
                   }));
-                  handleSave("employee_code_padding", e.target.value);
+                  handleSave("employee_code_padding", value);
                 }}
-                className="w-full border rounded px-2 py-1 bg-background text-sm"
               >
-                <option value="0">No zero padding (1)</option>
-                <option value="3">3 digits (001)</option>
-                <option value="4">4 digits (0001)</option>
-                <option value="5">5 digits (00001)</option>
-              </select>
+                <SelectTrigger id="employee_code_padding">
+                  <SelectValue placeholder="Select padding" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">No zero padding (1)</SelectItem>
+                  <SelectItem value="3">3 digits (001)</SelectItem>
+                  <SelectItem value="4">4 digits (0001)</SelectItem>
+                  <SelectItem value="5">5 digits (00001)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="employee_code_counter">
                 Current Counter <span className="text-red-500">*</span>
-              </p>
-              <input
+              </Label>
+              <Input
+                id="employee_code_counter"
                 type="number"
                 value={settings.employee_code_counter}
                 onChange={(e) =>
@@ -232,10 +278,9 @@ const EmployeeCodeSettings = () => {
                   }));
                   handleSave("employee_code_counter", String(val));
                 }}
-                className="w-full border rounded px-2 py-1 bg-background text-sm"
                 min={0}
               />
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground">
                 Last used number. Next = Counter + 1.
               </p>
             </div>
@@ -283,12 +328,27 @@ const EmployeeCodeSettings = () => {
             </div>
           </div>
 
-          <div className="border-t pt-4 text-xs text-muted-foreground space-y-1">
-            <p>
-              <strong>Note:</strong> Changes apply immediately to new employee
-              creation and applicant-to-employee conversion. Existing employee
-              codes will not be changed.
-            </p>
+          <div className="border-t pt-4 space-y-4">
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>
+                <strong>Note:</strong> Changes apply immediately to new employee
+                creation and applicant-to-employee conversion. Existing employee
+                codes will not be changed.
+              </p>
+            </div>
+            <Button onClick={handleSaveAll} disabled={savingAll} className="w-full">
+              {savingAll ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving All Settings...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save All Settings
+                </>
+              )}
+            </Button>
           </div>
         </CardContent>
       </Card>

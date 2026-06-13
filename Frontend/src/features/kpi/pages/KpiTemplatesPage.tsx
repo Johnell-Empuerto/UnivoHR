@@ -5,12 +5,15 @@ import {
 } from "@/services/kpiService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
-import { FileText, Plus, ChevronLeft, ChevronRight, Loader2, Pencil, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
+import { FileText, Plus, ChevronLeft, ChevronRight, Loader2, Pencil, Trash2, ToggleLeft, ToggleRight, Search } from "lucide-react";
 import { toast } from "sonner";
 
 interface Template { id: number; name: string; description: string | null; department: string | null; is_active: boolean; item_count: string; }
@@ -32,10 +35,6 @@ const KpiTemplatesPage = () => {
   const end = Math.min(page * pageSize, total);
 
   const goToPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
-  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setPageSize(Number(e.target.value));
-    setPage(1);
-  };
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisible = 5;
@@ -70,6 +69,14 @@ const KpiTemplatesPage = () => {
   const [editItemId, setEditItemId] = useState<number | null>(null);
   const [itemForm, setItemForm] = useState({ ...emptyItemForm });
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [deleteTargetName, setDeleteTargetName] = useState("");
+
+  const [deleteItemDialogOpen, setDeleteItemDialogOpen] = useState(false);
+  const [deleteItemTargetId, setDeleteItemTargetId] = useState<number | null>(null);
+  const [deleteItemTargetName, setDeleteItemTargetName] = useState("");
+
   useEffect(() => { fetchTemplates(); }, [page, pageSize, search]);
 
   const fetchTemplates = async () => {
@@ -103,9 +110,9 @@ const KpiTemplatesPage = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this template? This will also delete all associated items.")) return;
     try { await deleteKpiTemplate(id); toast.success("Template deleted"); fetchTemplates(); }
     catch (err: any) { toast.error(err.message || "Delete failed"); }
+    setDeleteDialogOpen(false);
   };
 
   const handleToggle = async (id: number) => {
@@ -134,6 +141,8 @@ const KpiTemplatesPage = () => {
 
   const handleSaveItem = async () => {
     if (!itemForm.kpi_name.trim()) { toast.error("KPI name is required"); return; }
+    if (isNaN(Number(itemForm.weight)) || Number(itemForm.weight) < 0) { toast.error("Weight must be a non-negative number"); return; }
+    if (Number(itemForm.weight) > 100) { toast.error("Individual item weight cannot exceed 100"); return; }
     if (!selectedTemplate) return;
     try {
       setSaving(true);
@@ -147,7 +156,6 @@ const KpiTemplatesPage = () => {
   };
 
   const handleDeleteItem = async (itemId: number) => {
-    if (!confirm("Delete this KPI item?")) return;
     try {
       await deleteKpiTemplateItem(itemId);
       toast.success("Item deleted");
@@ -156,6 +164,7 @@ const KpiTemplatesPage = () => {
         setItems(data);
       }
     } catch (err: any) { toast.error(err.message || "Delete failed"); }
+    setDeleteItemDialogOpen(false);
   };
 
   const totalWeight = items.reduce((s, i) => s + Number(i.weight), 0);
@@ -175,9 +184,12 @@ const KpiTemplatesPage = () => {
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
-            <input placeholder="Search templates..." value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="border rounded px-3 py-1.5 text-sm bg-background w-64" />
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search templates..." value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                className="pl-8" />
+            </div>
           </div>
           <Button onClick={handleOpenCreate} className="flex items-center gap-2">
             <Plus className="h-4 w-4" /> Add Template
@@ -212,7 +224,7 @@ const KpiTemplatesPage = () => {
                           <Button variant="ghost" size="sm" title="Manage Items" onClick={() => handleOpenItems(t)}><FileText className="h-4 w-4" /></Button>
                           <Button variant="ghost" size="sm" title="Toggle Active" onClick={() => handleToggle(t.id)}>{t.is_active ? <ToggleRight className="h-4 w-4 text-green-600" /> : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}</Button>
                           <Button variant="ghost" size="sm" title="Edit" onClick={() => handleOpenEdit(t)}><Pencil className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="sm" title="Delete" onClick={() => handleDelete(t.id)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                          <Button variant="ghost" size="sm" title="Delete" onClick={() => { setDeleteTargetId(t.id); setDeleteTargetName(t.name); setDeleteDialogOpen(true); }}><Trash2 className="h-4 w-4 text-red-500" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -225,13 +237,15 @@ const KpiTemplatesPage = () => {
             <div className="p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Rows per page:</span>
-                <select value={pageSize} onChange={handleRowsPerPageChange}
-                  className="border rounded px-2 py-1 text-sm bg-background">
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                </select>
+                <Select value={String(pageSize)} onValueChange={(val) => { setPageSize(Number(val)); setPage(1); }}>
+                  <SelectTrigger className="w-16 h-8"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="text-sm text-muted-foreground">
                 Showing {start} to {end} of {total} entries
@@ -260,17 +274,17 @@ const KpiTemplatesPage = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>{editId ? "Edit Template" : "Add Template"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Name <span className="text-red-500">*</span></p>
-              <input name="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full border rounded px-2 py-1 bg-background" placeholder="e.g., Production Operator KPI" />
+            <div className="space-y-1">
+              <Label>Name <span className="text-red-500">*</span></Label>
+              <Input name="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g., Production Operator KPI" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Department</p>
-              <input name="department" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} className="w-full border rounded px-2 py-1 bg-background" placeholder="e.g., Production" />
+            <div className="space-y-1">
+              <Label>Department</Label>
+              <Input name="department" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} placeholder="e.g., Production" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Description</p>
-              <textarea name="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full border rounded px-2 py-1 bg-background min-h-[60px]" />
+            <div className="space-y-1">
+              <Label>Description</Label>
+              <Textarea name="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="min-h-[60px]" />
             </div>
           </div>
           <DialogFooter>
@@ -307,7 +321,7 @@ const KpiTemplatesPage = () => {
                       <TableCell>
                         <div className="flex gap-2">
                           <Button variant="ghost" size="sm" onClick={() => handleOpenEditItem(item)}><Pencil className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDeleteItem(item.id)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => { setDeleteItemTargetId(item.id); setDeleteItemTargetName(item.kpi_name); setDeleteItemDialogOpen(true); }}><Trash2 className="h-4 w-4 text-red-500" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -323,22 +337,55 @@ const KpiTemplatesPage = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>{editItemId ? "Edit KPI Item" : "Add KPI Item"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">KPI Name <span className="text-red-500">*</span></p>
-              <input value={itemForm.kpi_name} onChange={(e) => setItemForm({ ...itemForm, kpi_name: e.target.value })} className="w-full border rounded px-2 py-1 bg-background" placeholder="e.g., Attendance" />
+            <div className="space-y-1">
+              <Label>KPI Name <span className="text-red-500">*</span></Label>
+              <Input value={itemForm.kpi_name} onChange={(e) => setItemForm({ ...itemForm, kpi_name: e.target.value })} placeholder="e.g., Attendance" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Weight (%)</p>
-              <input type="number" value={itemForm.weight} onChange={(e) => setItemForm({ ...itemForm, weight: Number(e.target.value) })} className="w-full border rounded px-2 py-1 bg-background" min="0" max="100" step="0.01" />
+            <div className="space-y-1">
+              <Label>Weight (%)</Label>
+              <Input type="number" value={itemForm.weight} onChange={(e) => setItemForm({ ...itemForm, weight: Number(e.target.value) })} min={0} max={100} step="0.01" />
+              {itemForm.weight > 0 && itemForm.weight > 100 && <p className="text-xs text-red-500">Weight cannot exceed 100</p>}
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Description</p>
-              <textarea value={itemForm.description} onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })} className="w-full border rounded px-2 py-1 bg-background min-h-[60px]" />
+            <div className="space-y-1">
+              <Label>Description</Label>
+              <Textarea value={itemForm.description} onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })} className="min-h-[60px]" />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setItemDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveItem} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}{editItemId ? "Save Changes" : "Add"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Template</DialogTitle>
+            <DialogDescription>
+              Are you sure? This will also delete all associated items.
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm">Deleting <strong>{deleteTargetName}</strong>. This action cannot be undone.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteTargetId && handleDelete(deleteTargetId)}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteItemDialogOpen} onOpenChange={setDeleteItemDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete KPI Item</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this KPI item?
+            </DialogDescription>
+          </DialogHeader>
+          <p className="text-sm">Deleting <strong>{deleteItemTargetName}</strong>.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteItemDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteItemTargetId && handleDeleteItem(deleteItemTargetId)}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const ValidationError = require("../utils/ValidationError");
 
 const getAll = async () => {
   const result = await pool.query(
@@ -33,6 +34,22 @@ const getById = async (id) => {
 
 const create = async (data) => {
   const { name, description, cycle_days, is_active, steps } = data;
+  if (!name || !name.trim()) {
+    throw new ValidationError("Pattern name is required");
+  }
+  if (!cycle_days || cycle_days < 1) {
+    throw new ValidationError("Cycle days must be a positive number");
+  }
+  if (steps && Array.isArray(steps)) {
+    for (const step of steps) {
+      if (step.day_offset >= cycle_days) {
+        throw new ValidationError(`Day offset ${step.day_offset} exceeds cycle length ${cycle_days}`);
+      }
+      if (!step.is_rest_day && !step.shift_id) {
+        throw new ValidationError(`Day ${step.day_offset + 1}: select a shift or mark as rest day`);
+      }
+    }
+  }
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -67,6 +84,19 @@ const create = async (data) => {
 
 const update = async (id, data) => {
   const { name, description, cycle_days, is_active, steps } = data;
+  if (cycle_days !== undefined && cycle_days < 1) {
+    throw new ValidationError("Cycle days must be a positive number");
+  }
+  if (steps && Array.isArray(steps) && cycle_days) {
+    for (const step of steps) {
+      if (step.day_offset >= cycle_days) {
+        throw new ValidationError(`Day offset ${step.day_offset} exceeds cycle length ${cycle_days}`);
+      }
+      if (!step.is_rest_day && !step.shift_id) {
+        throw new ValidationError(`Day ${step.day_offset + 1}: select a shift or mark as rest day`);
+      }
+    }
+  }
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -109,6 +139,20 @@ const update = async (id, data) => {
 };
 
 const remove = async (id) => {
+  const deps = await pool.query(
+    `SELECT COUNT(*)::int AS active_assignments
+     FROM rotation_group_assignments
+     WHERE pattern_id = $1
+       AND effective_date <= CURRENT_DATE
+       AND (end_date IS NULL OR end_date >= CURRENT_DATE)`,
+    [id]
+  );
+  const { active_assignments } = deps.rows[0];
+  if (active_assignments > 0) {
+    throw new ValidationError(
+      `Cannot delete: ${active_assignments} active group assignment(s) using this pattern. Set it to inactive instead.`
+    );
+  }
   const result = await pool.query(
     "DELETE FROM rotation_patterns WHERE id = $1 RETURNING *",
     [id]

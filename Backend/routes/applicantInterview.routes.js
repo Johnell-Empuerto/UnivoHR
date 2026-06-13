@@ -6,6 +6,19 @@ const authenticate = require("../middleware/auth.middleware");
 const requirePermission = require("../middleware/permission.middleware");
 
 router.get(
+  "/possible-interviewers",
+  authenticate,
+  requirePermission("recruitment.interviews.manage"),
+  controller.getPossibleInterviewers,
+);
+
+router.get(
+  "/my",
+  authenticate,
+  controller.getMyInterviews,
+);
+
+router.get(
   "/:applicantId",
   authenticate,
   requirePermission("recruitment.interviews.manage"),

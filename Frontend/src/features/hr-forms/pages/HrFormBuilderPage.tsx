@@ -4,6 +4,10 @@ import { getHrFormById, getHrFormFields, addHrFormField, updateHrFormField, dele
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, ArrowLeft, Plus, Pencil, Trash2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import Loader from "@/components/shared/Loader";
@@ -33,6 +37,8 @@ const HrFormBuilderPage = () => {
   const [fieldDialog, setFieldDialog] = useState(false);
   const [editFieldId, setEditFieldId] = useState<number | null>(null);
   const [fieldForm, setFieldForm] = useState({ ...emptyField });
+
+  const [deleteFieldId, setDeleteFieldId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -85,13 +91,15 @@ const HrFormBuilderPage = () => {
   };
 
   const handleDeleteField = async (fieldId: number) => {
-    if (!confirm("Delete this question?")) return;
     try {
+      setSaving(true);
       await deleteHrFormField(fieldId);
       toast.success("Question deleted");
+      setDeleteFieldId(null);
       const f = await getHrFormFields(Number(id));
       setFields(Array.isArray(f) ? f : []);
-    } catch (err: any) { toast.error(err.message || "Delete failed"); }
+    } catch (err: any) { toast.error(err.message || "Delete failed"); setDeleteFieldId(null); }
+    finally { setSaving(false); }
   };
 
   const typeIcon = (t: string) => {
@@ -150,7 +158,7 @@ const HrFormBuilderPage = () => {
                     <Button variant="ghost" size="icon-sm" title="Edit" onClick={() => handleOpenEdit(f)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon-sm" title="Delete" onClick={() => handleDeleteField(f.id)}>
+                    <Button variant="ghost" size="icon-sm" title="Delete" onClick={() => setDeleteFieldId(f.id)}>
                       <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
                   </div>
@@ -167,21 +175,22 @@ const HrFormBuilderPage = () => {
           <div className="space-y-4">
             <div>
               <p className="text-xs text-muted-foreground mb-1">Question Label <span className="text-red-500">*</span></p>
-              <input value={fieldForm.label} onChange={(e) => setFieldForm({ ...fieldForm, label: e.target.value })}
-                className="w-full border rounded px-2 py-1 bg-background" placeholder="e.g., How satisfied are you?" />
+              <Input value={fieldForm.label} onChange={(e) => setFieldForm({ ...fieldForm, label: e.target.value })}
+                placeholder="e.g., How satisfied are you?" />
             </div>
             <div>
               <p className="text-xs text-muted-foreground mb-1">Field Type</p>
-              <select value={fieldForm.field_type} onChange={(e) => setFieldForm({ ...fieldForm, field_type: e.target.value })}
-                className="w-full border rounded px-2 py-1 bg-background">
-                {FIELD_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
+              <Select value={fieldForm.field_type} onValueChange={(v) => setFieldForm({ ...fieldForm, field_type: v })}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FIELD_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             {(fieldForm.field_type === "dropdown" || fieldForm.field_type === "radio" || fieldForm.field_type === "checkbox") && (
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Options <span className="text-red-500">*</span></p>
-                <textarea value={fieldForm.options} onChange={(e) => setFieldForm({ ...fieldForm, options: e.target.value })}
-                  className="w-full border rounded px-2 py-1 bg-background min-h-[60px]"
+                <Textarea value={fieldForm.options} onChange={(e) => setFieldForm({ ...fieldForm, options: e.target.value })}
                   placeholder="Enter options separated by commas&#10;e.g., Excellent, Good, Fair, Poor" />
               </div>
             )}
@@ -199,6 +208,24 @@ const HrFormBuilderPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteFieldId !== null} onOpenChange={(o) => { if (!o) setDeleteFieldId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Question</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this question and any answers submitted for it. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteFieldId !== null && handleDeleteField(deleteFieldId)} disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

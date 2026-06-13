@@ -1,19 +1,24 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   getKpiHrView, getKpiEvaluationById, assignKpiEvaluation,
   approveKpiEvaluation, rejectKpiEvaluation, getActiveKpiTemplates, getFriendlyKpiError,
   bulkAssignKpiEvaluations,
 } from "@/services/kpiService";
-import { employees as fetchEmployees } from "@/services/employeeService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
-import { ClipboardList, Plus, ChevronLeft, ChevronRight, Loader2, Eye, CheckCircle, XCircle, CheckSquare } from "lucide-react";
+import EmployeePickerDialog from "@/components/shared/EmployeePickerDialog";
+import { searchEmployeesPaginated, type EmployeeSearchResult } from "@/services/overtimeService";
+import { ClipboardList, Plus, ChevronLeft, ChevronRight, Loader2, Eye, CheckCircle, XCircle, CheckSquare, Search, User, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers/AuthProvider";
 
@@ -69,20 +74,28 @@ const KpiEvaluationPage = () => {
 
   const [assignDialog, setAssignDialog] = useState(false);
   const [assignForm, setAssignForm] = useState({ employee_id: "", evaluator_id: "", template_id: "", evaluation_period_start: "", evaluation_period_end: "" });
-  const [employees, setEmployees] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeSearchResult | null>(null);
+  const [selectedEvaluator, setSelectedEvaluator] = useState<EmployeeSearchResult | null>(null);
+  const [employeePickerOpen, setEmployeePickerOpen] = useState(false);
+  const [evaluatorPickerOpen, setEvaluatorPickerOpen] = useState(false);
 
   const [detailDialog, setDetailDialog] = useState(false);
   const [detail, setDetail] = useState<any>(null);
 
   const [bulkDialog, setBulkDialog] = useState(false);
-  const [bulkForm, setBulkForm] = useState({ evaluator_id: "", template_id: "", evaluation_period_start: "", evaluation_period_end: "" });
-  const [allActiveEmps, setAllActiveEmps] = useState<any[]>([]);
+  const [bulkForm, setBulkForm] = useState({ template_id: "", evaluation_period_start: "", evaluation_period_end: "" });
   const [bulkTemplates, setBulkTemplates] = useState<any[]>([]);
-  const [bulkEmpSearch, setBulkEmpSearch] = useState("");
+  const [selectedBulkEvaluator, setSelectedBulkEvaluator] = useState<EmployeeSearchResult | null>(null);
+  const [bulkEvaluatorPickerOpen, setBulkEvaluatorPickerOpen] = useState(false);
   const [selectedEmpIds, setSelectedEmpIds] = useState<Set<number>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
-  const [selectAllPage, setSelectAllPage] = useState(false);
+  const [bulkEmps, setBulkEmps] = useState<any[]>([]);
+  const [bulkTotal, setBulkTotal] = useState(0);
+  const [bulkPage, setBulkPage] = useState(1);
+  const [bulkSearch, setBulkSearch] = useState("");
+  const [bulkLoadingEmps, setBulkLoadingEmps] = useState(false);
+  const BULK_PAGE_SIZE = 10;
 
   const [approveDialog, setApproveDialog] = useState(false);
   const [rejectDialog, setRejectDialog] = useState(false);
@@ -93,6 +106,10 @@ const KpiEvaluationPage = () => {
 
   useEffect(() => { fetchEvaluations(); }, [page, pageSize, search, statusFilter]);
 
+  useEffect(() => {
+    if (bulkDialog) fetchBulkEmployees(bulkPage, bulkSearch);
+  }, [bulkDialog, bulkPage, bulkSearch, fetchBulkEmployees]);
+
   const fetchEvaluations = async () => {
     try { setLoading(true); const r = await getKpiHrView(search, statusFilter, page, pageSize); setEvaluations(r.data); setTotal(r.pagination.total); }
     catch (err: any) { toast.error(err.message || "Failed to load"); } finally { setLoading(false); }
@@ -100,22 +117,23 @@ const KpiEvaluationPage = () => {
 
   const handleOpenAssign = async () => {
     try {
-      const [emps, tmps] = await Promise.all([fetchEmployees(1, 10000, "", "ACTIVE"), getActiveKpiTemplates()]);
-      setEmployees(emps.data || emps);
+      const tmps = await getActiveKpiTemplates();
       setTemplates(tmps);
     } catch { }
     setAssignForm({ employee_id: "", evaluator_id: "", template_id: "", evaluation_period_start: "", evaluation_period_end: "" });
+    setSelectedEmployee(null);
+    setSelectedEvaluator(null);
     setAssignDialog(true);
   };
 
   const handleAssign = async () => {
-    if (!assignForm.employee_id || !assignForm.evaluator_id || !assignForm.template_id) {
+    if (!selectedEmployee || !selectedEvaluator || !assignForm.template_id) {
       toast.error("Employee, Evaluator, and Template are required"); return;
     }
     try {
       await assignKpiEvaluation({
-        employee_id: Number(assignForm.employee_id),
-        evaluator_id: Number(assignForm.evaluator_id),
+        employee_id: selectedEmployee.id,
+        evaluator_id: selectedEvaluator.id,
         template_id: Number(assignForm.template_id),
         evaluation_period_start: assignForm.evaluation_period_start || null,
         evaluation_period_end: assignForm.evaluation_period_end || null,
@@ -162,18 +180,33 @@ const KpiEvaluationPage = () => {
     catch (err: any) { toast.error(getFriendlyKpiError(err, "Unable to reject evaluation.")); }
   };
 
+  const fetchBulkEmployees = useCallback(async (p: number, s: string) => {
+    setBulkLoadingEmps(true);
+    try {
+      const res = await searchEmployeesPaginated({ page: p, limit: BULK_PAGE_SIZE, search: s, status: "ACTIVE" });
+      setBulkEmps(res.data || []);
+      setBulkTotal(res.pagination.total);
+    } catch {
+      setBulkEmps([]);
+      setBulkTotal(0);
+    } finally {
+      setBulkLoadingEmps(false);
+    }
+  }, []);
+
   const handleOpenBulkAssign = async () => {
     try {
       setBulkLoading(true);
-      const [emps, tmps] = await Promise.all([fetchEmployees(1, 10000, "", "ACTIVE"), getActiveKpiTemplates()]);
-      setAllActiveEmps(emps.data || emps || []);
+      const tmps = await getActiveKpiTemplates();
       setBulkTemplates(tmps || []);
-    } catch { setAllActiveEmps([]); setBulkTemplates([]); }
+      await fetchBulkEmployees(1, "");
+    } catch { setBulkTemplates([]); }
     finally { setBulkLoading(false); }
-    setBulkForm({ evaluator_id: "", template_id: "", evaluation_period_start: "", evaluation_period_end: "" });
-    setBulkEmpSearch("");
+    setBulkForm({ template_id: "", evaluation_period_start: "", evaluation_period_end: "" });
+    setSelectedBulkEvaluator(null);
     setSelectedEmpIds(new Set());
-    setSelectAllPage(false);
+    setBulkPage(1);
+    setBulkSearch("");
     setBulkDialog(true);
   };
 
@@ -185,27 +218,25 @@ const KpiEvaluationPage = () => {
     });
   };
 
-  const filteredBulkEmps = allActiveEmps.filter((e: any) => {
-    if (!bulkEmpSearch) return true;
-    const q = bulkEmpSearch.toLowerCase();
-    return (e.first_name + " " + e.last_name).toLowerCase().includes(q)
-      || (e.employee_code || "").toLowerCase().includes(q)
-      || (e.department || "").toLowerCase().includes(q);
-  });
+  const bulkTotalPages = Math.ceil(bulkTotal / BULK_PAGE_SIZE) || 1;
 
   const handleBulkSelectAll = () => {
-    if (selectAllPage) {
-      setSelectedEmpIds(new Set());
-      setSelectAllPage(false);
+    if (bulkEmps.length === 0) return;
+    const allOnPageSelected = bulkEmps.every((e: any) => selectedEmpIds.has(e.id));
+    if (allOnPageSelected) {
+      const next = new Set(selectedEmpIds);
+      bulkEmps.forEach((e: any) => next.delete(e.id));
+      setSelectedEmpIds(next);
     } else {
-      setSelectedEmpIds(new Set(filteredBulkEmps.map((e: any) => e.id)));
-      setSelectAllPage(true);
+      const next = new Set(selectedEmpIds);
+      bulkEmps.forEach((e: any) => next.add(e.id));
+      setSelectedEmpIds(next);
     }
   };
 
   const handleBulkAssign = async () => {
-    if (!bulkForm.evaluator_id || !bulkForm.template_id) {
-      toast.error("Evaluator, and Template are required"); return;
+    if (!selectedBulkEvaluator || !bulkForm.template_id) {
+      toast.error("Evaluator and Template are required"); return;
     }
     if (!bulkForm.evaluation_period_start || !bulkForm.evaluation_period_end) {
       toast.error("Evaluation period is required"); return;
@@ -217,7 +248,7 @@ const KpiEvaluationPage = () => {
       setBulkLoading(true);
       const result = await bulkAssignKpiEvaluations({
         employee_ids: Array.from(selectedEmpIds),
-        evaluator_id: Number(bulkForm.evaluator_id),
+        evaluator_id: selectedBulkEvaluator.id,
         template_id: Number(bulkForm.template_id),
         evaluation_period_start: bulkForm.evaluation_period_start,
         evaluation_period_end: bulkForm.evaluation_period_end,
@@ -239,15 +270,21 @@ const KpiEvaluationPage = () => {
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
-            <input placeholder="Search employee..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="border rounded px-3 py-1.5 text-sm bg-background w-64" />
-            <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="border rounded px-3 py-1.5 text-sm bg-background">
-              <option value="">All Status</option>
-              <option value="Draft">Draft</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Submitted">Submitted</option>
-              <option value="Completed">Completed</option>
-              <option value="Approved">Approved</option>
-            </select>
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search employee..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="pl-8" />
+            </div>
+            <Select value={statusFilter || undefined} onValueChange={(val) => { setStatusFilter(val === "_all" ? "" : val); setPage(1); }}>
+              <SelectTrigger className="w-40"><SelectValue placeholder="All Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">All Status</SelectItem>
+                <SelectItem value="Draft">Draft</SelectItem>
+                <SelectItem value="In Progress">In Progress</SelectItem>
+                <SelectItem value="Submitted">Submitted</SelectItem>
+                <SelectItem value="Completed">Completed</SelectItem>
+                <SelectItem value="Approved">Approved</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           {isHr && <div className="flex gap-2"><Button onClick={handleOpenAssign} className="flex items-center gap-2"><Plus className="h-4 w-4" /> Assign</Button><Button onClick={handleOpenBulkAssign} variant="outline" className="flex items-center gap-2"><CheckSquare className="h-4 w-4" /> Bulk Assign</Button></div>}
         </CardHeader>
@@ -332,42 +369,77 @@ const KpiEvaluationPage = () => {
       </Card>
 
       <Dialog open={assignDialog} onOpenChange={setAssignDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader><DialogTitle>Assign Evaluation</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Employee <span className="text-red-500">*</span></p>
-              <select value={assignForm.employee_id} onChange={(e) => setAssignForm({ ...assignForm, employee_id: e.target.value })} className="w-full border rounded px-2 py-1 bg-background">
-                <option value="">Select employee</option>
-                {employees.map((emp: any) => (
-                  <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name} ({emp.employee_code})</option>
-                ))}
-              </select>
+          <div className="space-y-5">
+            <div className="space-y-1.5">
+              <Label>Employee <span className="text-red-500">*</span></Label>
+              {selectedEmployee ? (
+                <div className="flex items-center justify-between border rounded-md px-3 py-2 bg-muted/30">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="text-sm font-medium truncate">
+                      {selectedEmployee.employee_code} — {selectedEmployee.first_name} {selectedEmployee.last_name}
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate">
+                      {selectedEmployee.department || selectedEmployee.branch_name || ""}
+                    </span>
+                  </div>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0" onClick={() => setSelectedEmployee(null)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" className="w-full justify-start text-muted-foreground" onClick={() => setEmployeePickerOpen(true)}>
+                  <User className="h-4 w-4 mr-2" />
+                  Select employee
+                </Button>
+              )}
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Evaluator <span className="text-red-500">*</span></p>
-              <select value={assignForm.evaluator_id} onChange={(e) => setAssignForm({ ...assignForm, evaluator_id: e.target.value })} className="w-full border rounded px-2 py-1 bg-background">
-                <option value="">Select evaluator</option>
-                {employees.map((emp: any) => (
-                  <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name} ({emp.employee_code})</option>
-                ))}
-              </select>
+
+            <div className="space-y-1.5">
+              <Label>Evaluator <span className="text-red-500">*</span></Label>
+              {selectedEvaluator ? (
+                <div className="flex items-center justify-between border rounded-md px-3 py-2 bg-muted/30">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="text-sm font-medium truncate">
+                      {selectedEvaluator.employee_code} — {selectedEvaluator.first_name} {selectedEvaluator.last_name}
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate">
+                      {selectedEvaluator.department || selectedEvaluator.branch_name || ""}
+                    </span>
+                  </div>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0" onClick={() => setSelectedEvaluator(null)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Button variant="outline" className="w-full justify-start text-muted-foreground" onClick={() => setEvaluatorPickerOpen(true)}>
+                  <User className="h-4 w-4 mr-2" />
+                  Select evaluator
+                </Button>
+              )}
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">KPI Template <span className="text-red-500">*</span></p>
-              <select value={assignForm.template_id} onChange={(e) => setAssignForm({ ...assignForm, template_id: e.target.value })} className="w-full border rounded px-2 py-1 bg-background">
-                <option value="">Select template</option>
-                {templates.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
+
+            <div className="space-y-1.5">
+              <Label>KPI Template <span className="text-red-500">*</span></Label>
+              <Select value={assignForm.template_id || undefined} onValueChange={(val) => setAssignForm({ ...assignForm, template_id: val })}>
+                <SelectTrigger><SelectValue placeholder="Select template" /></SelectTrigger>
+                <SelectContent>
+                  {templates.map((t: any) => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
+
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Period Start</p>
-                <input type="date" value={assignForm.evaluation_period_start} onChange={(e) => setAssignForm({ ...assignForm, evaluation_period_start: e.target.value })} className="w-full border rounded px-2 py-1 bg-background" />
+              <div className="space-y-1.5">
+                <Label>Period Start</Label>
+                <Input type="date" value={assignForm.evaluation_period_start} onChange={(e) => setAssignForm({ ...assignForm, evaluation_period_start: e.target.value })} />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Period End</p>
-                <input type="date" value={assignForm.evaluation_period_end} onChange={(e) => setAssignForm({ ...assignForm, evaluation_period_end: e.target.value })} className="w-full border rounded px-2 py-1 bg-background" />
+              <div className="space-y-1.5">
+                <Label>Period End</Label>
+                <Input type="date" value={assignForm.evaluation_period_end} onChange={(e) => setAssignForm({ ...assignForm, evaluation_period_end: e.target.value })} />
               </div>
             </div>
           </div>
@@ -378,89 +450,170 @@ const KpiEvaluationPage = () => {
         </DialogContent>
       </Dialog>
 
+      <EmployeePickerDialog
+        open={employeePickerOpen}
+        onOpenChange={setEmployeePickerOpen}
+        title="Select Employee"
+        onSelect={(emp) => {
+          setSelectedEmployee(emp);
+          setEmployeePickerOpen(false);
+        }}
+        activeOnly={true}
+        requireUserAccount={false}
+      />
+
+      <EmployeePickerDialog
+        open={evaluatorPickerOpen}
+        onOpenChange={setEvaluatorPickerOpen}
+        title="Select Evaluator"
+        onSelect={(emp) => {
+          setSelectedEvaluator(emp);
+          setEvaluatorPickerOpen(false);
+        }}
+        excludeEmployeeId={selectedEmployee ? selectedEmployee.id : undefined}
+        activeOnly={true}
+        requireUserAccount={true}
+      />
+
       <Dialog open={bulkDialog} onOpenChange={setBulkDialog}>
         <DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Bulk Assign Evaluations</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">KPI Template <span className="text-red-500">*</span></p>
-                <select value={bulkForm.template_id} onChange={(e) => setBulkForm({ ...bulkForm, template_id: e.target.value })} className="w-full border rounded px-2 py-1 bg-background">
-                  <option value="">Select template</option>
-                  {bulkTemplates.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
+              <div className="space-y-1">
+                <Label>KPI Template <span className="text-red-500">*</span></Label>
+                <Select value={bulkForm.template_id || undefined} onValueChange={(val) => setBulkForm({ ...bulkForm, template_id: val })}>
+                  <SelectTrigger><SelectValue placeholder="Select template" /></SelectTrigger>
+                  <SelectContent>
+                    {bulkTemplates.map((t: any) => <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Evaluator <span className="text-red-500">*</span></p>
-                <select value={bulkForm.evaluator_id} onChange={(e) => setBulkForm({ ...bulkForm, evaluator_id: e.target.value })} className="w-full border rounded px-2 py-1 bg-background">
-                  <option value="">Select evaluator</option>
-                  {allActiveEmps.map((emp: any) => (
-                    <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name} ({emp.employee_code})</option>
-                  ))}
-                </select>
+              <div className="space-y-1">
+                <Label>Evaluator <span className="text-red-500">*</span></Label>
+                {selectedBulkEvaluator ? (
+                  <div className="flex items-center justify-between border rounded-md px-3 py-2 bg-muted/30">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="text-sm font-medium truncate">
+                        {selectedBulkEvaluator.employee_code} — {selectedBulkEvaluator.first_name} {selectedBulkEvaluator.last_name}
+                      </span>
+                      <span className="text-xs text-muted-foreground truncate">
+                        {selectedBulkEvaluator.department || selectedBulkEvaluator.branch_name || ""}
+                      </span>
+                    </div>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0" onClick={() => setSelectedBulkEvaluator(null)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button variant="outline" className="w-full justify-start text-muted-foreground" onClick={() => setBulkEvaluatorPickerOpen(true)}>
+                    <User className="h-4 w-4 mr-2" />
+                    Select evaluator
+                  </Button>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Period Start <span className="text-red-500">*</span></p>
-                <input type="date" value={bulkForm.evaluation_period_start} onChange={(e) => setBulkForm({ ...bulkForm, evaluation_period_start: e.target.value })} className="w-full border rounded px-2 py-1 bg-background" />
+              <div className="space-y-1">
+                <Label>Period Start <span className="text-red-500">*</span></Label>
+                <Input type="date" value={bulkForm.evaluation_period_start} onChange={(e) => setBulkForm({ ...bulkForm, evaluation_period_start: e.target.value })} />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Period End <span className="text-red-500">*</span></p>
-                <input type="date" value={bulkForm.evaluation_period_end} onChange={(e) => setBulkForm({ ...bulkForm, evaluation_period_end: e.target.value })} className="w-full border rounded px-2 py-1 bg-background" />
+              <div className="space-y-1">
+                <Label>Period End <span className="text-red-500">*</span></Label>
+                <Input type="date" value={bulkForm.evaluation_period_end} onChange={(e) => setBulkForm({ ...bulkForm, evaluation_period_end: e.target.value })} />
               </div>
             </div>
 
             <div className="border-t pt-3">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-semibold">Select Employees</p>
-                <input placeholder="Search name/code/department..." value={bulkEmpSearch} onChange={(e) => { setBulkEmpSearch(e.target.value); setSelectAllPage(false); }} className="border rounded px-3 py-1.5 text-sm bg-background w-64" />
+                <div className="flex items-center gap-2">
+                  <Input placeholder="Search name/code/department..." value={bulkSearch}
+                    onChange={(e) => { setBulkSearch(e.target.value); setBulkPage(1); }}
+                    className="w-64" />
+                </div>
               </div>
-              {bulkLoading ? (
-                <Loader message="Loading employees..." />
-              ) : (
-                <div className="rounded-md border max-h-64 overflow-y-auto">
+              {bulkLoadingEmps ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : bulkEmps.length === 0 ? (
+                <div className="rounded-md border">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-muted sticky top-0">
-                        <TableHead className="w-10">
-                          <input type="checkbox" checked={selectAllPage && filteredBulkEmps.length > 0 && filteredBulkEmps.every((e: any) => selectedEmpIds.has(e.id))}
-                            onChange={handleBulkSelectAll} />
-                        </TableHead>
+                      <TableRow className="bg-muted">
+                        <TableHead className="w-10" />
                         <TableHead>Code</TableHead>
                         <TableHead>Name</TableHead>
+                        <TableHead>Branch</TableHead>
                         <TableHead>Department</TableHead>
                         <TableHead>Position</TableHead>
+                        <TableHead>Emp Status</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredBulkEmps.length === 0 ? (
-                        <TableRow><TableCell colSpan={6} className="text-center py-4 text-muted-foreground">No employees found.</TableCell></TableRow>
-                      ) : filteredBulkEmps.map((emp: any) => (
+                      <TableRow><TableCell colSpan={8} className="text-center py-4 text-muted-foreground">No employees found.</TableCell></TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted">
+                        <TableHead className="w-10">
+                          <input type="checkbox"
+                            checked={bulkEmps.length > 0 && bulkEmps.every((e: any) => selectedEmpIds.has(e.id))}
+                            onChange={handleBulkSelectAll} />
+                        </TableHead>
+                        <TableHead>Code</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Branch</TableHead>
+                        <TableHead>Department</TableHead>
+                        <TableHead>Position</TableHead>
+                        <TableHead>Emp Status</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {bulkEmps.map((emp: any) => (
                         <TableRow key={emp.id} className={selectedEmpIds.has(emp.id) ? "bg-muted/50" : ""}>
                           <TableCell>
                             <input type="checkbox" checked={selectedEmpIds.has(emp.id)} onChange={() => toggleEmpSelect(emp.id)} />
                           </TableCell>
                           <TableCell className="font-mono text-xs">{emp.employee_code}</TableCell>
                           <TableCell className="font-medium">{emp.first_name} {emp.last_name}</TableCell>
+                          <TableCell>{emp.branch_name || "-"}</TableCell>
                           <TableCell>{emp.department || "-"}</TableCell>
                           <TableCell>{emp.position || "-"}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={
-                              emp.employment_status === "REGULAR"
-                                ? "bg-green-100 text-green-800"
-                                : emp.employment_status === "PROBATIONARY"
-                                  ? "bg-amber-100 text-amber-800"
-                                  : ""
-                            }>
-                              {emp.employment_status || emp.status}
-                            </Badge>
-                          </TableCell>
+                          <TableCell>{emp.employment_status || "-"}</TableCell>
+                          <TableCell>{emp.status}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+              )}
+              {bulkTotal > 0 && (
+                <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" disabled={bulkPage <= 1}
+                      onClick={() => { setBulkPage((p) => Math.max(1, p - 1)); }}
+                      className="h-7 px-2 text-xs">
+                      <ChevronLeft className="h-3 w-3 mr-1" /> Prev
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      Page {bulkPage} of {bulkTotalPages}
+                    </span>
+                    <Button variant="outline" size="sm" disabled={bulkPage >= bulkTotalPages}
+                      onClick={() => setBulkPage((p) => p + 1)}
+                      className="h-7 px-2 text-xs">
+                      Next <ChevronRight className="h-3 w-3 ml-1" />
+                    </Button>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{BULK_PAGE_SIZE} per page</span>
                 </div>
               )}
               <p className="text-xs text-muted-foreground mt-2">{selectedEmpIds.size} employee(s) selected</p>
@@ -475,6 +628,18 @@ const KpiEvaluationPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EmployeePickerDialog
+        open={bulkEvaluatorPickerOpen}
+        onOpenChange={setBulkEvaluatorPickerOpen}
+        title="Select Evaluator"
+        onSelect={(emp) => {
+          setSelectedBulkEvaluator(emp);
+          setBulkEvaluatorPickerOpen(false);
+        }}
+        activeOnly={true}
+        requireUserAccount={true}
+      />
 
       <Dialog open={detailDialog} onOpenChange={setDetailDialog}>
         <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
@@ -538,19 +703,19 @@ const KpiEvaluationPage = () => {
               {selectedEval.recommendation === "Terminate" && (
                 <div className="space-y-3 p-3 bg-red-50 border border-red-200 rounded">
                   <p className="text-sm font-semibold text-red-700">This will terminate the employee.</p>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Termination Date <span className="text-red-500">*</span></p>
-                    <input type="date" value={terminationDate} onChange={(e) => setTerminationDate(e.target.value)} className="w-full border rounded px-2 py-1 bg-background" />
+                  <div className="space-y-1">
+                    <Label>Termination Date <span className="text-red-500">*</span></Label>
+                    <Input type="date" value={terminationDate} onChange={(e) => setTerminationDate(e.target.value)} />
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Termination Reason</p>
-                    <textarea value={terminationReason} onChange={(e) => setTerminationReason(e.target.value)} className="w-full border rounded px-2 py-1 bg-background min-h-[60px]" placeholder="e.g., Failed probationary" />
+                  <div className="space-y-1">
+                    <Label>Termination Reason</Label>
+                    <Textarea value={terminationReason} onChange={(e) => setTerminationReason(e.target.value)} placeholder="e.g., Failed probationary" />
                   </div>
                 </div>
               )}
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">HR Comments</p>
-                <textarea value={hrComment} onChange={(e) => setHrComment(e.target.value)} className="w-full border rounded px-2 py-1 bg-background min-h-[60px]" />
+              <div className="space-y-1">
+                <Label>HR Comments</Label>
+                <Textarea value={hrComment} onChange={(e) => setHrComment(e.target.value)} />
               </div>
             </div>
           )}
@@ -567,9 +732,9 @@ const KpiEvaluationPage = () => {
           {selectedEval && (
             <div className="space-y-4">
               <p className="text-sm">Reject evaluation for <strong>{selectedEval.employee_name}</strong>?</p>
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">HR Comments</p>
-                <textarea value={hrComment} onChange={(e) => setHrComment(e.target.value)} className="w-full border rounded px-2 py-1 bg-background min-h-[60px]" />
+              <div className="space-y-1">
+                <Label>HR Comments</Label>
+                <Textarea value={hrComment} onChange={(e) => setHrComment(e.target.value)} />
               </div>
             </div>
           )}

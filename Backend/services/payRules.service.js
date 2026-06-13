@@ -22,6 +22,10 @@ const createPayRule = async (data) => {
 };
 
 const updatePayRule = async (id, data) => {
+  const { day_type, multiplier } = data;
+  if (!day_type || multiplier === undefined) {
+    throw new Error("VALIDATION_ERROR");
+  }
   const rule = await calendarModel.updatePayRule(id, data);
   if (!rule) throw new Error("NOT_FOUND");
   return rule;

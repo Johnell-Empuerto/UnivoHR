@@ -6,8 +6,10 @@ const ALLOWED_TABLES = new Set([
   "branches", "user_branch_access", "payroll_settings", "attendance_rules",
   "audit_logs",
   "hr_policy_documents",
+  "devices", "user_permissions",
   "job_positions", "applicants", "applicant_documents",
-  "applicant_interviews", "applicant_approvals",
+  "applicant_interviews", "applicant_approvals", "applicant_stage_approvals",
+  "applicant_stage_records", "applicant_workflow_instances",
   "employee_onboarding", "employee_requirements",
 ]);
 

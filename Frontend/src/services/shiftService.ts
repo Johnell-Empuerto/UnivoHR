@@ -66,6 +66,14 @@ export const deleteShift = async (id: number): Promise<Shift> => {
   return response.data;
 };
 
+export const getEmployeeShiftForDate = async (
+  employeeId: number,
+  date: string
+): Promise<Shift | null> => {
+  const response = await api.get(`/shifts/employee/${employeeId}/date/${date}`);
+  return response.data;
+};
+
 export const getActiveShifts = async (): Promise<Shift[]> => {
   const response = await api.get("/shifts/active");
   return response.data;

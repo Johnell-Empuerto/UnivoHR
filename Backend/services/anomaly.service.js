@@ -403,8 +403,8 @@ const detectPayrollAnomalies = async (req) => {
     SELECT
       p.employee_id,
       e.branch_id,
-      p.total_deductions AS current_ded,
-      prev.total_deductions AS previous_ded
+      p.deductions AS current_ded,
+      prev.deductions AS previous_ded
     FROM payroll p
     JOIN payroll prev ON prev.employee_id = p.employee_id
       AND prev.cutoff_start = $3::date
@@ -412,8 +412,8 @@ const detectPayrollAnomalies = async (req) => {
     JOIN employees e ON e.id = p.employee_id
     WHERE p.cutoff_start = $1::date
       AND p.cutoff_end = $2::date
-      AND p.total_deductions > 0 AND prev.total_deductions > 0
-      AND ABS(p.total_deductions - prev.total_deductions) / prev.total_deductions > 0.50
+      AND p.deductions > 0 AND prev.deductions > 0
+      AND ABS(p.deductions - prev.deductions) / prev.deductions > 0.50
   `, [current.cutoff_start, current.cutoff_end, previous.cutoff_start, previous.cutoff_end]);
 
   for (const row of deductionChanges.rows) {

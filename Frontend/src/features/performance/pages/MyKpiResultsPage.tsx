@@ -23,6 +23,7 @@ import {
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
 import { useAuth } from "@/app/providers/AuthProvider";
+import { toast } from "sonner";
 import {
   ClipboardList,
   Eye,
@@ -49,15 +50,24 @@ const MyKpiResultsPage = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+
+  const totalPages = Math.ceil(total / pageSize);
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, total);
+
+  const goToPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
 
   const fetchEvaluations = async () => {
     try {
       setLoading(true);
-      const data = await getMyKpiEvaluations();
-      setEvaluations(Array.isArray(data) ? data : []);
+      const r = await getMyKpiEvaluations("", page, pageSize);
+      setEvaluations(r.data || (Array.isArray(r) ? r : []));
+      setTotal(r.pagination?.total || (Array.isArray(r) ? r.length : 0));
     } catch (error) {
       console.error("Failed to load evaluations:", error);
+      toast.error("Failed to load evaluations");
     } finally {
       setLoading(false);
     }
@@ -65,7 +75,7 @@ const MyKpiResultsPage = () => {
 
   useEffect(() => {
     fetchEvaluations();
-  }, []);
+  }, [page, pageSize]);
 
   const handleViewDetail = async (id: number) => {
     try {
@@ -75,6 +85,7 @@ const MyKpiResultsPage = () => {
       setSelectedEval(data);
     } catch (error) {
       console.error("Failed to load evaluation detail:", error);
+      toast.error("Failed to load evaluation detail");
     } finally {
       setDetailLoading(false);
     }
@@ -88,9 +99,6 @@ const MyKpiResultsPage = () => {
       day: "numeric",
     });
   };
-
-  const totalPages = Math.ceil(evaluations.length / pageSize);
-  const paginatedEvals = evaluations.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="p-6 space-y-6">
@@ -135,7 +143,7 @@ const MyKpiResultsPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedEvals.map((ev: any) => (
+                  {evaluations.map((ev: any) => (
                     <TableRow key={ev.id}>
                       <TableCell className="text-sm">
                         {formatDate(ev.evaluation_period_start)} to {formatDate(ev.evaluation_period_end)}
@@ -163,40 +171,22 @@ const MyKpiResultsPage = () => {
               </Table>
             </div>
 
-            {totalPages > 1 && (
+            {total > 0 && (
               <div className="flex items-center justify-between px-4 pb-4">
                 <p className="text-sm text-muted-foreground">
-                  Showing {(page - 1) * pageSize + 1} to{" "}
-                  {Math.min(page * pageSize, evaluations.length)} of{" "}
-                  {evaluations.length} entries
+                  Showing {start} to {end} of {total} entries
                 </p>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page === 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => goToPage(page - 1)}
+                    disabled={page === 1} className="h-8 w-8 p-0">
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                    (p) => (
-                      <Button
-                        key={p}
-                        variant={page === p ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setPage(p)}
-                      >
-                        {p}
-                      </Button>
-                    ),
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page === totalPages}
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  >
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <Button key={p} variant={page === p ? "default" : "outline"} size="sm"
+                      onClick={() => goToPage(p)} className="h-8 w-8 p-0">{p}</Button>
+                  ))}
+                  <Button variant="outline" size="sm" onClick={() => goToPage(page + 1)}
+                    disabled={page === totalPages} className="h-8 w-8 p-0">
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>

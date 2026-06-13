@@ -12,6 +12,8 @@ const getGroupMembers = async (groupId) => rotationGroupModel.getMembers(groupId
 const getEmployeeAssignments = async (employeeId) => rotationGroupModel.getEmployeeAssignments(employeeId);
 const assignEmployeeToGroup = async (employeeId, groupId, effectiveDate) =>
   rotationGroupModel.assignEmployeeToGroup(employeeId, groupId, effectiveDate);
+const updateEmployeeAssignment = async (id, data) =>
+  rotationGroupModel.updateEmployeeAssignment(id, data);
 const removeEmployeeFromGroup = async (employeeId, effectiveDate) =>
   rotationGroupModel.removeEmployeeFromGroup(employeeId, effectiveDate);
 
@@ -21,8 +23,10 @@ const createPattern = async (data) => rotationPatternModel.create(data);
 const updatePattern = async (id, data) => rotationPatternModel.update(id, data);
 const deletePattern = async (id) => rotationPatternModel.remove(id);
 
+const getAssignmentById = async (id) => rotationGroupAssignmentModel.getById(id);
 const getAssignments = async () => rotationGroupAssignmentModel.getAll();
 const createAssignment = async (data) => rotationGroupAssignmentModel.create(data);
+const updateAssignment = async (id, data) => rotationGroupAssignmentModel.update(id, data);
 const deleteAssignment = async (id) => rotationGroupAssignmentModel.remove(id);
 
 const resolveEmployeeShift = async (employeeId, date) => {
@@ -58,14 +62,17 @@ module.exports = {
   getGroupMembers,
   getEmployeeAssignments,
   assignEmployeeToGroup,
+  updateEmployeeAssignment,
   removeEmployeeFromGroup,
   getPatterns,
   getPatternById,
   createPattern,
   updatePattern,
   deletePattern,
+  getAssignmentById,
   getAssignments,
   createAssignment,
+  updateAssignment,
   deleteAssignment,
   resolveEmployeeShift,
 };

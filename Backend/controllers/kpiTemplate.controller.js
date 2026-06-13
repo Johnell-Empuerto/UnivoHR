@@ -95,6 +95,13 @@ const getItems = async (req, res) => {
 const addItem = async (req, res) => {
   try {
     const item = await service.addItem(req.params.templateId, req.body);
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "kpi_template_items",
+      record_id: item.id,
+      new_values: { kpi_name: item.kpi_name, weight: item.weight, template_id: req.params.templateId },
+      description: `KPI template item created: ${item.kpi_name} (template ${req.params.templateId})`,
+    });
     res.status(201).json(item);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -104,6 +111,13 @@ const addItem = async (req, res) => {
 const editItem = async (req, res) => {
   try {
     const item = await service.editItem(req.params.itemId, req.body);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "kpi_template_items",
+      record_id: Number(req.params.itemId),
+      new_values: { kpi_name: item.kpi_name, weight: item.weight },
+      description: `KPI template item updated: ${item.kpi_name} (id: ${req.params.itemId})`,
+    });
     res.json(item);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -113,6 +127,12 @@ const editItem = async (req, res) => {
 const removeItem = async (req, res) => {
   try {
     await service.removeItem(req.params.itemId);
+    audit.auditLog(req, {
+      action: "DELETE",
+      table_name: "kpi_template_items",
+      record_id: Number(req.params.itemId),
+      description: `KPI template item deleted (id: ${req.params.itemId})`,
+    });
     res.json({ message: "Item deleted" });
   } catch (error) {
     res.status(400).json({ message: error.message });

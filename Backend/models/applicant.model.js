@@ -12,9 +12,12 @@ const getAll = async (page = 1, limit = 10, search = "", status = "", jobPositio
   const searchValue = `%${search}%`;
 
   const dataQuery = await pool.query(
-    `SELECT a.*, jp.title AS job_title, jp.department AS job_department
+    `SELECT a.*, jp.title AS job_title, jp.department AS job_department,
+            awi.workflow_id, rw.name AS workflow_name
      FROM applicants a
      LEFT JOIN job_positions jp ON jp.id = a.job_position_id
+     LEFT JOIN applicant_workflow_instances awi ON awi.id = a.workflow_instance_id
+     LEFT JOIN recruitment_workflows rw ON rw.id = awi.workflow_id
      WHERE ($3 = '' OR a.first_name ILIKE $3 OR a.last_name ILIKE $3 OR a.email ILIKE $3)
        AND ($4 = '' OR a.status = $4)
        AND ($5 = '' OR a.job_position_id = $5::int)
@@ -44,9 +47,12 @@ const getAll = async (page = 1, limit = 10, search = "", status = "", jobPositio
 
 const getById = async (id) => {
   const result = await pool.query(
-    `SELECT a.*, jp.title AS job_title, jp.department AS job_department
+    `SELECT a.*, jp.title AS job_title, jp.department AS job_department,
+            awi.workflow_id, rw.name AS workflow_name
      FROM applicants a
      LEFT JOIN job_positions jp ON jp.id = a.job_position_id
+     LEFT JOIN applicant_workflow_instances awi ON awi.id = a.workflow_instance_id
+     LEFT JOIN recruitment_workflows rw ON rw.id = awi.workflow_id
      WHERE a.id = $1`,
     [id],
   );
@@ -103,6 +109,20 @@ const getUserIdsByEmployeeIds = async (employeeIds) => {
   return result.rows;
 };
 
+const getRelatedCounts = async (id) => {
+  const result = await pool.query(
+    `SELECT
+      (SELECT COUNT(*) FROM applicant_interviews WHERE applicant_id = $1) AS interviews,
+      (SELECT COUNT(*) FROM applicant_approvals WHERE applicant_id = $1) AS approvals,
+      (SELECT COUNT(*) FROM applicant_stage_records WHERE applicant_id = $1) AS stage_records,
+      (SELECT COUNT(*) FROM applicant_family_members WHERE applicant_id = $1) AS family,
+      (SELECT COUNT(*) FROM applicant_education WHERE applicant_id = $1) AS education,
+      (SELECT COUNT(*) FROM applicant_work_experience WHERE applicant_id = $1) AS experience`,
+    [id],
+  );
+  return result.rows[0];
+};
+
 const getActiveHRUserIds = async () => {
   const result = await pool.query(
     `SELECT id FROM users WHERE role = 'ADMIN' OR EXISTS (SELECT 1 FROM user_permissions up WHERE up.user_id = users.id AND up.permission_key = 'employees.manage' AND up.is_allowed = true)`,
@@ -120,4 +140,5 @@ module.exports = {
   updateEmployeeId,
   getUserIdsByEmployeeIds,
   getActiveHRUserIds,
+  getRelatedCounts,
 };

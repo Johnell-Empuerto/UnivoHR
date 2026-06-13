@@ -62,6 +62,8 @@ const updateForm = async (id, data) => {
 const deleteForm = async (id) => {
   const existing = await model.getFormById(id);
   if (!existing) throw new Error("Form not found");
+  const inUse = await model.hasAssignments(id);
+  if (inUse) throw new Error("Cannot delete form with existing assignments. Deactivate it instead.");
   await model.deleteForm(id);
 };
 
@@ -84,6 +86,8 @@ const editField = async (fieldId, data) => {
 };
 
 const removeField = async (fieldId) => {
+  const hasAnswers = await model.hasFieldAnswers(fieldId);
+  if (hasAnswers) throw new Error("Cannot delete field with submitted answers.");
   await model.deleteField(fieldId);
 };
 
@@ -127,8 +131,8 @@ const getAllAssignments = async (search, page, limit) => {
   return await model.getAllAssignments(search, page, limit);
 };
 
-const getMyAssignments = async (employeeId) => {
-  return await model.getMyAssignments(employeeId);
+const getMyAssignments = async (employeeId, page = 1, limit = 10) => {
+  return await model.getMyAssignments(employeeId, page, limit);
 };
 
 const getAssignmentById = async (assignmentId, userId, userRole, employeeId) => {

@@ -55,8 +55,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { format } from "date-fns";
 import { toast } from "sonner";
+import { formatDateLocal, formatTimeLocal } from "@/utils/formatDate";
 import ErrorMessage from "@/components/shared/ErrorMessage";
 import EmptyState from "@/components/shared/EmptyState";
 import Loader from "@/components/shared/Loader";
@@ -90,7 +90,7 @@ const AttendancePage = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const formattedDate = format(selectedDate, "yyyy-MM-dd");
+  const formattedDate = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
   const [branchFilter, setBranchFilter] = useState("");
   const [branches, setBranches] = useState<{ id: number; name: string }[]>([]);
 
@@ -262,10 +262,20 @@ const AttendancePage = () => {
     setRequestForm({
       attendance_id: attendance.id.toString(),
       requested_check_in: attendance.check_in_time
-        ? format(new Date(attendance.check_in_time), "HH:mm")
+        ? new Date(attendance.check_in_time).toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+            timeZone: attendance.timezone_used || "Asia/Manila",
+          })
         : "",
       requested_check_out: attendance.check_out_time
-        ? format(new Date(attendance.check_out_time), "HH:mm")
+        ? new Date(attendance.check_out_time).toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+            timeZone: attendance.timezone_used || "Asia/Manila",
+          })
         : "",
       reason: "",
     });
@@ -582,10 +592,7 @@ const AttendancePage = () => {
                           )}
                           <TableCell>
                             {request.attendance_date
-                              ? format(
-                                  new Date(request.attendance_date),
-                                  "MMM dd, yyyy",
-                                )
+                              ? formatDateLocal(request.attendance_date)
                               : "-"}
                           </TableCell>
                           <TableCell>
@@ -593,19 +600,13 @@ const AttendancePage = () => {
                               <div>
                                 In:{" "}
                                 {request.original_check_in
-                                  ? format(
-                                      new Date(request.original_check_in),
-                                      "HH:mm",
-                                    )
+                                  ? formatTimeLocal(request.original_check_in)
                                   : "-"}
                               </div>
                               <div>
                                 Out:{" "}
                                 {request.original_check_out
-                                  ? format(
-                                      new Date(request.original_check_out),
-                                      "HH:mm",
-                                    )
+                                  ? formatTimeLocal(request.original_check_out)
                                   : "-"}
                               </div>
                             </div>
@@ -753,23 +754,12 @@ const AttendancePage = () => {
               <div className="bg-muted p-3 rounded text-sm">
                 <p className="font-medium">
                   Attendance Date:{" "}
-                  {format(new Date(selectedAttendance.date), "MMM dd, yyyy")}
+                  {formatDateLocal(selectedAttendance.date)}
                 </p>
                 <p className="text-muted-foreground">
                   Current:{" "}
-                  {selectedAttendance.check_in_time
-                    ? format(
-                        new Date(selectedAttendance.check_in_time),
-                        "HH:mm",
-                      )
-                    : "-"}{" "}
-                  -{" "}
-                  {selectedAttendance.check_out_time
-                    ? format(
-                        new Date(selectedAttendance.check_out_time),
-                        "HH:mm",
-                      )
-                    : "-"}
+                  {formatTimeLocal(selectedAttendance.check_in_time_utc || selectedAttendance.check_in_time, selectedAttendance.timezone_used)} -{" "}
+                  {formatTimeLocal(selectedAttendance.check_out_time_utc || selectedAttendance.check_out_time, selectedAttendance.timezone_used)}
                 </p>
               </div>
             )}
@@ -862,10 +852,7 @@ const AttendancePage = () => {
                   <p>
                     <strong>Date:</strong>{" "}
                     {actionRequest.attendance_date
-                      ? format(
-                          new Date(actionRequest.attendance_date),
-                          "MMM dd, yyyy",
-                        )
+                      ? formatDateLocal(actionRequest.attendance_date)
                       : "-"}
                   </p>
                   <p>

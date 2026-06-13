@@ -10,7 +10,13 @@ const ALL = [ROLES.ADMIN, ROLES.EMPLOYEE];
 const ADMIN_ONLY = [ROLES.ADMIN];
 
 router.get("/my", authenticate, requirePermission("overtime.view"), controller.getMyOvertime);
-router.post("/", authenticate, requirePermission("overtime.manage"), controller.createOvertime);
+router.post("/", authenticate, async (req, res, next) => {
+  const { hasPermission } = require("../services/permission.service");
+  const canCreate = await hasPermission(req.user, "overtime.create")
+                 || await hasPermission(req.user, "overtime.manage");
+  if (!canCreate) return res.status(403).json({ message: "Forbidden: Insufficient permissions" });
+  next();
+}, controller.createOvertime);
 
 router.get("/approvers", authenticate, requirePermission("overtime.manage"), controller.getApprovers);
 router.post("/approvers", authenticate, requirePermission("overtime.manage"), controller.createApprover);
@@ -18,6 +24,7 @@ router.put("/approvers/:id", authenticate, requirePermission("overtime.manage"),
 router.delete("/approvers/:id", authenticate, requirePermission("overtime.manage"), controller.deleteApprover);
 
 router.get("/employees/list", authenticate, requirePermission("overtime.view"), controller.getEmployeesForDropdown);
+router.get("/employees/search", authenticate, requirePermission("overtime.view"), controller.searchEmployeesPaginated);
 router.get("/is-approver", authenticate, controller.isApprover);
 
 router.get("/:id", authenticate, async (req, res, next) => {

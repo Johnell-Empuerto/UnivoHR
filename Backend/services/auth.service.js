@@ -12,6 +12,7 @@ const userCacheService = require("./userCache.service");
 const redisClient = require("../config/redis");
 const tokenBlacklist = require("./tokenBlacklist.service");
 const permissionService = require("./permission.service");
+const audit = require("./audit.service");
 const { validatePassword } = require("../utils/passwordValidator");
 
 if (!process.env.JWT_SECRET) {
@@ -23,6 +24,11 @@ const ACCESS_TOKEN_EXPIRY_SECONDS = 15 * 60;
 const REFRESH_TOKEN_EXPIRY = "7d";
 const REFRESH_TOKEN_EXPIRY_SECONDS = 7 * 24 * 60 * 60;
 const MAX_ACTIVE_SESSIONS = 5;
+
+const extractReqInfo = (req) => ({
+  ip: req?.ip || req?.headers?.["x-forwarded-for"] || "",
+  userAgent: req?.headers?.["user-agent"] || "",
+});
 
 const addDelay = async () => {
   await new Promise((resolve) => setTimeout(resolve, 500));
@@ -108,16 +114,9 @@ const createSessionAndIssueTokens = async (user, reqInfo) => {
   return { accessToken: access.token, refreshToken: refreshTokenStr, user: userResp };
 };
 
-const login = async ({ username, password }, reqInfo) => {
+const login = async ({ username, password }, req) => {
   const normalizedUsername = normalizeUsername(username);
-
-  const isLocked = await loginAttemptService.isAccountLocked(normalizedUsername);
-  if (isLocked) {
-    const remainingTime = await loginAttemptService.getLockoutTimeRemaining(normalizedUsername);
-    throw new Error(
-      `Account is locked. Please try again in ${Math.ceil(remainingTime / 60)} minutes.`,
-    );
-  }
+  const reqInfo = extractReqInfo(req);
 
   const cachedUser = await redisClient.get(`user:${normalizedUsername}`);
 
@@ -128,15 +127,53 @@ const login = async ({ username, password }, reqInfo) => {
     user = await authModel.findUserByUsername(normalizedUsername);
   }
 
+  if (user) {
+    const isLocked = await loginAttemptService.isAccountLocked(normalizedUsername);
+    if (isLocked) {
+      audit.auditLog(req, {
+        action: "ACCOUNT_LOCKED",
+        table_name: "users",
+        record_id: user.id,
+        new_values: { username },
+        description: `Locked account login attempt: ${username}`,
+      });
+      await addDelay();
+      throw new Error("Invalid username or password");
+    }
+  }
+
   let isMatch = false;
   if (user) {
     isMatch = await bcrypt.compare(password, user.password_hash);
   }
 
   if (!user || !isMatch) {
-    await loginAttemptService.trackFailedAttempt(normalizedUsername);
+    if (user) {
+      const { locked } = await loginAttemptService.trackFailedAttempt(normalizedUsername);
+      if (locked && !cachedUser) {
+        await userCacheService.cacheUserForLogin(normalizedUsername, user);
+      }
+      if (locked) {
+        audit.auditLog(req, {
+          action: "ACCOUNT_LOCKED",
+          table_name: "users",
+          record_id: user.id,
+          new_values: { username },
+          description: `Account locked after failed login: ${username}`,
+        });
+      }
+    }
     await addDelay();
-    throw new Error("Invalid credentials");
+
+    audit.auditLog(req, {
+      action: "LOGIN_FAILED",
+      table_name: "users",
+      record_id: user?.id || null,
+      new_values: { username },
+      description: `Failed login attempt: ${username}`,
+    });
+
+    throw new Error("Invalid username or password");
   }
 
   if (!cachedUser) {
@@ -150,7 +187,15 @@ const login = async ({ username, password }, reqInfo) => {
   if (is2FAEnabled) {
     const userEmail = user.email;
     if (!userEmail) {
-      throw new Error("Invalid credentials");
+      audit.auditLog(req, {
+        action: "LOGIN_PASSWORD_SUCCESS",
+        table_name: "users",
+        record_id: user.id,
+        employee_id: user.employee_id,
+        new_values: { username },
+        description: `Password correct but 2FA blocked (no email): ${username}`,
+      });
+      throw new Error("Invalid username or password");
     }
 
     const otp = otpService.generateOTP();
@@ -160,6 +205,24 @@ const login = async ({ username, password }, reqInfo) => {
       `${user.first_name || ""} ${user.last_name || ""}`.trim() || user.username;
     await otpService.sendOTPEmail(userEmail, otp, userName);
 
+    audit.auditLog(req, {
+      action: "LOGIN_PASSWORD_SUCCESS",
+      table_name: "users",
+      record_id: user.id,
+      employee_id: user.employee_id,
+      new_values: { username },
+      description: `Password verified, OTP sent: ${username}`,
+    });
+
+    audit.auditLog(req, {
+      action: "LOGIN_2FA_REQUIRED",
+      table_name: "users",
+      record_id: user.id,
+      employee_id: user.employee_id,
+      new_values: { username },
+      description: `2FA required: ${username}`,
+    });
+
     return {
       requires_2fa: true,
       user_id: user.id,
@@ -167,6 +230,15 @@ const login = async ({ username, password }, reqInfo) => {
       message: "OTP sent to your email",
     };
   }
+
+  audit.auditLog(req, {
+    action: "LOGIN_SUCCESS",
+    table_name: "users",
+    record_id: user.id,
+    employee_id: user.employee_id,
+    new_values: { username },
+    description: `Successful login: ${username}`,
+  });
 
   const tokens = await createSessionAndIssueTokens(user, reqInfo);
 
@@ -261,7 +333,6 @@ const logout = async (accessJti, accessExp, refreshTokenStr) => {
         await sessionModel.deactivateSession(decoded.jti);
       }
     } catch {
-      // Silently ignore invalid/expired refresh token on logout
     }
   }
 
@@ -379,6 +450,7 @@ const changePassword = async (userId, { currentPassword, newPassword, confirmPas
 };
 
 module.exports = {
+  extractReqInfo,
   login,
   verifyOTPAndLogin,
   resendOTP,

@@ -106,6 +106,8 @@ const NotificationSettings = () => {
       notify_leave_rejected: "Leave Rejected",
       notify_overtime_approved: "Overtime Approved",
       notify_overtime_rejected: "Overtime Rejected",
+      notify_man_hour_approved: "Man Hours Approved",
+      notify_man_hour_rejected: "Man Hours Rejected",
       notify_payroll_marked_paid: "Payroll Marked Paid",
     };
     return (
@@ -131,6 +133,10 @@ const NotificationSettings = () => {
         "Send email notification when an overtime request is approved",
       notify_overtime_rejected:
         "Send email notification when an overtime request is rejected",
+      notify_man_hour_approved:
+        "Send email notification when a man hour report is approved",
+      notify_man_hour_rejected:
+        "Send email notification when a man hour report is rejected",
       notify_payroll_marked_paid:
         "Send email notification when payroll is marked as paid",
     };
@@ -146,6 +152,10 @@ const NotificationSettings = () => {
     if (key.includes("overtime_approved"))
       return <CheckCircle className="h-4 w-4 text-green-500" />;
     if (key.includes("overtime_rejected"))
+      return <XCircle className="h-4 w-4 text-red-500" />;
+    if (key.includes("man_hour_approved"))
+      return <CheckCircle className="h-4 w-4 text-green-500" />;
+    if (key.includes("man_hour_rejected"))
       return <XCircle className="h-4 w-4 text-red-500" />;
     if (key.includes("payroll"))
       return <Mail className="h-4 w-4 text-blue-500" />;
@@ -383,6 +393,53 @@ const NotificationSettings = () => {
                 checked={settings.get("notify_overtime_rejected") || false}
                 onCheckedChange={() => handleToggle("notify_overtime_rejected")}
                 disabled={toggling === "notify_overtime_rejected"}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Man Hours Notifications Section */}
+        <div>
+          <h3 className="text-sm font-medium mb-3 flex items-center gap-2 text-muted-foreground">
+            <Mail className="h-4 w-4" />
+            Man Hours Notifications
+          </h3>
+          <div className="space-y-4 pl-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {getSettingIcon("notify_man_hour_approved")}
+                <div>
+                  <p className="font-medium">
+                    {getSettingLabel("notify_man_hour_approved")}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {getSettingDescription("notify_man_hour_approved")}
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={settings.get("notify_man_hour_approved") || false}
+                onCheckedChange={() => handleToggle("notify_man_hour_approved")}
+                disabled={toggling === "notify_man_hour_approved"}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {getSettingIcon("notify_man_hour_rejected")}
+                <div>
+                  <p className="font-medium">
+                    {getSettingLabel("notify_man_hour_rejected")}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {getSettingDescription("notify_man_hour_rejected")}
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={settings.get("notify_man_hour_rejected") || false}
+                onCheckedChange={() => handleToggle("notify_man_hour_rejected")}
+                disabled={toggling === "notify_man_hour_rejected"}
               />
             </div>
           </div>

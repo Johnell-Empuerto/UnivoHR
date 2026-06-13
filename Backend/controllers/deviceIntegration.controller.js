@@ -4,6 +4,8 @@ const mappingModel = require("../models/deviceLogMapping.model");
 const employeeDeviceUserModel = require("../models/employeeDeviceUser.model");
 const deviceIntegrationService = require("../services/deviceIntegration.service");
 const deviceProcessingQueue = require("../services/deviceProcessing.queue");
+const { generateDeviceKey, hashDeviceKey } = require("../utils/deviceKey");
+const audit = require("../services/audit.service");
 const { v4: uuidv4 } = require("uuid");
 const xlsx = require("xlsx");
 const path = require("path");
@@ -33,6 +35,21 @@ const getDevice = async (req, res) => {
 const createDevice = async (req, res) => {
   try {
     const device = await deviceModel.create(req.body);
+    audit.auditLog(req, {
+      action: "INSERT",
+      table_name: "devices",
+      record_id: device.id,
+      branch_id: device.branch_id,
+      new_values: {
+        name: device.name,
+        type: device.type,
+        serial_number: device.serial_number,
+        location: device.location,
+        status: device.status,
+        branch_id: device.branch_id,
+      },
+      description: `Device created: ${device.name} (${device.serial_number || device.type})`,
+    });
     res.status(201).json(device);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -41,8 +58,32 @@ const createDevice = async (req, res) => {
 
 const updateDevice = async (req, res) => {
   try {
+    const oldDevice = await deviceModel.getById(req.params.id);
     const device = await deviceModel.update(req.params.id, req.body);
     if (!device) return res.status(404).json({ message: "Device not found" });
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "devices",
+      record_id: device.id,
+      branch_id: device.branch_id,
+      old_values: oldDevice ? {
+        name: oldDevice.name,
+        type: oldDevice.type,
+        serial_number: oldDevice.serial_number,
+        location: oldDevice.location,
+        status: oldDevice.status,
+        branch_id: oldDevice.branch_id,
+      } : null,
+      new_values: {
+        name: device.name,
+        type: device.type,
+        serial_number: device.serial_number,
+        location: device.location,
+        status: device.status,
+        branch_id: device.branch_id,
+      },
+      description: `Device updated: ${device.name}`,
+    });
     res.json(device);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -51,8 +92,30 @@ const updateDevice = async (req, res) => {
 
 const deleteDevice = async (req, res) => {
   try {
+    const device = await deviceModel.getById(req.params.id);
+    if (!device) return res.status(404).json({ message: "Device not found" });
+
+    if (device.total_logs > 0) {
+      return res.status(400).json({
+        message: `Cannot delete "${device.name}" — it has ${device.total_logs} raw log(s). Set the device status to "INACTIVE" instead.`,
+      });
+    }
+
     await mappingModel.removeByDevice(req.params.id);
     await deviceModel.remove(req.params.id);
+    audit.auditLog(req, {
+      action: "DELETE",
+      table_name: "devices",
+      record_id: Number(req.params.id),
+      branch_id: device.branch_id,
+      old_values: {
+        name: device.name,
+        type: device.type,
+        serial_number: device.serial_number,
+        location: device.location,
+      },
+      description: `Device deleted: ${device.name}`,
+    });
     res.json({ message: "Device deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -145,6 +208,10 @@ const createEmployeeDeviceUser = async (req, res) => {
 
 const updateEmployeeDeviceUser = async (req, res) => {
   try {
+    const existing = await employeeDeviceUserModel.getByDeviceAndUserId(req.body.device_id, req.body.device_user_id);
+    if (existing && existing.id !== parseInt(req.params.id)) {
+      return res.status(409).json({ message: "This device user ID is already mapped to an employee" });
+    }
     const user = await employeeDeviceUserModel.update(req.params.id, req.body);
     if (!user) return res.status(404).json({ message: "Employee device user not found" });
     res.json(user);
@@ -272,8 +339,38 @@ const processBatch = async (req, res) => {
   }
 };
 
+const rotateDeviceKey = async (req, res) => {
+  try {
+    const deviceId = parseInt(req.params.id);
+    const device = await deviceModel.getById(deviceId);
+    if (!device) return res.status(404).json({ message: "Device not found" });
+
+    const rawKey = generateDeviceKey();
+    const hash = hashDeviceKey(rawKey);
+    await deviceModel.updateApiKeyHash(deviceId, hash);
+
+    audit.auditLog(req, {
+      action: "ROTATE_API_KEY",
+      table_name: "devices",
+      record_id: deviceId,
+      description: `Device API key rotated for device ${device.name} (ID: ${deviceId})`,
+    });
+
+    res.json({
+      message: "Device API key rotated successfully",
+      device_id: deviceId,
+      device_name: device.name,
+      api_key: rawKey,
+      note: "Save this key — it will not be shown again",
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getDevices, getDevice, createDevice, updateDevice, deleteDevice,
+  rotateDeviceKey,
   getMappings, createMapping, updateMapping, deleteMapping,
   getEmployeeDeviceUsers, getEmployeeDeviceUser, createEmployeeDeviceUser, updateEmployeeDeviceUser, deleteEmployeeDeviceUser,
   getRawLogs, getRawLog, importLogs, pushLog,

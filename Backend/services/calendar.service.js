@@ -1,5 +1,16 @@
 const calendarModel = require("../models/calendar.model");
 
+const VALID_DAY_TYPES = ["REGULAR", "REGULAR_HOLIDAY", "SPECIAL_HOLIDAY", "SPECIAL_NON_WORKING"];
+
+const validateCalendarInput = (data, requireDate = true) => {
+  if (requireDate && !data.date) {
+    throw new Error("Date is required");
+  }
+  if (data.day_type && !VALID_DAY_TYPES.includes(data.day_type)) {
+    throw new Error(`Invalid day_type. Must be one of: ${VALID_DAY_TYPES.join(", ")}`);
+  }
+};
+
 // GET ALL (no branch filter)
 const getCalendar = async (start, end) => {
   return await calendarModel.getCalendar(start, end);
@@ -17,6 +28,8 @@ const getById = async (id) => {
 
 // CREATE (with duplicate protection per date+branch)
 const create = async (data) => {
+  validateCalendarInput(data, true);
+
   const existing = await calendarModel.getByDateAndBranch(data.date, data.branch_id);
 
   if (existing) {
@@ -28,6 +41,7 @@ const create = async (data) => {
 
 // UPDATE
 const update = async (id, data) => {
+  validateCalendarInput(data, false);
   return await calendarModel.update(id, data);
 };
 

@@ -146,6 +146,15 @@ export const getEmployeeRotationAssignments = async (
   return response.data;
 };
 
+export const updateEmployeeRotationAssignment = async (
+  employeeId: number,
+  id: number,
+  data: { rotation_group_id?: number; effective_date?: string }
+): Promise<EmployeeRotationAssignment> => {
+  const response = await api.put(`/rotation/employees/${employeeId}/assignments/${id}`, data);
+  return response.data;
+};
+
 // === PATTERNS ===
 
 export const getRotationPatterns = async (): Promise<RotationPattern[]> => {
@@ -189,6 +198,14 @@ export const createRotationAssignment = async (
   data: Partial<GroupAssignment>
 ): Promise<GroupAssignment> => {
   const response = await api.post("/rotation/assignments", data);
+  return response.data;
+};
+
+export const updateRotationAssignment = async (
+  id: number,
+  data: Partial<GroupAssignment>
+): Promise<GroupAssignment> => {
+  const response = await api.put(`/rotation/assignments/${id}`, data);
   return response.data;
 };
 

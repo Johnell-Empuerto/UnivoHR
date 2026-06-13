@@ -42,6 +42,7 @@ import {
   testSmtpConnection,
   type SmtpSettings,
   type CreateSmtpData,
+  type UpdateSmtpData,
 } from "@/services/stmpService";
 
 const SMTPSettings = () => {
@@ -88,8 +89,11 @@ const SMTPSettings = () => {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "number" ? Number(value) : value,
+    }));
   };
 
   // Handle switch change
@@ -164,9 +168,9 @@ const SMTPSettings = () => {
     try {
       if (editingItem) {
         // Update existing
-        const updateData: any = {
+        const updateData: UpdateSmtpData = {
           host: formData.host,
-          port: formData.port,
+          port: Number(formData.port),
           encryption: formData.encryption,
           username: formData.username,
           from_email: formData.from_email,

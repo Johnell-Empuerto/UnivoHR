@@ -70,7 +70,7 @@ const getMySummary = async (employeeId) => {
 const getTodayStatus = async (employeeId) => {
   const result = await pool.query(
     `
-    SELECT status, check_in_time, check_out_time
+    SELECT status, check_in_time, check_out_time, timezone_used, check_in_time_utc, check_out_time_utc, branch_id, device_id
     FROM attendance
     WHERE employee_id = $1
     AND date = CURRENT_DATE
@@ -278,8 +278,8 @@ const getPayrollSummary = async (allowedBranchIds = null, startDate = null, endD
 
   const result = await pool.query(`
     SELECT
-      COALESCE(SUM(p.gross_salary), 0) AS total_gross,
-      COALESCE(SUM(p.total_deductions), 0) AS total_deductions,
+      COALESCE(SUM(p.basic_salary + COALESCE(p.overtime_pay, 0) + COALESCE(p.night_differential_pay, 0)), 0) AS total_gross,
+      COALESCE(SUM(p.deductions), 0) AS total_deductions,
       COALESCE(SUM(p.net_salary), 0) AS total_net,
       COALESCE(SUM(p.overtime_pay), 0) AS total_overtime,
       COUNT(*) AS payroll_count,
@@ -302,8 +302,8 @@ const getPayrollTrend = async (allowedBranchIds = null, startDate = null, endDat
   const result = await pool.query(`
     SELECT
       TO_CHAR(p.cutoff_start, 'YYYY-MM') AS month,
-      COALESCE(SUM(p.gross_salary), 0) AS gross,
-      COALESCE(SUM(p.total_deductions), 0) AS deductions,
+      COALESCE(SUM(p.basic_salary + COALESCE(p.overtime_pay, 0) + COALESCE(p.night_differential_pay, 0)), 0) AS gross,
+      COALESCE(SUM(p.deductions), 0) AS deductions,
       COALESCE(SUM(p.net_salary), 0) AS net,
       COALESCE(SUM(p.overtime_pay), 0) AS overtime
     FROM payroll p

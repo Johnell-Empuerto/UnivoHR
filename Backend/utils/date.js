@@ -1,7 +1,15 @@
 const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
+const timezone = require("dayjs/plugin/timezone");
 
-// Convert timestamp to local date (YYYY-MM-DD)
-const getLocalDate = (timestamp) => {
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+// Convert timestamp to local date (YYYY-MM-DD) with optional timezone
+const getLocalDate = (timestamp, timeZone = null) => {
+  if (timeZone) {
+    return dayjs(timestamp).tz(timeZone).format("YYYY-MM-DD");
+  }
   return dayjs(timestamp).format("YYYY-MM-DD");
 };
 

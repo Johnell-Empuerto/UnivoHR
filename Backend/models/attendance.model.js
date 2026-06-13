@@ -35,8 +35,8 @@ const validateAndNormalizeHalfDayType = (dayFraction, halfDayType) => {
 };
 
 // Get today's record
-const getTodayRecord = async (employeeId, timestamp) => {
-  const localDate = getLocalDate(timestamp);
+const getTodayRecord = async (employeeId, timestamp, timeZone = null) => {
+  const localDate = getLocalDate(timestamp, timeZone);
 
   const query = `
     SELECT * FROM attendance
@@ -67,12 +67,30 @@ const getOpenAttendanceRecord = async (employeeId) => {
 const checkIn = async (employeeId, timestamp, status, shiftId = null, shiftDate = null, source = 'BIOMETRIC', branchId = null, timezoneUsed = null, deviceId = null) => {
   console.log("CHECK-IN:", { employeeId, timestamp, status, shiftId, shiftDate, source, branchId, timezoneUsed, deviceId });
 
-  const localDate = getLocalDate(timestamp);
+  const localDate = getLocalDate(timestamp, timezoneUsed);
 
   const columns = ['employee_id', 'check_in_time', 'date', 'status', 'shift_id', 'shift_date', 'source'];
   const values = [employeeId, timestamp, localDate, status, shiftId, shiftDate || localDate, source];
   const placeholders = ['$1', '$2', '$3', '$4', '$5', '$6', '$7'];
   let idx = 8;
+
+  // Compute UTC timestamp using PostgreSQL AT TIME ZONE (single, not double)
+  // timestamp without tz AT TIME ZONE timezone → timestamptz
+  let checkInUtc = null;
+  if (timestamp) {
+    const tz = timezoneUsed || 'Asia/Manila';
+    const utcRes = await pool.query(
+      `SELECT $1::timestamp AT TIME ZONE $2::varchar AS utc`,
+      [timestamp, tz]
+    );
+    checkInUtc = utcRes.rows[0].utc;
+  }
+
+  if (checkInUtc != null) {
+    columns.push('check_in_time_utc');
+    placeholders.push(`$${idx++}`);
+    values.push(checkInUtc);
+  }
 
   if (branchId != null) {
     columns.push('branch_id');
@@ -128,9 +146,26 @@ const checkOut = async (attendanceId, timestamp, branchId = null, timezoneUsed =
     work_fraction = 1;
   }
 
+  // Compute UTC timestamp using PostgreSQL AT TIME ZONE (single, not double)
+  let checkOutUtc = null;
+  if (timestamp) {
+    const tz = timezoneUsed || 'Asia/Manila';
+    const utcRes = await pool.query(
+      `SELECT $1::timestamp AT TIME ZONE $2::varchar AS utc`,
+      [timestamp, tz]
+    );
+    checkOutUtc = utcRes.rows[0].utc;
+  }
+
   const setClauses = ['check_out_time = $1', 'status = $2', 'work_fraction = $3'];
   const values = [timestamp, status, work_fraction, attendanceId];
   let paramIdx = 4;
+
+  if (checkOutUtc != null) {
+    paramIdx++;
+    setClauses.push(`check_out_time_utc = $${paramIdx}`);
+    values.push(checkOutUtc);
+  }
 
   if (branchId != null) {
     paramIdx++;
@@ -187,6 +222,12 @@ const getAttendance = async (
       a.employee_id,
       a.check_in_time,
       a.check_out_time,
+      a.check_in_time_utc,
+      a.check_out_time_utc,
+      a.timezone_used,
+      a.branch_id AS attendance_branch_id,
+      a.device_id,
+      a.source,
       a.date,
       a.status,
       a.work_fraction,
@@ -260,6 +301,12 @@ const getByEmployee = async (employeeId, date = "") => {
       a.employee_id,
       a.check_in_time,
       a.check_out_time,
+      a.check_in_time_utc,
+      a.check_out_time_utc,
+      a.timezone_used,
+      a.branch_id AS attendance_branch_id,
+      a.device_id,
+      a.source,
       a.date,
       a.status,
       a.work_fraction,
@@ -724,14 +771,14 @@ const hasPendingTimeRequest = async (employeeId, attendanceId) => {
 // APPLY APPROVED TIME MODIFICATION TO ATTENDANCE
 const applyTimeModification = async (attendanceId, checkIn, checkOut) => {
   const attendanceResult = await pool.query(
-    "SELECT date FROM attendance WHERE id = $1",
+    "SELECT date::text, timezone_used, branch_id FROM attendance WHERE id = $1",
     [attendanceId],
   );
 
   const attendance = attendanceResult.rows[0];
   if (!attendance) throw new Error("Attendance not found");
 
-  const dateOnly = attendance.date;
+  const dateStr = attendance.date;
 
   const toLocal = (time) => {
     if (!time) return null;
@@ -746,13 +793,46 @@ const applyTimeModification = async (attendanceId, checkIn, checkOut) => {
       cleanTime = `${time}:00`;
     }
 
-    return `${dateOnly}T${cleanTime}`;
+    return `${dateStr}T${cleanTime}`;
   };
 
   const fullCheckIn = toLocal(checkIn);
   const fullCheckOut = toLocal(checkOut);
 
   console.log("LOCAL VALUES:", { fullCheckIn, fullCheckOut });
+
+  // Resolve timezone for UTC conversion
+  const tz =
+    attendance.timezone_used ||
+    (attendance.branch_id
+      ? (await pool.query(
+          "SELECT timezone FROM branches WHERE id = $1",
+          [attendance.branch_id],
+        )).rows[0]?.timezone
+      : null) ||
+    (await pool.query(
+      "SELECT value FROM system_settings WHERE key = 'company_timezone'",
+    )).rows[0]?.value ||
+    'Asia/Manila';
+
+  // Compute UTC timestamps using PostgreSQL AT TIME ZONE
+  let checkInUtc = null;
+  if (fullCheckIn) {
+    const utcRes = await pool.query(
+      `SELECT $1::timestamp AT TIME ZONE $2::varchar AS utc`,
+      [fullCheckIn, tz],
+    );
+    checkInUtc = utcRes.rows[0].utc;
+  }
+
+  let checkOutUtc = null;
+  if (fullCheckOut) {
+    const utcRes = await pool.query(
+      `SELECT $1::timestamp AT TIME ZONE $2::varchar AS utc`,
+      [fullCheckOut, tz],
+    );
+    checkOutUtc = utcRes.rows[0].utc;
+  }
 
   // GET RULES
   const rulesResult = await pool.query(
@@ -765,7 +845,7 @@ const applyTimeModification = async (attendanceId, checkIn, checkOut) => {
 
   if (rules && fullCheckIn) {
     const checkInDate = new Date(fullCheckIn);
-    const shiftStart = new Date(`${dateOnly}T08:00:00`);
+    const shiftStart = new Date(`${dateStr}T08:00:00`);
 
     const lateMinutes = (checkInDate - shiftStart) / 1000 / 60;
 
@@ -774,22 +854,37 @@ const applyTimeModification = async (attendanceId, checkIn, checkOut) => {
     }
   }
 
+  const setClauses = ['check_in_time = $2', 'check_out_time = $3', 'status = $4'];
+  const updateValues = [attendanceId, fullCheckIn, fullCheckOut, status];
+  let paramIdx = 5;
+
+  // Mark as manually modified
+  setClauses.push(`source = $${paramIdx++}`);
+  updateValues.push('MANUAL');
+
+  // Persist the resolved timezone
+  if (tz) {
+    setClauses.push(`timezone_used = $${paramIdx++}`);
+    updateValues.push(tz);
+  }
+
+  if (checkInUtc != null) {
+    setClauses.push(`check_in_time_utc = $${paramIdx++}`);
+    updateValues.push(checkInUtc);
+  }
+  if (checkOutUtc != null) {
+    setClauses.push(`check_out_time_utc = $${paramIdx++}`);
+    updateValues.push(checkOutUtc);
+  }
+
   const query = `
     UPDATE attendance
-    SET
-      check_in_time = $2,
-      check_out_time = $3,
-      status = $4
+    SET ${setClauses.join(', ')}
     WHERE id = $1
     RETURNING *;
   `;
 
-  const result = await pool.query(query, [
-    attendanceId,
-    fullCheckIn,
-    fullCheckOut,
-    status,
-  ]);
+  const result = await pool.query(query, updateValues);
 
   return result.rows[0];
 };

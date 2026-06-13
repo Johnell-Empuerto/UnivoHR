@@ -24,6 +24,15 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   FileText,
   Plus,
@@ -64,6 +73,15 @@ const CATEGORIES = [
   "privacy",
 ];
 
+const categoryColors: Record<string, string> = {
+  attendance: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  leave: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  overtime: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+  security: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+  payroll: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+  privacy: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400",
+};
+
 const emptyForm = {
   title: "",
   category: "",
@@ -85,7 +103,7 @@ const HRPolicies = () => {
   const [form, setForm] = useState({ ...emptyForm });
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("_all");
   const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
@@ -210,7 +228,7 @@ const HRPolicies = () => {
       p.title.toLowerCase().includes(search.toLowerCase()) ||
       p.content.toLowerCase().includes(search.toLowerCase());
     const matchesCategory =
-      !categoryFilter || p.category === categoryFilter;
+      categoryFilter === "_all" || p.category === categoryFilter;
     const matchesStatus =
       statusFilter === "all" ||
       (statusFilter === "active" && p.is_active) ||
@@ -238,25 +256,29 @@ const HRPolicies = () => {
         <div className="flex flex-wrap items-center gap-3 mb-4">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <input
+            <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search policies..."
-              className="w-full border rounded pl-8 pr-3 py-2 bg-background text-sm"
+              className="pl-8"
             />
           </div>
-          <select
+          <Select
             value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="border rounded px-3 py-2 bg-background text-sm"
+            onValueChange={setCategoryFilter}
           >
-            <option value="">All Categories</option>
-            {CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat.charAt(0).toUpperCase() + cat.slice(1)}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all">All Categories</SelectItem>
+              {CATEGORIES.map((cat) => (
+                <SelectItem key={cat} value={cat}>
+                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {loading ? (
@@ -370,34 +392,42 @@ const HRPolicies = () => {
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <input
+              <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search policies..."
-                className="w-full border rounded pl-8 pr-3 py-2 bg-background text-sm"
+                className="pl-8"
               />
             </div>
-            <select
+            <Select
               value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="border rounded px-3 py-2 bg-background text-sm"
+              onValueChange={setCategoryFilter}
             >
-              <option value="">All Categories</option>
-              {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                </option>
-              ))}
-            </select>
-            <select
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">All Categories</SelectItem>
+                {CATEGORIES.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="border rounded px-3 py-2 bg-background text-sm"
+              onValueChange={setStatusFilter}
             >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {loading ? (
@@ -423,8 +453,15 @@ const HRPolicies = () => {
                         {policy.title}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">
-                          {policy.category}
+                        <Badge
+                          variant="outline"
+                          className={
+                            categoryColors[policy.category] ||
+                            "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
+                          }
+                        >
+                          {policy.category.charAt(0).toUpperCase() +
+                            policy.category.slice(1)}
                         </Badge>
                       </TableCell>
                       <TableCell className="max-w-xs truncate">
@@ -494,35 +531,38 @@ const HRPolicies = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">
+              <div className="space-y-2">
+                <Label>
                   Title <span className="text-red-500">*</span>
-                </p>
-                <input
+                </Label>
+                <Input
                   name="title"
                   value={form.title}
                   onChange={handleTextChange}
-                  className="w-full border rounded px-2 py-1 bg-background"
                   placeholder="e.g., Attendance Policy"
                 />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">
+              <div className="space-y-2">
+                <Label>
                   Category <span className="text-red-500">*</span>
-                </p>
-                <select
-                  name="category"
+                </Label>
+                <Select
                   value={form.category}
-                  onChange={handleTextChange}
-                  className="w-full border rounded px-2 py-1 bg-background"
+                  onValueChange={(val) =>
+                    setForm({ ...form, category: val })
+                  }
                 >
-                  <option value="">Select category</option>
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div>

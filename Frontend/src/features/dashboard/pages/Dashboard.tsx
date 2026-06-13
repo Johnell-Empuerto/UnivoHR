@@ -13,7 +13,7 @@ import {
   getEmploymentStats,
   getDueForRegularization,
 } from "@/services/employeeService";
-import { formatDateShort } from "@/utils/formatDate";
+import { formatDateShort, formatTimeLocal, getTimezoneAbbr } from "@/utils/formatDate";
 import StatsCard from "../components/StatsCard";
 import AttendanceChart from "../components/AttendanceChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -444,28 +444,26 @@ const EmployeeDashboardContent = React.memo(
                       <p className="text-muted-foreground">Check-in</p>
                       <p className="font-medium">
                         {today.check_in_time
-                          ? new Date(today.check_in_time).toLocaleTimeString(
-                              [],
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              },
-                            )
+                          ? formatTimeLocal(today.check_in_time_utc || today.check_in_time, today.timezone_used)
                           : "--:--"}
+                        {today.timezone_used && today.check_in_time && (
+                          <Badge variant="outline" className="text-[10px] h-4 px-1 ml-1 leading-none">
+                            {getTimezoneAbbr(today.timezone_used)}
+                          </Badge>
+                        )}
                       </p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-muted-foreground">Check-out</p>
                       <p className="font-medium">
                         {today.check_out_time
-                          ? new Date(today.check_out_time).toLocaleTimeString(
-                              [],
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              },
-                            )
+                          ? formatTimeLocal(today.check_out_time_utc || today.check_out_time, today.timezone_used)
                           : "--:--"}
+                        {today.timezone_used && today.check_out_time && (
+                          <Badge variant="outline" className="text-[10px] h-4 px-1 ml-1 leading-none">
+                            {getTimezoneAbbr(today.timezone_used)}
+                          </Badge>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -932,9 +930,9 @@ const Dashboard = () => {
 
       if (isAdminLevel) {
         const [summaryData, analyticsData, anomalyData, empStats, dueReg] = await Promise.all([
-          getDashboardSummary(),
-          getAdminAnalytics(),
-          getAnomalySummary(),
+          getDashboardSummary().catch(() => null),
+          getAdminAnalytics().catch(() => null),
+          getAnomalySummary().catch(() => null),
           getEmploymentStats().catch(() => null),
           getDueForRegularization().catch(() => []),
         ]);
@@ -946,18 +944,18 @@ const Dashboard = () => {
       } else {
         const [analyticsData, todayData, creditsData, leavesData, setting] =
           await Promise.all([
-            getMyAnalytics(),
-            getTodayStatus(),
-            leaveService.getLeaveCredits(),
-            leaveService.getMyLeaves(),
+            getMyAnalytics().catch(() => null),
+            getTodayStatus().catch(() => null),
+            leaveService.getLeaveCredits().catch(() => null),
+            leaveService.getMyLeaves().catch(() => null),
             getSetting("enable_web_clock_in_out").catch(() => ({ value: "true" })),
           ]);
 
-        setSummary(analyticsData.summary);
-        setEmployeeTrends(analyticsData.trends);
+        setSummary(analyticsData?.summary || null);
+        setEmployeeTrends(analyticsData?.trends || null);
         setToday(todayData);
         setLeaveCredits(creditsData);
-        setRecentLeaves(leavesData.data.slice(0, 3));
+        setRecentLeaves(leavesData?.data?.slice(0, 3) || []);
         setWebClockEnabled(setting?.value === "true");
       }
     } catch (error) {

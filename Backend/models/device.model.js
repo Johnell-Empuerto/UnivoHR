@@ -84,4 +84,22 @@ const updateLastConnected = async (id) => {
   await pool.query("UPDATE devices SET last_connected_at = NOW() WHERE id = $1", [id]);
 };
 
-module.exports = { getAll, getById, create, update, remove, updateLastConnected };
+const updateApiKeyHash = async (id, hash) => {
+  const { rows } = await pool.query(
+    `UPDATE devices SET api_key_hash = $1, api_key_created_at = NOW(), updated_at = NOW()
+     WHERE id = $2 RETURNING id, name, api_key_created_at`,
+    [hash, id]
+  );
+  return rows[0];
+};
+
+const getByDeviceId = async (id) => {
+  const { rows } = await pool.query(
+    `SELECT id, name, status, api_key_hash
+     FROM devices WHERE id = $1`,
+    [id]
+  );
+  return rows[0];
+};
+
+module.exports = { getAll, getById, create, update, remove, updateLastConnected, updateApiKeyHash, getByDeviceId };

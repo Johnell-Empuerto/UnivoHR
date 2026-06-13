@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
+import { formatDateLocal, formatTimeLocal, getTimezoneAbbr } from "@/utils/formatDate";
+import { Badge } from "@/components/ui/badge";
 import {
   Drawer,
   DrawerContent,
@@ -146,11 +148,23 @@ const DrilldownDrawer = ({ open, onClose, module, title, defaultParams }: Drilld
     if (v === null || v === undefined) return "—";
     if (key === "net_salary") return `₱${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
     if (key === "hours") return `${Number(v).toFixed(1)}h`;
-    if ((key === "check_in_time" || key === "check_out_time" || key === "detected_at") && v) {
+    if (key === "check_in_time" || key === "check_out_time") {
+      return (
+        <div className="flex items-center gap-1">
+          <span>{formatTimeLocal(v, row.timezone_used)}</span>
+          {row.timezone_used && (
+            <Badge variant="outline" className="text-[10px] h-4 px-1 leading-none">
+              {getTimezoneAbbr(row.timezone_used)}
+            </Badge>
+          )}
+        </div>
+      );
+    }
+    if (key === "detected_at") {
       return new Date(v).toLocaleString();
     }
     if ((key === "date" || key === "from_date" || key === "to_date" || key === "cutoff_start" || key === "cutoff_end") && v) {
-      return new Date(v).toLocaleDateString();
+      return formatDateLocal(v);
     }
     return String(v);
   };

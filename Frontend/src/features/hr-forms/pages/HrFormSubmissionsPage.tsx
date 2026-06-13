@@ -5,13 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Eye, ChevronLeft, ChevronRight, Loader2, FileText } from "lucide-react";
+import { Input } from "@/components/ui/Input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Eye, ChevronLeft, ChevronRight, FileText } from "lucide-react";
+import { toast } from "sonner";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
 import { formatDateShort } from "@/utils/formatDate";
 
 const statusBadge = (s: string) => {
-  const map: Record<string, string> = { Submitted: "bg-blue-100 text-blue-800", Reviewed: "bg-green-100 text-green-800" };
+  const map: Record<string, string> = {
+    Submitted: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    Reviewed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  };
   return <Badge className={map[s] || ""}>{s}</Badge>;
 };
 
@@ -21,18 +27,14 @@ const HrFormSubmissionsPage = () => {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState("10");
   const [search, setSearch] = useState("");
 
-  const totalPages = Math.ceil(total / pageSize);
-  const start = (page - 1) * pageSize + 1;
-  const end = Math.min(page * pageSize, total);
+  const totalPages = Math.ceil(total / Number(pageSize));
+  const start = (page - 1) * Number(pageSize) + 1;
+  const end = Math.min(page * Number(pageSize), total);
 
   const goToPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
-  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setPageSize(Number(e.target.value));
-    setPage(1);
-  };
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisible = 5;
@@ -57,8 +59,8 @@ const HrFormSubmissionsPage = () => {
   useEffect(() => { fetchSubmissions(); }, [page, pageSize, search]);
 
   const fetchSubmissions = async () => {
-      try { setLoading(true); const r = await getHrSubmissions(page, pageSize, search); setSubmissions(r.data); setTotal(r.pagination.total); }
-    catch { setSubmissions([]); }
+    try { setLoading(true); const r = await getHrSubmissions(page, Number(pageSize), search); setSubmissions(r.data); setTotal(r.pagination.total); }
+    catch { toast.error("Failed to load submissions"); setSubmissions([]); }
     finally { setLoading(false); }
   };
 
@@ -71,9 +73,9 @@ const HrFormSubmissionsPage = () => {
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
-            <input placeholder="Search employee or form..." value={search}
+            <Input placeholder="Search employee or form..." value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="border rounded px-3 py-1.5 text-sm bg-background w-64" />
+              className="w-64" />
           </div>
         </CardHeader>
         <CardContent>
@@ -85,11 +87,13 @@ const HrFormSubmissionsPage = () => {
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-muted">
+                    <TableRow className="bg-muted">
                     <TableHead>Employee</TableHead>
+                    <TableHead>Department</TableHead>
                     <TableHead>Form</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Submitted</TableHead>
+                    <TableHead>Reviewed</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -97,9 +101,11 @@ const HrFormSubmissionsPage = () => {
                   {submissions.map((s: any) => (
                     <TableRow key={s.id}>
                       <TableCell className="font-medium">{s.employee_name}<p className="text-xs text-muted-foreground">{s.employee_code}</p></TableCell>
+                      <TableCell>{s.department || "-"}</TableCell>
                       <TableCell>{s.form_title}</TableCell>
                       <TableCell>{statusBadge(s.status)}</TableCell>
                       <TableCell>{formatDateShort(s.submitted_at)}</TableCell>
+                      <TableCell>{s.reviewed_at ? formatDateShort(s.reviewed_at) : "-"}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon-sm" title="View" onClick={() => navigate(`/hr-forms/submissions/${s.id}`)}>
                           <Eye className="h-4 w-4" />
@@ -115,13 +121,15 @@ const HrFormSubmissionsPage = () => {
             <div className="p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Rows per page:</span>
-                <select value={pageSize} onChange={handleRowsPerPageChange}
-                  className="border rounded px-2 py-1 text-sm bg-background">
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                </select>
+                <Select value={pageSize} onValueChange={(v) => { setPageSize(v); setPage(1); }}>
+                  <SelectTrigger className="w-16 h-8"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="text-sm text-muted-foreground">
                 Showing {start} to {end} of {total} entries

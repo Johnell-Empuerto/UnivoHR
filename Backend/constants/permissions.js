@@ -49,6 +49,7 @@ const ALL_PERMISSIONS = [
   'recruitment.applicants.delete',
   'recruitment.interviews.manage',
   'recruitment.approvals.manage',
+  'recruitment.workflows.manage',
   'recruitment.convert_employee',
 
   'performance.view',
@@ -92,6 +93,7 @@ const ALL_PERMISSIONS = [
 
   'audit_logs.view',
   'anomalies.view',
+  'drilldown.view',
   'analytics.view',
   'forecasting.view',
 
@@ -120,7 +122,7 @@ const PERMISSION_GROUPS = {
   'Man Hours': ['manhours.view', 'manhours.view_own', 'manhours.manage', 'manhours.approve'],
   Payroll: ['payroll.view', 'payroll.generate', 'payroll.mark_paid', 'payroll.settings', 'payroll.salary.manage', 'payroll.deductions.manage'],
   'Final Pay': ['finalpay.view', 'finalpay.manage'],
-  Recruitment: ['recruitment.view', 'recruitment.jobs.manage', 'recruitment.applicants.manage', 'recruitment.applicants.delete', 'recruitment.interviews.manage', 'recruitment.approvals.manage', 'recruitment.convert_employee'],
+  Recruitment: ['recruitment.view', 'recruitment.jobs.manage', 'recruitment.applicants.manage', 'recruitment.applicants.delete', 'recruitment.interviews.manage', 'recruitment.approvals.manage', 'recruitment.workflows.manage', 'recruitment.convert_employee'],
   Performance: ['performance.view', 'my_performance.view', 'performance.templates.manage', 'performance.evaluations.manage'],
   Forms: ['forms.view', 'forms.view_own', 'forms.builder.manage', 'forms.assignments.manage', 'forms.submissions.view'],
   Reports: ['reports.view', 'reports.employee', 'reports.attendance', 'reports.leave', 'reports.payroll', 'reports.benefits', 'reports.performance'],
@@ -130,6 +132,7 @@ const PERMISSION_GROUPS = {
   Devices: ['devices.view', 'devices.manage', 'device_logs.view', 'device_logs.manage'],
   'Audit Logs': ['audit_logs.view'],
   Anomalies: ['anomalies.view'],
+  Drilldown: ['drilldown.view'],
   Analytics: ['analytics.view'],
   Forecasting: ['forecasting.view'],
   Calendar: ['calendar.view', 'calendar.manage'],

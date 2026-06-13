@@ -54,9 +54,9 @@ const update = async (id, data) => {
   const approval = await applicantApprovalModel.update(id, payload);
 
   if (data.decision === "APPROVED") {
-    await applicantModel.updateStatus(approval.applicant_id, "APPROVED");
+    await applicantModel.updateStatus(approval.applicant_id, "Completed");
   } else if (data.decision === "REJECTED") {
-    await applicantModel.updateStatus(approval.applicant_id, "REJECTED");
+    await applicantModel.updateStatus(approval.applicant_id, "Fail");
   }
 
   if (data.decision) {

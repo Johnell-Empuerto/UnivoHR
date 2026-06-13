@@ -26,6 +26,8 @@ type OvertimeRequest = {
   created_at: string;
   approved_by_name?: string | null;
   approved_at?: string | null;
+  rejected_by_name?: string | null;
+  rejected_at?: string | null;
   rejected_reason?: string | null;
 };
 
@@ -50,7 +52,7 @@ const getStatusBadge = (status: OvertimeStatus) => {
       return (
         <Badge
           variant="outline"
-          className="bg-yellow-50 text-yellow-700 border-yellow-200"
+          className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800"
         >
           <Clock className="h-3 w-3 mr-1" />
           PENDING
@@ -60,7 +62,7 @@ const getStatusBadge = (status: OvertimeStatus) => {
       return (
         <Badge
           variant="outline"
-          className="bg-green-50 text-green-700 border-green-200"
+          className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800"
         >
           <CheckCircle className="h-3 w-3 mr-1" />
           APPROVED
@@ -70,7 +72,7 @@ const getStatusBadge = (status: OvertimeStatus) => {
       return (
         <Badge
           variant="outline"
-          className="bg-red-50 text-red-700 border-red-200"
+          className="bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
         >
           <XCircle className="h-3 w-3 mr-1" />
           REJECTED
@@ -153,6 +155,18 @@ const OvertimeDrawer = ({ open, onClose, request }: Props) => {
               )}
               {request.status === "REJECTED" && (
                 <>
+                  <Info
+                    label="Rejected By"
+                    value={request.rejected_by_name || "System"}
+                  />
+                  <Info
+                    label="Rejected At"
+                    value={
+                      request.rejected_at
+                        ? formatDateTime(request.rejected_at)
+                        : "-"
+                    }
+                  />
                   <Info
                     label="Rejection Reason"
                     value={request.rejected_reason || "No reason provided"}

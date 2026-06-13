@@ -1,5 +1,6 @@
 const service = require("../services/kpiEvaluation.service");
 const audit = require("../services/audit.service");
+const { hasPermission } = require("../services/permission.service");
 
 const assign = async (req, res) => {
   try {
@@ -21,6 +22,19 @@ const assign = async (req, res) => {
 const getById = async (req, res) => {
   try {
     const result = await service.getById(req.params.id);
+
+    const currEmpId = Number(req.user?.employee_id);
+    const isAdmin = req.user?.role === "ADMIN";
+    const isEmployee = Number(result.employee_id) === currEmpId;
+    const isEvaluator = Number(result.evaluator_id) === currEmpId;
+
+    if (!isAdmin && !isEmployee && !isEvaluator) {
+      const canManage = await hasPermission(req.user, "performance.evaluations.manage");
+      if (!canManage) {
+        return res.status(403).json({ message: "Access denied. You do not have permission to view this evaluation." });
+      }
+    }
+
     res.json(result);
   } catch (error) {
     res.status(404).json({ message: error.message });
@@ -31,8 +45,8 @@ const getMyEvaluations = async (req, res) => {
   try {
     const employeeId = req.user?.employee_id;
     if (!employeeId) return res.status(400).json({ message: "Employee ID not found" });
-    const { status = "" } = req.query;
-    const result = await service.getMyEvaluations(employeeId, status);
+    const { status = "", page = 1, limit = 10 } = req.query;
+    const result = await service.getMyEvaluations(employeeId, status, Number(page), Number(limit));
     res.json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -128,10 +142,9 @@ const hrReject = async (req, res) => {
 
 const getHistory = async (req, res) => {
   try {
-    const { employee_id, page = 1, limit = 10 } = req.query;
+    const { employee_id, page = 1, limit = 10, search = "" } = req.query;
     const eid = employee_id || req.user?.employee_id;
-    if (!eid) return res.status(400).json({ message: "Employee ID not found" });
-    const result = await service.getHistory(eid, Number(page), Number(limit));
+    const result = await service.getHistory(eid, Number(page), Number(limit), search);
     res.json(result);
   } catch (error) {
     res.status(500).json({ message: error.message });

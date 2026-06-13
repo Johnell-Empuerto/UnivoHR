@@ -753,8 +753,9 @@ const RotationGroups = () => {
             <AlertDialogTitle>Delete Rotation Group</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete "{deleteTarget?.name}"? This
-              action cannot be undone. Employees in this group will no longer
-              have rotation-based shift assignments.
+              action cannot be undone. If the group has active employees or
+              pattern assignments, deletion will be blocked — set it to
+              inactive instead.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

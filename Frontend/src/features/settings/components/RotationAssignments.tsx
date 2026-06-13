@@ -39,10 +39,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { GitBranch, Plus, Trash2 } from "lucide-react";
+import { GitBranch, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   getRotationAssignments,
   createRotationAssignment,
+  updateRotationAssignment,
   deleteRotationAssignment,
   getRotationGroups,
   getRotationPatterns,
@@ -65,6 +66,7 @@ const RotationAssignments = () => {
   const [deleteTarget, setDeleteTarget] = useState<GroupAssignment | null>(
     null,
   );
+  const [editTarget, setEditTarget] = useState<GroupAssignment | null>(null);
 
   const [formGroupId, setFormGroupId] = useState("");
   const [formPatternId, setFormPatternId] = useState("");
@@ -72,6 +74,7 @@ const RotationAssignments = () => {
     new Date().toISOString().split("T")[0],
   );
   const [formEndDate, setFormEndDate] = useState("");
+  const [dateError, setDateError] = useState("");
 
   const fetchAll = useCallback(async () => {
     try {
@@ -96,11 +99,32 @@ const RotationAssignments = () => {
   }, [fetchAll]);
 
   const openCreate = () => {
+    setEditTarget(null);
     setFormGroupId("");
     setFormPatternId("");
     setFormEffectiveDate(new Date().toISOString().split("T")[0]);
     setFormEndDate("");
+    setDateError("");
     setDialogOpen(true);
+  };
+
+  const openEdit = (a: GroupAssignment) => {
+    setEditTarget(a);
+    setFormGroupId(a.group_id.toString());
+    setFormPatternId(a.pattern_id.toString());
+    setFormEffectiveDate(a.effective_date);
+    setFormEndDate(a.end_date || "");
+    setDateError("");
+    setDialogOpen(true);
+  };
+
+  const validateDates = (): boolean => {
+    if (formEndDate && formEndDate <= formEffectiveDate) {
+      setDateError("End date must be after the start date");
+      return false;
+    }
+    setDateError("");
+    return true;
   };
 
   const handleCreate = async () => {
@@ -108,15 +132,25 @@ const RotationAssignments = () => {
       toast.error("Please select a group, pattern, and start date");
       return;
     }
+    if (!validateDates()) return;
     try {
       setSaving(true);
-      await createRotationAssignment({
-        group_id: Number(formGroupId),
-        pattern_id: Number(formPatternId),
-        effective_date: formEffectiveDate,
-        end_date: formEndDate || null,
-      } as any);
-      toast.success("Pattern assigned to group");
+      if (editTarget) {
+        await updateRotationAssignment(editTarget.id, {
+          pattern_id: Number(formPatternId),
+          effective_date: formEffectiveDate,
+          end_date: formEndDate || null,
+        } as any);
+        toast.success("Assignment updated");
+      } else {
+        await createRotationAssignment({
+          group_id: Number(formGroupId),
+          pattern_id: Number(formPatternId),
+          effective_date: formEffectiveDate,
+          end_date: formEndDate || null,
+        } as any);
+        toast.success("Pattern assigned to group");
+      }
       setDialogOpen(false);
       fetchAll();
     } catch (e) {
@@ -213,6 +247,13 @@ const RotationAssignments = () => {
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => openEdit(a)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => setDeleteTarget(a)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -228,27 +269,38 @@ const RotationAssignments = () => {
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Assign Pattern to Group</DialogTitle>
+              <DialogTitle>
+              {editTarget ? "Edit Pattern Assignment" : "Assign Pattern to Group"}
+            </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Group</Label>
-                <Select value={formGroupId} onValueChange={setFormGroupId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select group..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {groups
-                      .filter((g) => g.is_active)
-                      .map((g) => (
-                        <SelectItem key={g.id} value={g.id.toString()}>
-                          {g.name}
-                          {g.code ? ` (${g.code})` : ""}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {editTarget ? (
+                <div className="space-y-2">
+                  <Label>Group</Label>
+                  <div className="text-sm text-muted-foreground border rounded-md px-3 py-2">
+                    {editTarget.group_name}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Group</Label>
+                  <Select value={formGroupId} onValueChange={setFormGroupId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select group..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {groups
+                        .filter((g) => g.is_active)
+                        .map((g) => (
+                          <SelectItem key={g.id} value={g.id.toString()}>
+                            {g.name}
+                            {g.code ? ` (${g.code})` : ""}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Pattern</Label>
                 <Select value={formPatternId} onValueChange={setFormPatternId}>
@@ -279,8 +331,14 @@ const RotationAssignments = () => {
                 <Input
                   type="date"
                   value={formEndDate}
-                  onChange={(e) => setFormEndDate(e.target.value)}
+                  onChange={(e) => {
+                    setFormEndDate(e.target.value);
+                    setDateError("");
+                  }}
                 />
+                {dateError && (
+                  <p className="text-sm text-destructive">{dateError}</p>
+                )}
               </div>
             </div>
             <DialogFooter>
@@ -288,7 +346,11 @@ const RotationAssignments = () => {
                 Cancel
               </Button>
               <Button onClick={handleCreate} disabled={saving}>
-                {saving ? "Assigning..." : "Assign"}
+                {saving
+                  ? "Saving..."
+                  : editTarget
+                    ? "Save Changes"
+                    : "Assign"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -304,9 +366,15 @@ const RotationAssignments = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Pattern Assignment</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove this assignment? The group "
-              {deleteTarget?.group_name}" will stop using the pattern "
-              {deleteTarget?.pattern_name}".
+              Are you sure you want to remove this assignment?
+              {deleteTarget && isActive(deleteTarget) && (
+                <span className="block mt-2 text-destructive font-medium">
+                  Warning: This assignment is currently active. Removing it will
+                  cause employees in "{deleteTarget.group_name}" to lose their
+                  rotation-based shift. Set an end date instead if this pattern
+                  should stop at a future date.
+                </span>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

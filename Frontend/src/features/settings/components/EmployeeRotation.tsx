@@ -43,6 +43,7 @@ import {
   UserCog,
   Search,
   UserPlus,
+  Pencil,
   X,
   History,
   ChevronLeft,
@@ -52,12 +53,14 @@ import {
   getRotationGroups,
   getEmployeeRotationAssignments,
   addGroupMembers,
+  updateEmployeeRotationAssignment,
   removeGroupMember,
   searchEmployees,
   getEmployeeFilterOptions,
   getBranches,
 } from "@/services/rotationService";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
+import { formatDateShort } from "@/utils/formatDate";
 import type {
   RotationGroup,
   EmployeeRotationAssignment,
@@ -81,6 +84,9 @@ const EmployeeRotation = () => {
     new Date().toISOString().split("T")[0]
   );
   const [assignSaving, setAssignSaving] = useState(false);
+  const [dateError, setDateError] = useState("");
+
+  const [editTarget, setEditTarget] = useState<EmployeeRotationAssignment | null>(null);
 
   const [endConfirmTarget, setEndConfirmTarget] = useState(false);
 
@@ -110,6 +116,10 @@ const EmployeeRotation = () => {
     getBranches().then(setBranches).catch(() => {});
   }, [fetchGroups]);
 
+  useEffect(() => {
+    loadSearchPage("", 1);
+  }, []);
+
   const loadSearchPage = async (term: string, page: number, dept?: string, pos?: string, branch?: string) => {
     setSearchLoading(true);
     try {
@@ -122,7 +132,7 @@ const EmployeeRotation = () => {
       setSearchPage(result.pagination.page);
       setSearchTotalPages(result.pagination.totalPages);
     } catch {
-      if (term.length >= 1) setSearchResults([]);
+      setSearchResults([]);
       setSearchTotalPages(0);
     } finally {
       setSearchLoading(false);
@@ -136,11 +146,6 @@ const EmployeeRotation = () => {
   const handleSearch = async (term: string) => {
     setSearchTerm(term);
     setSearchPage(1);
-    if (term.length < 1) {
-      setSearchResults([]);
-      setSearchTotalPages(0);
-      return;
-    }
     await reloadSearchPage(term, 1);
   };
 
@@ -153,9 +158,7 @@ const EmployeeRotation = () => {
     if (field === "position") setFilterPosition(v);
     if (field === "branch") setFilterBranch(v);
     setSearchPage(1);
-    if (searchTerm.length >= 1) {
-      await loadSearchPage(searchTerm, 1, newDept, newPos, newBranch);
-    }
+    await loadSearchPage(searchTerm, 1, newDept, newPos, newBranch);
   };
 
   const goToSearchPage = async (page: number) => {
@@ -209,24 +212,43 @@ const EmployeeRotation = () => {
     setSelectedEmployee(null);
     setAssignments([]);
     setSearchTerm("");
-    setSearchResults([]);
+    reloadSearchPage("", 1);
   };
 
   const currentAssignment = assignments.find(
     (a) => !a.end_date
   );
 
+  const validateDate = (): boolean => {
+    if (!assignDate) {
+      setDateError("Start date is required");
+      return false;
+    }
+    setDateError("");
+    return true;
+  };
+
   const handleAssign = async () => {
     if (!selectedEmployee || !assignGroupId) return;
+    if (!validateDate()) return;
     try {
       setAssignSaving(true);
-      await addGroupMembers(
-        Number(assignGroupId),
-        [selectedEmployee.id],
-        assignDate
-      );
-      toast.success("Employee assigned to rotation group");
+      if (editTarget) {
+        await updateEmployeeRotationAssignment(selectedEmployee.id, editTarget.id, {
+          rotation_group_id: Number(assignGroupId),
+          effective_date: assignDate,
+        });
+        toast.success("Assignment updated");
+      } else {
+        await addGroupMembers(
+          Number(assignGroupId),
+          [selectedEmployee.id],
+          assignDate
+        );
+        toast.success("Employee assigned to rotation group");
+      }
       setAssignDialogOpen(false);
+      setEditTarget(null);
       const data = await getEmployeeRotationAssignments(selectedEmployee.id);
       setAssignments(data);
     } catch (e) {
@@ -234,6 +256,22 @@ const EmployeeRotation = () => {
     } finally {
       setAssignSaving(false);
     }
+  };
+
+  const openAssignDialog = () => {
+    setEditTarget(null);
+    setAssignGroupId("");
+    setAssignDate(new Date().toISOString().split("T")[0]);
+    setDateError("");
+    setAssignDialogOpen(true);
+  };
+
+  const openEditDialog = (a: EmployeeRotationAssignment) => {
+    setEditTarget(a);
+    setAssignGroupId(a.rotation_group_id.toString());
+    setAssignDate(a.effective_date);
+    setDateError("");
+    setAssignDialogOpen(true);
   };
 
   const handleEndAssignment = async () => {
@@ -332,73 +370,105 @@ const EmployeeRotation = () => {
               </div>
             )}
 
-            {searchLoading && (
-              <div className="text-center py-3 text-xs text-muted-foreground">
-                Searching...
-              </div>
-            )}
-            {!searchLoading && searchResults.length > 0 && !selectedEmployee && (
-              <>
-                <div className="border rounded-md">
-                  {searchResults.map((emp) => (
-                    <div
-                      key={emp.id}
-                      className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-accent text-sm border-b last:border-b-0"
-                      onClick={() => selectEmployee(emp)}
-                    >
-                      <span className="font-mono text-xs text-muted-foreground shrink-0">
-                        {emp.employee_code}
-                      </span>
-                      <span className="font-medium truncate">
-                        {emp.last_name}, {emp.first_name}
-                      </span>
-                      <span className="text-xs text-muted-foreground ml-auto shrink-0">
-                        {emp.department}
-                        {emp.position ? ` · ${emp.position}` : ""}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                {searchTotalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 pt-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => goToSearchPage(searchPage - 1)}
-                      disabled={searchPage <= 1}
-                      className="h-7 w-7 p-0"
-                    >
-                      <ChevronLeft className="h-3.5 w-3.5" />
-                    </Button>
-                    {getSearchPageNumbers().map((page, index) => (
-                      <Button
-                        key={index}
-                        variant={searchPage === page ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => typeof page === "number" && goToSearchPage(page)}
-                        disabled={page === "..."}
-                        className={`h-7 w-7 p-0 text-xs ${page === "..." ? "cursor-default" : ""}`}
-                      >
-                        {page}
-                      </Button>
-                    ))}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => goToSearchPage(searchPage + 1)}
-                      disabled={searchPage >= searchTotalPages}
-                      className="h-7 w-7 p-0"
-                    >
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
           </div>
 
-          {/* Selected Employee */}
-          {selectedEmployee && (
+          {!selectedEmployee ? (
+            <>
+              {searchLoading ? (
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  Loading employees...
+                </div>
+              ) : searchResults.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <UserCog className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                  <p>No employees found.</p>
+                  <p className="text-sm mt-1">
+                    Try adjusting your search or filters.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Code</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Department</TableHead>
+                        <TableHead>Position</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {searchResults.map((emp) => (
+                        <TableRow
+                          key={emp.id}
+                          className="cursor-pointer"
+                          onClick={() => selectEmployee(emp)}
+                        >
+                          <TableCell className="font-mono text-xs">
+                            {emp.employee_code}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {emp.last_name}, {emp.first_name}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {emp.department}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {emp.position || "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={emp.status === "ACTIVE" ? "default" : "secondary"}>
+                              {emp.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  {/* Pagination */}
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-xs text-muted-foreground">
+                      Page {searchPage} of {searchTotalPages || 1}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => goToSearchPage(searchPage - 1)}
+                        disabled={searchPage <= 1}
+                        className="h-7 w-7 p-0"
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </Button>
+                      {getSearchPageNumbers().map((page, index) => (
+                        <Button
+                          key={index}
+                          variant={searchPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => typeof page === "number" && goToSearchPage(page)}
+                          disabled={page === "..."}
+                          className={`h-7 w-7 p-0 text-xs ${page === "..." ? "cursor-default" : ""}`}
+                        >
+                          {page}
+                        </Button>
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => goToSearchPage(searchPage + 1)}
+                        disabled={searchPage >= searchTotalPages}
+                        className="h-7 w-7 p-0"
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
             <>
               <div className="flex items-center justify-between p-3 border rounded-md bg-muted/30">
                 <div>
@@ -431,13 +501,7 @@ const EmployeeRotation = () => {
                   ) : (
                     <Button
                       size="sm"
-                      onClick={() => {
-                        setAssignGroupId("");
-                        setAssignDate(
-                          new Date().toISOString().split("T")[0]
-                        );
-                        setAssignDialogOpen(true);
-                      }}
+                      onClick={openAssignDialog}
                     >
                       <UserPlus className="h-3.5 w-3.5 mr-1" />
                       Assign to Group
@@ -468,6 +532,7 @@ const EmployeeRotation = () => {
                         <TableHead>Start Date</TableHead>
                         <TableHead>End Date</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -476,11 +541,11 @@ const EmployeeRotation = () => {
                           <TableCell className="font-medium">
                             {a.group_name}
                           </TableCell>
-                          <TableCell className="text-xs">
-                            {a.effective_date}
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {formatDateShort(a.effective_date)}
                           </TableCell>
-                          <TableCell className="text-xs">
-                            {a.end_date || "—"}
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {a.end_date ? formatDateShort(a.end_date) : "—"}
                           </TableCell>
                           <TableCell>
                             <Badge
@@ -488,6 +553,17 @@ const EmployeeRotation = () => {
                             >
                               {!a.end_date ? "Active" : "Ended"}
                             </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {!a.end_date && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openEditDialog(a)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -497,29 +573,23 @@ const EmployeeRotation = () => {
               </div>
             </>
           )}
-
-          {!selectedEmployee && (
-            <div className="text-center py-8 text-muted-foreground">
-              <UserCog className="h-12 w-12 mx-auto mb-2 opacity-20" />
-              <p>Search and select an employee to manage their rotation.</p>
-              <p className="text-sm mt-1">
-                Assign employees to a rotation group and view assignment history.
-              </p>
-            </div>
-          )}
         </CardContent>
 
         {/* Assign Dialog */}
         <Dialog
           open={assignDialogOpen}
-          onOpenChange={setAssignDialogOpen}
+          onOpenChange={(o) => {
+            if (!o) setEditTarget(null);
+            setAssignDialogOpen(o);
+          }}
         >
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>
-                Assign {selectedEmployee?.last_name},{" "}
-                {selectedEmployee?.first_name} to Rotation Group
-              </DialogTitle>
+              {editTarget
+                ? "Edit Rotation Assignment"
+                : `Assign ${selectedEmployee?.last_name}, ${selectedEmployee?.first_name} to Rotation Group`}
+            </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -551,8 +621,14 @@ const EmployeeRotation = () => {
                 <Input
                   type="date"
                   value={assignDate}
-                  onChange={(e) => setAssignDate(e.target.value)}
+                  onChange={(e) => {
+                    setAssignDate(e.target.value);
+                    setDateError("");
+                  }}
                 />
+                {dateError && (
+                  <p className="text-sm text-destructive">{dateError}</p>
+                )}
               </div>
             </div>
             <DialogFooter>
@@ -566,7 +642,11 @@ const EmployeeRotation = () => {
                 onClick={handleAssign}
                 disabled={!assignGroupId || assignSaving}
               >
-                {assignSaving ? "Assigning..." : "Assign"}
+                {assignSaving
+                  ? "Saving..."
+                  : editTarget
+                    ? "Save Changes"
+                    : "Assign"}
               </Button>
             </DialogFooter>
           </DialogContent>

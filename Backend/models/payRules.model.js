@@ -48,7 +48,7 @@ const updatePayRule = async (id, data) => {
 
   const result = await pool.query(
     `UPDATE pay_rules 
-     SET day_type = $1, multiplier = $2, updated_at = CURRENT_TIMESTAMP
+     SET day_type = $1, multiplier = $2
      WHERE id = $3
      RETURNING *`,
     [day_type, multiplier, id],

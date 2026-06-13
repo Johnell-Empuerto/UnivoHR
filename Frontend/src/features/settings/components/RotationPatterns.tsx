@@ -157,6 +157,13 @@ const RotationPatterns = () => {
       toast.error("Add at least one step to the pattern");
       return;
     }
+    const invalidStep = steps.findIndex(
+      (s) => !s.is_rest_day && !s.shift_id,
+    );
+    if (invalidStep !== -1) {
+      toast.error(`Day ${invalidStep + 1}: select a shift or mark as rest day`);
+      return;
+    }
     try {
       setSaving(true);
       const payload = {
@@ -463,8 +470,8 @@ const RotationPatterns = () => {
             <AlertDialogTitle>Delete Rotation Pattern</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete "{deleteTarget?.name}"? This
-              action cannot be undone. Groups currently using this pattern will
-              stop rotating.
+              action cannot be undone. If groups are currently using this
+              pattern, deletion will be blocked — set it to inactive instead.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

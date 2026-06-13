@@ -55,8 +55,8 @@ export const getAllHrAssignments = async (page = 1, limit = 10, search = "") => 
   return response.data;
 };
 
-export const getMyHrAssignments = async () => {
-  const response = await api.get("/hr-forms/my-assignments");
+export const getMyHrAssignments = async (page = 1, limit = 10) => {
+  const response = await api.get("/hr-forms/my-assignments", { params: { page, limit } });
   return response.data;
 };
 

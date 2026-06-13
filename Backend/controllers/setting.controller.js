@@ -1,5 +1,6 @@
 const settingService = require("../services/setting.service");
 const audit = require("../services/audit.service");
+const { hasPermission } = require("../services/permission.service");
 
 // Get all settings
 const getAllSettings = async (req, res) => {
@@ -27,6 +28,14 @@ const updateSetting = async (req, res) => {
   try {
     const { key } = req.params;
     const { value } = req.body;
+
+    if (key === 'company_timezone') {
+      const allowed = await hasPermission(req.user, 'settings.system');
+      if (!allowed) {
+        return res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
+      }
+    }
+
     const result = await settingService.updateSetting(key, value);
     audit.auditLog(req, {
       action: "UPDATE",

@@ -55,8 +55,8 @@ const getById = async (id) => {
   return { ...evalData, scores, items };
 };
 
-const getMyEvaluations = async (employeeId, status) => {
-  return await model.getEvaluationsByEmployee(employeeId, status);
+const getMyEvaluations = async (employeeId, status, page, limit) => {
+  return await model.getEvaluationsByEmployee(employeeId, status, page, limit);
 };
 
 const getMyAssignments = async (evaluatorId, status, page, limit) => {
@@ -76,8 +76,10 @@ const saveScores = async (evaluationId, evaluatorId, data) => {
   await model.updateEvaluation(evaluationId, { status: "In Progress" });
 
   for (const score of data.scores || []) {
-    const weight = score.weight || 0;
-    const managerScore = score.manager_score || 0;
+    const managerScore = parseFloat(score.manager_score);
+    if (isNaN(managerScore) || managerScore < 0) throw new Error("Score must be a non-negative number");
+    if (managerScore > 5) throw new Error("Score cannot exceed 5");
+    const weight = parseFloat(score.weight) || 0;
     const weightedScore = (managerScore / 5) * weight;
     await model.upsertScore({
       evaluation_id: evaluationId,
@@ -217,8 +219,14 @@ const hrReject = async (evaluationId, data) => {
   return updated;
 };
 
-const getHistory = async (employeeId, page = 1, limit = 10) => {
-  return await model.getEvaluationsByEmployee(employeeId, "Approved", page, limit);
+const getHistory = async (employeeId, page = 1, limit = 10, search = "") => {
+  if (search) {
+    return await model.getHistoryForHr(search, page, limit);
+  }
+  if (employeeId) {
+    return await model.getEvaluationsByEmployee(employeeId, "Approved", page, limit);
+  }
+  return await model.getHistoryForHr("", page, limit);
 };
 
 const getPendingCount = async (evaluatorId) => {

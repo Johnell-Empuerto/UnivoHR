@@ -332,6 +332,18 @@ const isApprover = async (req, res) => {
   }
 };
 
+const searchEmployeesPaginated = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search = "", status = "ACTIVE", hasUser } = req.query;
+    const result = await overtimeService.searchEmployeesPaginated(
+      Number(page), Number(limit), search, status, hasUser === "true",
+    );
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createOvertime,
   getMyOvertime,
@@ -344,5 +356,6 @@ module.exports = {
   updateApprover,
   deleteApprover,
   getEmployeesForDropdown,
+  searchEmployeesPaginated,
   isApprover,
 };

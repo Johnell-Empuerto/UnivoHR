@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate } from "@/utils/formatDate";
 import EmptyState from "@/components/shared/EmptyState";
 
@@ -37,6 +38,8 @@ type OvertimeRequest = {
   created_at: string;
   approved_by_name?: string | null;
   approved_at?: string | null;
+  rejected_by_name?: string | null;
+  rejected_at?: string | null;
   rejected_reason?: string | null;
 };
 
@@ -122,8 +125,8 @@ const OvertimeTable = ({
     }
   };
 
-  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newRows = Number(e.target.value);
+  const handleRowsPerPageChange = (value: string) => {
+    const newRows = Number(value);
     if (onRowsPerPageChange) {
       onRowsPerPageChange(newRows);
     }
@@ -258,16 +261,17 @@ const OvertimeTable = ({
               <span className="text-sm text-muted-foreground">
                 Rows per page:
               </span>
-              <select
-                value={rowsPerPage}
-                onChange={handleRowsPerPageChange}
-                className="border rounded px-2 py-1 text-sm bg-background"
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
+              <Select value={String(rowsPerPage)} onValueChange={handleRowsPerPageChange}>
+                <SelectTrigger className="w-16 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Showing X to Y of Z */}

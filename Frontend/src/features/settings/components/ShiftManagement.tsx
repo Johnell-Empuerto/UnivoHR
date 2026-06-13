@@ -131,6 +131,8 @@ const ShiftManagement = () => {
         description: form.description.trim() || null,
         flex_start_window: form.flex_start_window || null,
         flex_end_window: form.flex_end_window || null,
+        is_night_shift: form.type === "NIGHT",
+        is_flexitime: form.type === "FLEXITIME",
       };
       if (editingShift) {
         await updateShift(editingShift.id, payload);

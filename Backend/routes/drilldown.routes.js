@@ -8,38 +8,38 @@ const requirePermission = require("../middleware/permission.middleware");
 router.get(
   "/attendance",
   authenticate,
-  requirePermission("analytics.view"),
+  requirePermission("drilldown.view"),
   controller.getAttendance,
 );
 router.get(
   "/payroll",
   authenticate,
-  requirePermission("analytics.view"),
+  requirePermission("drilldown.view"),
   controller.getPayroll,
 );
 router.get(
   "/overtime",
   authenticate,
-  requirePermission("analytics.view"),
+  requirePermission("drilldown.view"),
   controller.getOvertime,
 );
-router.get("/leaves", authenticate, requirePermission("analytics.view"), controller.getLeaves);
+router.get("/leaves", authenticate, requirePermission("drilldown.view"), controller.getLeaves);
 router.get(
   "/anomalies",
   authenticate,
-  requirePermission("analytics.view"),
+  requirePermission("drilldown.view"),
   controller.getAnomalies,
 );
 router.get(
   "/branches",
   authenticate,
-  requirePermission("analytics.view"),
+  requirePermission("drilldown.view"),
   controller.getBranches,
 );
 router.get(
   "/export",
   authenticate,
-  requirePermission("analytics.view"),
+  requirePermission("drilldown.view"),
   controller.exportDrillDown,
 );
 

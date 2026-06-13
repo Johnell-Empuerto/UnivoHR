@@ -1,20 +1,11 @@
 const dashboardService = require("../services/dashboard.service");
-const { getUserBranchIds } = require("../utils/branchAccess");
 
 const getSummary = async (req, res) => {
   try {
     const startDate = req.query.start_date || null;
     const endDate = req.query.end_date || null;
 
-    let allowedBranchIds = null;
-    if (req.user.role !== "ADMIN") {
-      allowedBranchIds = await getUserBranchIds(req.user.id);
-      if (allowedBranchIds.length === 0) {
-        return res.status(403).json({ message: "You are not allowed to view this data." });
-      }
-    }
-
-    const data = await dashboardService.getSummary(allowedBranchIds, startDate, endDate);
+    const data = await dashboardService.getSummary(req.allowedBranchIds, startDate, endDate);
     res.json(data);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -46,15 +37,7 @@ const getAdminAnalytics = async (req, res) => {
     const startDate = req.query.start_date || null;
     const endDate = req.query.end_date || null;
 
-    let allowedBranchIds = null;
-    if (req.user.role !== "ADMIN") {
-      allowedBranchIds = await getUserBranchIds(req.user.id);
-      if (allowedBranchIds.length === 0) {
-        return res.status(403).json({ message: "You are not allowed to view this data." });
-      }
-    }
-
-    const data = await dashboardService.getAdminAnalytics(allowedBranchIds, startDate, endDate);
+    const data = await dashboardService.getAdminAnalytics(req.allowedBranchIds, startDate, endDate);
     res.json(data);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -76,15 +59,7 @@ const getExecutiveKpis = async (req, res) => {
     const startDate = req.query.start_date || null;
     const endDate = req.query.end_date || null;
 
-    let allowedBranchIds = null;
-    if (req.user.role !== "ADMIN") {
-      allowedBranchIds = await getUserBranchIds(req.user.id);
-      if (allowedBranchIds.length === 0) {
-        return res.status(403).json({ message: "You are not allowed to view this data." });
-      }
-    }
-
-    const data = await dashboardService.getExecutiveKpis(allowedBranchIds, startDate, endDate);
+    const data = await dashboardService.getExecutiveKpis(req.allowedBranchIds, startDate, endDate);
     res.json(data);
   } catch (error) {
     res.status(500).json({ message: error.message });

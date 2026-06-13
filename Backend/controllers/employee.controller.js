@@ -3,7 +3,8 @@ const audit = require("../services/audit.service");
 
 const createEmployee = async (req, res) => {
   try {
-    const employee = await employeeService.createEmployee(req.body);
+    const created = await employeeService.createEmployee(req.body);
+    const employee = await employeeService.getEmployeeById(created.id);
     audit.auditLog(req, {
       action: "INSERT",
       table_name: "employees",
@@ -63,7 +64,8 @@ const updateEmployee = async (req, res) => {
   try {
     const { id } = req.params;
     const oldValues = await audit.fetchOldValues("employees", id);
-    const updated = await employeeService.updateEmployee(id, req.body);
+    await employeeService.updateEmployee(id, req.body);
+    const updated = await employeeService.getEmployeeById(id);
 
     const employmentChanged = oldValues && oldValues.employment_status !== updated.employment_status;
 
@@ -155,6 +157,49 @@ const getEmploymentStats = async (req, res) => {
   }
 };
 
+const getEmployeeById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const employee = await employeeService.getEmployeeById(id);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+    res.json(employee);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const deleteEmployee = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const employee = await employeeService.getEmployeeById(id);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    const deleted = await employeeService.deleteEmployee(id);
+
+    audit.auditLog(req, {
+      action: "DELETE",
+      table_name: "employees",
+      record_id: Number(id),
+      employee_id: deleted.id,
+      branch_id: deleted.branch_id,
+      old_values: {
+        employee_code: deleted.employee_code,
+        first_name: deleted.first_name,
+        last_name: deleted.last_name,
+      },
+      description: `Employee deleted: ${deleted.first_name} ${deleted.last_name} (${deleted.employee_code})`,
+    });
+
+    res.json({ message: "Employee deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 const searchEmployees = async (req, res) => {
   try {
     const { page = 1, limit = 20, search, employee_code, employee_name } = req.query;
@@ -168,7 +213,9 @@ const searchEmployees = async (req, res) => {
 module.exports = {
   createEmployee,
   getEmployees,
+  getEmployeeById,
   updateEmployee,
+  deleteEmployee,
   getDueForRegularization,
   approveRegularization,
   getEmploymentStats,

@@ -44,6 +44,8 @@ import JobPositionsPage from "@/features/recruitment/pages/JobPositionsPage";
 import ApplicantsPage from "@/features/recruitment/pages/ApplicantsPage";
 import ApplicantDetailPage from "@/features/recruitment/pages/ApplicantDetailPage";
 import ApplicantFormPage from "@/features/recruitment/pages/ApplicantFormPage";
+import MyInterviewAssignmentsPage from "@/features/recruitment/pages/MyInterviewAssignmentsPage";
+import RecruitmentWorkflowsPage from "@/features/recruitment/pages/RecruitmentWorkflowsPage";
 import KpiTemplatesPage from "@/features/kpi/pages/KpiTemplatesPage";
 import KpiEvaluationPage from "@/features/kpi/pages/KpiEvaluationPage";
 import EmployeeEvaluationPage from "@/features/kpi/pages/EmployeeEvaluationPage";
@@ -319,6 +321,36 @@ const AppRoutes = () => {
             element={
               hasPermission("recruitment.view") ? (
                 <ApplicantDetailPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/recruitment/my-interviews"
+            element={
+              hasPermission("recruitment.view") ? (
+                <MyInterviewAssignmentsPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/recruitment/my-assignments"
+            element={
+              hasPermission("recruitment.view") ? (
+                <MyInterviewAssignmentsPage />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
+          <Route
+            path="/recruitment/workflows"
+            element={
+              hasPermission("recruitment.workflows.manage") ? (
+                <RecruitmentWorkflowsPage />
               ) : (
                 <Navigate to="/dashboard" replace />
               )

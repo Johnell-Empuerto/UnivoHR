@@ -33,6 +33,8 @@ const getDrillDownAttendance = async (user, { status, date_from, date_to, branch
 
   const data = await pool.query(`
     SELECT a.id, a.employee_id, a.date, a.status, a.check_in_time, a.check_out_time,
+           a.check_in_time_utc, a.check_out_time_utc, a.timezone_used,
+           a.branch_id AS attendance_branch_id, a.device_id,
            e.first_name, e.last_name, e.employee_code, b.name AS branch_name
     FROM attendance a
     JOIN employees e ON e.id = a.employee_id

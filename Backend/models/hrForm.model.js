@@ -71,7 +71,9 @@ const getAllForms = async (search = "", page = 1, limit = 10) => {
   const q = `%${search}%`;
   const data = await pool.query(
     `SELECT hf.*, COALESCE(e.first_name || ' ' || e.last_name, u.username, 'System') AS created_by_name,
-            (SELECT COUNT(*) FROM hr_form_fields WHERE form_id = hf.id) AS field_count
+            (SELECT COUNT(*) FROM hr_form_fields WHERE form_id = hf.id) AS field_count,
+            (SELECT COUNT(*) FROM hr_form_assignments WHERE form_id = hf.id) AS assignment_count,
+            (SELECT COUNT(*) FROM hr_form_submissions WHERE form_id = hf.id) AS submission_count
      FROM hr_forms hf LEFT JOIN users u ON u.id = hf.created_by LEFT JOIN employees e ON e.id = u.employee_id
      WHERE $1 = '' OR hf.title ILIKE $1
      ORDER BY hf.created_at DESC LIMIT $2 OFFSET $3`,
@@ -111,6 +113,11 @@ const updateForm = async (id, data) => {
   return result.rows[0];
 };
 
+const hasAssignments = async (formId) => {
+  const result = await pool.query(`SELECT COUNT(*) FROM hr_form_assignments WHERE form_id=$1`, [formId]);
+  return parseInt(result.rows[0].count) > 0;
+};
+
 const deleteForm = async (id) => {
   await pool.query(`DELETE FROM hr_forms WHERE id=$1`, [id]);
 };
@@ -138,6 +145,11 @@ const updateField = async (id, data) => {
     [data.label, data.field_type, data.field_order || 0, data.required || false, data.options || null, id],
   );
   return result.rows[0];
+};
+
+const hasFieldAnswers = async (fieldId) => {
+  const result = await pool.query(`SELECT COUNT(*) FROM hr_form_answers WHERE field_id=$1`, [fieldId]);
+  return parseInt(result.rows[0].count) > 0;
 };
 
 const deleteField = async (id) => {
@@ -204,7 +216,7 @@ const getAllAssignments = async (search = "", page = 1, limit = 10) => {
   const q = `%${search}%`;
   const data = await pool.query(
     `SELECT a.*, f.title AS form_title,
-            e.first_name || ' ' || e.last_name AS employee_name, e.employee_code,
+            e.first_name || ' ' || e.last_name AS employee_name, e.employee_code, e.department,
             COALESCE(ue.first_name || ' ' || ue.last_name, u.username, 'System') AS assigned_by_name
      FROM hr_form_assignments a
      JOIN hr_forms f ON f.id = a.form_id
@@ -225,16 +237,22 @@ const getAllAssignments = async (search = "", page = 1, limit = 10) => {
   return { data: data.rows, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / limit) } };
 };
 
-const getMyAssignments = async (employeeId) => {
-  const result = await pool.query(
+const getMyAssignments = async (employeeId, page = 1, limit = 10) => {
+  const offset = (page - 1) * limit;
+  const data = await pool.query(
     `SELECT a.*, f.title AS form_title, f.description AS form_description
      FROM hr_form_assignments a
      JOIN hr_forms f ON f.id = a.form_id
      WHERE a.employee_id = $1
-     ORDER BY a.created_at DESC`,
+     ORDER BY a.created_at DESC LIMIT $2 OFFSET $3`,
+    [employeeId, limit, offset],
+  );
+  const count = await pool.query(
+    `SELECT COUNT(*) FROM hr_form_assignments WHERE employee_id = $1`,
     [employeeId],
   );
-  return result.rows;
+  const total = parseInt(count.rows[0].count);
+  return { data: data.rows, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / limit) } };
 };
 
 const getAssignmentById = async (assignmentId) => {
@@ -286,7 +304,7 @@ const getSubmissions = async (search = "", page = 1, limit = 10) => {
   const q = `%${search}%`;
   const data = await pool.query(
     `SELECT s.*, f.title AS form_title,
-            e.first_name || ' ' || e.last_name AS employee_name, e.employee_code
+            e.first_name || ' ' || e.last_name AS employee_name, e.employee_code, e.department
      FROM hr_form_submissions s
      JOIN hr_forms f ON f.id = s.form_id
      JOIN employees e ON e.id = s.employee_id
@@ -353,8 +371,8 @@ const getActiveHRUserIds = async () => {
 
 module.exports = {
   init,
-  getAllForms, getFormById, createForm, updateForm, deleteForm,
-  getFieldsByFormId, createField, updateField, deleteField,
+  getAllForms, getFormById, createForm, updateForm, deleteForm, hasAssignments,
+  getFieldsByFormId, createField, updateField, deleteField, hasFieldAnswers,
   createAssignment, bulkCreateAssignments, bulkAssignAllMatching,
   getAllAssignments, getMyAssignments, getAssignmentById,
   updateAssignmentStatus,

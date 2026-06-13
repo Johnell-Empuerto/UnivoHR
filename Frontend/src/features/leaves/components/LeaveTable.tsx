@@ -23,6 +23,14 @@ import {
 import { useState, useEffect } from "react";
 import LeaveDrawer from "./LeaveDrawer";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/Input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatDate } from "@/utils/formatDate";
 import { Badge } from "@/components/ui/badge";
 import EmptyState from "@/components/shared/EmptyState";
@@ -182,8 +190,8 @@ const SearchFilters = ({
   onRefresh,
 }: any) => {
   const [searchInput, setSearchInput] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("_all");
+  const [typeFilter, setTypeFilter] = useState("_all");
 
   // Debounce search
   useEffect(() => {
@@ -195,18 +203,18 @@ const SearchFilters = ({
 
   const handleStatusChange = (value: string) => {
     setStatusFilter(value);
-    onStatusFilter?.(value);
+    onStatusFilter?.(value === "_all" ? "" : value);
   };
 
   const handleTypeChange = (value: string) => {
     setTypeFilter(value);
-    onTypeFilter?.(value);
+    onTypeFilter?.(value === "_all" ? "" : value);
   };
 
   const handleClearFilters = () => {
     setSearchInput("");
-    setStatusFilter("");
-    setTypeFilter("");
+    setStatusFilter("_all");
+    setTypeFilter("_all");
     onSearch?.("");
     onStatusFilter?.("");
     onTypeFilter?.("");
@@ -215,41 +223,42 @@ const SearchFilters = ({
   return (
     <div className="flex flex-wrap items-center gap-4 mb-6">
       <div className="relative flex-1 min-w-50">
-        <input
-          type="text"
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
           placeholder="Search by employee name or code..."
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          className="w-full px-3 py-2 pl-9 border rounded-md bg-background"
+          className="pl-8"
         />
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       </div>
 
-      <select
-        value={statusFilter}
-        onChange={(e) => handleStatusChange(e.target.value)}
-        className="px-3 py-2 border rounded-md bg-background"
-      >
-        <option value="">All Status</option>
-        <option value="PENDING">Pending</option>
-        <option value="APPROVED">Approved</option>
-        <option value="REJECTED">Rejected</option>
-      </select>
+      <Select value={statusFilter} onValueChange={handleStatusChange}>
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="All Status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="_all">All Status</SelectItem>
+          <SelectItem value="PENDING">Pending</SelectItem>
+          <SelectItem value="APPROVED">Approved</SelectItem>
+          <SelectItem value="REJECTED">Rejected</SelectItem>
+        </SelectContent>
+      </Select>
 
-      <select
-        value={typeFilter}
-        onChange={(e) => handleTypeChange(e.target.value)}
-        className="px-3 py-2 border rounded-md bg-background"
-      >
-        <option value="">All Types</option>
-        <option value="SICK">Sick Leave</option>
-        <option value="ANNUAL">Vacation Leave</option>
-        <option value="MATERNITY">Maternity Leave</option>
-        <option value="EMERGENCY">Emergency Leave</option>
-        <option value="NO_PAY">No Pay Leave</option>
-      </select>
+      <Select value={typeFilter} onValueChange={handleTypeChange}>
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="All Types" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="_all">All Types</SelectItem>
+          <SelectItem value="SICK">Sick Leave</SelectItem>
+          <SelectItem value="ANNUAL">Vacation Leave</SelectItem>
+          <SelectItem value="MATERNITY">Maternity Leave</SelectItem>
+          <SelectItem value="EMERGENCY">Emergency Leave</SelectItem>
+          <SelectItem value="NO_PAY">No Pay Leave</SelectItem>
+        </SelectContent>
+      </Select>
 
-      {(searchInput || statusFilter || typeFilter) && (
+      {(searchInput || statusFilter !== "_all" || typeFilter !== "_all") && (
         <Button variant="ghost" onClick={handleClearFilters}>
           Clear Filters
         </Button>
@@ -294,12 +303,6 @@ const LeaveTable = ({
 
   const handleStatusUpdate = (id: number, status: string) => {
     onUpdate(id, status);
-  };
-
-  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newLimit = Number(e.target.value);
-    setRowsPerPage(newLimit);
-    onLimitChange?.(newLimit);
   };
 
   const goToPage = (page: number) => {
@@ -522,16 +525,24 @@ const LeaveTable = ({
                   <span className="text-sm text-muted-foreground">
                     Rows per page:
                   </span>
-                  <select
-                    value={rowsPerPage}
-                    onChange={handleRowsPerPageChange}
-                    className="border rounded px-2 py-1 text-sm bg-background"
+                  <Select
+                    value={rowsPerPage.toString()}
+                    onValueChange={(val) => {
+                      const newLimit = Number(val);
+                      setRowsPerPage(newLimit);
+                      onLimitChange?.(newLimit);
+                    }}
                   >
-                    <option value={5}>5</option>
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                  </select>
+                    <SelectTrigger className="w-20 h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Showing X to Y of Z */}

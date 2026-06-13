@@ -1,5 +1,6 @@
 const hrPolicyModel = require("../models/hrPolicy.model");
 const sanitizeHtml = require("sanitize-html");
+const { hasPermission } = require("../services/permission.service");
 
 const SANITIZE_OPTIONS = {
   allowedTags: [
@@ -112,7 +113,8 @@ const isCategoryQuestion = (question) => {
 };
 
 const getAll = async (user) => {
-  if (user.role === "ADMIN") {
+  const canManage = await hasPermission(user, "hr_policies.manage");
+  if (canManage) {
     return await hrPolicyModel.getAll({ includeInactive: true });
   }
   return await hrPolicyModel.getAll({ includeInactive: false });

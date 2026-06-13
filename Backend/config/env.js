@@ -17,6 +17,14 @@ for (const key of requiredEnv) {
   }
 }
 
+const NODE_ENV = process.env.NODE_ENV || "development";
+
+// In production, require DEVICE_API_KEY
+if (NODE_ENV === "production" && !process.env.DEVICE_API_KEY) {
+  console.error("[SECURITY] FATAL: DEVICE_API_KEY must be set in production");
+  process.exit(1);
+}
+
 module.exports = {
   PORT: process.env.PORT,
   DB_HOST: process.env.DB_HOST,
@@ -25,4 +33,5 @@ module.exports = {
   DB_PASSWORD: process.env.DB_PASSWORD,
   DB_NAME: process.env.DB_NAME,
   JWT_SECRET: process.env.JWT_SECRET,
+  NODE_ENV,
 };

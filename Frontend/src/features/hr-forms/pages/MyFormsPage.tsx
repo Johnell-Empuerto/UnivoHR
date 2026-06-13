@@ -5,16 +5,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, Loader2, Eye } from "lucide-react";
+import { ClipboardList, Eye, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
 import { formatDateShort } from "@/utils/formatDate";
+import { toast } from "sonner";
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
-    Pending: "bg-amber-100 text-amber-800",
-    Submitted: "bg-blue-100 text-blue-800",
-    Reviewed: "bg-green-100 text-green-800",
+    Pending: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+    Submitted: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    Reviewed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
   };
   return <Badge className={map[s] || ""}>{s}</Badge>;
 };
@@ -23,15 +24,32 @@ const MyFormsPage = () => {
   const navigate = useNavigate();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+
+  const totalPages = Math.ceil(total / pageSize);
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, total);
+
+  const goToPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
 
   useEffect(() => {
     const fetch = async () => {
-      try { setLoading(true); const r = await getMyHrAssignments(); setAssignments(Array.isArray(r) ? r : []); }
-      catch { setAssignments([]); }
-      finally { setLoading(false); }
+      try {
+        setLoading(true);
+        const r = await getMyHrAssignments(page, pageSize);
+        setAssignments(r.data || []);
+        setTotal(r.pagination?.total || 0);
+      } catch {
+        toast.error("Failed to load forms");
+        setAssignments([]);
+      } finally {
+        setLoading(false);
+      }
     };
     fetch();
-  }, []);
+  }, [page, pageSize]);
 
   return (
     <div className="space-y-6 p-6">
@@ -51,7 +69,9 @@ const MyFormsPage = () => {
                 <TableHeader>
                   <TableRow className="bg-muted">
                     <TableHead>Form</TableHead>
+                    <TableHead>Assigned Date</TableHead>
                     <TableHead>Due Date</TableHead>
+                    <TableHead>Submitted Date</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -60,7 +80,9 @@ const MyFormsPage = () => {
                   {assignments.map((a: any) => (
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.form_title}</TableCell>
-                      <TableCell>{a.due_date ? formatDateShort(a.due_date) : "-"}</TableCell>
+                      <TableCell className="text-sm">{formatDateShort(a.created_at)}</TableCell>
+                      <TableCell className="text-sm">{a.due_date ? formatDateShort(a.due_date) : "-"}</TableCell>
+                      <TableCell className="text-sm">{a.submitted_at ? formatDateShort(a.submitted_at) : "-"}</TableCell>
                       <TableCell>{statusBadge(a.status)}</TableCell>
                       <TableCell>
                         {a.status === "Pending" ? (
@@ -77,6 +99,28 @@ const MyFormsPage = () => {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+
+          {total > 0 && (
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-sm text-muted-foreground">
+                Showing {start} to {end} of {total} entries
+              </p>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => goToPage(page - 1)}
+                  disabled={page === 1} className="h-8 w-8 p-0">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <Button key={p} variant={page === p ? "default" : "outline"} size="sm"
+                    onClick={() => goToPage(p)} className="h-8 w-8 p-0">{p}</Button>
+                ))}
+                <Button variant="outline" size="sm" onClick={() => goToPage(page + 1)}
+                  disabled={page === totalPages} className="h-8 w-8 p-0">
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

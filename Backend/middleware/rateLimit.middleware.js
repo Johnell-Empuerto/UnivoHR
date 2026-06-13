@@ -55,10 +55,22 @@ const resetPasswordLimiter = rateLimit({
   },
 });
 
+const deviceLogLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many device log requests. Please try again later.",
+  },
+});
+
 module.exports = {
   loginLimiter,
   otpLimiter,
   resendOtpLimiter,
   forgotPasswordLimiter,
   resetPasswordLimiter,
+  deviceLogLimiter,
 };

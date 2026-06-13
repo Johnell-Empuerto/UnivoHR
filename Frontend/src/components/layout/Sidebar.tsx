@@ -22,6 +22,8 @@ import {
   BarChart3,
   UserCheck,
   ShieldCheck,
+  ClipboardCheck,
+  Workflow,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import smallIcon from "@/assets/images/small-icon.png";
@@ -600,6 +602,20 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
                   <UsersIcon className="h-4 w-4" />
                   Applicants
                 </NavLink>
+                <NavLink
+                  to="/recruitment/my-interviews"
+                  className={({ isActive }) => dropdownLinkClass(isActive)}
+                >
+                  <ClipboardCheck className="h-4 w-4" />
+                  My Recruitment Assignments
+                </NavLink>
+                <NavLink
+                  to="/recruitment/workflows"
+                  className={({ isActive }) => dropdownLinkClass(isActive)}
+                >
+                  <Workflow className="h-4 w-4" />
+                  Workflows
+                </NavLink>
               </div>
             )}
           </div>
@@ -620,6 +636,20 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
               title="Applicants"
             >
               <UsersIcon className="h-5 w-5" />
+            </NavLink>
+            <NavLink
+              to="/recruitment/my-interviews"
+              className={({ isActive }) => linkClass(isActive)}
+              title="My Recruitment Assignments"
+            >
+              <ClipboardCheck className="h-5 w-5" />
+            </NavLink>
+            <NavLink
+              to="/recruitment/workflows"
+              className={({ isActive }) => linkClass(isActive)}
+              title="Workflows"
+            >
+              <Workflow className="h-5 w-5" />
             </NavLink>
           </>
         )}

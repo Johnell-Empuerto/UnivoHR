@@ -133,6 +133,26 @@ const removeGroupMember = async (req, res) => {
   }
 };
 
+const updateEmployeeAssignment = async (req, res) => {
+  try {
+    const { employeeId, id } = req.params;
+    const oldValues = await audit.fetchOldValues("employee_rotation_group_assignments", id);
+    const data = await rotationService.updateEmployeeAssignment(id, req.body);
+    if (!data) return res.status(404).json({ message: "Employee rotation assignment not found" });
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "employee_rotation_group_assignments",
+      record_id: data.id,
+      old_values: oldValues ? { rotation_group_id: oldValues.rotation_group_id, effective_date: oldValues.effective_date } : null,
+      new_values: { rotation_group_id: data.rotation_group_id, effective_date: data.effective_date },
+      description: `Employee ${employeeId} rotation assignment ${id} updated`,
+    });
+    res.json(data);
+  } catch (error) {
+    res.status(error.status || 500).json({ message: error.message });
+  }
+};
+
 const getPatterns = async (req, res) => {
   try {
     const data = await rotationService.getPatterns();
@@ -234,6 +254,25 @@ const createAssignment = async (req, res) => {
   }
 };
 
+const updateAssignment = async (req, res) => {
+  try {
+    const oldValues = await audit.fetchOldValues("rotation_group_assignments", req.params.id);
+    const data = await rotationService.updateAssignment(req.params.id, req.body);
+    if (!data) return res.status(404).json({ message: "Assignment not found" });
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "rotation_group_assignments",
+      record_id: data.id,
+      old_values: oldValues ? { pattern_id: oldValues.pattern_id, effective_date: oldValues.effective_date, end_date: oldValues.end_date } : null,
+      new_values: { pattern_id: data.pattern_id, effective_date: data.effective_date, end_date: data.end_date },
+      description: `Rotation group assignment ${data.id} updated`,
+    });
+    res.json(data);
+  } catch (error) {
+    res.status(error.status || 500).json({ message: error.message });
+  }
+};
+
 const deleteAssignment = async (req, res) => {
   try {
     const data = await rotationService.deleteAssignment(req.params.id);
@@ -270,6 +309,7 @@ module.exports = {
   getEmployeeAssignments,
   addGroupMembers,
   removeGroupMember,
+  updateEmployeeAssignment,
   getPatterns,
   getPatternById,
   createPattern,
@@ -277,6 +317,7 @@ module.exports = {
   deletePattern,
   getAssignments,
   createAssignment,
+  updateAssignment,
   deleteAssignment,
   resolveEmployeeShift,
 };

@@ -130,8 +130,8 @@ export const rejectKpiEvaluation = async (evaluationId: number, data: any) => {
   return response.data;
 };
 
-export const getKpiHistory = async (employeeId?: number, page = 1, limit = 10) => {
-  const response = await api.get("/kpi/evaluations/history", { params: { employee_id: employeeId, page, limit } });
+export const getKpiHistory = async (employeeId?: number, page = 1, limit = 10, search = "") => {
+  const response = await api.get("/kpi/evaluations/history", { params: { employee_id: employeeId, page, limit, search } });
   return response.data;
 };
 

@@ -3,6 +3,8 @@ const router = express.Router();
 const controller = require("../controllers/deviceIntegration.controller");
 const requirePermission = require("../middleware/permission.middleware");
 const upload = require("../middleware/upload.middleware");
+const perDeviceAuth = require("../middleware/perDeviceAuth.middleware");
+const { deviceLogLimiter } = require("../middleware/rateLimit.middleware");
 
 // ─── DEVICES ──────────────────────────────────────────────
 router.get("/devices",       requirePermission("devices.view"),   controller.getDevices);
@@ -10,6 +12,7 @@ router.get("/devices/:id",   requirePermission("devices.view"),   controller.get
 router.post("/devices",      requirePermission("devices.manage"), controller.createDevice);
 router.put("/devices/:id",   requirePermission("devices.manage"), controller.updateDevice);
 router.delete("/devices/:id", requirePermission("devices.manage"), controller.deleteDevice);
+router.post("/devices/:id/api-key/rotate", requirePermission("devices.manage"), controller.rotateDeviceKey);
 
 // ─── DEVICE LOG MAPPINGS ─────────────────────────────────
 router.get("/mappings",       requirePermission("devices.view"),   controller.getMappings);
@@ -36,6 +39,6 @@ router.post("/logs/:id/process", requirePermission("device_logs.manage"), contro
 router.post("/logs/process-batch", requirePermission("device_logs.manage"), controller.processBatch);
 
 // ─── GENERIC PUSH ENDPOINT ───────────────────────────────
-router.post("/push/:deviceId", controller.pushLog);
+router.post("/push/:deviceId", perDeviceAuth, deviceLogLimiter, controller.pushLog);
 
 module.exports = router;

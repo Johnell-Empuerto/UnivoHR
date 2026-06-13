@@ -1,4 +1,6 @@
 const applicantModel = require("../models/applicant.model");
+const applicantInterviewModel = require("../models/applicantInterview.model");
+const applicantApprovalModel = require("../models/applicantApproval.model");
 const branchModel = require("../models/branch.model");
 const employeeModel = require("../models/employee.model");
 const pool = require("../config/db");
@@ -6,6 +8,12 @@ const leaveCreditModel = require("../models/leaveCredit.model");
 const notificationService = require("./notification.service");
 const { initializeNewEmployee } = require("./employeeInit.service");
 const { EMPLOYMENT_STATUS, COMPANY_DEFAULT_PROBATION_MONTHS } = require("../constants/employmentStatus");
+const applicantWorkflowService = require("./applicantWorkflow.service");
+
+const hasApprovedHiringApproval = async (applicantId) => {
+  const approvals = await applicantApprovalModel.getByApplicantId(applicantId);
+  return approvals.some(a => a.decision === "APPROVED");
+};
 
 const normalizeApplicantStatus = (status) => {
   if (!status) return "Initial";
@@ -31,6 +39,120 @@ const notifyParty = (userIds, title, message, referenceId) => {
   Promise.all(promises).catch(err => console.error("[RECRUITMENT] Notification error:", err));
 };
 
+const autoCreateStageRecords = async (applicantId, normalizedStatus) => {
+  const s = (normalizedStatus || "").toUpperCase();
+
+  let currentIdx;
+  if (["APPROVED", "COMPLETED", "FOR_APPROVAL"].some(x => s.includes(x))) {
+    currentIdx = 4;
+  } else if (s.includes("FINAL")) {
+    currentIdx = 3;
+  } else if (s.includes("EXAM")) {
+    currentIdx = 2;
+  } else if (s.includes("INITIAL")) {
+    currentIdx = 1;
+  } else {
+    currentIdx = 0;
+  }
+
+  const interviewLabels = ["Initial Interview", "Exam Interview", "Final Interview"];
+  const existingInterviews = await applicantInterviewModel.getByApplicantId(applicantId);
+
+  for (let i = 0; i < Math.min(currentIdx - 1, 3); i++) {
+    if (!existingInterviews.some(iv => iv.interview_type === interviewLabels[i])) {
+      await applicantInterviewModel.create({
+        applicant_id: applicantId,
+        interview_date: new Date(),
+        interview_type: interviewLabels[i],
+        status: "COMPLETED",
+        notes: "Auto-created on stage progression",
+      });
+    }
+  }
+
+  if (currentIdx >= 4) {
+    const existingApprovals = await applicantApprovalModel.getByApplicantId(applicantId);
+    if (existingApprovals.length === 0) {
+      await applicantApprovalModel.create({
+        applicant_id: applicantId,
+        approval_type: "HIRING",
+        decision: "PENDING",
+        comments: "Auto-created pending approval from stage progression",
+      });
+    }
+  }
+};
+
+const repairApplicantStageRecords = async (applicantId) => {
+  const applicant = await applicantModel.getById(applicantId);
+  if (!applicant) throw new Error("Applicant not found");
+
+  const isHired = !!applicant.employee_id;
+  const rawStatus = (applicant.status || "").toUpperCase();
+
+  let currentIdx;
+  if (isHired) {
+    currentIdx = 5;
+  } else if (["APPROVED", "COMPLETED", "FOR_APPROVAL"].some(s => rawStatus.includes(s))) {
+    currentIdx = 4;
+  } else if (rawStatus.includes("FINAL")) {
+    currentIdx = 3;
+  } else if (rawStatus.includes("EXAM")) {
+    currentIdx = 2;
+  } else if (rawStatus.includes("INITIAL")) {
+    currentIdx = 1;
+  } else {
+    currentIdx = 0;
+  }
+
+  const result = {
+    applicant_id: applicantId,
+    status: applicant.status,
+    is_hired: isHired,
+    stage_index: currentIdx,
+    interviews_created: [],
+    interviews_existing: [],
+    approval_created: false,
+    approval_existing: false,
+  };
+
+  const interviewLabels = ["Initial Interview", "Exam Interview", "Final Interview"];
+  const existingInterviews = await applicantInterviewModel.getByApplicantId(applicantId);
+
+  for (let i = 0; i < Math.min(currentIdx - 1, 3); i++) {
+    const label = interviewLabels[i];
+    if (existingInterviews.some(iv => iv.interview_type === label)) {
+      result.interviews_existing.push(label);
+    } else {
+      await applicantInterviewModel.create({
+        applicant_id: applicantId,
+        interview_date: new Date(),
+        interview_type: label,
+        status: "COMPLETED",
+        notes: "Created by stage record repair",
+      });
+      result.interviews_created.push(label);
+    }
+  }
+
+  if (currentIdx >= 4) {
+    const existingApprovals = await applicantApprovalModel.getByApplicantId(applicantId);
+    if (existingApprovals.length > 0) {
+      result.approval_existing = true;
+    } else {
+      await applicantApprovalModel.create({
+        applicant_id: applicantId,
+        approval_type: "HIRING",
+        decision: "PENDING",
+        comments: "Created as pending approval by stage record repair",
+      });
+      result.approval_created = true;
+    }
+  }
+
+  return result;
+};
+
 const getAll = async (page, limit, search, status, jobPositionId) => {
   return await applicantModel.getAll(page, limit, search, status, jobPositionId);
 };
@@ -45,11 +167,54 @@ const create = async (data) => {
   if (!data.first_name || !data.first_name.trim()) throw new Error("First name is required");
   if (!data.last_name || !data.last_name.trim()) throw new Error("Last name is required");
   data.status = normalizeApplicantStatus(data.status);
+
+  let preResolved = null;
+  if (data.job_position_id) {
+    preResolved = await applicantWorkflowService.resolveWorkflowForCreation(data.job_position_id);
+  }
+
+  if (!preResolved) {
+    const defaultWf = await applicantWorkflowService.resolveDefaultWorkflow();
+    if (defaultWf) {
+      const stages = await applicantWorkflowService.getStagesForWorkflow(defaultWf.id);
+      if (stages && stages.length > 0) {
+        preResolved = { workflow: defaultWf, stages };
+      }
+    }
+  }
+
+  if (!preResolved) {
+    if (data.job_position_id) {
+      throw new Error(
+        "No recruitment workflow assigned to this job position and no default active workflow configured. Please assign a workflow to this job position or configure a default workflow.",
+      );
+    }
+    throw new Error(
+      "No job position selected and no default active workflow configured. Please select a job position with a workflow or configure a default workflow.",
+    );
+  }
+
+  console.log(
+    `[RECRUITMENT] Workflow resolved for applicant creation: "${preResolved.workflow.name}" (id=${preResolved.workflow.id}) with ${preResolved.stages.length} stages`,
+  );
+
   const applicant = await applicantModel.create(data);
+
   applicantModel.getActiveHRUserIds().then(userIds => {
     notifyParty(userIds, "New Applicant Registration", `${applicant.first_name} ${applicant.last_name} registered as applicant`, applicant.id);
   });
-  return applicant;
+
+  try {
+    await applicantWorkflowService.autoInitializeWorkflow(applicant, preResolved);
+    console.log(
+      `[RECRUITMENT] Workflow initialized for applicant #${applicant.id} using "${preResolved.workflow.name}"`,
+    );
+  } catch (err) {
+    console.error(`[RECRUITMENT] Workflow init error for applicant #${applicant.id}:`, err.message);
+  }
+
+  const result = await applicantModel.getById(applicant.id);
+  return result || applicant;
 };
 
 const update = async (id, data) => {
@@ -71,14 +236,35 @@ const update = async (id, data) => {
     notes: data.notes !== undefined ? data.notes : existing.notes,
     applied_date: data.applied_date !== undefined ? data.applied_date : existing.applied_date,
   };
-  return await applicantModel.update(id, merged);
+  if (data.status !== undefined) {
+    const newNormalized = normalizeApplicantStatus(data.status);
+    const oldNormalized = normalizeApplicantStatus(existing.status);
+    if (newNormalized === "Completed" && oldNormalized !== "Completed" && !(await hasApprovedHiringApproval(id))) {
+      throw new Error("Applicant requires an approved hiring approval before marking as Completed.");
+    }
+  }
+  const updated = await applicantModel.update(id, merged);
+  if (merged.status !== existing.status) {
+    autoCreateStageRecords(id, merged.status).catch(err =>
+      console.error("[RECRUITMENT] Auto-create stage records error:", err)
+    );
+  }
+  return updated;
 };
 
 const updateStatus = async (id, status) => {
   const existing = await applicantModel.getById(id);
   if (!existing) throw new Error("Applicant not found");
   const normalized = normalizeApplicantStatus(status);
+  if (existing.status === normalized) return existing;
+  const existingNormalized = normalizeApplicantStatus(existing.status);
+  if (normalized === "Completed" && existingNormalized !== "Completed" && !(await hasApprovedHiringApproval(id))) {
+    throw new Error("Applicant requires an approved hiring approval before marking as Completed.");
+  }
   const updated = await applicantModel.updateStatus(id, normalized);
+  autoCreateStageRecords(id, normalized).catch(err =>
+    console.error("[RECRUITMENT] Auto-create stage records error:", err)
+  );
   applicantModel.getActiveHRUserIds().then(userIds => {
     notifyParty(userIds, "Applicant Status Updated", `${existing.first_name} ${existing.last_name} status changed to ${status}`, updated.id);
   });
@@ -88,6 +274,17 @@ const updateStatus = async (id, status) => {
 const remove = async (id) => {
   const existing = await applicantModel.getById(id);
   if (!existing) throw new Error("Applicant not found");
+  if (existing.employee_id) {
+    throw new Error("Cannot delete applicant that has already been converted to an employee. Deactivate the employee record instead.");
+  }
+  if (existing.workflow_instance_id) {
+    throw new Error("Cannot delete applicant with active or completed workflow history. Archive the applicant instead.");
+  }
+  const relatedCounts = await applicantModel.getRelatedCounts(id);
+  if (relatedCounts.interviews > 0 || relatedCounts.approvals > 0 ||
+      relatedCounts.family > 0 || relatedCounts.education > 0 || relatedCounts.experience > 0) {
+    throw new Error("Cannot delete applicant with existing interview, approval, or biodata records. Archive the applicant instead.");
+  }
   return await applicantModel.remove(id);
 };
 
@@ -96,6 +293,9 @@ const convertToEmployee = async (applicantId, additionalData) => {
   if (!applicant) throw new Error("Applicant not found");
   if (applicant.status !== "Completed") throw new Error("Applicant status must be Completed before converting to employee");
   if (applicant.employee_id) throw new Error("This applicant has already been converted to an employee.");
+  if (!(await hasApprovedHiringApproval(applicantId))) {
+    throw new Error("Applicant requires an approved hiring approval before conversion to employee.");
+  }
 
   const client = await pool.connect();
   try {
@@ -119,6 +319,11 @@ const convertToEmployee = async (applicantId, additionalData) => {
         [existing.id, applicantId],
       );
       await client.query("COMMIT");
+
+      autoCreateStageRecords(applicantId, "Completed").catch(err =>
+        console.error("[RECRUITMENT] Auto-create stage records error:", err)
+      );
+
       applicantModel.getActiveHRUserIds().then(userIds => {
         notifyParty(userIds, "Applicant Hired", `${applicant.first_name} ${applicant.last_name} linked to existing employee ${existing.employee_code}`, applicantId);
       });
@@ -273,6 +478,10 @@ const convertToEmployee = async (applicantId, additionalData) => {
       );
     }
 
+    autoCreateStageRecords(applicantId, "Completed").catch(err =>
+      console.error("[RECRUITMENT] Auto-create stage records error:", err)
+    );
+
     applicantModel.getActiveHRUserIds().then(userIds => {
       notifyParty(userIds, "Applicant Hired", `${applicant.first_name} ${applicant.last_name} has been hired as ${newEmployee.employee_code}`, applicantId);
     });
@@ -359,4 +568,7 @@ module.exports = {
   convertToEmployee,
   generateEmployeeCode,
   getEmployeeCodeSettings,
+  autoCreateStageRecords,
+  repairApplicantStageRecords,
+  hasApprovedHiringApproval,
 };

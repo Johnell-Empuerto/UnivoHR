@@ -111,7 +111,7 @@ const getPositions = async () => {
 
 const createEmployee = async (data, client = null) => {
   const db = client || pool;
-  const branchId = data.branch_id || (await getDefaultBranchId());
+  const branchId = data.branch_id ?? (await getDefaultBranchId());
 
   const query = `
     INSERT INTO employees (
@@ -176,7 +176,7 @@ const createEmployee = async (data, client = null) => {
 
 const updateEmployee = async (id, data, client = null) => {
   const db = client || pool;
-  const branchId = data.branch_id || (await getDefaultBranchId());
+  const branchId = data.branch_id ?? (await getDefaultBranchId());
 
   const query = `
     UPDATE employees SET
@@ -235,7 +235,7 @@ const updateEmployee = async (id, data, client = null) => {
     data.marital_status || null,
     data.rfid_tag || null,
     data.fingerprint_id || null,
-    data.status,
+    data.status || "ACTIVE",
     data.sss_number || null,
     data.philhealth_number || null,
     data.hdmf_number || null,
@@ -269,7 +269,7 @@ const getEmployeeById = async (id) => {
 
 const getDefaultBranchId = async () => {
   const result = await pool.query(
-    `SELECT id FROM branches WHERE code = 'MAIN' LIMIT 1`,
+    `SELECT id FROM branches WHERE is_active = true ORDER BY id ASC LIMIT 1`,
   );
   return result.rows[0]?.id || null;
 };
@@ -421,11 +421,20 @@ const searchEmployees = async ({ page = 1, limit = 20, search, employee_code, em
   };
 };
 
+const deleteEmployee = async (id) => {
+  const result = await pool.query(
+    `UPDATE employees SET status = 'ARCHIVED' WHERE id = $1 RETURNING *`,
+    [id]
+  );
+  return result.rows[0];
+};
+
 module.exports = {
   getEmployees,
   createEmployee,
   updateEmployee,
   getEmployeeById,
+  deleteEmployee,
   updateEmploymentStatus,
   regularizeEmployee,
   updateEmployeeStatusToTerminated,

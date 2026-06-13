@@ -188,6 +188,37 @@ const deleteScoresByEvaluationId = async (evaluationId) => {
   await pool.query(`DELETE FROM employee_kpi_scores WHERE evaluation_id = $1`, [evaluationId]);
 };
 
+const getHistoryForHr = async (search = "", page = 1, limit = 10) => {
+  const offset = (page - 1) * limit;
+  let where = `WHERE eke.status = 'Approved'`;
+  const params = [];
+  let idx = 1;
+  if (search) {
+    where += ` AND (emp.first_name ILIKE $${idx} OR emp.last_name ILIKE $${idx} OR emp.employee_code ILIKE $${idx})`;
+    params.push(`%${search}%`);
+    idx++;
+  }
+  const data = await pool.query(
+    `SELECT eke.*, emp.first_name || ' ' || emp.last_name AS employee_name,
+            emp.employee_code AS employee_code,
+            ev.first_name || ' ' || ev.last_name AS evaluator_name,
+            kt.name AS template_name
+     FROM employee_kpi_evaluations eke
+     JOIN employees emp ON emp.id = eke.employee_id
+     JOIN employees ev ON ev.id = eke.evaluator_id
+     JOIN kpi_templates kt ON kt.id = eke.template_id
+     ${where} ORDER BY eke.updated_at DESC LIMIT $${idx} OFFSET $${idx + 1}`,
+    [...params, limit, offset],
+  );
+  const count = await pool.query(
+    `SELECT COUNT(*) FROM employee_kpi_evaluations eke
+     JOIN employees emp ON emp.id = eke.employee_id
+     ${where}`, params,
+  );
+  const total = parseInt(count.rows[0].count);
+  return { data: data.rows, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / limit) } };
+};
+
 const getPendingCountByEvaluator = async (evaluatorId) => {
   const result = await pool.query(
     `SELECT COUNT(*) FROM employee_kpi_evaluations WHERE evaluator_id = $1 AND status = 'Draft'`,
@@ -257,4 +288,5 @@ module.exports = {
   getPendingCountByEvaluator, checkExistingEvaluation,
   bulkCreateEvaluations,
   getUserIdsByEmployeeIds, getActiveHRUserIds,
+  getHistoryForHr,
 };

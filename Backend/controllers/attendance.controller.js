@@ -8,8 +8,6 @@ const timezoneResolver = require("../utils/timezone");
 // Create attendance (check-in / check-out logic)
 const createAttendance = async (req, res) => {
   try {
-    console.log(" REQUEST BODY:", req.body);
-
     const result = await attendanceService.createAttendance(req.body);
 
     if (result.id) {
@@ -464,9 +462,9 @@ const webClockOut = async (req, res) => {
     }
 
     const employeeId = req.user.employee_id;
-    const existingRecord = await attendanceModel.getTodayRecord(employeeId, new Date().toISOString());
-    const timezone = existingRecord?.timezone_used || await timezoneResolver.resolveEmployeeTimezone(employeeId);
+    const timezone = await timezoneResolver.resolveEmployeeTimezone(employeeId);
     const timestamp = new Date().toLocaleString('sv-SE', { timeZone: timezone }).replace(' ', 'T');
+    const existingRecord = await attendanceModel.getTodayRecord(employeeId, timestamp, timezone);
 
     const result = await attendanceService.webClockOut(employeeId, timestamp);
 

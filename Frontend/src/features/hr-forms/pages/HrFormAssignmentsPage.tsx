@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/Input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClipboardList, ChevronLeft, ChevronRight, Loader2, Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import Loader from "@/components/shared/Loader";
@@ -15,9 +17,9 @@ import EmptyState from "@/components/shared/EmptyState";
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
-    Pending: "bg-amber-100 text-amber-800",
-    Submitted: "bg-blue-100 text-blue-800",
-    Reviewed: "bg-green-100 text-green-800",
+    Pending: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+    Submitted: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    Reviewed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
   };
   return <Badge className={map[s] || ""}>{s}</Badge>;
 };
@@ -27,18 +29,14 @@ const HrFormAssignmentsPage = () => {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState("10");
   const [search, setSearch] = useState("");
 
-  const totalPages = Math.ceil(total / pageSize);
-  const start = (page - 1) * pageSize + 1;
-  const end = Math.min(page * pageSize, total);
+  const totalPages = Math.ceil(total / Number(pageSize));
+  const start = (page - 1) * Number(pageSize) + 1;
+  const end = Math.min(page * Number(pageSize), total);
 
   const goToPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
-  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setPageSize(Number(e.target.value));
-    setPage(1);
-  };
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisible = 5;
@@ -77,8 +75,8 @@ const HrFormAssignmentsPage = () => {
   useEffect(() => { fetchAssignments(); }, [page, pageSize, search]);
 
   const fetchAssignments = async () => {
-    try { setLoading(true); const r = await getAllHrAssignments(page, pageSize, search); setAssignments(r.data); setTotal(r.pagination.total); }
-    catch { setAssignments([]); }
+    try { setLoading(true); const r = await getAllHrAssignments(page, Number(pageSize), search); setAssignments(r.data); setTotal(r.pagination.total); }
+    catch { toast.error("Failed to load assignments"); setAssignments([]); }
     finally { setLoading(false); }
   };
 
@@ -148,9 +146,9 @@ const HrFormAssignmentsPage = () => {
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
-            <input placeholder="Search employee..." value={search}
+            <Input placeholder="Search employee..." value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="border rounded px-3 py-1.5 text-sm bg-background w-64" />
+              className="w-64" />
           </div>
           <Button onClick={handleOpenAssign} className="flex items-center gap-2"><Plus className="h-4 w-4" /> Assign Form</Button>
         </CardHeader>
@@ -165,7 +163,9 @@ const HrFormAssignmentsPage = () => {
                 <TableHeader>
                   <TableRow className="bg-muted">
                     <TableHead>Employee</TableHead>
+                    <TableHead>Department</TableHead>
                     <TableHead>Form</TableHead>
+                    <TableHead>Assigned Date</TableHead>
                     <TableHead>Due Date</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Submitted</TableHead>
@@ -175,8 +175,10 @@ const HrFormAssignmentsPage = () => {
                   {assignments.map((a: any) => (
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.employee_name}<p className="text-xs text-muted-foreground">{a.employee_code}</p></TableCell>
+                      <TableCell className="text-sm">{a.department || "-"}</TableCell>
                       <TableCell>{a.form_title}</TableCell>
-                      <TableCell>{a.due_date ? formatDateShort(a.due_date) : "-"}</TableCell>
+                      <TableCell className="text-sm">{a.created_at ? formatDateShort(a.created_at) : "-"}</TableCell>
+                      <TableCell className="text-sm">{a.due_date ? formatDateShort(a.due_date) : "-"}</TableCell>
                       <TableCell>{statusBadge(a.status)}</TableCell>
                       <TableCell>{a.submitted_at ? formatDateShort(a.submitted_at) : "-"}</TableCell>
                     </TableRow>
@@ -189,13 +191,15 @@ const HrFormAssignmentsPage = () => {
             <div className="p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Rows per page:</span>
-                <select value={pageSize} onChange={handleRowsPerPageChange}
-                  className="border rounded px-2 py-1 text-sm bg-background">
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                </select>
+                <Select value={pageSize} onValueChange={(v) => { setPageSize(v); setPage(1); }}>
+                  <SelectTrigger className="w-16 h-8"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="text-sm text-muted-foreground">
                 Showing {start} to {end} of {total} entries
@@ -229,16 +233,16 @@ const HrFormAssignmentsPage = () => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Form <span className="text-red-500">*</span></p>
-                <select value={assignForm.form_id} onChange={(e) => setAssignForm({ ...assignForm, form_id: e.target.value })}
-                  className="w-full border rounded px-2 py-1 bg-background">
-                  <option value="">Select form</option>
-                  {forms.map((f: any) => <option key={f.id} value={f.id}>{f.title}</option>)}
-                </select>
+                <Select value={assignForm.form_id} onValueChange={(v) => setAssignForm({ ...assignForm, form_id: v })}>
+                  <SelectTrigger className="w-full"><SelectValue placeholder="Select form" /></SelectTrigger>
+                  <SelectContent>
+                    {forms.map((f: any) => <SelectItem key={f.id} value={String(f.id)}>{f.title}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-1">Due Date</p>
-                <input type="date" value={assignForm.due_date} onChange={(e) => setAssignForm({ ...assignForm, due_date: e.target.value })}
-                  className="w-full border rounded px-2 py-1 bg-background" />
+                <Input type="date" value={assignForm.due_date} onChange={(e) => setAssignForm({ ...assignForm, due_date: e.target.value })} />
               </div>
             </div>
             <div className="border-t pt-3">
@@ -246,11 +250,11 @@ const HrFormAssignmentsPage = () => {
                 <p className="text-sm font-semibold">Select Employees</p>
                 <div className="relative flex-1 max-w-sm ml-auto">
                   <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input
+                  <Input
                     placeholder="Search by name, code, or department..."
                     value={empSearch}
                     onChange={(e) => { setEmpSearch(e.target.value); setEmpPage(1); setSelectedIds(new Set()); setAssignAllMatching(false); }}
-                    className="w-full border rounded pl-7 pr-7 py-1 text-sm bg-background"
+                    className="pl-7 pr-7"
                   />
                   {empSearch && (
                     <X
@@ -347,26 +351,20 @@ const HrFormAssignmentsPage = () => {
                   )}
                 </div>
               </div>
-              {empTotal > 20 && !assignAllMatching && (
+              {empTotal > 0 && !assignAllMatching && (
                 <div className="flex items-center justify-between mt-2 pt-2 border-t">
                   <div className="flex items-center gap-2">
-                    <button
-                      disabled={empPage <= 1}
-                      onClick={() => setEmpPage(p => Math.max(1, p - 1))}
-                      className="border rounded px-2 py-1 text-xs disabled:opacity-50"
-                    >
-                      Prev
-                    </button>
+                    <Button variant="outline" size="sm" onClick={() => setEmpPage(p => Math.max(1, p - 1))}
+                      disabled={empPage <= 1} className="h-7 text-xs px-2">
+                      <ChevronLeft className="h-3 w-3 mr-1" /> Prev
+                    </Button>
                     <span className="text-xs text-muted-foreground">
                       Page {empTotal > 0 ? empPage : 0} of {Math.ceil(empTotal / 20) || 1}
                     </span>
-                    <button
-                      disabled={empPage >= Math.ceil(empTotal / 20)}
-                      onClick={() => setEmpPage(p => p + 1)}
-                      className="border rounded px-2 py-1 text-xs disabled:opacity-50"
-                    >
-                      Next
-                    </button>
+                    <Button variant="outline" size="sm" onClick={() => setEmpPage(p => p + 1)}
+                      disabled={empPage >= Math.ceil(empTotal / 20)} className="h-7 text-xs px-2">
+                      Next <ChevronRight className="h-3 w-3 ml-1" />
+                    </Button>
                   </div>
                   <span className="text-xs text-muted-foreground">{empData.length} per page</span>
                 </div>

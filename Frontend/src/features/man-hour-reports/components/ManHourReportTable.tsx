@@ -12,6 +12,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Eye,
   CheckCircle,
   XCircle,
@@ -128,8 +135,8 @@ const ManHourReportTable = ({
     onPageChange(Math.max(1, Math.min(page, totalPages)));
   };
 
-  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newRows = Number(e.target.value);
+  const handleRowsPerPageChange = (value: string) => {
+    const newRows = Number(value);
     onRowsPerPageChange(newRows);
     onPageChange(1);
   };
@@ -174,8 +181,10 @@ const ManHourReportTable = ({
               <TableRow className="bg-muted">
                 <TableHead>Employee</TableHead>
                 <TableHead>Work Date</TableHead>
+                <TableHead>Task</TableHead>
                 <TableHead>Hours</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Submitted</TableHead>
                 {canApprove && <TableHead>Approval</TableHead>}
                 {(canEdit || canApprove) && <TableHead>Actions</TableHead>}
               </TableRow>
@@ -184,7 +193,7 @@ const ManHourReportTable = ({
             <TableBody>
               {data.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={canApprove || canEdit ? 6 : 5} className="text-center py-8">
+                  <TableCell colSpan={canApprove || canEdit ? 8 : 7} className="text-center py-8">
                     <EmptyState message="No man hour reports found" />
                   </TableCell>
                 </TableRow>
@@ -212,6 +221,10 @@ const ManHourReportTable = ({
 
                       <TableCell>{formatDate(report.work_date)}</TableCell>
 
+                      <TableCell className="max-w-40 truncate" title={report.task}>
+                        {report.task || "-"}
+                      </TableCell>
+
                       <TableCell>
                         <Badge
                           variant="outline"
@@ -222,6 +235,8 @@ const ManHourReportTable = ({
                       </TableCell>
 
                       <TableCell>{getStatusBadge(displayStatus)}</TableCell>
+
+                      <TableCell>{formatDate(report.created_at)}</TableCell>
 
                       {/* Admin Approval Buttons - Only show for PENDING reports */}
                       {canApprove && (
@@ -309,16 +324,17 @@ const ManHourReportTable = ({
               <span className="text-sm text-muted-foreground">
                 Rows per page:
               </span>
-              <select
-                value={rowsPerPage}
-                onChange={handleRowsPerPageChange}
-                className="border rounded px-2 py-1 text-sm bg-background"
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
+              <Select value={String(rowsPerPage)} onValueChange={handleRowsPerPageChange}>
+                <SelectTrigger className="w-16 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Showing X to Y of Z */}

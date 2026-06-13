@@ -9,6 +9,10 @@ const getEmployees = async (page, limit, search, status, allowedBranchIds, depar
   return await employeeModel.getEmployees(page, limit, search, status, allowedBranchIds, department, position);
 };
 
+const getEmployeeById = async (id) => {
+  return await employeeModel.getEmployeeById(id);
+};
+
 const getFilterOptions = async () => {
   const [departments, positions] = await Promise.all([
     employeeModel.getDepartments(),
@@ -23,6 +27,12 @@ const createEmployee = async (data) => {
     const gen = await generateEmployeeCode();
     data.employee_code = gen.code;
     generatedCode = gen.number;
+  }
+
+  if (data.branch_id === undefined || data.branch_id === null || data.branch_id === "") {
+    data.branch_id = null;
+  } else {
+    data.branch_id = Number(data.branch_id);
   }
 
   const employmentStatus = data.employment_status?.toUpperCase() || EMPLOYMENT_STATUS.REGULAR;
@@ -93,6 +103,13 @@ const createEmployee = async (data) => {
 const updateEmployee = async (id, data) => {
   const currentEmployee = await employeeModel.getEmployeeById(id);
 
+  if (!data.employee_code && currentEmployee) {
+    data.employee_code = currentEmployee.employee_code;
+  }
+  if (!data.status && currentEmployee) {
+    data.status = currentEmployee.status;
+  }
+
   if (data.employment_status) {
     const employmentStatus = data.employment_status.toUpperCase();
 
@@ -115,9 +132,15 @@ const updateEmployee = async (id, data) => {
     }
   }
 
+  if (data.branch_id === undefined) {
+    data.branch_id = currentEmployee?.branch_id ?? null;
+  } else if (data.branch_id === "" || data.branch_id === null) {
+    data.branch_id = null;
+  } else {
+    data.branch_id = Number(data.branch_id);
+  }
+
   const isBranchChanging =
-    data.branch_id !== undefined &&
-    data.branch_id !== null &&
     currentEmployee &&
     Number(currentEmployee.branch_id) !== Number(data.branch_id);
 
@@ -125,7 +148,7 @@ const updateEmployee = async (id, data) => {
     return await employeeModel.updateEmployee(id, data);
   }
 
-  const newBranchId = Number(data.branch_id);
+  const newBranchId = data.branch_id;
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -139,7 +162,7 @@ const updateEmployee = async (id, data) => {
 
     if (userResult.rows.length > 0) {
       const user = userResult.rows[0];
-      if (user.role !== "ADMIN") {
+      if (user.role !== "ADMIN" && newBranchId) {
         const existing = await client.query(
           `SELECT id FROM user_branch_access WHERE user_id = $1 AND branch_id = $2`,
           [user.id, currentEmployee.branch_id],
@@ -191,13 +214,19 @@ const searchEmployees = async (params) => {
   return await employeeModel.searchEmployees(params);
 };
 
+const deleteEmployee = async (id) => {
+  return await employeeModel.deleteEmployee(id);
+};
+
 module.exports = {
   getEmployees,
   createEmployee,
   updateEmployee,
+  getEmployeeById,
   getProbationaryEmployeesDueForRegularization,
   approveRegularization,
   getEmploymentStats,
   getFilterOptions,
   searchEmployees,
+  deleteEmployee,
 };

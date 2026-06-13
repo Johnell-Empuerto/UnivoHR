@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const controller = require("../controllers/device.controller");
-const deviceAuth = require("../middleware/deviceAuth.middleware");
+const perDeviceAuth = require("../middleware/perDeviceAuth.middleware");
+const { deviceLogLimiter } = require("../middleware/rateLimit.middleware");
 
-router.post("/logs", deviceAuth, controller.receiveLogs);
+router.post("/logs", perDeviceAuth, deviceLogLimiter, controller.receiveLogs);
 
 module.exports = router;

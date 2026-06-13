@@ -29,6 +29,9 @@ const create = async (req, res) => {
 const update = async (req, res) => {
   try {
     const oldValues = await audit.fetchOldValues("applicant_approvals", req.params.id);
+    if (!req.body.approved_by && (req.body.decision === "APPROVED" || req.body.decision === "REJECTED")) {
+      req.body.approved_by = req.user?.employee_id || req.body.approved_by;
+    }
     const approval = await applicantApprovalService.update(req.params.id, req.body);
     audit.auditLog(req, {
       action: "UPDATE",

@@ -6,12 +6,20 @@ import {
 } from "@/services/applicantService";
 import { getActiveJobPositions } from "@/services/jobPositionService";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useAuth } from "@/app/providers/AuthProvider";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/Input";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
 import { formatDateShort } from "@/utils/formatDate";
@@ -32,6 +40,8 @@ interface Applicant {
   applied_date: string;
   job_title: string | null;
   job_department: string | null;
+  workflow_instance_id: number | null;
+  workflow_name: string | null;
 }
 
 interface JobPosition {
@@ -59,21 +69,19 @@ const ApplicantsPage = () => {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState("10");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [jobFilter, setJobFilter] = useState("");
   const [jobPositions, setJobPositions] = useState<JobPosition[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<Applicant | null>(null);
 
-  const totalPages = Math.ceil(total / pageSize);
-  const start = (page - 1) * pageSize + 1;
-  const end = Math.min(page * pageSize, total);
+  const pageSizeNum = Number(pageSize);
+  const totalPages = Math.ceil(total / pageSizeNum);
+  const start = (page - 1) * pageSizeNum + 1;
+  const end = Math.min(page * pageSizeNum, total);
 
   const goToPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
-  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setPageSize(Number(e.target.value));
-    setPage(1);
-  };
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisible = 5;
@@ -103,7 +111,7 @@ const ApplicantsPage = () => {
   const fetchApplicants = async () => {
     try {
       setLoading(true);
-      const result = await getApplicants(page, pageSize, search, statusFilter, jobFilter);
+      const result = await getApplicants(page, pageSizeNum, search, statusFilter, jobFilter);
       setApplicants(result.data);
       setTotal(result.pagination.total);
     } catch (err: any) {
@@ -120,14 +128,16 @@ const ApplicantsPage = () => {
     } catch { /* ignore */ }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Delete this applicant? This will also remove all associated data.")) return;
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteApplicant(id);
+      await deleteApplicant(deleteTarget.id);
       toast.success("Applicant deleted");
+      setDeleteTarget(null);
       fetchApplicants();
     } catch (err: any) {
-      toast.error(err.message || "Delete failed");
+      toast.error(err?.response?.data?.message || err.message || "Delete failed");
+      setDeleteTarget(null);
     }
   };
 
@@ -146,35 +156,37 @@ const ApplicantsPage = () => {
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-2 flex-wrap">
-            <input
+            <Input
               placeholder="Search applicants..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="border rounded px-3 py-1.5 text-sm bg-background w-56"
+              className="w-56"
             />
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="border rounded px-3 py-1.5 text-sm bg-background"
-            >
-              <option value="">All Status</option>
-              <option value="Initial">Initial</option>
-              <option value="Pending">Pending</option>
-              <option value="Final Interview">Final Interview</option>
-              <option value="Exam Interview">Exam Interview</option>
-              <option value="Completed">Completed</option>
-              <option value="Fail">Fail</option>
-            </select>
-            <select
-              value={jobFilter}
-              onChange={(e) => { setJobFilter(e.target.value); setPage(1); }}
-              className="border rounded px-3 py-1.5 text-sm bg-background"
-            >
-              <option value="">All Positions</option>
-              {jobPositions.map((jp) => (
-                <option key={jp.id} value={jp.id}>{jp.title}</option>
-              ))}
-            </select>
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="Initial">Initial</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Final Interview">Final Interview</SelectItem>
+                <SelectItem value="Exam Interview">Exam Interview</SelectItem>
+                <SelectItem value="Completed">Completed</SelectItem>
+                <SelectItem value="Fail">Fail</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={jobFilter} onValueChange={(v) => { setJobFilter(v); setPage(1); }}>
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder="All Positions" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Positions</SelectItem>
+                {jobPositions.map((jp) => (
+                  <SelectItem key={jp.id} value={String(jp.id)}>{jp.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <Button onClick={() => navigate("/recruitment/applicants/new")} className="flex items-center gap-2">
             <Plus className="h-4 w-4" /> Add Applicant
@@ -194,6 +206,7 @@ const ApplicantsPage = () => {
                     <TableHead>Position</TableHead>
                     <TableHead>Applied</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Workflow</TableHead>
                     <TableHead>Rating</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -207,6 +220,11 @@ const ApplicantsPage = () => {
                       <TableCell>{a.job_title || "-"}</TableCell>
                       <TableCell>{a.applied_date ? formatDateShort(a.applied_date) : "-"}</TableCell>
                       <TableCell>{statusBadge(a.status)}</TableCell>
+                      <TableCell>
+                        <Badge className={a.workflow_instance_id ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" : "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"}>
+                          {a.workflow_instance_id ? "Dynamic" : "Legacy"}
+                        </Badge>
+                      </TableCell>
                       <TableCell>{a.rating || "-"}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -214,7 +232,7 @@ const ApplicantsPage = () => {
                             <Eye className="h-4 w-4" />
                           </Button>
                           {canDelete && (
-                            <Button variant="ghost" size="sm" title="Delete" onClick={() => handleDelete(a.id)}>
+                            <Button variant="ghost" size="sm" title="Delete" onClick={() => setDeleteTarget(a)}>
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
                           )}
@@ -230,13 +248,17 @@ const ApplicantsPage = () => {
             <div className="p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Rows per page:</span>
-                <select value={pageSize} onChange={handleRowsPerPageChange}
-                  className="border rounded px-2 py-1 text-sm bg-background">
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                </select>
+                <Select value={pageSize} onValueChange={(v) => { setPageSize(v); setPage(1); }}>
+                  <SelectTrigger className="w-16 h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="text-sm text-muted-foreground">
                 Showing {start} to {end} of {total} entries
@@ -260,6 +282,23 @@ const ApplicantsPage = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Applicant</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{deleteTarget?.first_name} {deleteTarget?.last_name}</strong>?
+              Applicants with workflow history, interviews, approvals, or conversion records cannot be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

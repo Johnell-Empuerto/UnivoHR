@@ -453,7 +453,10 @@ const getAttendanceReport = async (user, { reportType, status, department, branc
   const offset = (page - 1) * limit;
 
   const data = await pool.query(`
-    SELECT a.id, a.employee_id, a.date, a.status, a.check_in_time, a.check_out_time, a.work_fraction,
+    SELECT a.id, a.employee_id, a.date, a.status, a.check_in_time, a.check_out_time,
+           a.check_in_time_utc, a.check_out_time_utc, a.timezone_used,
+           a.branch_id AS attendance_branch_id, a.device_id,
+           a.work_fraction,
            e.first_name, e.last_name, e.employee_code, e.department, b.name AS branch_name
     FROM attendance a
     JOIN employees e ON e.id = a.employee_id

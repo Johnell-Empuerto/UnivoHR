@@ -1,5 +1,6 @@
 const hrPolicyService = require("../services/hrPolicy.service");
 const audit = require("../services/audit.service");
+const { hasPermission } = require("../services/permission.service");
 
 const getAll = async (req, res) => {
   try {
@@ -14,10 +15,8 @@ const getById = async (req, res) => {
   try {
     const policy = await hrPolicyService.getById(req.params.id);
 
-    if (
-      req.user.role !== "ADMIN" &&
-      !policy.is_active
-    ) {
+    const canManage = await hasPermission(req.user, "hr_policies.manage");
+    if (!canManage && !policy.is_active) {
       return res.status(404).json({ message: "Policy not found" });
     }
 

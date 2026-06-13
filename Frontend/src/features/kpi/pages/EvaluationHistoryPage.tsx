@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { getKpiHistory, getKpiEvaluationById, getFriendlyKpiError } from "@/services/kpiService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
-import { History, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { History, Eye, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { formatDateShort } from "@/utils/formatDate";
@@ -27,10 +29,6 @@ const EvaluationHistoryPage = () => {
   const end = Math.min(page * pageSize, total);
 
   const goToPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
-  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setPageSize(Number(e.target.value));
-    setPage(1);
-  };
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisible = 5;
@@ -55,19 +53,24 @@ const EvaluationHistoryPage = () => {
   const [detailDialog, setDetailDialog] = useState(false);
   const [detail, setDetail] = useState<any>(null);
 
-  const [viewEmployeeId, setViewEmployeeId] = useState<number | undefined>(undefined);
-  const [searchEmp, setSearchEmp] = useState("");
+  const [searchText, setSearchText] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
 
-  useEffect(() => { fetchHistory(); }, [page, pageSize, viewEmployeeId]);
+  useEffect(() => { fetchHistory(); }, [page, pageSize, activeSearch]);
 
   const fetchHistory = async () => {
     try {
       setLoading(true);
-      const r = await getKpiHistory(viewEmployeeId, page, pageSize);
+      const r = await getKpiHistory(undefined, page, pageSize, activeSearch);
       setRecords(Array.isArray(r) ? r : r.data || []);
       setTotal(r.pagination?.total || 0);
     } catch { setRecords([]); }
     finally { setLoading(false); }
+  };
+
+  const handleSearch = () => {
+    setActiveSearch(searchText.trim());
+    setPage(1);
   };
 
   const handleViewDetail = async (id: number) => {
@@ -91,11 +94,17 @@ const EvaluationHistoryPage = () => {
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             {isHr && (
-              <input placeholder="Search by employee code or name..."
-                value={searchEmp}
-                onChange={(e) => setSearchEmp(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") setViewEmployeeId(undefined); }}
-                className="border rounded px-3 py-1.5 text-sm bg-background w-64" />
+              <div className="flex items-center gap-2">
+                <div className="relative w-64">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="Search by employee name or code..." value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
+                    className="pl-8" />
+                </div>
+                <Button variant="outline" size="sm" onClick={handleSearch}>Search</Button>
+                {activeSearch && <Button variant="ghost" size="sm" onClick={() => { setSearchText(""); setActiveSearch(""); setPage(1); }}>Clear</Button>}
+              </div>
             )}
           </div>
         </CardHeader>
@@ -140,13 +149,15 @@ const EvaluationHistoryPage = () => {
             <div className="p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Rows per page:</span>
-                <select value={pageSize} onChange={handleRowsPerPageChange}
-                  className="border rounded px-2 py-1 text-sm bg-background">
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                </select>
+                <Select value={String(pageSize)} onValueChange={(val) => { setPageSize(Number(val)); setPage(1); }}>
+                  <SelectTrigger className="w-16 h-8"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="text-sm text-muted-foreground">
                 Showing {start} to {end} of {total} entries

@@ -16,6 +16,13 @@ import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, Loader2, Plus, FileText } from "lucide-react";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -31,6 +38,8 @@ import ManHourReportDrawer from "../components/ManHourReportDrawer";
 import MissingManHoursTab from "../components/MissingManHoursTab";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getEmployeeShiftForDate } from "@/services/shiftService";
+import type { Shift } from "@/services/shiftService";
 
 type ManHourReport = {
   id: number;
@@ -51,8 +60,25 @@ type ManHourReport = {
   }>;
 };
 
+function generateDetailsFromShift(shift: Shift | null): Array<{ time_from: string; time_to: string; activity: string }> {
+  if (!shift) {
+    return [{ time_from: "09:00", time_to: "17:00", activity: "" }];
+  }
+  const start = shift.start_time.slice(0, 5);
+  const end = shift.end_time.slice(0, 5);
+  if (shift.break_start && shift.break_end) {
+    const breakStart = shift.break_start.slice(0, 5);
+    const breakEnd = shift.break_end.slice(0, 5);
+    return [
+      { time_from: start, time_to: breakStart, activity: "" },
+      { time_from: breakEnd, time_to: end, activity: "" },
+    ];
+  }
+  return [{ time_from: start, time_to: end, activity: "" }];
+}
+
 const MyManHoursReport = () => {
-  useAuth();
+  const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
@@ -61,6 +87,7 @@ const MyManHoursReport = () => {
   const [data, setData] = useState<ManHourReport[]>([]);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -70,10 +97,13 @@ const MyManHoursReport = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     work_date: "",
-    details: [{ time_from: "09:00", time_to: "17:00", activity: "" }],
+    details: [] as Array<{ time_from: string; time_to: string; activity: string }>,
     remarks: "",
   });
   const [formProcessing, setFormProcessing] = useState(false);
+  const [shiftInfo, setShiftInfo] = useState<Shift | null>(null);
+  const [entriesDirty, setEntriesDirty] = useState(false);
+  const [shiftLoaded, setShiftLoaded] = useState(false);
 
   // Drawer state
   const [selectedReport, setSelectedReport] = useState<ManHourReport | null>(
@@ -97,7 +127,7 @@ const MyManHoursReport = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await getMyManHourReports(currentPage, rowsPerPage, search);
+        const res = await getMyManHourReports(currentPage, rowsPerPage, search, statusFilter);
 
         setData(res.data);
         setTotalPages(res.pagination.totalPages);
@@ -109,26 +139,68 @@ const MyManHoursReport = () => {
       }
     };
     fetchData();
-  }, [currentPage, rowsPerPage, search]);
+  }, [currentPage, rowsPerPage, search, statusFilter]);
+
+  // Fetch employee shift for the selected work date
+  useEffect(() => {
+    if (!formData.work_date || !user?.employee_id) {
+      setShiftInfo(null);
+      setShiftLoaded(false);
+      return;
+    }
+    setShiftLoaded(false);
+    let cancelled = false;
+    const fetchShift = async () => {
+      try {
+        const shift = await getEmployeeShiftForDate(
+          user.employee_id,
+          formData.work_date,
+        );
+        if (!cancelled) setShiftInfo(shift);
+      } catch {
+        if (!cancelled) setShiftInfo(null);
+      } finally {
+        if (!cancelled) setShiftLoaded(true);
+      }
+    };
+    fetchShift();
+    return () => { cancelled = true; };
+  }, [formData.work_date, user?.employee_id]);
+
+  // Auto-fill entries from shift when form opens or date changes
+  useEffect(() => {
+    if (!isFormOpen || isEditing || entriesDirty || !formData.work_date) return;
+    if (!shiftLoaded) return;
+
+    const newDetails = generateDetailsFromShift(shiftInfo);
+    setFormData((prev) => ({ ...prev, details: newDetails }));
+  }, [shiftInfo, isFormOpen, isEditing, entriesDirty, formData.work_date, shiftLoaded]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value);
   };
 
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value === "all" ? "" : value);
+    setCurrentPage(1);
+  };
+
   const handleClearFilters = () => {
     setSearchInput("");
     setSearch("");
+    setStatusFilter("");
     setCurrentPage(1);
   };
 
   const handleOpenForm = () => {
     setFormData({
       work_date: new Date().toISOString().split("T")[0],
-      details: [{ time_from: "09:00", time_to: "17:00", activity: "" }],
+      details: [],
       remarks: "",
     });
     setIsEditing(false);
     setEditingId(null);
+    setEntriesDirty(false);
     setIsFormOpen(true);
   };
 
@@ -140,7 +212,7 @@ const MyManHoursReport = () => {
       setFormData({
         work_date: fullReport.work_date,
         details: fullReport.details?.map((d: any) => ({
-          time_from: d.time_from.substring(0, 5), // Ensure HH:MM format
+          time_from: d.time_from.substring(0, 5),
           time_to: d.time_to.substring(0, 5),
           activity: d.activity,
         })) || [{ time_from: "09:00", time_to: "17:00", activity: "" }],
@@ -148,6 +220,7 @@ const MyManHoursReport = () => {
       });
       setIsEditing(true);
       setEditingId(report.id);
+      setEntriesDirty(true);
       setIsFormOpen(true);
     } catch (err: any) {
       toast.error("Failed to load report data for editing");
@@ -229,9 +302,12 @@ const MyManHoursReport = () => {
       }
 
       setIsFormOpen(false);
+      setShiftInfo(null);
+      setShiftLoaded(false);
+      setEntriesDirty(false);
       setFormData({
         work_date: "",
-        details: [{ time_from: "09:00", time_to: "17:00", activity: "" }],
+        details: [],
         remarks: "",
       });
 
@@ -260,9 +336,23 @@ const MyManHoursReport = () => {
     }
   };
 
+  const handleTimeEntriesChange = (details: ManHourReport["details"]) => {
+    setFormData((prev) => ({ ...prev, details: details ?? [] }));
+    setEntriesDirty(true);
+  };
+
+  const handleApplyShift = () => {
+    if (!shiftInfo) return;
+    const newDetails = generateDetailsFromShift(shiftInfo);
+    setFormData((prev) => ({ ...prev, details: newDetails }));
+    setEntriesDirty(false);
+  };
+
   // Dummy handlers for table (not used for employee view)
   const handleApprove = () => {};
   const handleReject = () => {};
+
+  const isFallback = isFormOpen && !isEditing && shiftLoaded && !shiftInfo;
 
   if (error) return <ErrorMessage title="Error" message={error} />;
 
@@ -310,7 +400,23 @@ const MyManHoursReport = () => {
                     className="pl-9"
                   />
                 </div>
-                {searchInput && (
+
+                <Select
+                  value={statusFilter || "all"}
+                  onValueChange={handleStatusChange}
+                >
+                  <SelectTrigger className="w-37.5">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="SUBMITTED">Pending</SelectItem>
+                    <SelectItem value="APPROVED">Approved</SelectItem>
+                    <SelectItem value="REJECTED">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {(searchInput || statusFilter) && (
                   <Button variant="ghost" onClick={handleClearFilters}>
                     Clear Filters
                   </Button>
@@ -348,7 +454,14 @@ const MyManHoursReport = () => {
       </Tabs>
 
       {/* Add/Edit Form Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <Dialog open={isFormOpen} onOpenChange={(open) => {
+        if (!open) {
+          setShiftInfo(null);
+          setShiftLoaded(false);
+          setEntriesDirty(false);
+        }
+        setIsFormOpen(open);
+      }}>
         <DialogContent className="max-w-lg! w-full sm:max-w-lg! max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
@@ -362,7 +475,7 @@ const MyManHoursReport = () => {
           </DialogHeader>
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
-              <div>
+              <div className="space-y-1">
                 <Label htmlFor="work_date">Work Date *</Label>
                 <Input
                   id="work_date"
@@ -378,11 +491,15 @@ const MyManHoursReport = () => {
 
               <TimeEntryForm
                 details={formData.details}
-                onChange={(details) => setFormData({ ...formData, details })}
+                onChange={handleTimeEntriesChange}
                 disabled={false}
+                shiftInfo={shiftInfo}
+                entriesDirty={entriesDirty}
+                onApplyShift={handleApplyShift}
+                isFallback={isFallback}
               />
 
-              <div>
+              <div className="space-y-1">
                 <Label htmlFor="remarks">Remarks (Optional)</Label>
                 <Textarea
                   id="remarks"

@@ -1,6 +1,3 @@
-// components/settings/ApprovalSettings.tsx
-"use client";
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
@@ -16,6 +13,7 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
+  User,
 } from "lucide-react";
 import {
   Select,
@@ -41,7 +39,8 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { getActiveEmployees } from "@/services/overtimeService";
+import EmployeePickerDialog from "@/components/shared/EmployeePickerDialog";
+import type { EmployeeSearchResult } from "@/services/overtimeService";
 import {
   getApprovers,
   createApprover,
@@ -55,23 +54,15 @@ type ApproverMapping = {
   employee_name: string;
   employee_code: string;
   approver_id: number;
+  approver_employee_id?: number;
   approver_name: string;
   approver_code: string;
   approval_type: "OVERTIME" | "LEAVE" | "MAN_HOUR";
   created_at: string;
 };
 
-type Employee = {
-  id: number;
-  name: string;
-  employee_code: string;
-  department: string;
-};
-
 const ApprovalSettings = () => {
   const [data, setData] = useState<ApproverMapping[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [approvers, setApprovers] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -82,51 +73,26 @@ const ApprovalSettings = () => {
   const [totalRecords, setTotalRecords] = useState(0);
   const [rowsPerPage] = useState(10);
 
-  // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ApproverMapping | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Search states for dropdowns
-  const [employeeSearch, setEmployeeSearch] = useState("");
-  const [approverSearch, setApproverSearch] = useState("");
-  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
-  const [filteredApprovers, setFilteredApprovers] = useState<Employee[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeSearchResult | null>(null);
+  const [selectedApprover, setSelectedApprover] = useState<EmployeeSearchResult | null>(null);
+  const [employeePickerOpen, setEmployeePickerOpen] = useState(false);
+  const [approverPickerOpen, setApproverPickerOpen] = useState(false);
 
-  // Form state
   const [formData, setFormData] = useState({
     employee_id: "",
     approver_id: "",
     approval_type: "OVERTIME",
   });
 
-  // Fetch employees from API
-  useEffect(() => {
-    const fetchEmployees = async () => {
-      try {
-        const employeesRes = await getActiveEmployees();
-        setEmployees(employeesRes);
-        setApprovers(employeesRes);
-        setFilteredEmployees(employeesRes);
-        setFilteredApprovers(employeesRes);
-      } catch (err: any) {
-        toast.error("Failed to load employees");
-      }
-    };
-    fetchEmployees();
-  }, []);
-
-  // Fetch approver mappings
   useEffect(() => {
     const fetchApprovers = async () => {
       try {
         setLoading(true);
-        const res = await getApprovers(
-          currentPage,
-          rowsPerPage,
-          search,
-          typeFilter,
-        );
+        const res = await getApprovers(currentPage, rowsPerPage, search, typeFilter);
         setData(res.data);
         setTotalPages(res.pagination.totalPages);
         setTotalRecords(res.pagination.total);
@@ -140,43 +106,10 @@ const ApprovalSettings = () => {
     fetchApprovers();
   }, [currentPage, rowsPerPage, search, typeFilter]);
 
-  // Filter employees for dropdown based on search
-  useEffect(() => {
-    if (employeeSearch.trim() === "") {
-      setFilteredEmployees(employees);
-    } else {
-      const filtered = employees.filter(
-        (emp) =>
-          emp.name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
-          emp.employee_code
-            .toLowerCase()
-            .includes(employeeSearch.toLowerCase()),
-      );
-      setFilteredEmployees(filtered);
-    }
-  }, [employeeSearch, employees]);
-
-  // Filter approvers for dropdown based on search
-  useEffect(() => {
-    if (approverSearch.trim() === "") {
-      setFilteredApprovers(approvers);
-    } else {
-      const filtered = approvers.filter(
-        (app) =>
-          app.name.toLowerCase().includes(approverSearch.toLowerCase()) ||
-          app.employee_code
-            .toLowerCase()
-            .includes(approverSearch.toLowerCase()),
-      );
-      setFilteredApprovers(filtered);
-    }
-  }, [approverSearch, approvers]);
-
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value);
   };
 
-  // Debounce search
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       setSearch(searchInput);
@@ -207,21 +140,47 @@ const ApprovalSettings = () => {
 
   const handleAddNew = () => {
     setEditingItem(null);
+    setSelectedEmployee(null);
+    setSelectedApprover(null);
     setFormData({
       employee_id: "",
       approver_id: "",
       approval_type: "OVERTIME",
     });
-    setEmployeeSearch("");
-    setApproverSearch("");
     setIsModalOpen(true);
   };
 
   const handleEdit = (item: ApproverMapping) => {
     setEditingItem(item);
+    const empNameParts = item.employee_name.split(" ");
+    const appNameParts = item.approver_name.split(" ");
+    setSelectedEmployee({
+      id: item.employee_id,
+      employee_code: item.employee_code,
+      first_name: empNameParts[0],
+      last_name: empNameParts.slice(1).join(" "),
+      department: null,
+      position: null,
+      employment_status: null,
+      status: "ACTIVE",
+      branch_id: null,
+      branch_name: null,
+    });
+    setSelectedApprover({
+      id: item.approver_employee_id || item.approver_id,
+      employee_code: item.approver_code,
+      first_name: appNameParts[0],
+      last_name: appNameParts.slice(1).join(" "),
+      department: null,
+      position: null,
+      employment_status: null,
+      status: "ACTIVE",
+      branch_id: null,
+      branch_name: null,
+    });
     setFormData({
       employee_id: item.employee_id.toString(),
-      approver_id: item.approver_id.toString(),
+      approver_id: (item.approver_employee_id || item.approver_id).toString(),
       approval_type: item.approval_type,
     });
     setIsModalOpen(true);
@@ -239,11 +198,26 @@ const ApprovalSettings = () => {
     }
   };
 
+  const handleSelectEmployee = (emp: EmployeeSearchResult) => {
+    setSelectedEmployee(emp);
+    setFormData((prev) => ({ ...prev, employee_id: emp.id.toString() }));
+  };
+
+  const handleSelectApprover = (emp: EmployeeSearchResult) => {
+    setSelectedApprover(emp);
+    setFormData((prev) => ({ ...prev, approver_id: emp.id.toString() }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.employee_id || !formData.approver_id) {
       toast.error("Please select both employee and approver");
+      return;
+    }
+
+    if (formData.employee_id === formData.approver_id) {
+      toast.error("Employee and approver cannot be the same person");
       return;
     }
 
@@ -258,12 +232,7 @@ const ApprovalSettings = () => {
         });
         toast.success("Approver mapping updated successfully");
 
-        const res = await getApprovers(
-          currentPage,
-          rowsPerPage,
-          search,
-          typeFilter,
-        );
+        const res = await getApprovers(currentPage, rowsPerPage, search, typeFilter);
         setData(res.data);
       } else {
         await createApprover({
@@ -313,8 +282,7 @@ const ApprovalSettings = () => {
       } else {
         pageNumbers.push(1);
         pageNumbers.push("...");
-        for (let i = currentPage - 1; i <= currentPage + 1; i++)
-          pageNumbers.push(i);
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pageNumbers.push(i);
         pageNumbers.push("...");
         pageNumbers.push(totalPages);
       }
@@ -344,17 +312,12 @@ const ApprovalSettings = () => {
           <Users className="h-5 w-5" />
           Employee Approver Mappings
         </CardTitle>
-        <Button
-          onClick={handleAddNew}
-          className="flex items-center gap-2"
-          size="sm"
-        >
+        <Button onClick={handleAddNew} className="flex items-center gap-2" size="sm">
           <Plus className="h-4 w-4" />
           Add Approver
         </Button>
       </CardHeader>
       <CardContent>
-        {/* Filters */}
         <div className="flex flex-wrap items-center gap-4 mb-6">
           <div className="relative flex-1 min-w-50">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -366,10 +329,7 @@ const ApprovalSettings = () => {
             />
           </div>
 
-          <Select
-            value={typeFilter || "all"}
-            onValueChange={handleTypeFilterChange}
-          >
+          <Select value={typeFilter || "all"} onValueChange={handleTypeFilterChange}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="All Types" />
             </SelectTrigger>
@@ -393,13 +353,10 @@ const ApprovalSettings = () => {
           </Button>
         </div>
 
-        {/* Loading Indicator */}
         {loading && (
           <div className="flex items-center justify-center py-4">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-            <span className="text-sm text-muted-foreground">
-              Loading approver mappings...
-            </span>
+            <span className="text-sm text-muted-foreground">Loading approver mappings...</span>
           </div>
         )}
 
@@ -421,40 +378,23 @@ const ApprovalSettings = () => {
                 <TableBody>
                   {data.length > 0 ? (
                     data.map((item) => (
-                      <TableRow
-                        key={item.id}
-                        className="border-b border-gray-400/50 dark:border-gray-400/50"
-                      >
-                        <TableCell className="font-medium">
-                          {item.employee_name}
-                        </TableCell>
+                      <TableRow key={item.id} className="border-b border-gray-400/50 dark:border-gray-400/50">
+                        <TableCell className="font-medium">{item.employee_name}</TableCell>
                         <TableCell>{item.employee_code}</TableCell>
                         <TableCell>{item.approver_name}</TableCell>
                         <TableCell>{item.approver_code}</TableCell>
                         <TableCell>
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-semibold ${getApprovalTypeBadge(item.approval_type)}`}
-                          >
-                            {item.approval_type === "MAN_HOUR"
-                              ? "MAN HOUR"
-                              : item.approval_type}
+                          <span className={`px-2 py-1 rounded text-xs font-semibold ${getApprovalTypeBadge(item.approval_type)}`}>
+                            {item.approval_type === "MAN_HOUR" ? "MAN HOUR" : item.approval_type}
                           </span>
                         </TableCell>
-                        <TableCell>
-                          {formatDateShort(item.created_at)}
-                        </TableCell>
+                        <TableCell>{formatDateShort(item.created_at)}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <button
-                              className="p-1 rounded hover:bg-muted transition"
-                              onClick={() => handleEdit(item)}
-                            >
+                            <button className="p-1 rounded hover:bg-muted transition" onClick={() => handleEdit(item)}>
                               <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
                             </button>
-                            <button
-                              className="p-1 rounded hover:bg-red-100 transition"
-                              onClick={() => handleDelete(item.id)}
-                            >
+                            <button className="p-1 rounded hover:bg-red-100 transition" onClick={() => handleDelete(item.id)}>
                               <Trash2 className="h-4 w-4 text-red-600" />
                             </button>
                           </div>
@@ -463,10 +403,7 @@ const ApprovalSettings = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell
-                        colSpan={7}
-                        className="text-center py-8 text-muted-foreground"
-                      >
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         No approver mappings found
                       </TableCell>
                     </TableRow>
@@ -475,31 +412,19 @@ const ApprovalSettings = () => {
               </Table>
             </div>
 
-            {/* Pagination Controls */}
             {totalRecords > 0 && (
               <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    Rows per page:
-                  </span>
+                  <span className="text-sm text-muted-foreground">Rows per page:</span>
                   <span className="text-sm">{rowsPerPage}</span>
                 </div>
-
                 <div className="text-sm text-muted-foreground">
                   Showing {start} to {end} of {totalRecords} entries
                 </div>
-
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => goToPage(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="h-8 w-8 p-0"
-                  >
+                  <Button variant="outline" size="sm" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1} className="h-8 w-8 p-0">
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-
                   {getPageNumbers().map((page, index) => (
                     <Button
                       key={index}
@@ -512,14 +437,7 @@ const ApprovalSettings = () => {
                       {page}
                     </Button>
                   ))}
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => goToPage(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="h-8 w-8 p-0"
-                  >
+                  <Button variant="outline" size="sm" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages} className="h-8 w-8 p-0">
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -529,13 +447,10 @@ const ApprovalSettings = () => {
         )}
       </CardContent>
 
-      {/* Add/Edit Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-lg! w-full sm:max-w-lg!">
           <DialogHeader>
-            <DialogTitle>
-              {editingItem ? "Edit Approver Mapping" : "Add Approver Mapping"}
-            </DialogTitle>
+            <DialogTitle>{editingItem ? "Edit Approver Mapping" : "Add Approver Mapping"}</DialogTitle>
             <DialogDescription>
               {editingItem
                 ? "Update the approver assignment for this employee"
@@ -544,96 +459,47 @@ const ApprovalSettings = () => {
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Employee Dropdown with Search */}
             <div className="space-y-2">
-              <Label htmlFor="employee_id" className="text-sm font-medium">
+              <Label className="text-sm font-medium">
                 Employee <span className="text-red-500">*</span>
               </Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                <Input
-                  type="text"
-                  placeholder="Search employee by name or code..."
-                  value={employeeSearch}
-                  onChange={(e) => setEmployeeSearch(e.target.value)}
-                  className="pl-9 mb-2"
-                />
-              </div>
-              <Select
-                value={formData.employee_id}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, employee_id: value })
-                }
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+                onClick={() => setEmployeePickerOpen(true)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select employee" />
-                </SelectTrigger>
-                <SelectContent className="max-h-64 overflow-y-auto">
-                  {filteredEmployees.length > 0 ? (
-                    filteredEmployees.map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id.toString()}>
-                        {emp.name} ({emp.employee_code}) - {emp.department}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <div className="px-2 py-4 text-center text-muted-foreground">
-                      No employees found
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
+                <User className="h-4 w-4 mr-2 shrink-0" />
+                {selectedEmployee
+                  ? `${selectedEmployee.employee_code} - ${selectedEmployee.first_name} ${selectedEmployee.last_name}${selectedEmployee.department ? ` - ${selectedEmployee.department}` : ""}`
+                  : "Select employee"}
+              </Button>
             </div>
 
-            {/* Approver Dropdown with Search */}
             <div className="space-y-2">
-              <Label htmlFor="approver_id" className="text-sm font-medium">
+              <Label className="text-sm font-medium">
                 Approver <span className="text-red-500">*</span>
               </Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
-                <Input
-                  type="text"
-                  placeholder="Search approver by name or code..."
-                  value={approverSearch}
-                  onChange={(e) => setApproverSearch(e.target.value)}
-                  className="pl-9 mb-2"
-                />
-              </div>
-              <Select
-                value={formData.approver_id}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, approver_id: value })
-                }
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+                onClick={() => setApproverPickerOpen(true)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select approver" />
-                </SelectTrigger>
-                <SelectContent className="max-h-64 overflow-y-auto">
-                  {filteredApprovers.length > 0 ? (
-                    filteredApprovers.map((app) => (
-                      <SelectItem key={app.id} value={app.id.toString()}>
-                        {app.name} ({app.employee_code}) - {app.department}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <div className="px-2 py-4 text-center text-muted-foreground">
-                      No approvers found
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
+                <User className="h-4 w-4 mr-2 shrink-0" />
+                {selectedApprover
+                  ? `${selectedApprover.employee_code} - ${selectedApprover.first_name} ${selectedApprover.last_name}${selectedApprover.department ? ` - ${selectedApprover.department}` : ""}`
+                  : "Select approver"}
+              </Button>
             </div>
 
-            {/* Approval Type Dropdown - Now includes MAN_HOUR */}
             <div className="space-y-2">
               <Label htmlFor="approval_type" className="text-sm font-medium">
                 Approval Type <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={formData.approval_type}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, approval_type: value as any })
-                }
+                onValueChange={(value) => setFormData({ ...formData, approval_type: value as any })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select approval type" />
@@ -646,25 +512,37 @@ const ApprovalSettings = () => {
               </Select>
             </div>
 
-            {/* Submit Buttons */}
             <div className="flex justify-end gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsModalOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={submitting}>
-                {submitting && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
+                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {editingItem ? "Update" : "Create"}
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
+
+      <EmployeePickerDialog
+        open={employeePickerOpen}
+        onOpenChange={setEmployeePickerOpen}
+        title="Select Employee"
+        onSelect={handleSelectEmployee}
+        activeOnly={true}
+        requireUserAccount={false}
+      />
+
+      <EmployeePickerDialog
+        open={approverPickerOpen}
+        onOpenChange={setApproverPickerOpen}
+        title="Select Approver"
+        onSelect={handleSelectApprover}
+        excludeEmployeeId={selectedEmployee ? selectedEmployee.id : undefined}
+        activeOnly={true}
+        requireUserAccount={true}
+      />
     </Card>
   );
 };

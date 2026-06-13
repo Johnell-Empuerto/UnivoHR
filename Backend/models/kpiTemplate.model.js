@@ -79,6 +79,30 @@ const deleteItem = async (id) => {
   await pool.query(`DELETE FROM kpi_template_items WHERE id=$1`, [id]);
 };
 
+const isTemplateInUse = async (templateId) => {
+  const result = await pool.query(
+    `SELECT 1 FROM employee_kpi_evaluations WHERE template_id = $1 LIMIT 1`,
+    [templateId],
+  );
+  return result.rows.length > 0;
+};
+
+const getTemplateByName = async (name, excludeId) => {
+  const result = await pool.query(
+    `SELECT id FROM kpi_templates WHERE name = $1 AND ($2 IS NULL OR id != $2) LIMIT 1`,
+    [name, excludeId || null],
+  );
+  return result.rows[0];
+};
+
+const isItemInUse = async (itemId) => {
+  const result = await pool.query(
+    `SELECT 1 FROM employee_kpi_scores WHERE template_item_id = $1 LIMIT 1`,
+    [itemId],
+  );
+  return result.rows.length > 0;
+};
+
 const getActiveTemplates = async () => {
   const result = await pool.query(
     `SELECT * FROM kpi_templates WHERE is_active = TRUE ORDER BY name`,
@@ -88,7 +112,7 @@ const getActiveTemplates = async () => {
 
 module.exports = {
   getAllTemplates, getTemplateById, createTemplate, updateTemplate,
-  toggleTemplateActive, deleteTemplate,
+  toggleTemplateActive, deleteTemplate, isTemplateInUse,
   getItemsByTemplateId, createItem, updateItem, deleteItem,
-  getActiveTemplates,
+  getActiveTemplates, getTemplateByName, isItemInUse,
 };

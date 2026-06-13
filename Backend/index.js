@@ -5,10 +5,47 @@ const port = 3002;
 const http = require("http");
 const server = http.createServer(app);
 const cors = require("cors");
+const helmet = require("helmet");
 
 const { initSocket } = require("./config/socket");
 
 initSocket(server);
+
+// =====================
+// GLOBAL SECURITY HEADERS
+// =====================
+app.use(helmet());
+
+// =====================
+// CORS
+// =====================
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
+  : ["http://localhost:5173", "http://192.168.0.106:5173"];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  }),
+);
+
+// =====================
+// BODY PARSER
+// =====================
+app.use(express.json());
+
+// =====================
+// HEALTH CHECK (public)
+// =====================
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    uptime: Math.floor(process.uptime()),
+    environment: process.env.NODE_ENV || "development",
+  });
+});
 
 // Routes
 const authRoutes = require("./routes/auth.routes");
@@ -57,6 +94,7 @@ const employeeWorkExperienceRoutes = require("./routes/employeeWorkExperience.ro
 const employeeRestDayRoutes = require("./routes/employeeRestDay.routes");
 const branchRestDayRoutes = require("./routes/branchRestDay.routes");
 const rotationRoutes = require("./routes/rotation.routes");
+const recruitmentWorkflowRoutes = require("./routes/recruitmentWorkflow.routes");
 const deviceIntegrationRoutes = require("./routes/deviceIntegration.routes");
 
 // Middleware
@@ -65,19 +103,8 @@ const logger = require("./middleware/logger");
 const errorHandler = require("./middleware/errorHandler");
 
 // =====================
-// CORS
-// =====================
-app.use(
-  cors({
-    origin: ["http://localhost:5173", "http://192.168.0.102:5173"],
-    credentials: true,
-  }),
-);
-
-// =====================
 // GLOBAL MIDDLEWARE
 // =====================
-app.use(express.json());
 app.use(logger);
 
 // =====================
@@ -154,6 +181,8 @@ app.use("/api/applicant-interviews", authenticate, applicantInterviewRoutes);
 
 app.use("/api/applicant-approvals", authenticate, applicantApprovalRoutes);
 
+app.use("/api/recruitment-workflows", authenticate, recruitmentWorkflowRoutes);
+
 app.use("/api/kpi/templates", authenticate, kpiTemplateRoutes);
 app.use("/api/kpi/evaluations", authenticate, kpiEvaluationRoutes);
 app.use("/api/hr-forms", authenticate, hrFormRoutes);
@@ -214,7 +243,10 @@ startDeviceProcessingWorker().catch((err) => {
 // ROOT TEST
 // =====================
 app.get("/", (req, res) => {
-  res.json({ message: "Welcome to Payroll and Attendance System" });
+  res.json({
+    message: "Welcome to Payroll and Attendance System",
+    version: "1.0.0",
+  });
 });
 
 // =====================

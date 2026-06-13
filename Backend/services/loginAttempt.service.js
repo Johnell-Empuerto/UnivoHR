@@ -1,69 +1,68 @@
-const redisClient = require("../config/redis");
+const pool = require("../config/db");
 
 const MAX_LOGIN_ATTEMPTS = 5;
-const LOCKOUT_DURATION = 900; // 15 minutes in seconds
+const LOCKOUT_DURATION_MINUTES = 15;
 
-// Normalize username to prevent case sensitivity issues
 const normalizeUsername = (username) => {
   return username.toLowerCase().trim();
 };
 
-// Track failed login attempt
 const trackFailedAttempt = async (username) => {
-  const normalizedUsername = normalizeUsername(username);
-  const key = `login_attempts:${normalizedUsername}`;
-  const attempts = await redisClient.get(key);
+  const normalized = normalizeUsername(username);
+  const result = await pool.query(
+    `UPDATE users SET
+       failed_login_attempts = COALESCE(failed_login_attempts, 0) + 1,
+       last_failed_login_at = NOW(),
+       locked_until = CASE
+         WHEN COALESCE(failed_login_attempts, 0) + 1 >= $1 THEN NOW() + ($2 || ' minutes')::INTERVAL
+         ELSE locked_until
+       END
+     WHERE LOWER(username) = LOWER($3)
+     RETURNING failed_login_attempts, locked_until`,
+    [MAX_LOGIN_ATTEMPTS, LOCKOUT_DURATION_MINUTES, normalized],
+  );
 
-  if (!attempts) {
-    // First attempt - set with expiration
-    await redisClient.setEx(key, LOCKOUT_DURATION, "1");
-    return { attempts: 1, locked: false };
+  if (result.rows.length === 0) {
+    return { attempts: 0, locked: false };
   }
 
-  const newAttempts = parseInt(attempts) + 1;
-
-  if (newAttempts >= MAX_LOGIN_ATTEMPTS) {
-    // Lock the account - set with expiration
-    await redisClient.setEx(key, LOCKOUT_DURATION, newAttempts.toString());
-    return { attempts: newAttempts, locked: true };
-  }
-
-  // 🔥 FIXED: Only reset TTL on first attempt, otherwise preserve remaining time
-  const ttl = await redisClient.ttl(key);
-  if (ttl > 0) {
-    await redisClient.setEx(key, ttl, newAttempts.toString());
-  } else {
-    await redisClient.setEx(key, LOCKOUT_DURATION, newAttempts.toString());
-  }
-
-  return { attempts: newAttempts, locked: false };
+  const attempts = result.rows[0].failed_login_attempts;
+  const locked = result.rows[0].locked_until !== null && new Date(result.rows[0].locked_until) > new Date();
+  return { attempts, locked };
 };
 
-// Reset login attempts on successful login
 const resetLoginAttempts = async (username) => {
-  const normalizedUsername = normalizeUsername(username);
-  const key = `login_attempts:${normalizedUsername}`;
-  await redisClient.del(key);
+  const normalized = normalizeUsername(username);
+  await pool.query(
+    `UPDATE users SET
+       failed_login_attempts = 0,
+       locked_until = NULL,
+       last_failed_login_at = NULL
+     WHERE LOWER(username) = LOWER($1)`,
+    [normalized],
+  );
 };
 
-// Check if account is locked
 const isAccountLocked = async (username) => {
-  const normalizedUsername = normalizeUsername(username);
-  const key = `login_attempts:${normalizedUsername}`;
-  const attempts = await redisClient.get(key);
-
-  if (!attempts) return false;
-
-  const attemptCount = parseInt(attempts);
-  return attemptCount >= MAX_LOGIN_ATTEMPTS;
+  const normalized = normalizeUsername(username);
+  const result = await pool.query(
+    `SELECT locked_until FROM users WHERE LOWER(username) = LOWER($1)`,
+    [normalized],
+  );
+  if (result.rows.length === 0) return false;
+  const lockedUntil = result.rows[0].locked_until;
+  return lockedUntil !== null && new Date(lockedUntil) > new Date();
 };
 
-// Get remaining lockout time
 const getLockoutTimeRemaining = async (username) => {
-  const normalizedUsername = normalizeUsername(username);
-  const key = `login_attempts:${normalizedUsername}`;
-  const ttl = await redisClient.ttl(key);
-  return ttl > 0 ? ttl : 0;
+  const normalized = normalizeUsername(username);
+  const result = await pool.query(
+    `SELECT EXTRACT(EPOCH FROM (locked_until - NOW())) AS remaining FROM users WHERE LOWER(username) = LOWER($1)`,
+    [normalized],
+  );
+  if (result.rows.length === 0) return 0;
+  const remaining = parseInt(result.rows[0].remaining) || 0;
+  return remaining > 0 ? remaining : 0;
 };
 
 module.exports = {
@@ -72,6 +71,6 @@ module.exports = {
   isAccountLocked,
   getLockoutTimeRemaining,
   MAX_LOGIN_ATTEMPTS,
-  LOCKOUT_DURATION,
+  LOCKOUT_DURATION_MINUTES,
   normalizeUsername,
 };

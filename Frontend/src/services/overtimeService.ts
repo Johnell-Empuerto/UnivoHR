@@ -75,6 +75,37 @@ export const getActiveEmployees = async () => {
   return response.data;
 };
 
+export interface EmployeeSearchResult {
+  id: number;
+  employee_code: string;
+  first_name: string;
+  last_name: string;
+  department: string | null;
+  position: string | null;
+  employment_status: string | null;
+  status: string;
+  branch_id: number | null;
+  branch_name: string | null;
+}
+
+export interface PaginationInfo {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export const searchEmployeesPaginated = async (params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  hasUser?: boolean;
+}): Promise<{ data: EmployeeSearchResult[]; pagination: PaginationInfo }> => {
+  const response = await api.get("/overtime/employees/search", { params });
+  return response.data;
+};
+
 export const isApprover = async () => {
   const response = await api.get("/overtime/is-approver");
   return response.data;

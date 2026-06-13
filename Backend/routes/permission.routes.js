@@ -9,6 +9,6 @@ router.use(authenticate);
 router.get("/", controller.getAllPermissions);
 router.get("/:id", controller.getUserPermissions);
 router.put("/:id", requirePermission("users.manage"), controller.setUserPermissions);
-router.post("/:id/reset", controller.resetUserPermissions);
+router.post("/:id/reset", requirePermission("users.manage"), controller.resetUserPermissions);
 
 module.exports = router;

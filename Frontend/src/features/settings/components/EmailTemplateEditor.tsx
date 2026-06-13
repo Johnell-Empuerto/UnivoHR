@@ -44,12 +44,14 @@ import {
   type EmailTemplate,
 } from "@/services/emailTemplateService";
 
-// Available template types - ADDED PAYROLL
+// Available template types
 const TEMPLATE_TYPES = [
   { value: "OVERTIME_APPROVED", label: "Overtime Approved" },
   { value: "OVERTIME_REJECTED", label: "Overtime Rejected" },
   { value: "LEAVE_APPROVED", label: "Leave Approved" },
   { value: "LEAVE_REJECTED", label: "Leave Rejected" },
+  { value: "MAN_HOUR_APPROVED", label: "Man Hour Approved" },
+  { value: "MAN_HOUR_REJECTED", label: "Man Hour Rejected" },
   { value: "PAYROLL_MARKED_PAID", label: "Payroll Released" },
   { value: "LATE_NOTICE", label: "Late Notice" },
   { value: "ABSENT_WITHOUT_LEAVE", label: "Absent Without Leave" },
@@ -78,6 +80,14 @@ const TEMPLATE_VARIABLES: Record<string, string[]> = {
     "from_date",
     "to_date",
     "reason",
+    "rejection_reason",
+  ],
+  MAN_HOUR_APPROVED: ["employee_name", "work_date", "hours", "task"],
+  MAN_HOUR_REJECTED: [
+    "employee_name",
+    "work_date",
+    "hours",
+    "task",
     "rejection_reason",
   ],
   PAYROLL_MARKED_PAID: [

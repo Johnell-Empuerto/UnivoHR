@@ -16,12 +16,13 @@ const isDuplicateScan = (lastTime, currentTime, minutes = 2) => {
 const createAttendance = async ({ employee_id, timestamp, source = 'BIOMETRIC', device_id = null }) => {
   console.log("SERVICE INPUT:", { employee_id, timestamp, source, device_id });
 
-  const localDate = getLocalDate(timestamp);
+  // Resolve timezone first so getLocalDate can use it
+  const timezone = await resolveEmployeeTimezone(employee_id, device_id);
+  const localDate = getLocalDate(timestamp, timezone);
 
-  // Resolve branch and timezone from device or employee
+  // Resolve branch from device or employee
   let branchId = device_id ? await resolveDeviceBranchId(device_id) : null;
   if (!branchId) branchId = await resolveBranchId(employee_id);
-  const timezone = await resolveEmployeeTimezone(employee_id, device_id);
 
   // Look up employee's assigned shift for today
   const shift = await rotationService.resolveEmployeeShift(employee_id, localDate);
@@ -34,7 +35,7 @@ const createAttendance = async ({ employee_id, timestamp, source = 'BIOMETRIC', 
   if (isNightShift) {
     todayRecord = await attendanceModel.getOpenAttendanceRecord(employee_id);
   } else {
-    todayRecord = await attendanceModel.getTodayRecord(employee_id, timestamp);
+    todayRecord = await attendanceModel.getTodayRecord(employee_id, timestamp, timezone);
   }
 
   console.log("TODAY RECORD:", todayRecord);
@@ -152,7 +153,26 @@ const getAllRules = async () => {
   return await rulesModel.getAllRules();
 };
 
+const validateRuleData = (data) => {
+  if (data.late_threshold != null && data.late_threshold < 0) {
+    throw new Error("late_threshold must be 0 or greater");
+  }
+  if (data.grace_period != null && data.grace_period < 0) {
+    throw new Error("grace_period must be 0 or greater");
+  }
+  if (data.max_work_hours != null && data.max_work_hours <= 0) {
+    throw new Error("max_work_hours must be greater than 0");
+  }
+  if (data.late_deduction_value != null && data.late_deduction_value <= 0) {
+    throw new Error("late_deduction_value must be greater than 0");
+  }
+  if (data.late_deduction_type && !["FIXED", "PER_MINUTE"].includes(data.late_deduction_type)) {
+    throw new Error("late_deduction_type must be FIXED or PER_MINUTE");
+  }
+};
+
 const createRule = async (data) => {
+  validateRuleData(data);
   return await rulesModel.createRule(data);
 };
 
@@ -165,13 +185,15 @@ const deleteRule = async (id) => {
 };
 
 const updateRule = async (id, data) => {
+  validateRuleData(data);
   return await rulesModel.updateRule(id, data);
 };
 
 // Web clock-in: employee self-service check-in
 // First valid scan wins — never overwrites existing check_in_time
 const webClockIn = async (employeeId, timestamp) => {
-  const localDate = getLocalDate(timestamp);
+  const timezone = await resolveEmployeeTimezone(employeeId);
+  const localDate = getLocalDate(timestamp, timezone);
 
   const shift = await rotationService.resolveEmployeeShift(employeeId, localDate);
   const isNightShift = shift && shift.is_night_shift;
@@ -180,7 +202,7 @@ const webClockIn = async (employeeId, timestamp) => {
   if (isNightShift) {
     todayRecord = await attendanceModel.getOpenAttendanceRecord(employeeId);
   } else {
-    todayRecord = await attendanceModel.getTodayRecord(employeeId, timestamp);
+    todayRecord = await attendanceModel.getTodayRecord(employeeId, timestamp, timezone);
   }
 
   // If attendance exists with check_in_time → reject (first valid scan wins)
@@ -234,7 +256,6 @@ const webClockIn = async (employeeId, timestamp) => {
     }
   }
 
-  const timezone = await resolveEmployeeTimezone(employeeId);
   const branchId = await resolveBranchId(employeeId);
 
   return await attendanceModel.checkIn(
@@ -253,7 +274,8 @@ const webClockIn = async (employeeId, timestamp) => {
 // Web clock-out: employee self-service check-out
 // Latest valid scan wins — only overwrites if new timestamp is later
 const webClockOut = async (employeeId, timestamp) => {
-  const localDate = getLocalDate(timestamp);
+  const initialTimezone = await resolveEmployeeTimezone(employeeId);
+  const localDate = getLocalDate(timestamp, initialTimezone);
 
   const shift = await rotationService.resolveEmployeeShift(employeeId, localDate);
   const isNightShift = shift && shift.is_night_shift;
@@ -262,7 +284,7 @@ const webClockOut = async (employeeId, timestamp) => {
   if (isNightShift) {
     todayRecord = await attendanceModel.getOpenAttendanceRecord(employeeId);
   } else {
-    todayRecord = await attendanceModel.getTodayRecord(employeeId, timestamp);
+    todayRecord = await attendanceModel.getTodayRecord(employeeId, timestamp, initialTimezone);
   }
 
   if (!todayRecord) {
@@ -284,7 +306,7 @@ const webClockOut = async (employeeId, timestamp) => {
   }
 
   const branchId = todayRecord.branch_id || await resolveBranchId(employeeId);
-  const timezone = todayRecord.timezone_used || await resolveEmployeeTimezone(employeeId);
+  const timezone = todayRecord.timezone_used || initialTimezone;
 
   return await attendanceModel.checkOut(todayRecord.id, timestamp, branchId, timezone);
 };

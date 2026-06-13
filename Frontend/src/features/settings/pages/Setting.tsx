@@ -33,12 +33,13 @@ const Setting = () => {
   const canViewNotifications = hasPermission("settings.notifications");
   const canViewEmailTemplates = hasPermission("settings.email_templates");
   const canViewBranding = hasPermission("settings.branding");
-  const canViewEmployeeCodes = hasPermission("settings.branding");
+  const canViewTimezone = hasPermission("settings.system");
+  const canViewEmployeeCodes = hasPermission("settings.system");
   const canViewShifts = hasPermission("settings.attendance_rules");
-  const canViewBranchRestDays = hasPermission("settings.branding");
+  const canViewBranchRestDays = hasPermission("settings.system");
   const canViewPayrollRules = hasPermission("payroll.settings");
   const canViewRotation = hasPermission("settings.attendance_rules");
-  const canViewDeviceIntegration = hasPermission("settings.branding");
+  const canViewDeviceIntegration = hasPermission("devices.view");
 
   return (
     <div className="space-y-6 p-6">
@@ -127,7 +128,7 @@ const Setting = () => {
               Branding
             </TabsTrigger>
           )}
-          {canViewBranding && (
+          {canViewTimezone && (
             <TabsTrigger
               className="rounded-full px-5 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm bg-muted hover:bg-muted/80 text-muted-foreground border-0 transition-all"
               style={{ height: "auto", flex: "none" }}
@@ -261,7 +262,7 @@ const Setting = () => {
               <CompanyBranding />
             </TabsContent>
           )}
-          {canViewBranding && (
+          {canViewTimezone && (
             <TabsContent value="company-timezone" className="mt-0">
               <CompanyTimezoneSettings />
             </TabsContent>

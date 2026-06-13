@@ -26,11 +26,12 @@ const getByKey = async (ruleKey) => {
 
 const update = async (ruleKey, ruleValue) => {
   const result = await pool.query(
-    `UPDATE payroll_rules
-     SET rule_value = $1, updated_at = NOW()
-     WHERE rule_key = $2
+    `INSERT INTO payroll_rules (rule_key, rule_value, updated_at)
+     VALUES ($1, $2, NOW())
+     ON CONFLICT (rule_key)
+     DO UPDATE SET rule_value = $2, updated_at = NOW()
      RETURNING *`,
-    [ruleValue, ruleKey]
+    [ruleKey, ruleValue]
   );
   return mapRow(result.rows[0]);
 };

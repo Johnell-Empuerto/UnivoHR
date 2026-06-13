@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import Loader from "@/components/shared/Loader";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { getMyPerformanceSummary } from "@/services/kpiService";
+import { toast } from "sonner";
 import {
   LineChart,
   Target,
@@ -56,6 +57,7 @@ const MyPerformancePage = () => {
         setData(summary);
       } catch (error) {
         console.error("Failed to load performance summary:", error);
+        toast.error("Failed to load performance summary");
       } finally {
         setLoading(false);
       }

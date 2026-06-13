@@ -20,6 +20,7 @@ router.put("/groups/:id/members/:employeeId", authenticate, requirePermission("s
 
 // Employee Rotation History
 router.get("/employees/:employeeId/assignments", authenticate, requirePermission("settings.attendance_rules"), controller.getEmployeeAssignments);
+router.put("/employees/:employeeId/assignments/:id", authenticate, requirePermission("settings.attendance_rules"), controller.updateEmployeeAssignment);
 
 // Patterns
 router.get("/patterns", authenticate, requirePermission("settings.attendance_rules"), controller.getPatterns);
@@ -31,6 +32,7 @@ router.delete("/patterns/:id", authenticate, requirePermission("settings.attenda
 // Group Assignments
 router.get("/assignments", authenticate, requirePermission("settings.attendance_rules"), controller.getAssignments);
 router.post("/assignments", authenticate, requirePermission("settings.attendance_rules"), controller.createAssignment);
+router.put("/assignments/:id", authenticate, requirePermission("settings.attendance_rules"), controller.updateAssignment);
 router.delete("/assignments/:id", authenticate, requirePermission("settings.attendance_rules"), controller.deleteAssignment);
 
 // Resolution

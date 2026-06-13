@@ -980,7 +980,7 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
           night_differential_hours, night_differential_pay
         )
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-        ON CONFLICT (employee_id, cutoff_start, cutoff_end)
+        ON CONFLICT ON CONSTRAINT unique_employee_payroll
         DO UPDATE SET
           overtime_pay = EXCLUDED.overtime_pay,
           deductions = EXCLUDED.deductions,
