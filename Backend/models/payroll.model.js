@@ -1,6 +1,18 @@
 const pool = require("../config/db");
 const attendanceModel = require("./attendance.model");
 const overtimeModel = require("./overtime.model");
+const leaveBalanceService = require("../services/leaveBalance.service");
+const {
+  calcDailyRate,
+  calcOvertimePay,
+  calcNightDifferentialHours,
+  calcNightDifferentialPay,
+  calcLateDeduction,
+  calcNetSalary,
+  calcAbsentDays,
+  createEmptyBreakdown,
+  accumulateBreakdown,
+} = require("../utils/payrollFormula.helper");
 
 // ============================================
 // GENERATE PAYROLL (FULLY OPTIMIZED - NO N+1 QUERIES + TRANSACTIONS)
@@ -81,20 +93,11 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
     });
 
     // ============================================
-    // BATCH 2: FETCH ALL LEAVE CREDITS (1 query instead of N)
+    // BATCH 2: FETCH ALL LEAVE BALANCES (dynamic from employee_leave_balances)
     // ============================================
-    const leaveCreditsRes = await client.query(
-      `
-      SELECT * FROM leave_credits 
-      WHERE employee_id = ANY($1::int[])
-    `,
-      [employeeIds],
+    const balancesByEmployee = await leaveBalanceService.getEmployeesBalances(
+      employeeIds, new Date().getFullYear()
     );
-
-    const leaveCreditsMap = new Map();
-    leaveCreditsRes.rows.forEach((row) => {
-      leaveCreditsMap.set(row.employee_id, row);
-    });
 
     // ============================================
     // BATCH 3: FETCH ALL LEAVE TYPES DEFAULTS (1 query)
@@ -520,26 +523,8 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
       const salary = salaryMap.get(emp.id);
       if (!salary) continue;
 
-      // Get leave credits (from memory)
-      let credits = leaveCreditsMap.get(emp.id);
-
-      // Create leave credits if missing (this still requires DB write)
-      if (!credits) {
-        await client.query(
-          `INSERT INTO leave_credits (employee_id, vacation_leave, used_vacation_leave, last_conversion_year)
-           VALUES ($1, $2, 0, NULL)
-           ON CONFLICT (employee_id) DO NOTHING`,
-          [emp.id, defaultLeaveTypes["VL"] ?? 5],
-        );
-
-        // Re-fetch just this one
-        const newCredits = await client.query(
-          `SELECT * FROM leave_credits WHERE employee_id = $1`,
-          [emp.id],
-        );
-        credits = newCredits.rows[0];
-        leaveCreditsMap.set(emp.id, credits);
-      }
+      // Get leave balances (from memory, loaded via leaveBalanceService)
+      const empBalances = balancesByEmployee.get(emp.id) || [];
 
       // Get leave map for this employee (from memory)
       const leaveMap = employeeLeaveMap.get(emp.id) || new Map();
@@ -570,11 +555,11 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
       const working_days_per_month = Number(
         salary.working_days_per_month || 26,
       );
-      const daily_rate = monthly_salary / working_days_per_month;
+      const daily_rate = calcDailyRate(monthly_salary, working_days_per_month);
 
       // Calculate overtime pay
       const overtime_rate = Number(salary.overtime_rate || 0);
-      const overtime_pay = overtime.total_hours * overtime_rate;
+      const overtime_pay = calcOvertimePay(overtime.total_hours, overtime_rate);
 
       // ============================================
       // BUILD ATTENDANCE DATA WITH DAY TYPES (from memory)
@@ -626,38 +611,7 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
       let unpaid_leave_days = 0;
 
       // Track breakdown by day type for reporting
-      const breakdown = {
-        REGULAR: {
-          days: 0,
-          units: 0,
-          multiplier: payRulesMap.REGULAR || 1,
-          pay: 0,
-        },
-        SPECIAL_NON_WORKING: {
-          days: 0,
-          units: 0,
-          multiplier: payRulesMap.SPECIAL_NON_WORKING || 1,
-          pay: 0,
-        },
-        SPECIAL_HOLIDAY: {
-          days: 0,
-          units: 0,
-          multiplier: payRulesMap.SPECIAL_HOLIDAY || 1,
-          pay: 0,
-        },
-        REGULAR_HOLIDAY: {
-          days: 0,
-          units: 0,
-          multiplier: payRulesMap.REGULAR_HOLIDAY || 1,
-          pay: 0,
-        },
-        REST_DAY: {
-          days: 0,
-          units: 0,
-          multiplier: payRulesMap.REST_DAY || 1,
-          pay: 0,
-        },
-      };
+      const breakdown = createEmptyBreakdown(payRulesMap);
 
       // Phase 2F.3: Holiday-type-specific unworked policy key mapping
       const UNWORKED_POLICY_KEYS = {
@@ -806,11 +760,7 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
         total_work_units_raw += rawWorkUnits;
         total_work_units_with_multiplier += weightedWorkUnits;
 
-        if (breakdown[dayType]) {
-          breakdown[dayType].days += rawWorkUnits > 0 ? 1 : 0;
-          breakdown[dayType].units += weightedWorkUnits;
-          breakdown[dayType].pay += daily_rate * weightedWorkUnits;
-        }
+        accumulateBreakdown(breakdown, dayType, rawWorkUnits, weightedWorkUnits, daily_rate);
       }
 
       // ============================================
@@ -826,35 +776,10 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
         for (const row of attendanceFull) {
           if (!row.check_in_time || !row.check_out_time) continue;
           if (row.status === 'ABSENT' || row.status === 'LEAVE' || (!row.status)) continue;
-
-          const checkIn = new Date(row.check_in_time);
-          const checkOut = new Date(row.check_out_time);
-
-          // Window 1: checkIn day 22:00 → checkIn day+1 06:00
-          const w1Start = new Date(checkIn);
-          w1Start.setHours(22, 0, 0, 0);
-          const w1End = new Date(w1Start);
-          w1End.setDate(w1End.getDate() + 1);
-          w1End.setHours(6, 0, 0, 0);
-
-          const s1 = Math.max(checkIn.getTime(), w1Start.getTime());
-          const e1 = Math.min(checkOut.getTime(), w1End.getTime());
-          if (e1 > s1) night_differential_hours += (e1 - s1) / (1000 * 60 * 60);
-
-          // Window 2: (checkIn day-1) 22:00 → checkIn day 06:00 (pre-6AM work)
-          const w2Start = new Date(checkIn);
-          w2Start.setDate(w2Start.getDate() - 1);
-          w2Start.setHours(22, 0, 0, 0);
-          const w2End = new Date(checkIn);
-          w2End.setHours(6, 0, 0, 0);
-
-          const s2 = Math.max(checkIn.getTime(), w2Start.getTime());
-          const e2 = Math.min(checkOut.getTime(), w2End.getTime());
-          if (e2 > s2) night_differential_hours += (e2 - s2) / (1000 * 60 * 60);
+          night_differential_hours += calcNightDifferentialHours(row.check_in_time, row.check_out_time);
         }
 
-        night_differential_hours = Math.round(night_differential_hours * 100) / 100;
-        night_differential_pay = Math.round(night_differential_hours * hourlyRate * ndRate * 100) / 100;
+        night_differential_pay = calcNightDifferentialPay(night_differential_hours, hourlyRate, ndRate);
       }
 
       // ============================================
@@ -883,35 +808,23 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
         }
       }
 
-      let late_deduction = 0;
-
-      if (lateDeductionEnabled) {
-        if (deductionType === "FIXED") {
-          late_deduction = late_count * deductionValue;
-        } else if (deductionType === "PER_MINUTE") {
-          late_deduction = effectiveLateMinutes * deductionValue;
-        } else if (deductionType === "SALARY_BASED") {
-          let workingDays = Number(salary.working_days_per_month);
-          if (!workingDays || workingDays < 20) {
-            workingDays = 26;
-          }
-          const maxHours = rules?.max_work_hours || 8;
-          const totalMinutes = workingDays * maxHours * 60;
-          const perMinuteRate = monthly_salary / totalMinutes;
-          late_deduction = effectiveLateMinutes * perMinuteRate;
-        }
-      }
+      const late_deduction = calcLateDeduction({
+        lateCount: late_count,
+        effectiveLateMinutes,
+        deductionType,
+        deductionValue,
+        lateDeductionEnabled,
+        monthlySalary: monthly_salary,
+        workingDaysPerMonth: Number(salary.working_days_per_month),
+        maxWorkHours: rules?.max_work_hours || 8,
+      });
 
       const total_deductions = government_deduction + late_deduction;
 
       // BASIC PAY = Daily Rate × Weighted Work Units
       const basic_pay = daily_rate * total_work_units_with_multiplier;
 
-      const net_salary =
-        Math.max(0, basic_pay - total_deductions) +
-        leave_conversion_cash +
-        overtime_pay +
-        night_differential_pay;
+      const net_salary = calcNetSalary(basic_pay, total_deductions, leave_conversion_cash, overtime_pay, night_differential_pay);
 
       if (net_salary === 0 && monthly_salary > 0 && attendanceMap.size > 0) {
         console.warn("[PAYROLL] ZERO NET SALARY despite salary+attendance", {
@@ -924,8 +837,8 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
         });
       }
 
-      const absent_days =
-        working_days_in_cutoff - Math.floor(total_work_units_raw);
+      const absent_days = calcAbsentDays(working_days_in_cutoff, total_work_units_raw);
+      const absentDeductionAmount = absent_days * daily_rate;
 
       console.log("[PAYROLL] DEBUG:", {
         employee_id: emp.id,
@@ -967,19 +880,22 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
       );
       if (existingLocked.rows.length > 0) continue;
 
-      // Determine branch_id for this payroll record
+      // Determine branch_id and month/year for this payroll record
       const empBranchId = branch_id || emp.branch_id || null;
+      const payDate = new Date(pay_date);
+      const payMonth = payDate.getMonth() + 1;
+      const payYear = payDate.getFullYear();
 
       // Insert payroll record (using client instead of pool for transaction)
       const payrollInsertResult = await client.query(
         `INSERT INTO payroll (
-          employee_id, cutoff_start, cutoff_end, pay_date,
+          employee_id, cutoff_start, cutoff_end, pay_date, month, year,
           basic_salary, overtime_pay, deductions, net_salary,
           late_deduction, absent_deduction, government_deduction,
           leave_conversion, rule_snapshot, branch_id,
           night_differential_hours, night_differential_pay
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
         ON CONFLICT ON CONSTRAINT unique_employee_payroll
         DO UPDATE SET
           overtime_pay = EXCLUDED.overtime_pay,
@@ -990,6 +906,8 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
           leave_conversion = EXCLUDED.leave_conversion,
           rule_snapshot = EXCLUDED.rule_snapshot,
           branch_id = EXCLUDED.branch_id,
+          month = EXCLUDED.month,
+          year = EXCLUDED.year,
           night_differential_hours = EXCLUDED.night_differential_hours,
           night_differential_pay = EXCLUDED.night_differential_pay
         RETURNING id`,
@@ -998,12 +916,14 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
           cutoff_start,
           cutoff_end,
           pay_date,
+          payMonth,
+          payYear,
           basic_pay,
           overtime_pay,
           total_deductions,
           net_salary,
           late_deduction,
-          0,
+          absentDeductionAmount,
           government_deduction,
           leave_conversion_cash,
           JSON.stringify({
@@ -1246,31 +1166,31 @@ const getPayrollSummary = async (cutoff_start, cutoff_end, allowedBranchIds = nu
 };
 
 // MARK AS PAID
-const markAsPaid = async (id) => {
+const markAsPaid = async (id, userId = null) => {
   const result = await pool.query(
     `
     UPDATE payroll 
-    SET status = 'PAID' 
-    WHERE id = $1 AND status NOT IN ('PAID', 'LOCKED', 'VOID')
+    SET status = 'PAID', paid_at = NOW(), paid_by = $2
+    WHERE id = $1 AND status = 'UNPAID'
     RETURNING *
     `,
-    [id],
+    [id, userId],
   );
   return result.rows[0];
 };
 
 // MARK ALL AS PAID
-const markAllAsPaid = async (cutoff_start, cutoff_end) => {
+const markAllAsPaid = async (cutoff_start, cutoff_end, userId = null) => {
   const result = await pool.query(
     `
     UPDATE payroll
-    SET status = 'PAID'
+    SET status = 'PAID', paid_at = NOW(), paid_by = $3
     WHERE cutoff_start::date = $1::date
     AND cutoff_end::date = $2::date
-    AND status NOT IN ('PAID', 'LOCKED', 'VOID')
+    AND status = 'UNPAID'
     RETURNING *
     `,
-    [cutoff_start, cutoff_end],
+    [cutoff_start, cutoff_end, userId],
   );
 
   if (result.rowCount === 0) {
@@ -1572,10 +1492,10 @@ const getMySalaryDetails = async (employee_id) => {
 // PAYROLL LOCKING & STATUS MANAGEMENT
 // ============================================
 
-const lockPayroll = async (id) => {
+const lockPayroll = async (id, userId = null) => {
   const result = await pool.query(
-    `UPDATE payroll SET status = 'LOCKED' WHERE id = $1 AND status NOT IN ('LOCKED', 'PAID', 'VOID') RETURNING *`,
-    [id],
+    `UPDATE payroll SET status = 'LOCKED', locked_at = NOW(), locked_by = $2 WHERE id = $1 AND status = 'UNPAID' RETURNING *`,
+    [id, userId],
   );
   return result.rows[0];
 };
@@ -1588,10 +1508,10 @@ const unlockPayroll = async (id) => {
   return result.rows[0];
 };
 
-const voidPayroll = async (id) => {
+const voidPayroll = async (id, userId = null) => {
   const result = await pool.query(
-    `UPDATE payroll SET status = 'VOID' WHERE id = $1 AND status NOT IN ('PAID', 'VOID') RETURNING *`,
-    [id],
+    `UPDATE payroll SET status = 'VOID', voided_at = NOW(), voided_by = $2 WHERE id = $1 AND status IN ('UNPAID', 'LOCKED') RETURNING *`,
+    [id, userId],
   );
   return result.rows[0];
 };

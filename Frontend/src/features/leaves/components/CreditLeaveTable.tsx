@@ -10,25 +10,42 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { leaveService } from "@/services/leaveService";
-import { Loader2, Calendar, Clock, CheckCircle } from "lucide-react";
+import { Loader2, CalendarDays, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import EmptyState from "@/components/shared/EmptyState";
+import { getTypeColor, getTypeLabel, normalizeCode, getCardColor } from "../utils/leaveTypeUtils";
+
+interface BalanceItem {
+  code: string;
+  name?: string;
+  total_days: number;
+  used_days: number;
+  remaining_days: number;
+  carried_over_days?: number;
+  adjusted_days?: number;
+  is_unlimited?: boolean;
+  is_paid?: boolean;
+  requires_balance?: boolean;
+  include_in_credits?: boolean;
+  sort_order?: number;
+}
 
 interface LeaveCredits {
   id: number;
   employee_id: number;
-  sick_leave: number;
-  vacation_leave: number;
-  used_sick_leave: number;
-  used_vacation_leave: number;
-  sick_leave_remaining: number;
-  vacation_leave_remaining: number;
-  maternity_leave: number;
-  used_maternity_leave: number;
-  maternity_leave_remaining: number;
-  emergency_leave: number;
-  used_emergency_leave: number;
-  emergency_leave_remaining: number;
+  balances?: BalanceItem[];
+  sick_leave?: number;
+  vacation_leave?: number;
+  used_sick_leave?: number;
+  used_vacation_leave?: number;
+  sick_leave_remaining?: number;
+  vacation_leave_remaining?: number;
+  maternity_leave?: number;
+  used_maternity_leave?: number;
+  maternity_leave_remaining?: number;
+  emergency_leave?: number;
+  used_emergency_leave?: number;
+  emergency_leave_remaining?: number;
 }
 
 interface LeaveTransaction {
@@ -107,44 +124,113 @@ const CreditLeaveTable = () => {
   };
 
   const getTypeBadge = (type: string) => {
-    switch (type) {
-      case "SICK":
+    const code = normalizeCode(type);
+    const c = getTypeColor(code);
+    return (
+      <Badge variant="outline" className={`${c.bg} ${c.text} ${c.border} ${c.darkBg} ${c.darkText} ${c.darkBorder}`}>
+        {getTypeLabel(code)}
+      </Badge>
+    );
+  };
+
+  const renderBalanceCards = () => {
+    const balances = credits?.balances || [];
+    if (balances.length > 0) {
+      const sorted = [...balances].sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99));
+      return sorted.map((b) => {
+        const cc = getCardColor(b.code);
+        const total = b.total_days || 0;
+        const used = b.used_days || 0;
+        const remaining = b.remaining_days ?? (total - used);
+        const pct = total > 0 ? (used / total) * 100 : 0;
         return (
-          <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800">
-            SICK
-          </Badge>
+          <Card key={b.code} className={`bg-linear-to-br ${cc.from} ${cc.to} ${cc.border} ${cc.darkFrom} ${cc.darkTo} ${cc.darkBorder}`}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <CalendarDays className={`h-5 w-5 ${cc.icon}`} />
+                {getTypeLabel(b.code, b.name)} Leave
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {b.is_unlimited ? (
+                <div className="space-y-2">
+                  <span className="text-2xl font-bold text-gray-700 dark:text-gray-400">Unlimited</span>
+                  {b.is_paid === false && <p className="text-sm text-muted-foreground">This leave is unpaid</p>}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-3xl font-bold" style={{ color: 'inherit' }}>{remaining}</span>
+                    <span className="text-sm text-muted-foreground">/ {total} days</span>
+                  </div>
+                  {total > 0 && (
+                    <>
+                      <div className="w-full bg-gray-200 dark:bg-gray-700/50 rounded-full h-2">
+                        <div className="bg-current h-2 rounded-full transition-all opacity-60" style={{ width: `${pct}%` }} />
+                      </div>
+                      <p className="text-sm text-muted-foreground">Used: {used} days</p>
+                    </>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         );
-      case "ANNUAL":
-        return (
-          <Badge variant="outline" className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800">
-            VACATION
-          </Badge>
-        );
-      case "MATERNITY":
-        return (
-          <Badge variant="outline" className="bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400 border-pink-200 dark:border-pink-800">
-            MATERNITY
-          </Badge>
-        );
-      case "EMERGENCY":
-        return (
-          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800">
-            EMERGENCY
-          </Badge>
-        );
-      case "NO_PAY":
-        return (
-          <Badge variant="outline" className="bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400 border-gray-200 dark:border-gray-800">
-            NO PAY
-          </Badge>
-        );
-      default:
-        return (
-          <Badge variant="secondary" className="bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400">
-            {type}
-          </Badge>
-        );
+      });
     }
+
+    const flatCards = [
+      { code: 'SL', label: 'Sick Leave', remaining: credits?.sick_leave_remaining, total: credits?.sick_leave, used: credits?.used_sick_leave },
+      { code: 'VL', label: 'Vacation Leave', remaining: credits?.vacation_leave_remaining, total: credits?.vacation_leave, used: credits?.used_vacation_leave },
+      { code: 'ML', label: 'Maternity Leave', remaining: credits?.maternity_leave_remaining, total: credits?.maternity_leave, used: credits?.used_maternity_leave },
+      { code: 'EL', label: 'Emergency Leave', remaining: credits?.emergency_leave_remaining, total: credits?.emergency_leave, used: credits?.used_emergency_leave },
+    ];
+
+    return (
+      <>
+        {flatCards.map((card) => {
+          const cc = getCardColor(card.code);
+          const pct = (card.total || 0) > 0 ? ((card.used || 0) / (card.total || 1)) * 100 : 0;
+          return (
+            <Card key={card.code} className={`bg-linear-to-br ${cc.from} ${cc.to} ${cc.border} ${cc.darkFrom} ${cc.darkTo} ${cc.darkBorder}`}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <CalendarDays className={`h-5 w-5 ${cc.icon}`} />
+                  {card.label}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-3xl font-bold" style={{ color: 'inherit' }}>{card.remaining || 0}</span>
+                    <span className="text-sm text-muted-foreground">/ {card.total || 0} days</span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700/50 rounded-full h-2">
+                    <div className="bg-current h-2 rounded-full transition-all opacity-60" style={{ width: `${pct}%` }} />
+                  </div>
+                  <p className="text-sm text-muted-foreground">Used: {card.used || 0} days</p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+        {/* NP Card */}
+        <Card className="bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-950/30 dark:to-gray-900/30 border-gray-200 dark:border-gray-800">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <CalendarDays className="h-5 w-5 text-gray-600" />
+              No Pay Leave
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <span className="text-2xl font-bold text-gray-700 dark:text-gray-400">Unlimited</span>
+              <p className="text-sm text-muted-foreground">This leave is unpaid</p>
+            </div>
+          </CardContent>
+        </Card>
+      </>
+    );
   };
 
   if (loading) {
@@ -167,154 +253,7 @@ const CreditLeaveTable = () => {
     <div className="space-y-6">
       {/* Credits Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Sick Leave Card */}
-        <Card className="bg-linear-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border-blue-200 dark:border-blue-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-blue-600" />
-              Sick Leave
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between items-baseline">
-                <span className="text-3xl font-bold text-blue-700 dark:text-blue-400">
-                  {credits?.sick_leave_remaining || 0}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  / {credits?.sick_leave || 0} days
-                </span>
-              </div>
-              <div className="w-full bg-blue-200 dark:bg-blue-800/50 rounded-full h-2">
-                <div
-                  className="bg-blue-600 h-2 rounded-full transition-all"
-                  style={{
-                    width: `${((credits?.used_sick_leave || 0) / (credits?.sick_leave || 1)) * 100}%`,
-                  }}
-                />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Used: {credits?.used_sick_leave || 0} days
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Vacation Leave Card */}
-        <Card className="bg-linear-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border-purple-200 dark:border-purple-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Clock className="h-5 w-5 text-purple-600" />
-              Vacation Leave
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between items-baseline">
-                <span className="text-3xl font-bold text-purple-700 dark:text-purple-400">
-                  {credits?.vacation_leave_remaining || 0}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  / {credits?.vacation_leave || 0} days
-                </span>
-              </div>
-              <div className="w-full bg-purple-200 dark:bg-purple-800/50 rounded-full h-2">
-                <div
-                  className="bg-purple-600 h-2 rounded-full transition-all"
-                  style={{
-                    width: `${((credits?.used_vacation_leave || 0) / (credits?.vacation_leave || 1)) * 100}%`,
-                  }}
-                />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Used: {credits?.used_vacation_leave || 0} days
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/*  Maternity Leave Card */}
-        <Card className="bg-linear-to-br from-pink-50 to-pink-100 dark:from-pink-950/30 dark:to-pink-900/30 border-pink-200 dark:border-pink-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              👶 Maternity Leave
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between items-baseline">
-                <span className="text-3xl font-bold text-pink-700 dark:text-pink-400">
-                  {credits?.maternity_leave_remaining || 0}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  / {credits?.maternity_leave || 0} days
-                </span>
-              </div>
-              <div className="w-full bg-pink-200 dark:bg-pink-800/50 rounded-full h-2">
-                <div
-                  className="bg-pink-600 h-2 rounded-full transition-all"
-                  style={{
-                    width: `${((credits?.used_maternity_leave || 0) / (credits?.maternity_leave || 1)) * 100}%`,
-                  }}
-                />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Used: {credits?.used_maternity_leave || 0} days
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/*  Emergency Leave Card */}
-        <Card className="bg-linear-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/30 dark:to-yellow-900/30 border-yellow-200 dark:border-yellow-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              🚨 Emergency Leave
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between items-baseline">
-                <span className="text-3xl font-bold text-yellow-700 dark:text-yellow-400">
-                  {credits?.emergency_leave_remaining || 0}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  / {credits?.emergency_leave || 0} days
-                </span>
-              </div>
-              <div className="w-full bg-yellow-200 dark:bg-yellow-800/50 rounded-full h-2">
-                <div
-                  className="bg-yellow-600 h-2 rounded-full transition-all"
-                  style={{
-                    width: `${((credits?.used_emergency_leave || 0) / (credits?.emergency_leave || 1)) * 100}%`,
-                  }}
-                />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Used: {credits?.used_emergency_leave || 0} days
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/*  No Pay Leave Card (Special - Unlimited) */}
-        <Card className="bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-950/30 dark:to-gray-900/30 border-gray-200 dark:border-gray-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              💸 No Pay Leave
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <span className="text-2xl font-bold text-gray-700 dark:text-gray-400">
-                Unlimited
-              </span>
-              <p className="text-sm text-muted-foreground">
-                This leave is unpaid
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        {renderBalanceCards()}
       </div>
 
       {/* Transaction History */}

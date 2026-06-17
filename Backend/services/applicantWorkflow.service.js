@@ -1019,6 +1019,44 @@ const getPossibleApprovers = async () => {
   return result.rows;
 };
 
+const getAssignableUsers = async (page = 1, limit = 20, search = "") => {
+  const offset = (page - 1) * limit;
+  const searchVal = search ? `%${search}%` : "";
+
+  const data = await pool.query(
+    `SELECT u.id AS user_id, u.username, e.id AS employee_id,
+            e.first_name || ' ' || e.last_name AS name, e.employee_code,
+            e.department, e.position, e.status AS employee_status,
+            b.name AS branch_name
+     FROM users u
+     INNER JOIN employees e ON e.id = u.employee_id
+     LEFT JOIN branches b ON b.id = e.branch_id
+     WHERE e.status = 'ACTIVE'
+       AND ($1 = '' OR e.first_name ILIKE $1 OR e.last_name ILIKE $1 OR (e.first_name || ' ' || e.last_name) ILIKE $1 OR e.employee_code ILIKE $1 OR u.username ILIKE $1)
+     ORDER BY e.first_name ASC
+     LIMIT $2 OFFSET $3`,
+    [searchVal, limit, offset],
+  );
+
+  const count = await pool.query(
+    `SELECT COUNT(*) FROM users u
+     INNER JOIN employees e ON e.id = u.employee_id
+     WHERE e.status = 'ACTIVE'
+       AND ($1 = '' OR e.first_name ILIKE $1 OR e.last_name ILIKE $1 OR (e.first_name || ' ' || e.last_name) ILIKE $1 OR e.employee_code ILIKE $1 OR u.username ILIKE $1)`,
+    [searchVal],
+  );
+
+  return {
+    data: data.rows,
+    pagination: {
+      total: parseInt(count.rows[0].count),
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(parseInt(count.rows[0].count) / limit),
+    },
+  };
+};
+
 const approveStage = async (stageRecordId, comments, currentUser) => {
   const sr = await getStageRecordById(stageRecordId);
   if (!sr) throw new Error("Stage record not found");
@@ -1369,6 +1407,7 @@ module.exports = {
   getMyApprovalAssignments,
   getMyWorkflowStageAssignments,
   getPossibleApprovers,
+  getAssignableUsers,
   approveStage,
   rejectStage,
   rollbackToStage,

@@ -1,10 +1,10 @@
 const manHourReportModel = require("../models/man_hour_report.model");
-const notificationService = require("../services/notification.service");
 const notificationHelper = require("../services/notificationHelper.service");
+const notificationDispatch = require("./notificationDispatch.service");
 const smtpService = require("./smtp.service");
-const settingService = require("./setting.service");
 const emailTemplateService = require("./emailTemplate.service");
 const pool = require("../config/db");
+const { cleanPlainText } = require("../utils/inputSanitizer");
 
 // Helper function to format date
 const formatDate = (dateStr) => {
@@ -23,14 +23,14 @@ const sendManHourEmailNotification = async (
   rejectionReason = null,
 ) => {
   try {
-    const notifyKey =
+    const ruleKey =
       status === "APPROVED"
-        ? "notify_man_hour_approved"
-        : "notify_man_hour_rejected";
-    const isEnabled = await settingService.getBoolSetting(notifyKey);
+        ? "man_hour_approved"
+        : "man_hour_rejected";
+    const allowed = await notificationDispatch.canSendEmail(ruleKey);
 
-    if (!isEnabled) {
-      console.log(`Email notification for man hour ${status} is disabled`);
+    if (!allowed) {
+      console.log(`Email notification for ${ruleKey} is disabled`);
       return;
     }
 
@@ -74,6 +74,15 @@ const sendManHourEmailNotification = async (
 
 // CREATE MAN HOUR REPORT
 const createManHourReport = async (employee_id, data) => {
+  if (data.remarks) data.remarks = cleanPlainText(data.remarks);
+  if (data.task) data.task = cleanPlainText(data.task);
+  if (data.details && Array.isArray(data.details)) {
+    data.details = data.details.map((d) => ({
+      ...d,
+      activity: d.activity ? cleanPlainText(d.activity) : d.activity,
+    }));
+  }
+
   // Check if using new format (with details)
   if (data.details && Array.isArray(data.details) && data.details.length > 0) {
     return await manHourReportModel.createManHourReportWithDetails({
@@ -194,19 +203,21 @@ const approveManHourReport = async (id, approver_id, comment, userRole) => {
 
   // Send notification
   try {
-    await notificationHelper.notifyEmployee(report.employee_id, {
-      type: "MAN_HOUR",
-      title: "Man Hour Report Approved",
-      message: `Your man hour report for ${report.work_date} (${report.hours}h) has been approved`,
-      reference_id: id,
-      meta: {
-        man_hour_id: id,
-        status: "APPROVED",
-        work_date: report.work_date,
-        hours: report.hours,
-        task: report.task,
-      },
-    });
+    await notificationDispatch.sendInAppIfEnabled("man_hour_approved", () =>
+      notificationHelper.notifyEmployee(report.employee_id, {
+        type: "MAN_HOUR",
+        title: "Man Hour Report Approved",
+        message: `Your man hour report for ${report.work_date} (${report.hours}h) has been approved`,
+        reference_id: id,
+        meta: {
+          man_hour_id: id,
+          status: "APPROVED",
+          work_date: report.work_date,
+          hours: report.hours,
+          task: report.task,
+        },
+      }),
+    );
 
     await sendManHourEmailNotification(report, "APPROVED");
   } catch (emailError) {
@@ -253,20 +264,22 @@ const rejectManHourReport = async (id, approver_id, reason, userRole) => {
 
   // Send notification
   try {
-    await notificationHelper.notifyEmployee(report.employee_id, {
-      type: "MAN_HOUR",
-      title: "Man Hour Report Rejected",
-      message: `Your man hour report for ${report.work_date} (${report.hours}h) was not approved. Reason: ${reason}`,
-      reference_id: id,
-      meta: {
-        man_hour_id: id,
-        status: "REJECTED",
-        work_date: report.work_date,
-        hours: report.hours,
-        task: report.task,
-        rejection_reason: reason,
-      },
-    });
+    await notificationDispatch.sendInAppIfEnabled("man_hour_rejected", () =>
+      notificationHelper.notifyEmployee(report.employee_id, {
+        type: "MAN_HOUR",
+        title: "Man Hour Report Rejected",
+        message: `Your man hour report for ${report.work_date} (${report.hours}h) was not approved. Reason: ${reason}`,
+        reference_id: id,
+        meta: {
+          man_hour_id: id,
+          status: "REJECTED",
+          work_date: report.work_date,
+          hours: report.hours,
+          task: report.task,
+          rejection_reason: reason,
+        },
+      }),
+    );
 
     await sendManHourEmailNotification(report, "REJECTED", reason);
   } catch (emailError) {
@@ -287,6 +300,15 @@ const getManHourSummary = async (start_date, end_date, employee_id = null) => {
 
 // UPDATE MAN HOUR REPORT (only if not yet approved)
 const updateManHourReport = async (id, employee_id, data) => {
+  if (data.remarks) data.remarks = cleanPlainText(data.remarks);
+  if (data.task) data.task = cleanPlainText(data.task);
+  if (data.details && Array.isArray(data.details)) {
+    data.details = data.details.map((d) => ({
+      ...d,
+      activity: d.activity ? cleanPlainText(d.activity) : d.activity,
+    }));
+  }
+
   // Check if using new format (with details)
   if (data.details && Array.isArray(data.details) && data.details.length > 0) {
     return await manHourReportModel.updateManHourReportWithDetails(

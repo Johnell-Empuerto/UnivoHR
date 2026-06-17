@@ -53,6 +53,8 @@ interface SalaryBreakdownProps {
     late_deduction: number;
     absent_deduction: number;
     government_deduction: number;
+    night_differential_hours?: number;
+    night_differential_pay?: number;
     deductions: number;
     net_salary: number;
     deductions_list?: Array<{ type: string; amount: string | number }>;
@@ -145,6 +147,23 @@ const SalaryBreakdown = ({ record }: SalaryBreakdownProps) => {
             </div>
           )}
 
+          {/* Night Differential */}
+          {record.night_differential_hours != null && record.night_differential_hours > 0 && (
+            <div>
+              <div className="flex justify-between mb-2">
+                <span className="text-sm font-medium text-indigo-600">
+                  Night Differential Pay
+                </span>
+                <span className="text-sm font-semibold text-indigo-600">
+                  +₱{formatCurrency(record.night_differential_pay || 0)}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {record.night_differential_hours} night differential hours
+              </p>
+            </div>
+          )}
+
           {/* Deductions Section */}
           <div className="space-y-3 pt-2 border-t">
             <p className="text-sm font-medium text-red-600">Deductions</p>
@@ -159,14 +178,19 @@ const SalaryBreakdown = ({ record }: SalaryBreakdownProps) => {
               </div>
             )}
 
-            {/* Absent Deductions */}
+            {/* Absence Value (informational) */}
             {record.absent_deduction > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Absent Deductions</span>
+                <span className="text-muted-foreground">Absence Value</span>
                 <span className="text-red-600">
                   -₱{formatCurrency(record.absent_deduction)}
                 </span>
               </div>
+            )}
+            {record.absent_deduction > 0 && (
+              <p className="text-xs text-muted-foreground mt-1 italic">
+                Already reflected through prorated basic pay — not deducted again
+              </p>
             )}
 
             {/* Itemized Government Contributions */}

@@ -276,7 +276,7 @@ const refreshToken = async (refreshTokenStr, reqInfo) => {
 
   let decoded;
   try {
-    decoded = jwt.verify(refreshTokenStr, JWT_SECRET);
+    decoded = jwt.verify(refreshTokenStr, JWT_SECRET, { algorithms: ["HS256"] });
   } catch (err) {
     if (err.name === "TokenExpiredError") {
       throw new Error("Refresh token expired, please login again");
@@ -328,7 +328,7 @@ const logout = async (accessJti, accessExp, refreshTokenStr) => {
 
   if (refreshTokenStr) {
     try {
-      const decoded = jwt.verify(refreshTokenStr, JWT_SECRET);
+      const decoded = jwt.verify(refreshTokenStr, JWT_SECRET, { algorithms: ["HS256"] });
       if (decoded.type === "refresh" && decoded.jti) {
         await sessionModel.deactivateSession(decoded.jti);
       }
@@ -396,13 +396,20 @@ const resetPassword = async ({ user_id, otp, new_password }) => {
     throw new Error(verification.message);
   }
 
-  if (!new_password || new_password.length < 6) {
-    throw new Error("Password must be at least 6 characters long");
+  const user = await authModel.findUserById(user_id);
+  if (!user) throw new Error("User not found");
+
+  if (!new_password) {
+    throw new Error("Password is required");
+  }
+
+  const passwordErrors = validatePassword(new_password, user.username);
+  if (passwordErrors.length > 0) {
+    throw new Error(passwordErrors[0]);
   }
 
   await userService.resetPassword(user_id, new_password);
 
-  const user = await authModel.findUserById(user_id);
   if (user?.username) {
     await userCacheService.invalidateUserCache(user.username);
   }

@@ -1,5 +1,6 @@
 const smtpService = require("./smtp.service");
 const redisClient = require("../config/redis");
+const notificationDispatch = require("./notificationDispatch.service");
 const {
   buildStandaloneTransactionalEmail,
   buildLoginOtpBody,
@@ -239,6 +240,15 @@ const getMaskedEmail = async (userId) => {
 };
 
 const sendOTPEmail = async (email, otp, userName) => {
+  const allowed = await notificationDispatch.canSendEmail("login_otp");
+  if (!allowed) {
+    console.warn(
+      "[OTP] login_otp email is DISABLED in notification_rules. " +
+      "Login OTP will still be sent to avoid breaking login flow. " +
+      "Enable login_otp.email_enabled in Settings to suppress this warning.",
+    );
+  }
+
   const subject = "Login Verification Code - UnivoHR";
 
   const html = buildStandaloneTransactionalEmail({

@@ -1,33 +1,30 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createApplicant } from "@/services/applicantService";
-import { getActiveJobPositions } from "@/services/jobPositionService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, ArrowLeft, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import JobPositionPickerDialog from "@/components/shared/JobPositionPickerDialog";
 
 interface JobPosition {
   id: number;
   title: string;
+  department?: string | null;
+  branch_name?: string | null;
   workflow_id: number | null;
   workflow_name: string | null;
+  status?: string;
 }
 
 const ApplicantFormPage = () => {
   const navigate = useNavigate();
-  const [jobPositions, setJobPositions] = useState<JobPosition[]>([]);
   const [saving, setSaving] = useState(false);
+  const [jobPickerOpen, setJobPickerOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<JobPosition | null>(null);
   const [form, setForm] = useState({
     job_position_id: "",
     first_name: "",
@@ -41,20 +38,10 @@ const ApplicantFormPage = () => {
     notes: "",
   });
 
-  useEffect(() => {
-    getActiveJobPositions()
-      .then(setJobPositions)
-      .catch(() => {});
-  }, []);
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setForm({ ...form, [name]: value });
   };
 
   const handleSubmit = async () => {
@@ -130,43 +117,38 @@ const ApplicantFormPage = () => {
             <Label>
               Job Position <span className="text-red-500">*</span>
             </Label>
-            <Select
-              value={form.job_position_id}
-              onValueChange={(v) => handleSelectChange("job_position_id", v)}
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start text-left font-normal"
+              onClick={() => setJobPickerOpen(true)}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select position" />
-              </SelectTrigger>
-              <SelectContent>
-                {jobPositions.map((jp) => (
-                  <SelectItem key={jp.id} value={String(jp.id)}>
-                    {jp.title}
-                    {jp.workflow_name ? ` (${jp.workflow_name})` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {form.job_position_id &&
-              (() => {
-                const jp = jobPositions.find(
-                  (j) => j.id === Number(form.job_position_id),
-                );
-                if (!jp) return null;
-                if (jp.workflow_name) {
-                  return (
-                    <p className="text-xs text-green-600 mt-1">
-                      Workflow: {jp.workflow_name}
-                    </p>
-                  );
-                }
-                return (
-                  <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" /> This job position has
-                    no workflow assigned. A default workflow will be used if
-                    available.
-                  </p>
-                );
-              })()}
+              {selectedJob
+                ? `${selectedJob.title}${selectedJob.workflow_name ? ` (${selectedJob.workflow_name})` : ""}`
+                : "Select job position"}
+            </Button>
+            {form.job_position_id && selectedJob ? (
+              selectedJob.workflow_name ? (
+                <p className="text-xs text-green-600 mt-1">
+                  Workflow: {selectedJob.workflow_name}
+                </p>
+              ) : (
+                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" /> This job position has
+                  no workflow assigned. A default workflow will be used if
+                  available.
+                </p>
+              )
+            ) : null}
+            <JobPositionPickerDialog
+              open={jobPickerOpen}
+              onOpenChange={setJobPickerOpen}
+              selectedId={selectedJob?.id || null}
+              onSelect={(pos) => {
+                setSelectedJob(pos);
+                setForm({ ...form, job_position_id: String(pos.id) });
+              }}
+            />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1">

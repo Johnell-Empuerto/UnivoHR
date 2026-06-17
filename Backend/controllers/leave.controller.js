@@ -1,6 +1,7 @@
 const leaveService = require("../services/leave.service");
 const audit = require("../services/audit.service");
 const { ROLES } = require("../constants/roles");
+const { cleanPlainText } = require("../utils/inputSanitizer");
 
 // Helper function to format leave type display name
 const getLeaveTypeDisplay = (type) => {
@@ -87,7 +88,7 @@ const createLeave = async (req, res) => {
       type,
       from_date,
       to_date,
-      reason,
+      reason: cleanPlainText(reason),
       employee_id: employeeId,
       day_fraction,
       half_day_type: half_day_type ? half_day_type.toUpperCase() : null,
@@ -289,7 +290,7 @@ const updateStatus = async (req, res) => {
     const result = await leaveService.updateStatus(
       leaveId,
       status,
-      rejection_reason,
+      cleanPlainText(rejection_reason),
     );
 
     audit.auditLog(req, {

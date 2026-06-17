@@ -137,4 +137,9 @@ export const createStageRecord = async (applicantId: number, workflowStageId: nu
   return response.data;
 };
 
+export const getAssignableUsers = async (page = 1, limit = 20, search = "") => {
+  const response = await api.get("/applicants/assignable-users", { params: { page, limit, search } });
+  return response.data;
+};
+
 

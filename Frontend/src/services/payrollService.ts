@@ -56,18 +56,6 @@ export const markPayrollAsPaid = async (id: number) => {
   return res.data;
 };
 
-// 🔧 Get payroll settings
-export const getPayrollSettings = async () => {
-  const response = await api.get("/payroll/settings");
-  return response.data;
-};
-
-//  Update payroll settings
-export const updatePayrollSettings = async (settings: any) => {
-  const response = await api.put("/payroll/settings", settings);
-  return response.data;
-};
-
 export const markAllPayrollAsPaid = async (
   cutoff_start: string,
   cutoff_end: string,

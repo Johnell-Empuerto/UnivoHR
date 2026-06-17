@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { getMyBenefits } from "@/services/payrollService";
 import { useAuth } from "@/app/providers/AuthProvider";
+import { toast } from "sonner";
 import {
   HeartHandshake,
   BadgeInfo,
@@ -20,6 +21,9 @@ import {
   Shield,
   FileText,
   CreditCard,
+  PiggyBank,
+  ListChecks,
+  CircleDollarSign,
 } from "lucide-react";
 
 const formatDeductionLabel = (type: string) => {
@@ -89,6 +93,7 @@ const MyBenefitsPage = () => {
         setBenefits(data);
       } catch (error) {
         console.error("Failed to load benefits:", error);
+        toast.error("Failed to load your benefits. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -121,6 +126,45 @@ const MyBenefitsPage = () => {
         <Loader message="Loading benefits..." />
       ) : (
         <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Active Benefits
+                </CardTitle>
+                <ListChecks className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">{deductions.length}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Monthly Contribution
+                </CardTitle>
+                <PiggyBank className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">
+                  ₱{formatCurrency(deductions.reduce((sum: number, d: any) => sum + Number(d.amount || 0), 0))}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Government IDs
+                </CardTitle>
+                <CircleDollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold">{hasIds ? Object.values(govIds).filter(Boolean).length : 0}</p>
+                <p className="text-xs text-muted-foreground mt-1">linked to your profile</p>
+              </CardContent>
+            </Card>
+          </div>
+
           {hasIds && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {govIds.sss_number && (

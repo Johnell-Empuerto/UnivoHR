@@ -1,6 +1,7 @@
 const payrollModel = require("../models/payroll.model");
 const queueService = require("./queue.service");
 const notificationHelper = require("./notificationHelper.service");
+const notificationDispatch = require("./notificationDispatch.service");
 const pool = require("../config/db");
 
 const getEmployeesWithPayrollForCutoff = async (cutoff_start, cutoff_end) => {
@@ -77,20 +78,20 @@ const updateDeduction = (id, data) => payrollModel.updateDeduction(id, data);
 const deleteDeduction = (id) => payrollModel.deleteDeduction(id);
 
 // MARK AS PAID - OPTIMIZED (single query for employee)
-const markAsPaid = async (id) => {
+const markAsPaid = async (id, userId = null) => {
   console.log("[Payroll/Pay] UPDATE payroll SET status=PAID", {
     payroll_id: id,
-    sql: "WHERE id = $1 AND status != 'PAID'",
+    user_id: userId,
   });
 
   const result = await pool.query(
     `
     UPDATE payroll 
-    SET status = 'PAID' 
-    WHERE id = $1 AND status != 'PAID' 
+    SET status = 'PAID', paid_at = NOW(), paid_by = $2
+    WHERE id = $1 AND status = 'UNPAID'
     RETURNING *
     `,
-    [id],
+    [id, userId],
   );
 
   console.log("[Payroll/Pay] UPDATE result", {
@@ -108,24 +109,31 @@ const markAsPaid = async (id) => {
     const employee = employeeResult.rows[0];
 
     if (employee && employee.email) {
-      // Add to queue for background processing
-      await queueService.addPayslipToQueue(payroll, employee);
+      // Add to queue for background processing (respect email toggle)
+      const emailAllowed = await notificationDispatch.canSendEmail("payroll_marked_paid");
+      if (emailAllowed) {
+        await queueService.addPayslipToQueue(payroll, employee);
+      } else {
+        console.log("[payroll] Payslip email disabled for payroll_marked_paid, skipping queue");
+      }
     }
 
-    notificationHelper.notifyEmployee(payroll.employee_id, {
-      type: "PAYROLL",
-      title: "Payroll Paid",
-      message: "Your payroll for the selected cutoff has been marked as paid and is available for viewing.",
-      reference_id: payroll.id,
-      meta: { payroll_id: payroll.id, cutoff_start: payroll.cutoff_start, cutoff_end: payroll.cutoff_end },
-    }).catch(err => console.error("[payroll] Employee notification error:", err.message));
+    notificationDispatch.sendInAppIfEnabled("payroll_marked_paid", () =>
+      notificationHelper.notifyEmployee(payroll.employee_id, {
+        type: "PAYROLL",
+        title: "Payroll Paid",
+        message: "Your payroll for the selected cutoff has been marked as paid and is available for viewing.",
+        reference_id: payroll.id,
+        meta: { payroll_id: payroll.id, cutoff_start: payroll.cutoff_start, cutoff_end: payroll.cutoff_end },
+      }),
+    ).catch(err => console.error("[payroll] Employee notification error:", err.message));
   }
 
   return payroll;
 };
 
 // MARK ALL AS PAID - FULLY OPTIMIZED (NO N+1!)
-const markAllAsPaid = async (cutoff_start, cutoff_end) => {
+const markAllAsPaid = async (cutoff_start, cutoff_end, userId = null) => {
   // Pre-check: determine state of payroll records for this cutoff
   const statusCheck = await pool.query(
     `SELECT status, COUNT(*)::int AS cnt
@@ -163,13 +171,13 @@ const markAllAsPaid = async (cutoff_start, cutoff_end) => {
   const result = await pool.query(
     `
     UPDATE payroll
-    SET status = 'PAID'
+    SET status = 'PAID', paid_at = NOW(), paid_by = $3
     WHERE cutoff_start::date = $1::date
     AND cutoff_end::date = $2::date
-    AND status NOT IN ('PAID', 'LOCKED', 'VOID')
+    AND status = 'UNPAID'
     RETURNING *
     `,
-    [cutoff_start, cutoff_end],
+    [cutoff_start, cutoff_end, userId],
   );
 
   // OPTIMIZATION: Batch fetch all employees in ONE query instead of N queries
@@ -202,19 +210,25 @@ const markAllAsPaid = async (cutoff_start, cutoff_end) => {
     }
   }
 
-  // Add all to queue for background processing
-  if (payrollsWithEmployees.length > 0) {
+  // Add all to queue for background processing (respect email toggle)
+  const emailAllowed = await notificationDispatch.canSendEmail("payroll_marked_paid");
+  if (payrollsWithEmployees.length > 0 && emailAllowed) {
     await queueService.addBulkPayslipsToQueue(payrollsWithEmployees);
+    console.log(`[payroll] ${payrollsWithEmployees.length} payslip(s) queued`);
+  } else if (payrollsWithEmployees.length > 0) {
+    console.log("[payroll] Bulk payslip email disabled for payroll_marked_paid, skipping queue");
   }
 
   for (const p of result.rows) {
-    notificationHelper.notifyEmployee(p.employee_id, {
-      type: "PAYROLL",
-      title: "Payroll Paid",
-      message: "Your payroll for the selected cutoff has been marked as paid and is available for viewing.",
-      reference_id: p.id,
-      meta: { payroll_id: p.id, cutoff_start: p.cutoff_start, cutoff_end: p.cutoff_end },
-    }).catch(err => console.error("[payroll] Bulk employee notification error:", err.message));
+    notificationDispatch.sendInAppIfEnabled("payroll_marked_paid", () =>
+      notificationHelper.notifyEmployee(p.employee_id, {
+        type: "PAYROLL",
+        title: "Payroll Paid",
+        message: "Your payroll for the selected cutoff has been marked as paid and is available for viewing.",
+        reference_id: p.id,
+        meta: { payroll_id: p.id, cutoff_start: p.cutoff_start, cutoff_end: p.cutoff_end },
+      }),
+    ).catch(err => console.error("[payroll] Bulk employee notification error:", err.message));
   }
 
   return {
@@ -248,16 +262,16 @@ const getPayrollDetails = async (id) => {
   return await payrollModel.getPayrollDetails(id);
 };
 
-const lockPayroll = async (id) => {
-  return await payrollModel.lockPayroll(id);
+const lockPayroll = async (id, userId = null) => {
+  return await payrollModel.lockPayroll(id, userId);
 };
 
 const unlockPayroll = async (id) => {
   return await payrollModel.unlockPayroll(id);
 };
 
-const voidPayroll = async (id) => {
-  return await payrollModel.voidPayroll(id);
+const voidPayroll = async (id, userId = null) => {
+  return await payrollModel.voidPayroll(id, userId);
 };
 
 module.exports = {

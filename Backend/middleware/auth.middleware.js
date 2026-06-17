@@ -17,7 +17,7 @@ const authenticate = async (req, res, next) => {
       throw new Error("JWT_SECRET is not configured");
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
 
     if (decoded.type && decoded.type !== "access") {
       return res.status(401).json({

@@ -479,6 +479,16 @@ const EmployeePayrollPage = () => {
                       </span>
                     </div>
                   )}
+
+                {selectedRecord.night_differential_pay != null &&
+                  selectedRecord.night_differential_pay > 0 && (
+                    <div className="flex justify-between text-indigo-600">
+                      <span>Night Differential Pay</span>
+                      <span>
+                        +₱{formatCurrency(selectedRecord.night_differential_pay)}
+                      </span>
+                    </div>
+                  )}
               </div>
 
               {/* Deductions Section */}
@@ -499,11 +509,16 @@ const EmployeePayrollPage = () => {
 
                 {selectedRecord.absent_deduction > 0 && (
                   <div className="flex justify-between text-red-600">
-                    <span>Absent Deductions</span>
+                    <span>Absence Value</span>
                     <span>
                       -₱{formatCurrency(selectedRecord.absent_deduction)}
                     </span>
                   </div>
+                )}
+                {selectedRecord.absent_deduction > 0 && (
+                  <p className="text-xs text-muted-foreground italic">
+                    Already reflected through prorated basic pay — not deducted again
+                  </p>
                 )}
 
                 {selectedRecord.deductions_list &&

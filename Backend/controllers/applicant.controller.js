@@ -348,6 +348,17 @@ const getPossibleApprovers = async (req, res) => {
   }
 };
 
+const getAssignableUsers = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search = "" } = req.query;
+    const safeLimit = Math.min(Number(limit) || 20, 50);
+    const result = await applicantWorkflowService.getAssignableUsers(Number(page), safeLimit, search);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 const rollbackToStage = async (req, res) => {
   try {
     const { id } = req.params;
@@ -445,6 +456,7 @@ module.exports = {
   getMyApprovalAssignments,
   getMyWorkflowStageAssignments,
   getPossibleApprovers,
+  getAssignableUsers,
   rollbackToStage,
   correctStageResult,
   failDynamicApplicant,

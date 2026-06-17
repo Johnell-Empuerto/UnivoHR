@@ -1,6 +1,7 @@
 // services/emailTemplate.service.js
 const emailTemplateModel = require("../models/emailTemplate.model");
 const { wrapEmailWithDesign } = require("./emailWrapper.service");
+const { cleanPlainText, cleanRichText } = require("../utils/inputSanitizer");
 
 // Apply template variables
 const applyTemplate = (html, data) => {
@@ -35,8 +36,8 @@ const upsertTemplate = async (type, subject, body_html, userId) => {
   }
   return await emailTemplateModel.upsertTemplate(
     type,
-    subject,
-    body_html,
+    cleanPlainText(subject),
+    cleanRichText(body_html),
     userId,
   );
 };
@@ -45,8 +46,8 @@ const upsertTemplate = async (type, subject, body_html, userId) => {
 const updateTemplate = async (id, subject, body_html, is_active, userId) => {
   return await emailTemplateModel.updateTemplate(
     id,
-    subject,
-    body_html,
+    cleanPlainText(subject),
+    cleanRichText(body_html),
     is_active,
     userId,
   );

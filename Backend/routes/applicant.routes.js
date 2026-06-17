@@ -19,6 +19,12 @@ router.post("/:id/workflow-stages/fail", authenticate, requirePermission("recrui
 router.get("/workflow-approvals/my-assignments", authenticate, controller.getMyApprovalAssignments);
 router.get("/workflow-stages/my-assignments", authenticate, controller.getMyWorkflowStageAssignments);
 router.get("/possible-approvers", authenticate, controller.getPossibleApprovers);
+router.get(
+  "/assignable-users",
+  authenticate,
+  requirePermission("recruitment.applicants.manage"),
+  controller.getAssignableUsers,
+);
 
 router.post("/:id/workflow/rollback", authenticate, requirePermission("recruitment.applicants.manage"), controller.rollbackToStage);
 router.post("/workflow-stages/:stageRecordId/correct-result", authenticate, requirePermission("recruitment.applicants.manage"), controller.correctStageResult);

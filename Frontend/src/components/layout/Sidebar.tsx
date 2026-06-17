@@ -32,20 +32,31 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { isApprover as checkIsApprover } from "@/services/overtimeService";
 import { getKpiPendingCount } from "@/services/kpiService";
 
+const APPROVER_CACHE_KEY = "sidebar_is_approver";
+const EVALUATOR_CACHE_KEY = "sidebar_is_evaluator";
+
 const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
   const { user, hasPermission } = useAuth();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
-  const [isUserApprover, setIsUserApprover] = useState(false);
-  const [isEvaluator, setIsEvaluator] = useState(false);
+  const [isUserApprover, setIsUserApprover] = useState(() => {
+    const cached = sessionStorage.getItem(APPROVER_CACHE_KEY);
+    return cached ? JSON.parse(cached) : false;
+  });
+  const [isEvaluator, setIsEvaluator] = useState(() => {
+    const cached = sessionStorage.getItem(EVALUATOR_CACHE_KEY);
+    return cached ? JSON.parse(cached) : false;
+  });
 
   useEffect(() => {
+    const cached = sessionStorage.getItem(APPROVER_CACHE_KEY);
+    if (cached !== null) return;
     const checkApproverStatus = async () => {
       if (user?.id) {
         try {
           const result = await checkIsApprover();
           setIsUserApprover(result.isApprover);
-        } catch (error) {
-          console.error("Failed to check approver status:", error);
+          sessionStorage.setItem(APPROVER_CACHE_KEY, JSON.stringify(result.isApprover));
+        } catch {
           setIsUserApprover(false);
         }
       }
@@ -54,11 +65,15 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
   }, [user]);
 
   useEffect(() => {
+    const cached = sessionStorage.getItem(EVALUATOR_CACHE_KEY);
+    if (cached !== null) return;
     const checkEvaluatorStatus = async () => {
       if (user?.employee_id) {
         try {
           const result = await getKpiPendingCount();
-          setIsEvaluator(result.count > 0);
+          const hasPending = result.count > 0;
+          setIsEvaluator(hasPending);
+          sessionStorage.setItem(EVALUATOR_CACHE_KEY, JSON.stringify(hasPending));
         } catch {
           setIsEvaluator(false);
         }

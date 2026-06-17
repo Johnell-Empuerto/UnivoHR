@@ -1,9 +1,10 @@
 const overtimeModel = require("../models/overtime.model");
 const smtpService = require("./smtp.service");
-const settingService = require("./setting.service");
 const notificationHelper = require("./notificationHelper.service");
+const notificationDispatch = require("./notificationDispatch.service");
 const pool = require("../config/db");
 const emailTemplateService = require("./emailTemplate.service");
+const { cleanPlainText } = require("../utils/inputSanitizer");
 
 // Helper function to format date
 const formatDate = (dateStr) => {
@@ -31,21 +32,20 @@ const formatTime = (timeStr) => {
 };
 
 // UPDATED: Send email notification using template system
-// In services/overtime.service.js
 const sendOvertimeEmailNotification = async (
   overtime,
   status,
   rejectionReason = null,
 ) => {
   try {
-    const notifyKey =
+    const ruleKey =
       status === "APPROVED"
-        ? "notify_overtime_approved"
-        : "notify_overtime_rejected";
-    const isEnabled = await settingService.getBoolSetting(notifyKey);
+        ? "overtime_approved"
+        : "overtime_rejected";
+    const allowed = await notificationDispatch.canSendEmail(ruleKey);
 
-    if (!isEnabled) {
-      console.log(`Email notification for overtime ${status} is disabled`);
+    if (!allowed) {
+      console.log(`Email notification for ${ruleKey} is disabled`);
       return;
     }
 
@@ -94,7 +94,9 @@ const sendOvertimeEmailNotification = async (
 };
 
 const createOvertime = async (employee_id, data) => {
-  return await overtimeModel.createOvertime({ employee_id, ...data });
+  const sanitized = { ...data };
+  if (sanitized.reason) sanitized.reason = cleanPlainText(sanitized.reason);
+  return await overtimeModel.createOvertime({ employee_id, ...sanitized });
 };
 
 const getMyOvertime = async (employee_id, page, limit, search, status) => {
@@ -173,7 +175,7 @@ const approveOvertime = async (id, approver_id, comment, userRole) => {
     throw new Error("You don't have permission to approve this request");
   }
 
-  const result = await overtimeModel.approveOvertime(id, approver_id, comment);
+  const result = await overtimeModel.approveOvertime(id, approver_id, comment ? cleanPlainText(comment) : comment);
 
   try {
     await sendOvertimeEmailNotification(request, "APPROVED");
@@ -181,13 +183,15 @@ const approveOvertime = async (id, approver_id, comment, userRole) => {
     console.error("Email notification failed:", emailError);
   }
 
-  notificationHelper.notifyEmployee(request.employee_id, {
-    type: "OVERTIME",
-    title: "Overtime Approved",
-    message: "Your overtime request has been approved.",
-    reference_id: id,
-    meta: { overtime_id: id, status: "APPROVED" },
-  }).catch(err => console.error("[overtime] In-app notification error:", err.message));
+  notificationDispatch.sendInAppIfEnabled("overtime_approved", () =>
+    notificationHelper.notifyEmployee(request.employee_id, {
+      type: "OVERTIME",
+      title: "Overtime Approved",
+      message: "Your overtime request has been approved.",
+      reference_id: id,
+      meta: { overtime_id: id, status: "APPROVED" },
+    }),
+  ).catch(err => console.error("[overtime] In-app notification error:", err.message));
 
   return result;
 };
@@ -219,7 +223,7 @@ const rejectOvertime = async (id, approver_id, reason, userRole) => {
     throw new Error("You don't have permission to reject this request");
   }
 
-  const result = await overtimeModel.rejectOvertime(id, approver_id, reason);
+  const result = await overtimeModel.rejectOvertime(id, approver_id, reason ? cleanPlainText(reason) : reason);
 
   try {
     await sendOvertimeEmailNotification(request, "REJECTED", reason);
@@ -227,13 +231,15 @@ const rejectOvertime = async (id, approver_id, reason, userRole) => {
     console.error("Email notification failed:", emailError);
   }
 
-  notificationHelper.notifyEmployee(request.employee_id, {
-    type: "OVERTIME",
-    title: "Overtime Rejected",
-    message: "Your overtime request has been rejected.",
-    reference_id: id,
-    meta: { overtime_id: id, status: "REJECTED", rejection_reason: reason },
-  }).catch(err => console.error("[overtime] In-app notification error:", err.message));
+  notificationDispatch.sendInAppIfEnabled("overtime_rejected", () =>
+    notificationHelper.notifyEmployee(request.employee_id, {
+      type: "OVERTIME",
+      title: "Overtime Rejected",
+      message: "Your overtime request has been rejected.",
+      reference_id: id,
+      meta: { overtime_id: id, status: "REJECTED", rejection_reason: reason },
+    }),
+  ).catch(err => console.error("[overtime] In-app notification error:", err.message));
 
   return result;
 };

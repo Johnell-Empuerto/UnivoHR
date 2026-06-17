@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const leaveConversionService = require("./leaveConversion.service");
+const leaveBalanceService = require("./leaveBalance.service");
 
 // ============================================
 // SHARED UTILITY - Calculate Work Units
@@ -122,14 +123,9 @@ const getEmployeesForFinalPay = async (page = 1, limit = 10, search = "", allowe
       e.final_pay_amount,
       s.basic_salary,
       s.daily_rate,
-      s.working_days_per_month,
-      lc.vacation_leave,
-      lc.used_vacation_leave,
-      lc.sick_leave,
-      lc.used_sick_leave
+      s.working_days_per_month
     FROM employees e
     LEFT JOIN employee_salary s ON e.id = s.employee_id
-    LEFT JOIN leave_credits lc ON e.id = lc.employee_id
     WHERE e.status IN ('RESIGNED', 'TERMINATED')
     AND (e.final_pay_processed IS NULL OR e.final_pay_processed = false)
     ${branchClause}
@@ -176,8 +172,29 @@ const getEmployeesForFinalPay = async (page = 1, limit = 10, search = "", allowe
 
   const total = parseInt(countQuery.rows[0].count);
 
+  const empIds = dataQuery.rows.map((r) => r.id);
+  const balancesByEmp = empIds.length > 0
+    ? await leaveBalanceService.getEmployeesBalances(empIds, new Date().getFullYear())
+    : new Map();
+
+  const enrichedData = dataQuery.rows.map((r) => {
+    const bs = balancesByEmp.get(r.id) || [];
+    const getVal = (code, field) => {
+      const b = bs.find((x) => x.code === code);
+      return b ? Number(b[field]) : 0;
+    };
+    return {
+      ...r,
+      vacation_leave: getVal('VL', 'total_days'),
+      used_vacation_leave: getVal('VL', 'used_days'),
+      sick_leave: getVal('SL', 'total_days'),
+      used_sick_leave: getVal('SL', 'used_days'),
+      balances: bs,
+    };
+  });
+
   return {
-    data: dataQuery.rows,
+    data: enrichedData,
     pagination: {
       total,
       page: Number(page),
@@ -185,6 +202,45 @@ const getEmployeesForFinalPay = async (page = 1, limit = 10, search = "", allowe
       totalPages: Math.ceil(total / limit),
     },
   };
+};
+
+// ============================================
+// DYNAMIC LEAVE CONVERSION AMOUNT (from all is_convertible types)
+// ============================================
+const calculateDynamicLeaveConversionAmount = async (employeeId, year, dailyRate) => {
+  const balances = await leaveBalanceService.getConvertibleBalances(employeeId, year);
+
+  let totalAmount = 0;
+  const details = [];
+
+  for (const b of balances) {
+    const total = Number(b.total_days || 0);
+    const used = Number(b.used_days || 0);
+    const carried = Number(b.carried_over_days || 0);
+    const adjusted = Number(b.adjusted_days || 0);
+    const remaining = total + carried + adjusted - used;
+
+    if (remaining <= 0) continue;
+
+    const maxDays = b.max_convertible_days !== null && b.max_convertible_days !== undefined
+      ? Number(b.max_convertible_days)
+      : remaining;
+
+    const convertibleDays = Math.min(remaining, maxDays);
+    const amount = convertibleDays * Number(dailyRate || 0);
+
+    totalAmount += amount;
+
+    details.push({
+      code: b.code,
+      name: b.name,
+      remaining_days: remaining,
+      convertible_days: convertibleDays,
+      amount,
+    });
+  }
+
+  return { totalAmount, details };
 };
 
 // ============================================
@@ -206,14 +262,9 @@ const calculateFinalPay = async (employeeId) => {
         e.*,
         s.basic_salary,
         s.daily_rate,
-        s.working_days_per_month,
-        lc.vacation_leave,
-        lc.used_vacation_leave,
-        lc.sick_leave,
-        lc.used_sick_leave
+        s.working_days_per_month
       FROM employees e
       LEFT JOIN employee_salary s ON e.id = s.employee_id
-      LEFT JOIN leave_credits lc ON e.id = lc.employee_id
       WHERE e.id = $1 AND e.status IN ('RESIGNED', 'TERMINATED')
       `,
       [employeeId],
@@ -224,6 +275,19 @@ const calculateFinalPay = async (employeeId) => {
     }
 
     const emp = employeeRes.rows[0];
+
+    // Fetch dynamic leave balances
+    const balancesByEmp = await leaveBalanceService.getEmployeesBalances([employeeId], new Date().getFullYear());
+    const bs = balancesByEmp.get(employeeId) || [];
+    const getBal = (code, field) => {
+      const b = bs.find((x) => x.code === code);
+      return b ? Number(b[field]) : 0;
+    };
+    emp.vacation_leave = getBal('VL', 'total_days');
+    emp.used_vacation_leave = getBal('VL', 'used_days');
+    emp.sick_leave = getBal('SL', 'total_days');
+    emp.used_sick_leave = getBal('SL', 'used_days');
+    emp.balances = bs;
 
     // 🔥 FIX: Get last working date with proper timezone handling
     let lastWorkingDateRaw =
@@ -297,42 +361,28 @@ const calculateFinalPay = async (employeeId) => {
     console.log(`  - Daily Rate: ${dailyRate}`);
     console.log(`  - Salary: ${salaryUntilLastDay}`);
 
-    // Calculate unused vacation leave
-    const unusedVL = (emp.vacation_leave || 0) - (emp.used_vacation_leave || 0);
+    // Calculate dynamic leave conversion amount from all convertible types
+    const payrollYear = new Date().getFullYear();
+    const conversionResult = await calculateDynamicLeaveConversionAmount(
+      employeeId, payrollYear, dailyRate,
+    );
 
-    // Process leave conversion with FALLBACK
-    let leaveConversionAmount = 0;
-    if (unusedVL > 0) {
-      try {
-        const conversionResult =
-          await leaveConversionService.processEmployeeLeaveConversion(
-            employeeId,
-            new Date().getFullYear(),
-            emp.status === "RESIGNED" ? "RESIGNATION" : "TERMINATION",
-          );
+    const leaveConversionAmount = conversionResult.totalAmount;
 
-        if (conversionResult.success) {
-          leaveConversionAmount = conversionResult.data.amount;
-          console.log(
-            `[Final Pay] Leave conversion successful: ₱${leaveConversionAmount}`,
-          );
-        } else {
-          // 🔥 FALLBACK
-          console.log(
-            `[Final Pay] Conversion failed: ${conversionResult.message}`,
-          );
-          leaveConversionAmount = unusedVL * dailyRate;
-          console.log(
-            `[Final Pay] FALLBACK: ${unusedVL} days × ${dailyRate} = ₱${leaveConversionAmount}`,
-          );
-        }
-      } catch (error) {
-        console.error(`[Final Pay] Conversion error:`, error.message);
-        leaveConversionAmount = unusedVL * dailyRate;
-        console.log(
-          `[Final Pay] FALLBACK: ${unusedVL} days × ${dailyRate} = ₱${leaveConversionAmount}`,
-        );
-      }
+    console.log(`[Final Pay] Dynamic leave conversion: ₱${leaveConversionAmount} across ${conversionResult.details.length} convertible type(s)`);
+    for (const d of conversionResult.details) {
+      console.log(`  - ${d.name} (${d.code}): ${d.convertible_days} days × ${dailyRate} = ₱${d.amount}`);
+    }
+
+    // Preserve conversion records for audit/history (non-blocking, amount unused)
+    try {
+      await leaveConversionService.processEmployeeLeaveConversion(
+        employeeId,
+        payrollYear,
+        emp.status === "RESIGNED" ? "RESIGNATION" : "TERMINATION",
+      );
+    } catch (convError) {
+      console.warn(`[Final Pay] Conversion record creation failed (non-critical): ${convError.message}`);
     }
 
     // Calculate total final pay
@@ -368,7 +418,7 @@ const calculateFinalPay = async (employeeId) => {
         },
         daily_rate: dailyRate,
         salary_until_last_day: parseFloat(salaryUntilLastDay.toFixed(2)),
-        unused_vacation_leave: unusedVL,
+        unused_vacation_leave: (emp.vacation_leave || 0) - (emp.used_vacation_leave || 0),
         leave_conversion_amount: parseFloat(leaveConversionAmount.toFixed(2)),
         total_final_pay: parseFloat(totalFinalPay.toFixed(2)),
       },

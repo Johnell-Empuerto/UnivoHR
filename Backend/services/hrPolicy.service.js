@@ -1,6 +1,7 @@
 const hrPolicyModel = require("../models/hrPolicy.model");
 const sanitizeHtml = require("sanitize-html");
 const { hasPermission } = require("../services/permission.service");
+const { cleanPlainText } = require("../utils/inputSanitizer");
 
 const SANITIZE_OPTIONS = {
   allowedTags: [

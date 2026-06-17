@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const { getUserBranchIds } = require("../utils/branchAccess");
+const leaveBalanceService = require("./leaveBalance.service");
 
 // ============================================
 // EMPLOYEE REPORTS
@@ -123,17 +124,8 @@ const getLeaveReport = async (user, { reportType, status, department, startDate,
     const where = whereConditions.length ? "WHERE " + whereConditions.join(" AND ") : "";
 
     const data = await pool.query(`
-      SELECT e.id, e.employee_code, e.first_name, e.last_name, e.department, b.name AS branch_name,
-             COALESCE(lc.vacation_leave, 0) AS vacation_leave,
-             COALESCE(lc.used_vacation_leave, 0) AS used_vacation_leave,
-             COALESCE(lc.sick_leave, 0) AS sick_leave,
-             COALESCE(lc.used_sick_leave, 0) AS used_sick_leave,
-             COALESCE(lc.emergency_leave, 0) AS emergency_leave,
-             COALESCE(lc.used_emergency_leave, 0) AS used_emergency_leave,
-             COALESCE(lc.maternity_leave, 0) AS maternity_leave,
-             COALESCE(lc.used_maternity_leave, 0) AS used_maternity_leave
+      SELECT e.id, e.employee_code, e.first_name, e.last_name, e.department, b.name AS branch_name
       FROM employees e
-      LEFT JOIN leave_credits lc ON lc.employee_id = e.id
       LEFT JOIN branches b ON b.id = e.branch_id
       ${where}
       ORDER BY e.last_name, e.first_name
@@ -142,20 +134,54 @@ const getLeaveReport = async (user, { reportType, status, department, startDate,
 
     const count = await pool.query(`
       SELECT COUNT(*) FROM employees e
-      LEFT JOIN leave_credits lc ON lc.employee_id = e.id
       ${where}
     `, params);
 
     const total = parseInt(count.rows[0].count);
+
+    const empIds = data.rows.map((r) => r.id);
+    const balancesByEmp = empIds.length > 0
+      ? await leaveBalanceService.getEmployeesBalances(empIds, new Date().getFullYear())
+      : new Map();
+
     return {
-      data: data.rows.map(r => ({
-        ...r,
-        employee_name: `${r.first_name} ${r.last_name}`,
-        available_vacation: Number(r.vacation_leave) - Number(r.used_vacation_leave),
-        available_sick: Number(r.sick_leave) - Number(r.used_sick_leave),
-        available_emergency: Number(r.emergency_leave) - Number(r.used_emergency_leave),
-        available_maternity: Number(r.maternity_leave) - Number(r.used_maternity_leave),
-      })),
+      data: data.rows.map((r) => {
+        const bs = balancesByEmp.get(r.id) || [];
+        const getVal = (code, field) => {
+          const b = bs.find((x) => x.code === code);
+          return b ? Number(b[field]) : 0;
+        };
+        const computeRemaining = (code) => {
+          const b = bs.find((x) => x.code === code);
+          if (!b) return 0;
+          return Number(b.total_days) + Number(b.carried_over_days) + Number(b.adjusted_days) - Number(b.used_days);
+        };
+        const vacationLeave = getVal('VL', 'total_days');
+        const usedVacation = getVal('VL', 'used_days');
+        const sickLeave = getVal('SL', 'total_days');
+        const usedSick = getVal('SL', 'used_days');
+        const emergencyLeave = getVal('EL', 'total_days');
+        const usedEmergency = getVal('EL', 'used_days');
+        const maternityLeave = getVal('ML', 'total_days');
+        const usedMaternity = getVal('ML', 'used_days');
+        return {
+          ...r,
+          employee_name: `${r.first_name} ${r.last_name}`,
+          vacation_leave: vacationLeave,
+          used_vacation_leave: usedVacation,
+          sick_leave: sickLeave,
+          used_sick_leave: usedSick,
+          emergency_leave: emergencyLeave,
+          used_emergency_leave: usedEmergency,
+          maternity_leave: maternityLeave,
+          used_maternity_leave: usedMaternity,
+          available_vacation: vacationLeave - usedVacation,
+          available_sick: sickLeave - usedSick,
+          available_emergency: emergencyLeave - usedEmergency,
+          available_maternity: maternityLeave - usedMaternity,
+          balances: bs,
+        };
+      }),
       pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / limit) },
     };
   }

@@ -13,7 +13,6 @@ const getMyCredits = async (req, res) => {
   }
 };
 
-// GET ALL CREDITS (ADMIN)
 const getAllCredits = async (req, res) => {
   try {
     const { page = 1, limit = 10, search = "", department = "" } = req.query;
@@ -31,7 +30,6 @@ const getAllCredits = async (req, res) => {
   }
 };
 
-// GET SINGLE EMPLOYEE CREDITS (ADMIN)
 const getEmployeeCredits = async (req, res) => {
   try {
     const { employeeId } = req.params;
@@ -44,30 +42,18 @@ const getEmployeeCredits = async (req, res) => {
   }
 };
 
-// UPDATE EMPLOYEE CREDITS (ADMIN)
 const updateCredits = async (req, res) => {
   try {
     const { employeeId } = req.params;
-    const {
-      sick_leave,
-      vacation_leave,
-      maternity_leave,
-      emergency_leave,
-    } = req.body;
 
-    const data = await leaveCreditService.updateCredits(employeeId, {
-      sick_leave,
-      vacation_leave,
-      maternity_leave,
-      emergency_leave,
-    });
+    const data = await leaveCreditService.updateCredits(employeeId, req.body);
 
     audit.auditLog(req, {
       action: "UPDATE",
-      table_name: "leave_credits",
-      record_id: data.id,
+      table_name: "employee_leave_balances",
+      record_id: data?.id || null,
       employee_id: Number(employeeId),
-      new_values: { sick_leave, vacation_leave, maternity_leave, emergency_leave },
+      new_values: req.body,
       description: `Leave credits updated for employee ${employeeId}`,
     });
 

@@ -24,7 +24,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { Loader2 } from "lucide-react";
 
-import { leaveService } from "@/services/leaveService";
+import { leaveService, getEnabledLeaveTypes } from "@/services/leaveService";
 
 import { formatDateForInput } from "@/utils/formatDate";
 
@@ -80,6 +80,7 @@ const LeaveDrawer = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
   const [isHalfDay, setIsHalfDay] = useState(false);
+  const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
 
   // Auto-populate employee info when in create mode and user is employee
   useEffect(() => {
@@ -95,6 +96,19 @@ const LeaveDrawer = ({
       }));
     }
   }, [mode, user]);
+
+  // Load leave types for dynamic dropdown
+  useEffect(() => {
+    const fetchLeaveTypes = async () => {
+      try {
+        const types = await getEnabledLeaveTypes();
+        setLeaveTypes(types.filter((t: any) => t.employee_requestable !== false));
+      } catch (err) {
+        console.error("Failed to load leave types:", err);
+      }
+    };
+    fetchLeaveTypes();
+  }, []);
 
   // Load employees for admin selection
   useEffect(() => {
@@ -172,6 +186,12 @@ const LeaveDrawer = ({
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
+
+      if (!formData.type || formData.type === "_none") {
+        alert("Please select a leave type");
+        setIsSubmitting(false);
+        return;
+      }
 
       const payload: any = {
         type: formData.type,
@@ -394,11 +414,15 @@ const LeaveDrawer = ({
                   <SelectValue placeholder="Select leave type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="SICK">Sick Leave</SelectItem>
-                  <SelectItem value="MATERNITY">Maternity Leave</SelectItem>
-                  <SelectItem value="EMERGENCY">Emergency Leave</SelectItem>
-                  <SelectItem value="NO_PAY">No Pay Leave</SelectItem>
-                  <SelectItem value="ANNUAL">Vacation Leave</SelectItem>
+                  {leaveTypes.length === 0 ? (
+                    <SelectItem value="_none" disabled>No leave types available</SelectItem>
+                  ) : (
+                    leaveTypes.map((lt: any) => (
+                      <SelectItem key={lt.id} value={lt.code}>
+                        {lt.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

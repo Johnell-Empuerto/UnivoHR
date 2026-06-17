@@ -1,7 +1,11 @@
 import axios from "axios";
+import { toast } from "sonner";
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:3002/api";
 
 const api = axios.create({
-  baseURL: "http://192.168.0.106:3002/api",
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -43,10 +47,21 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+let last429Toast = 0;
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    if (error.response?.status === 429) {
+      const now = Date.now();
+      if (now - last429Toast > 10000) {
+        last429Toast = now;
+        toast.error("Too many requests. Please wait a moment and try again.");
+      }
+      return Promise.reject(error);
+    }
 
     if (
       !error.response ||
@@ -81,7 +96,7 @@ api.interceptors.response.use(
 
     try {
       const response = await axios.post(
-        `${api.defaults.baseURL}/auth/refresh`,
+        `${API_BASE_URL}/auth/refresh`,
         { refreshToken },
         { headers: { "Content-Type": "application/json" } },
       );

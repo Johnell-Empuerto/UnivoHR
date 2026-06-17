@@ -47,7 +47,6 @@ interface PayrollRecord {
 interface PayrollTableProps {
   data: PayrollRecord[];
   onViewDetails?: (record: PayrollRecord) => void;
-  onExport?: (record: PayrollRecord) => void;
   onRefresh?: () => void;
   currentPage: number;
   totalPages: number;

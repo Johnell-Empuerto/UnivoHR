@@ -21,7 +21,7 @@ app.use(helmet());
 // =====================
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
-  : ["http://localhost:5173", "http://192.168.0.106:5173"];
+  : ["http://localhost:5173"];
 
 app.use(
   cors({
@@ -62,6 +62,7 @@ const leaveConversionRoutes = require("./routes/leaveConversion.routes");
 const historyLeaveRoutes = require("./routes/historyLeave.routes");
 const overtimeRoutes = require("./routes/overtime.routes");
 const notificationRoutes = require("./routes/notification.routes");
+const notificationRuleRoutes = require("./routes/notificationRule.routes");
 const userRoutes = require("./routes/user.routes");
 const smtpRoutes = require("./routes/smtp.routes");
 const shiftRoutes = require("./routes/shift.routes");
@@ -100,6 +101,7 @@ const deviceIntegrationRoutes = require("./routes/deviceIntegration.routes");
 // Middleware
 const authenticate = require("./middleware/auth.middleware");
 const logger = require("./middleware/logger");
+const { readOnlyLimiter, writeLimiter } = require("./middleware/rateLimit.middleware");
 const errorHandler = require("./middleware/errorHandler");
 
 // =====================
@@ -111,6 +113,17 @@ app.use(logger);
 // PUBLIC ROUTES
 // =====================
 app.use("/api/auth", authRoutes);
+
+// =====================
+// METHOD-BASED API RATE LIMITER (applied after public routes, before protected routes)
+// GET requests (dashboard, sidebar fetches, etc.) get a higher limit.
+// POST/PUT/PATCH/DELETE get a stricter limit.
+// Auth routes are NOT affected — they have their own route-level limiters applied earlier.
+// =====================
+app.use("/api", (req, res, next) => {
+  if (req.method === "GET") return readOnlyLimiter(req, res, next);
+  return writeLimiter(req, res, next);
+});
 
 // =====================
 // PROTECTED ROUTES (AUTH ONLY)
@@ -141,6 +154,7 @@ app.use("/api/history-leave", authenticate, historyLeaveRoutes);
 app.use("/api/overtime", authenticate, overtimeRoutes);
 
 app.use("/api/notifications", authenticate, notificationRoutes);
+app.use("/api/notification-rules", authenticate, notificationRuleRoutes);
 
 app.use("/api/users", authenticate, userRoutes);
 
@@ -247,6 +261,13 @@ app.get("/", (req, res) => {
     message: "Welcome to Payroll and Attendance System",
     version: "1.0.0",
   });
+});
+
+// =====================
+// 404 HANDLER
+// =====================
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found" });
 });
 
 // =====================

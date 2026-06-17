@@ -97,6 +97,20 @@ const KpiEvaluationPage = () => {
   const [bulkLoadingEmps, setBulkLoadingEmps] = useState(false);
   const BULK_PAGE_SIZE = 10;
 
+  const fetchBulkEmployees = useCallback(async (p: number, s: string) => {
+    setBulkLoadingEmps(true);
+    try {
+      const res = await searchEmployeesPaginated({ page: p, limit: BULK_PAGE_SIZE, search: s, status: "ACTIVE" });
+      setBulkEmps(res.data || []);
+      setBulkTotal(res.pagination.total);
+    } catch {
+      setBulkEmps([]);
+      setBulkTotal(0);
+    } finally {
+      setBulkLoadingEmps(false);
+    }
+  }, []);
+
   const [approveDialog, setApproveDialog] = useState(false);
   const [rejectDialog, setRejectDialog] = useState(false);
   const [selectedEval, setSelectedEval] = useState<any>(null);
@@ -179,20 +193,6 @@ const KpiEvaluationPage = () => {
     try { await rejectKpiEvaluation(selectedEval.id, { hr_comments: hrComment || null }); toast.success("Evaluation rejected"); setRejectDialog(false); fetchEvaluations(); }
     catch (err: any) { toast.error(getFriendlyKpiError(err, "Unable to reject evaluation.")); }
   };
-
-  const fetchBulkEmployees = useCallback(async (p: number, s: string) => {
-    setBulkLoadingEmps(true);
-    try {
-      const res = await searchEmployeesPaginated({ page: p, limit: BULK_PAGE_SIZE, search: s, status: "ACTIVE" });
-      setBulkEmps(res.data || []);
-      setBulkTotal(res.pagination.total);
-    } catch {
-      setBulkEmps([]);
-      setBulkTotal(0);
-    } finally {
-      setBulkLoadingEmps(false);
-    }
-  }, []);
 
   const handleOpenBulkAssign = async () => {
     try {

@@ -3,6 +3,7 @@ const router = express.Router();
 
 const controller = require("../controllers/leave.controller");
 const leaveCreditController = require("../controllers/leaveCredit.controller");
+const leaveTypeController = require("../controllers/leaveType.controller");
 
 const authenticate = require("../middleware/auth.middleware");
 const requirePermission = require("../middleware/permission.middleware");
@@ -15,7 +16,8 @@ const Joi = require("joi");
 
 const leaveSchema = Joi.object({
   type: Joi.string()
-    .valid("SICK", "ANNUAL", "MATERNITY", "EMERGENCY", "NO_PAY")
+    .pattern(/^[A-Z][A-Z_ -]*[A-Z]$/)
+    .max(20)
     .required(),
 
   from_date: Joi.date().required(),
@@ -141,6 +143,24 @@ router.put("/:id/status", authenticate, async (req, res, next) => {
   });
 }, controller.updateStatus);
 
+// ENABLED LEAVE TYPES (for dynamic dropdown)
+router.get("/leave-types", authenticate, async (req, res) => {
+  try {
+    const pool = require("../config/db");
+    const result = await pool.query(`
+      SELECT id, code, name, is_enabled, employee_requestable,
+             requires_balance, is_unlimited, include_in_credits,
+             sort_order, default_days, description
+      FROM leave_types
+      WHERE is_enabled = true
+      ORDER BY sort_order, code
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // MY CREDITS
 router.get("/credits", authenticate, requirePermission("leave.view"), leaveCreditController.getMyCredits);
 
@@ -148,5 +168,62 @@ router.get("/credits", authenticate, requirePermission("leave.view"), leaveCredi
 router.get("/credits/all", authenticate, requirePermission("leave.manage"), leaveCreditController.getAllCredits);
 router.get("/credits/:employeeId", authenticate, requirePermission("leave.manage"), leaveCreditController.getEmployeeCredits);
 router.put("/credits/:employeeId", authenticate, requirePermission("leave.manage"), leaveCreditController.updateCredits);
+
+// ==========================================
+// LEAVE TYPE MANAGEMENT (Admin/Settings)
+// ==========================================
+
+const leaveTypeSchema = Joi.object({
+  code: Joi.string().pattern(/^[A-Z][A-Z_ -]*[A-Z]$/).max(20).required(),
+  name: Joi.string().max(50).required(),
+  description: Joi.string().allow(null, "").optional(),
+  is_enabled: Joi.boolean().optional(),
+  is_paid: Joi.boolean().optional(),
+  is_convertible: Joi.boolean().optional(),
+  max_convertible_days: Joi.number().integer().min(0).allow(null).optional(),
+  requires_balance: Joi.boolean().optional(),
+  default_days: Joi.number().integer().min(0).default(0),
+  requires_attachment: Joi.boolean().optional(),
+  requires_approval: Joi.boolean().optional(),
+  employee_requestable: Joi.boolean().optional(),
+  hr_only: Joi.boolean().optional(),
+  include_in_credits: Joi.boolean().optional(),
+  is_unlimited: Joi.boolean().optional(),
+  affects_payroll: Joi.boolean().optional(),
+  deducts_salary: Joi.boolean().optional(),
+  sort_order: Joi.number().integer().min(0).optional(),
+});
+
+const leaveTypeUpdateSchema = Joi.object({
+  code: Joi.string().pattern(/^[A-Z][A-Z_ -]*[A-Z]$/).max(20).optional(),
+  name: Joi.string().max(50).optional(),
+  description: Joi.string().allow(null, "").optional(),
+  is_enabled: Joi.boolean().optional(),
+  is_paid: Joi.boolean().optional(),
+  is_convertible: Joi.boolean().optional(),
+  max_convertible_days: Joi.number().integer().min(0).allow(null).optional(),
+  requires_balance: Joi.boolean().optional(),
+  default_days: Joi.number().integer().min(0).optional(),
+  requires_attachment: Joi.boolean().optional(),
+  requires_approval: Joi.boolean().optional(),
+  employee_requestable: Joi.boolean().optional(),
+  hr_only: Joi.boolean().optional(),
+  include_in_credits: Joi.boolean().optional(),
+  is_unlimited: Joi.boolean().optional(),
+  affects_payroll: Joi.boolean().optional(),
+  deducts_salary: Joi.boolean().optional(),
+  sort_order: Joi.number().integer().min(0).optional(),
+});
+
+// All leave types (including disabled) — admin only
+router.get("/leave-types/all", authenticate, requirePermission("leave.manage"), leaveTypeController.getAll);
+// Create leave type
+router.post("/leave-types", authenticate, requirePermission("leave.manage"), validate(leaveTypeSchema), leaveTypeController.create);
+// Update leave type
+router.put("/leave-types/:id", authenticate, requirePermission("leave.manage"), validate(leaveTypeUpdateSchema), leaveTypeController.update);
+// Toggle enabled
+router.patch("/leave-types/:id/toggle", authenticate, requirePermission("leave.manage"), leaveTypeController.toggleEnabled);
+// Soft delete (disable)
+router.delete("/leave-types/:id", authenticate, requirePermission("leave.manage"), leaveTypeController.remove);
 
 module.exports = router;

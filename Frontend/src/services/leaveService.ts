@@ -111,6 +111,38 @@ export const deleteDeduction = async (id: number) => {
   return res.data;
 };
 
+//  ENABLED LEAVE TYPES (for dynamic dropdown - employee accessible)
+export const getEnabledLeaveTypes = async () => {
+  const res = await api.get("/leaves/leave-types");
+  return res.data;
+};
+
+//  ADMIN - LEAVE TYPE MANAGEMENT
+export const getAllLeaveTypesAdmin = async () => {
+  const res = await api.get("/leaves/leave-types/all");
+  return res.data;
+};
+
+export const createLeaveType = async (data: any) => {
+  const res = await api.post("/leaves/leave-types", data);
+  return res.data;
+};
+
+export const updateLeaveTypeAdmin = async (id: number, data: any) => {
+  const res = await api.put(`/leaves/leave-types/${id}`, data);
+  return res.data;
+};
+
+export const toggleLeaveTypeEnabled = async (id: number) => {
+  const res = await api.patch(`/leaves/leave-types/${id}/toggle`);
+  return res.data;
+};
+
+export const deleteLeaveType = async (id: number) => {
+  const res = await api.delete(`/leaves/leave-types/${id}`);
+  return res.data;
+};
+
 //  LEAVE TYPES (Conversion Rules)
 export const getLeaveTypes = async () => {
   const res = await api.get("/leave-conversion/types");

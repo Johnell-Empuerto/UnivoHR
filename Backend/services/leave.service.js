@@ -3,9 +3,8 @@ const attendanceModel = require("../models/attendance.model");
 const leaveCreditModel = require("../models/leaveCredit.model");
 const pool = require("../config/db");
 const smtpService = require("./smtp.service");
-const settingService = require("./setting.service");
-const notificationService = require("./notification.service");
 const notificationHelper = require("./notificationHelper.service");
+const notificationDispatch = require("./notificationDispatch.service");
 const emailTemplateService = require("./emailTemplate.service");
 
 // Helper function to calculate days (UPDATED to support half-day)
@@ -29,11 +28,8 @@ const formatDate = (dateStr) => {
 // Helper to get leave type display name
 const getLeaveTypeDisplay = (type) => {
   const typeMap = {
-    SICK: "Sick Leave",
-    ANNUAL: "Vacation Leave",
-    MATERNITY: "Maternity Leave",
-    EMERGENCY: "Emergency Leave",
-    NO_PAY: "Unpaid Leave",
+    SICK: "Sick Leave", ANNUAL: "Vacation Leave",
+    MATERNITY: "Maternity Leave", EMERGENCY: "Emergency Leave", NO_PAY: "Unpaid Leave",
   };
   return typeMap[type] || type;
 };
@@ -45,12 +41,12 @@ const sendLeaveEmailNotification = async (
   rejectionReason = null,
 ) => {
   try {
-    const notifyKey =
-      status === "APPROVED" ? "notify_leave_approved" : "notify_leave_rejected";
-    const isEnabled = await settingService.getBoolSetting(notifyKey);
+    const ruleKey =
+      status === "APPROVED" ? "leave_approved" : "leave_rejected";
+    const allowed = await notificationDispatch.canSendEmail(ruleKey);
 
-    if (!isEnabled) {
-      console.log(`Email notification for leave ${status} is disabled`);
+    if (!allowed) {
+      console.log(`Email notification for ${ruleKey} is disabled`);
       return;
     }
 
@@ -133,6 +129,25 @@ const checkAvailableCredits = async (
   toDate,
   dayFraction = 1,
 ) => {
+  const legacyCodeMap = { SICK: 'SL', ANNUAL: 'VL', EMERGENCY: 'EL', MATERNITY: 'ML', NO_PAY: 'NP' };
+  const code = legacyCodeMap[type] || type;
+
+  const ltResult = await pool.query(`
+    SELECT id, code, requires_balance, is_unlimited, default_days
+    FROM leave_types
+    WHERE code = $1 AND is_enabled = true
+  `, [code]);
+
+  if (ltResult.rows.length === 0) {
+    throw new Error("Invalid or disabled leave type");
+  }
+
+  const lt = ltResult.rows[0];
+
+  if (lt.is_unlimited || !lt.requires_balance) {
+    return { available: true, remaining: Infinity };
+  }
+
   let credits = await leaveCreditModel.getByEmployee(employeeId);
 
   if (!credits) {
@@ -142,18 +157,13 @@ const checkAvailableCredits = async (
   const days = calculateDays(fromDate, toDate, dayFraction);
   let remaining = 0;
 
-  if (type === "SICK") {
-    remaining = credits.sick_leave - credits.used_sick_leave;
-  } else if (type === "ANNUAL") {
-    remaining = credits.vacation_leave - credits.used_vacation_leave;
-  } else if (type === "MATERNITY") {
-    remaining = credits.maternity_leave - credits.used_maternity_leave;
-  } else if (type === "EMERGENCY") {
-    remaining = credits.emergency_leave - credits.used_emergency_leave;
-  } else if (type === "NO_PAY") {
-    return { available: true, remaining: Infinity };
+  const balance = (credits.balances || []).find(b => b.code === code);
+  if (balance) {
+    remaining = Number(balance.total_days) + Number(balance.carried_over_days) + Number(balance.adjusted_days) - Number(balance.used_days);
   } else {
-    throw new Error("Invalid leave type");
+    const now = new Date().getFullYear();
+    await leaveCreditModel.ensureBalanceRow(employeeId, lt.id, now, lt.default_days || 0);
+    remaining = lt.default_days || 0;
   }
 
   if (remaining < days) {
@@ -241,41 +251,45 @@ const updateStatus = async (leaveId, status, rejectionReason = null) => {
 
     if (status === "APPROVED") {
       const dateRange = `${existing.from_date} to ${existing.to_date}`;
-      await notificationHelper.notifyEmployee(existing.employee_id, {
-        type: "LEAVE",
-        title: "Leave Approved",
-        message: `Your ${leaveTypeDisplay} ${durationText} request (${dateRange}) has been approved`,
-        reference_id: existing.id,
-        meta: {
-          leave_id: existing.id,
-          status: "APPROVED",
-          leave_type: leaveTypeDisplay,
-          from_date: existing.from_date,
-          to_date: existing.to_date,
-          day_fraction: existing.day_fraction,
-          half_day_type: existing.half_day_type,
-        },
-      });
+      await notificationDispatch.sendInAppIfEnabled("leave_approved", () =>
+        notificationHelper.notifyEmployee(existing.employee_id, {
+          type: "LEAVE",
+          title: "Leave Approved",
+          message: `Your ${leaveTypeDisplay} ${durationText} request (${dateRange}) has been approved`,
+          reference_id: existing.id,
+          meta: {
+            leave_id: existing.id,
+            status: "APPROVED",
+            leave_type: leaveTypeDisplay,
+            from_date: existing.from_date,
+            to_date: existing.to_date,
+            day_fraction: existing.day_fraction,
+            half_day_type: existing.half_day_type,
+          },
+        }),
+      );
 
       await sendLeaveEmailNotification(existing, status, rejectionReason);
     } else if (status === "REJECTED") {
       const dateRange = `${existing.from_date} to ${existing.to_date}`;
-      await notificationHelper.notifyEmployee(existing.employee_id, {
-        type: "LEAVE",
-        title: "Leave Declined",
-        message: `Your ${leaveTypeDisplay} ${durationText} request (${dateRange}) was not approved. Reason: ${rejectionReason}`,
-        reference_id: existing.id,
-        meta: {
-          leave_id: existing.id,
-          status: "REJECTED",
-          leave_type: leaveTypeDisplay,
-          from_date: existing.from_date,
-          to_date: existing.to_date,
-          day_fraction: existing.day_fraction,
-          half_day_type: existing.half_day_type,
-          rejection_reason: rejectionReason,
-        },
-      });
+      await notificationDispatch.sendInAppIfEnabled("leave_rejected", () =>
+        notificationHelper.notifyEmployee(existing.employee_id, {
+          type: "LEAVE",
+          title: "Leave Declined",
+          message: `Your ${leaveTypeDisplay} ${durationText} request (${dateRange}) was not approved. Reason: ${rejectionReason}`,
+          reference_id: existing.id,
+          meta: {
+            leave_id: existing.id,
+            status: "REJECTED",
+            leave_type: leaveTypeDisplay,
+            from_date: existing.from_date,
+            to_date: existing.to_date,
+            day_fraction: existing.day_fraction,
+            half_day_type: existing.half_day_type,
+            rejection_reason: rejectionReason,
+          },
+        }),
+      );
 
       await sendLeaveEmailNotification(existing, status, rejectionReason);
     }

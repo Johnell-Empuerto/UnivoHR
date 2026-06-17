@@ -34,6 +34,8 @@ import {
 import { formatDate } from "@/utils/formatDate";
 import { Badge } from "@/components/ui/badge";
 import EmptyState from "@/components/shared/EmptyState";
+import { getEnabledLeaveTypes } from "@/services/leaveService";
+import { getTypeColor, getTypeLabel, normalizeCode } from "../utils/leaveTypeUtils";
 
 type Leave = {
   id: number;
@@ -124,62 +126,13 @@ const getStatusBadge = (status: string) => {
 };
 
 const getTypeBadge = (type: string) => {
-  switch (type) {
-    case "SICK":
-      return (
-        <Badge
-          variant="outline"
-          className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800"
-        >
-          SICK
-        </Badge>
-      );
-    case "ANNUAL":
-      return (
-        <Badge
-          variant="outline"
-          className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800"
-        >
-          VACATION
-        </Badge>
-      );
-    case "MATERNITY":
-      return (
-        <Badge
-          variant="outline"
-          className="bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400 border-pink-200 dark:border-pink-800"
-        >
-          MATERNITY
-        </Badge>
-      );
-    case "EMERGENCY":
-      return (
-        <Badge
-          variant="outline"
-          className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800"
-        >
-          EMERGENCY
-        </Badge>
-      );
-    case "NO_PAY":
-      return (
-        <Badge
-          variant="outline"
-          className="bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400 border-gray-200 dark:border-gray-800"
-        >
-          NO PAY
-        </Badge>
-      );
-    default:
-      return (
-        <Badge
-          variant="secondary"
-          className="bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400"
-        >
-          {type}
-        </Badge>
-      );
-  }
+  const code = normalizeCode(type);
+  const c = getTypeColor(code);
+  return (
+    <Badge variant="outline" className={`${c.bg} ${c.text} ${c.border} ${c.darkBg} ${c.darkText} ${c.darkBorder}`}>
+      {getTypeLabel(code)}
+    </Badge>
+  );
 };
 
 // Search and Filter Component
@@ -192,6 +145,11 @@ const SearchFilters = ({
   const [searchInput, setSearchInput] = useState("");
   const [statusFilter, setStatusFilter] = useState("_all");
   const [typeFilter, setTypeFilter] = useState("_all");
+  const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
+
+  useEffect(() => {
+    getEnabledLeaveTypes().then(setLeaveTypes).catch(() => {});
+  }, []);
 
   // Debounce search
   useEffect(() => {
@@ -250,11 +208,9 @@ const SearchFilters = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="_all">All Types</SelectItem>
-          <SelectItem value="SICK">Sick Leave</SelectItem>
-          <SelectItem value="ANNUAL">Vacation Leave</SelectItem>
-          <SelectItem value="MATERNITY">Maternity Leave</SelectItem>
-          <SelectItem value="EMERGENCY">Emergency Leave</SelectItem>
-          <SelectItem value="NO_PAY">No Pay Leave</SelectItem>
+          {leaveTypes.map((lt: any) => (
+            <SelectItem key={lt.id} value={lt.code}>{lt.name}</SelectItem>
+          ))}
         </SelectContent>
       </Select>
 

@@ -337,10 +337,6 @@ const PayRollPage = () => {
     });
   };
 
-  const handleExport = () => {
-    toast.info("Export feature coming soon");
-  };
-
   // ============================================
   // EFFECTS
   // ============================================
@@ -651,7 +647,6 @@ const PayRollPage = () => {
                       <PayrollTable
                         data={records}
                         onViewDetails={handleViewDetails}
-                        onExport={handleExport}
                         onRefresh={fetchPayroll}
                         currentPage={currentPage}
                         totalPages={totalPages}

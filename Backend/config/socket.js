@@ -5,9 +5,13 @@ let io;
 const initSocket = (server) => {
   const { Server } = require("socket.io");
 
+  const allowedOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
+    : ["http://localhost:5173"];
+
   io = new Server(server, {
     cors: {
-      origin: ["http://localhost:5173", "http://192.168.0.106:5173"],
+      origin: allowedOrigins,
       methods: ["GET", "POST"],
       credentials: true,
     },
@@ -20,7 +24,7 @@ const initSocket = (server) => {
 
     if (token) {
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
         socket.user = decoded;
         next();
       } catch {

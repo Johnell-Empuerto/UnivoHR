@@ -3,6 +3,7 @@ const applicantInterviewModel = require("../models/applicantInterview.model");
 const applicantApprovalModel = require("../models/applicantApproval.model");
 const branchModel = require("../models/branch.model");
 const employeeModel = require("../models/employee.model");
+const { cleanPlainText } = require("../utils/inputSanitizer");
 const pool = require("../config/db");
 const leaveCreditModel = require("../models/leaveCredit.model");
 const notificationService = require("./notification.service");
@@ -13,6 +14,41 @@ const applicantWorkflowService = require("./applicantWorkflow.service");
 const hasApprovedHiringApproval = async (applicantId) => {
   const approvals = await applicantApprovalModel.getByApplicantId(applicantId);
   return approvals.some(a => a.decision === "APPROVED");
+};
+
+const evaluateCanConvertToEmployee = async (applicant) => {
+  if (!applicant || applicant.employee_id) return false;
+  if (!applicant.workflow_instance_id) return false;
+
+  const instResult = await pool.query(
+    `SELECT * FROM applicant_workflow_instances WHERE id = $1 AND applicant_id = $2`,
+    [applicant.workflow_instance_id, applicant.id],
+  );
+  if (instResult.rows.length === 0) return false;
+  const instance = instResult.rows[0];
+  if (instance.status !== 'COMPLETED') return false;
+
+  const stagesResult = await pool.query(
+    `SELECT * FROM recruitment_workflow_stages WHERE workflow_id = $1 ORDER BY sequence_order DESC LIMIT 1`,
+    [instance.workflow_id],
+  );
+  if (stagesResult.rows.length === 0) return false;
+  const finalStage = stagesResult.rows[0];
+  if (finalStage.stage_type !== 'CONVERT_TO_EMPLOYEE') return false;
+
+  const recordResult = await pool.query(
+    `SELECT * FROM applicant_stage_records
+     WHERE applicant_id = $1 AND workflow_stage_id = $2
+     ORDER BY id DESC LIMIT 1`,
+    [applicant.id, finalStage.id],
+  );
+  if (recordResult.rows.length === 0) return false;
+  const finalRecord = recordResult.rows[0];
+
+  return (
+    finalRecord.status === 'COMPLETED' &&
+    ['PASSED', 'COMPLETED'].includes(finalRecord.recommendation || 'PASSED')
+  );
 };
 
 const normalizeApplicantStatus = (status) => {
@@ -160,6 +196,7 @@ const getAll = async (page, limit, search, status, jobPositionId) => {
 const getById = async (id) => {
   const applicant = await applicantModel.getById(id);
   if (!applicant) throw new Error("Applicant not found");
+  applicant.can_convert_to_employee = await evaluateCanConvertToEmployee(applicant);
   return applicant;
 };
 
@@ -198,6 +235,9 @@ const create = async (data) => {
     `[RECRUITMENT] Workflow resolved for applicant creation: "${preResolved.workflow.name}" (id=${preResolved.workflow.id}) with ${preResolved.stages.length} stages`,
   );
 
+  if (data.address) data.address = cleanPlainText(data.address);
+  if (data.notes) data.notes = cleanPlainText(data.notes);
+
   const applicant = await applicantModel.create(data);
 
   applicantModel.getActiveHRUserIds().then(userIds => {
@@ -228,12 +268,12 @@ const update = async (id, data) => {
     suffix: data.suffix !== undefined ? data.suffix : existing.suffix,
     email: data.email !== undefined ? data.email : existing.email,
     phone: data.phone !== undefined ? data.phone : existing.phone,
-    address: data.address !== undefined ? data.address : existing.address,
+    address: data.address !== undefined ? cleanPlainText(data.address) : existing.address,
     resume_url: data.resume_url !== undefined ? data.resume_url : existing.resume_url,
     status: normalizeApplicantStatus(data.status !== undefined ? data.status : existing.status),
     rating: data.rating !== undefined ? data.rating : existing.rating,
     source: data.source !== undefined ? data.source : existing.source,
-    notes: data.notes !== undefined ? data.notes : existing.notes,
+    notes: data.notes !== undefined ? cleanPlainText(data.notes) : existing.notes,
     applied_date: data.applied_date !== undefined ? data.applied_date : existing.applied_date,
   };
   if (data.status !== undefined) {
@@ -291,10 +331,16 @@ const remove = async (id) => {
 const convertToEmployee = async (applicantId, additionalData) => {
   const applicant = await applicantModel.getById(applicantId);
   if (!applicant) throw new Error("Applicant not found");
-  if (applicant.status !== "Completed") throw new Error("Applicant status must be Completed before converting to employee");
   if (applicant.employee_id) throw new Error("This applicant has already been converted to an employee.");
-  if (!(await hasApprovedHiringApproval(applicantId))) {
-    throw new Error("Applicant requires an approved hiring approval before conversion to employee.");
+
+  const canConvertViaDynamic = await evaluateCanConvertToEmployee(applicant);
+  if (!canConvertViaDynamic) {
+    if (applicant.status !== "Completed") {
+      throw new Error("Applicant status must be Completed before converting to employee");
+    }
+    if (!(await hasApprovedHiringApproval(applicantId))) {
+      throw new Error("Applicant requires an approved hiring approval before conversion to employee.");
+    }
   }
 
   const client = await pool.connect();
@@ -571,4 +617,5 @@ module.exports = {
   autoCreateStageRecords,
   repairApplicantStageRecords,
   hasApprovedHiringApproval,
+  evaluateCanConvertToEmployee,
 };

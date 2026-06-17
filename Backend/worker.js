@@ -4,6 +4,7 @@ const smtpService = require("./services/smtp.service");
 const settingService = require("./services/setting.service");
 const emailTemplateService = require("./services/emailTemplate.service");
 const attendanceNotificationService = require("./services/attendanceNotification.service");
+const notificationDispatch = require("./services/notificationDispatch.service");
 const pool = require("./config/db");
 require("dotenv").config();
 
@@ -68,11 +69,10 @@ payslipQueue.process("send-payslip", async (job) => {
   );
 
   try {
-    const notifyKey = "notify_payroll_marked_paid";
-    const isEnabled = await settingService.getBoolSetting(notifyKey);
+    const isEnabled = await notificationDispatch.canSendEmail("payroll_marked_paid");
 
     if (!isEnabled) {
-      console.log(`[Worker] Email notification for payroll paid is disabled`);
+      console.log(`[Worker] payroll_marked_paid email disabled via notification_rules, skipping payslip email`);
       return { success: true, skipped: true };
     }
 

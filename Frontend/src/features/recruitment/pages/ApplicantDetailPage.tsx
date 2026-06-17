@@ -4,7 +4,6 @@ import {
   approveStageAction,
   rejectStageAction,
   assignApproval,
-  getPossibleApprovers,
   getApplicantById,
   getApplicantWorkflowTimeline,
   updateApplicant,
@@ -18,12 +17,12 @@ import {
   correctStageResult,
   failDynamicApplicant,
   createStageRecord,
+  updateWorkflowStage,
 } from "@/services/applicantService";
 import {
   getApplicantInterviews,
   createApplicantInterview,
   updateApplicantInterview,
-  getPossibleInterviewers,
 } from "@/services/applicantInterviewService";
 
 import {
@@ -70,10 +69,11 @@ import { Textarea } from "@/components/ui/textarea";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
 import {
-  ArrowLeft, Loader2, UserPlus, Plus, Pencil, Trash2,
+  ArrowLeft, Loader2, UserPlus, Plus, Pencil, Trash2, Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers/AuthProvider";
+import UserPickerDialog from "@/components/shared/UserPickerDialog";
 
 interface Applicant {
   id: number; job_position_id: number | null; first_name: string; middle_name: string | null;
@@ -82,6 +82,7 @@ interface Applicant {
   source: string | null; notes: string | null; applied_date: string;
   job_title: string | null; job_department: string | null; employee_id: number | null;
   workflow_instance_id: number | null; workflow_name: string | null;
+  can_convert_to_employee?: boolean;
 }
 
 interface Requirement {
@@ -165,7 +166,6 @@ const ApplicantDetailPage = () => {
     recommendation: "",
     notes: "",
   });
-  const [possibleInterviewers, setPossibleInterviewers] = useState<any[]>([]);
   const [savingInterview, setSavingInterview] = useState(false);
 
   const [stageConfirm, setStageConfirm] = useState<{
@@ -200,7 +200,6 @@ const ApplicantDetailPage = () => {
     stageRecordId: number | null;
     stageName: string;
   }>({ open: false, stageRecordId: null, stageName: "" });
-  const [possibleApprovers, setPossibleApprovers] = useState<any[]>([]);
   const [assignApprovalForm, setAssignApprovalForm] = useState({
     assigned_user_id: "",
     scheduled_at: "",
@@ -214,6 +213,21 @@ const ApplicantDetailPage = () => {
     recommendation: string; reason: string;
   }>({ open: false, correctionType: null, targetStageId: "", stageRecordId: "", status: "", score: "", recommendation: "", reason: "" });
   const [adminCorrectionProcessing, setAdminCorrectionProcessing] = useState(false);
+
+  const [scheduleDialog, setScheduleDialog] = useState<{
+    open: boolean; stageRecordId: number | null; stageName: string;
+    stage_type: string; applicant_id: number;
+    assigned_user_id: string; assigned_employee_id: string;
+    scheduled_at: string; comments: string;
+  }>({ open: false, stageRecordId: null, stageName: "", stage_type: "", applicant_id: 0, assigned_user_id: "none", assigned_employee_id: "", scheduled_at: "", comments: "" });
+  const [scheduleProcessing, setScheduleProcessing] = useState(false);
+
+  const [userPickerOpen, setUserPickerOpen] = useState(false);
+  const [userPickerTarget, setUserPickerTarget] = useState<"interview" | "schedule" | "approval">("interview");
+  const [userPickerTitle, setUserPickerTitle] = useState("Select User");
+  const [interviewUserData, setInterviewUserData] = useState<any>(null);
+  const [scheduleUserData, setScheduleUserData] = useState<any>(null);
+  const [approvalUserData, setApprovalUserData] = useState<any>(null);
 
   const [deleteConfirm, setDeleteConfirm] = useState<{
     open: boolean; title: string; message: string; onConfirm: () => void;
@@ -555,7 +569,7 @@ const ApplicantDetailPage = () => {
   };
 
   const handleConvertClick = async () => {
-    if (!hasApprovedApproval) {
+    if (!applicant?.can_convert_to_employee && !hasApprovedApproval) {
       toast.error("Approval is still pending. Conversion is blocked until approval is approved.");
       return;
     }
@@ -622,12 +636,8 @@ const ApplicantDetailPage = () => {
     });
   };
 
-  const handleOpenScheduleInterview = async () => {
+  const handleOpenScheduleInterview = () => {
     if (!applicant) return;
-    try {
-      const interviewers = await getPossibleInterviewers();
-      setPossibleInterviewers(interviewers);
-    } catch { /* silent */ }
     setInterviewForm({
       interview_type: "Initial Interview",
       workflow_stage_id: applicant.workflow_instance_id && workflowTimeline?.stages?.length ? String(workflowTimeline.stages.find((s: any) => s.is_current)?.workflow_stage_id || workflowTimeline.stages[0].workflow_stage_id) : "",
@@ -641,11 +651,7 @@ const ApplicantDetailPage = () => {
     setInterviewDialog({ open: true, mode: "create", item: null });
   };
 
-  const handleOpenEditInterview = async (iv: any) => {
-    try {
-      const interviewers = await getPossibleInterviewers();
-      setPossibleInterviewers(interviewers);
-    } catch { /* silent */ }
+  const handleOpenEditInterview = (iv: any) => {
     setInterviewForm({
       interview_type: iv.interview_type || "Initial Interview",
       interviewer_user_id: iv.interviewer_user_id || "",
@@ -678,8 +684,7 @@ const ApplicantDetailPage = () => {
         };
         if (interviewForm.interviewer_user_id) {
           payload.assigned_user_id = Number(interviewForm.interviewer_user_id);
-          const selected = possibleInterviewers.find((p: any) => Number(p.user_id) === Number(interviewForm.interviewer_user_id));
-          if (selected?.employee_id) payload.assigned_employee_id = Number(selected.employee_id);
+          if (interviewUserData?.employee_id) payload.assigned_employee_id = Number(interviewUserData.employee_id);
         }
         await createStageRecord(Number(id), Number(interviewForm.workflow_stage_id), payload);
         toast.success("Workflow stage scheduled");
@@ -814,11 +819,7 @@ const ApplicantDetailPage = () => {
     }
   };
 
-  const handleOpenAssignApproval = async (stageRecordId: number, stageName: string) => {
-    try {
-      const approvers = await getPossibleApprovers();
-      setPossibleApprovers(approvers);
-    } catch {}
+  const handleOpenAssignApproval = (stageRecordId: number, stageName: string) => {
     setAssignApprovalForm({ assigned_user_id: "", scheduled_at: "", comments: "" });
     setAssignApprovalDialog({ open: true, stageRecordId, stageName });
   };
@@ -868,6 +869,61 @@ const ApplicantDetailPage = () => {
       toast.error(err?.response?.data?.message || err.message || "Approval action failed");
     } finally {
       setDynApprovalProcessing(false);
+    }
+  };
+
+  const toDateTimeLocalValue = (value: string | null | undefined) => {
+    if (!value) return "";
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return "";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const handleOpenSchedule = (stage: any) => {
+    if (!stage.stage_record_id) { toast.error("No stage record to schedule"); return; }
+    setScheduleDialog({
+      open: true,
+      stageRecordId: stage.stage_record_id,
+      stageName: stage.stage_name,
+      stage_type: stage.stage_type,
+      applicant_id: Number(id),
+      assigned_user_id: stage.assigned_user_id ? String(stage.assigned_user_id) : "none",
+      assigned_employee_id: stage.assigned_employee_id ? String(stage.assigned_employee_id) : "",
+      scheduled_at: toDateTimeLocalValue(stage.scheduled_at),
+      comments: stage.comments || "",
+    });
+  };
+
+  const handleSaveSchedule = async () => {
+    const dlg = scheduleDialog;
+    if (!dlg.stageRecordId) { toast.error("No stage record to update"); return; }
+    try {
+      setScheduleProcessing(true);
+      const payload: any = {
+        scheduled_at: dlg.scheduled_at || null,
+        comments: dlg.comments || null,
+      };
+      if (dlg.assigned_user_id && dlg.assigned_user_id !== "none") {
+        payload.assigned_user_id = Number(dlg.assigned_user_id);
+        if (scheduleUserData?.employee_id) payload.assigned_employee_id = Number(scheduleUserData.employee_id);
+      } else {
+        payload.assigned_user_id = null;
+        payload.assigned_employee_id = null;
+      }
+      if (dlg.scheduled_at) {
+        payload.status = "SCHEDULED";
+      } else {
+        payload.status = "PENDING";
+      }
+      await updateWorkflowStage(dlg.stageRecordId, payload);
+      toast.success("Schedule updated");
+      setScheduleDialog({ open: false, stageRecordId: null, stageName: "", stage_type: "", applicant_id: 0, assigned_user_id: "none", assigned_employee_id: "", scheduled_at: "", comments: "" });
+      fetchAll();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err.message || "Failed to update schedule");
+    } finally {
+      setScheduleProcessing(false);
     }
   };
 
@@ -932,29 +988,18 @@ const ApplicantDetailPage = () => {
               <UserPlus className="h-3 w-3" /> Converted to Employee
             </Badge>
           )}
-          {hasPermission("recruitment.applicants.manage") && applicant.status === "Completed" && !applicant.employee_id && (
+          {hasPermission("recruitment.applicants.manage") && (applicant.can_convert_to_employee || (applicant.status === "Completed" && !applicant.employee_id)) && (
             <Button
               size="sm"
               onClick={handleConvertClick}
-              disabled={!hasApprovedApproval}
+              disabled={!applicant.can_convert_to_employee && !hasApprovedApproval}
               className="flex items-center gap-1"
-              title={!hasApprovedApproval ? "Approval is still pending. Conversion is blocked until approval is approved." : undefined}
+              title={!applicant.can_convert_to_employee && !hasApprovedApproval ? "Approval is still pending. Conversion is blocked until approval is approved." : undefined}
             >
               <UserPlus className="h-4 w-4" /> Convert to Employee
             </Button>
           )}
-          <Button size="sm" variant="outline" onClick={() => setEditDialog(true)}>Edit</Button>
-          {hasPermission("recruitment.applicants.manage") && hasMissingRecords && (
-            <Button size="sm" variant="outline" onClick={handleRepairStageRecords} disabled={repairing}>
-              {repairing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-              Repair Missing Stage Records
-            </Button>
-          )}
-          {applicant.workflow_instance_id && hasPermission("recruitment.applicants.manage") && (
-            <Button size="sm" variant="outline" onClick={() => setAdminCorrectionDialog({ open: true, correctionType: null, targetStageId: "", stageRecordId: "", status: "", score: "", recommendation: "", reason: "" })}>
-              Correct / Rollback Workflow
-            </Button>
-          )}
+
         </div>
       </div>
 
@@ -1149,6 +1194,13 @@ const ApplicantDetailPage = () => {
                                   setStageProgression({ open: true, stageRecordId: stage.stage_record_id, action: "SKIP", skipOnly: true });
                                 }}>
                                 Skip
+                              </Button>
+                            )}
+                            {stage.stage_record_id && stage.stage_type !== "CONVERT_TO_EMPLOYEE" && (
+                              <Button size="sm" variant="outline" className="h-6 text-[10px] px-2"
+                                onClick={() => handleOpenSchedule(stage)}>
+                                <Calendar className="h-3 w-3 mr-1" />
+                                {stage.scheduled_at || stage.status === "SCHEDULED" ? "Edit Schedule" : "Schedule"}
                               </Button>
                             )}
                           </div>
@@ -1424,6 +1476,15 @@ const ApplicantDetailPage = () => {
                             <span className="text-muted-foreground">Comments:</span>
                             <p className="mt-0.5 whitespace-pre-wrap">{stage.comments || "-"}</p>
                           </div>
+                          {hasPermission("recruitment.applicants.manage") && stage.stage_record_id && stage.status !== "COMPLETED" && stage.status !== "FAILED" && stage.status !== "CANCELLED" && stage.stage_type !== "CONVERT_TO_EMPLOYEE" && (
+                            <div className="mt-3 pt-3 border-t flex gap-2">
+                              <Button size="sm" variant="outline" className="h-7 text-[11px]"
+                                onClick={() => handleOpenSchedule(stage)}>
+                                <Calendar className="h-3.5 w-3.5 mr-1" />
+                                {stage.scheduled_at || stage.status === "SCHEDULED" ? "Edit Schedule" : "Schedule"}
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -1974,12 +2035,22 @@ const ApplicantDetailPage = () => {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Assigned User</p>
-                  <select value={interviewForm.interviewer_user_id} onChange={(e) => setInterviewForm({ ...interviewForm, interviewer_user_id: e.target.value })} className="w-full border rounded px-2 py-1 bg-background">
-                    <option value="">Not assigned</option>
-                    {possibleInterviewers.map((p: any) => (
-                      <option key={p.user_id} value={p.user_id}>{p.employee_name} ({p.employee_code})</option>
-                    ))}
-                  </select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                    onClick={() => {
+                      setUserPickerTarget("interview");
+                      setUserPickerTitle("Select Assigned User");
+                      setUserPickerOpen(true);
+                    }}
+                  >
+                    {interviewForm.interviewer_user_id
+                      ? (interviewUserData
+                          ? `${interviewUserData.name} (${interviewUserData.employee_code})`
+                          : `User #${interviewForm.interviewer_user_id}`)
+                      : "Not assigned"}
+                  </Button>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Scheduled Date/Time <span className="text-red-500">*</span></p>
@@ -2010,12 +2081,22 @@ const ApplicantDetailPage = () => {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Assigned Interviewer</p>
-                  <select value={interviewForm.interviewer_user_id} onChange={(e) => setInterviewForm({ ...interviewForm, interviewer_user_id: e.target.value })} className="w-full border rounded px-2 py-1 bg-background">
-                    <option value="">Not assigned</option>
-                    {possibleInterviewers.map((p: any) => (
-                      <option key={p.user_id} value={p.user_id}>{p.employee_name} ({p.employee_code})</option>
-                    ))}
-                  </select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start text-left font-normal"
+                    onClick={() => {
+                      setUserPickerTarget("interview");
+                      setUserPickerTitle("Select Interviewer");
+                      setUserPickerOpen(true);
+                    }}
+                  >
+                    {interviewForm.interviewer_user_id
+                      ? (interviewUserData
+                          ? `${interviewUserData.name} (${interviewUserData.employee_code})`
+                          : `User #${interviewForm.interviewer_user_id}`)
+                      : "Not assigned"}
+                  </Button>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">Interview Date/Time <span className="text-red-500">*</span></p>
@@ -2185,12 +2266,22 @@ const ApplicantDetailPage = () => {
           <div className="space-y-4">
             <div>
               <p className="text-xs text-muted-foreground mb-1">Approver <span className="text-red-500">*</span></p>
-              <select value={assignApprovalForm.assigned_user_id} onChange={(e) => setAssignApprovalForm({ ...assignApprovalForm, assigned_user_id: e.target.value })} className="w-full border rounded px-2 py-1 bg-background">
-                <option value="">Select approver...</option>
-                {possibleApprovers.map((p: any) => (
-                  <option key={p.user_id} value={p.user_id}>{p.employee_name} ({p.employee_code})</option>
-                ))}
-              </select>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+                onClick={() => {
+                  setUserPickerTarget("approval");
+                  setUserPickerTitle("Select Approver");
+                  setUserPickerOpen(true);
+                }}
+              >
+                {assignApprovalForm.assigned_user_id
+                  ? (approvalUserData
+                      ? `${approvalUserData.name} (${approvalUserData.employee_code})`
+                      : `User #${assignApprovalForm.assigned_user_id}`)
+                  : "Select approver..."}
+              </Button>
             </div>
             <div>
               <p className="text-xs text-muted-foreground mb-1">Scheduled Date/Time</p>
@@ -2206,6 +2297,55 @@ const ApplicantDetailPage = () => {
             <Button onClick={handleAssignApproval} disabled={assignApprovalProcessing}>
               {assignApprovalProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Assign Approver
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={scheduleDialog.open} onOpenChange={(open) => !open && setScheduleDialog({ open: false, stageRecordId: null, stageName: "", stage_type: "", applicant_id: 0, assigned_user_id: "none", assigned_employee_id: "", scheduled_at: "", comments: "" })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{scheduleDialog.scheduled_at ? "Reschedule" : "Schedule"} {scheduleDialog.stageName}</DialogTitle>
+            <DialogDescription>
+              Update schedule and assignment for this workflow stage.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1">
+              <Label>Assigned User</Label>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+                onClick={() => {
+                  setUserPickerTarget("schedule");
+                  setUserPickerTitle("Select Assigned User");
+                  setUserPickerOpen(true);
+                }}
+              >
+                {scheduleDialog.assigned_user_id && scheduleDialog.assigned_user_id !== "none"
+                  ? (scheduleUserData
+                      ? `${scheduleUserData.name} (${scheduleUserData.employee_code})`
+                      : `User #${scheduleDialog.assigned_user_id}`)
+                  : "Not assigned"}
+              </Button>
+            </div>
+            <div className="space-y-1">
+              <Label>Scheduled Date/Time</Label>
+              <Input type="datetime-local" value={scheduleDialog.scheduled_at} onChange={(e) => setScheduleDialog({ ...scheduleDialog, scheduled_at: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <Label>Comments / Notes</Label>
+              <Textarea value={scheduleDialog.comments} onChange={(e) => setScheduleDialog({ ...scheduleDialog, comments: e.target.value })} placeholder="Optional notes" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setScheduleDialog({ open: false, stageRecordId: null, stageName: "", stage_type: "", applicant_id: 0, assigned_user_id: "none", assigned_employee_id: "", scheduled_at: "", comments: "" })} disabled={scheduleProcessing}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveSchedule} disabled={scheduleProcessing}>
+              {scheduleProcessing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save Schedule
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2306,6 +2446,34 @@ const ApplicantDetailPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <UserPickerDialog
+        open={userPickerOpen}
+        onOpenChange={setUserPickerOpen}
+        title={userPickerTitle}
+        includeNotAssigned={userPickerTarget !== "approval"}
+        onSelect={(user) => {
+          if (userPickerTarget === "interview") {
+            setInterviewUserData(user);
+            setInterviewForm({
+              ...interviewForm,
+              interviewer_user_id: user ? String(user.user_id) : "",
+            });
+          } else if (userPickerTarget === "schedule") {
+            setScheduleUserData(user);
+            setScheduleDialog({
+              ...scheduleDialog,
+              assigned_user_id: user ? String(user.user_id) : "none",
+            });
+          } else if (userPickerTarget === "approval") {
+            setApprovalUserData(user);
+            setAssignApprovalForm({
+              ...assignApprovalForm,
+              assigned_user_id: user ? String(user.user_id) : "",
+            });
+          }
+        }}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteConfirm.open} onOpenChange={(open) => { if (!open) setDeleteConfirm({ open: false, title: "", message: "", onConfirm: () => {} }); }}>

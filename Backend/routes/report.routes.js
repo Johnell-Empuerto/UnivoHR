@@ -5,6 +5,7 @@ const controller = require("../controllers/report.controller");
 const authenticate = require("../middleware/auth.middleware");
 const requirePermission = require("../middleware/permission.middleware");
 
+router.get("/employee", authenticate, requirePermission("reports.employee"), controller.getEmployeeReport);
 router.get("/employees", authenticate, requirePermission("reports.employee"), controller.getEmployeeReport);
 router.get("/leaves", authenticate, requirePermission("reports.attendance"), controller.getLeaveReport);
 router.get("/attendance", authenticate, requirePermission("reports.attendance"), controller.getAttendanceReport);

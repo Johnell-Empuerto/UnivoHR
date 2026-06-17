@@ -1,8 +1,22 @@
 const pool = require("../config/db");
 const anomalyModel = require("../models/anomaly.model");
 const notificationService = require("./notification.service");
+const notificationRuleService = require("./notificationRule.service");
 
 const DEDUP_WINDOW_DAYS = 1;
+
+const getStatRule = async (ruleKey, defaults = {}) => {
+  const rule = await notificationRuleService.getRuleByKey(ruleKey);
+  return {
+    is_enabled: rule?.is_enabled ?? true,
+    in_app_enabled: rule?.in_app_enabled ?? true,
+    email_enabled: rule?.email_enabled ?? false,
+    threshold_count: Number(rule?.threshold_count ?? defaults.threshold_count ?? 0),
+    threshold_days: Number(rule?.threshold_days ?? defaults.threshold_days ?? 0),
+    threshold_hours: Number(rule?.threshold_hours ?? defaults.threshold_hours ?? 0),
+    threshold_percent: Number(rule?.threshold_percent ?? defaults.threshold_percent ?? 0),
+  };
+};
 
 const shouldSkipDuplicate = async (employeeId, anomalyType, sourceModule) => {
   const since = new Date();
@@ -83,60 +97,67 @@ const mapSeverity = (zScore) => {
 const detectStatisticalAttendanceAnomalies = async () => {
   const results = { detected: 0, errors: 0 };
 
-  // Daily attendance rate over last 30 days → detect drops
-  const dailyRates = await pool.query(`
-    SELECT a.date,
-           COUNT(*) FILTER (WHERE a.status IN ('PRESENT', 'LATE'))::float / NULLIF(COUNT(*), 0) AS attendance_rate
-    FROM attendance a
-    WHERE a.date >= CURRENT_DATE - INTERVAL '30 days'
-    GROUP BY a.date
-    ORDER BY a.date
-  `);
+  const movingAvgRule = await getStatRule("stat_anomaly_moving_average", { threshold_days: 7 });
+  const attendanceRateRule = await getStatRule("stat_anomaly_attendance_rate", { threshold_days: 30 });
+  const absenteeismRule = await getStatRule("stat_anomaly_absenteeism_spike", { threshold_count: 2, threshold_days: 7 });
 
-  if (dailyRates.rows.length >= 7) {
-    const values = dailyRates.rows.map(r => parseFloat(r.attendance_rate));
-    const mean = calculateMean(values);
-    const stddev = calculateStdDev(values, mean);
-    const latest = values[values.length - 1];
-    const zScore = calculateZScore(latest, mean, stddev);
-    const scoring = mapSeverity(zScore);
+  // Attendance rate drop analysis
+  if (attendanceRateRule.is_enabled && movingAvgRule.is_enabled) {
+    const dailyRates = await pool.query(`
+      SELECT a.date,
+             COUNT(*) FILTER (WHERE a.status IN ('PRESENT', 'LATE'))::float / NULLIF(COUNT(*), 0) AS attendance_rate
+      FROM attendance a
+      WHERE a.date >= CURRENT_DATE - $1::INTEGER
+      GROUP BY a.date
+      ORDER BY a.date
+    `, [attendanceRateRule.threshold_days]);
 
-    if (scoring && zScore < 0) {
-      const today = dailyRates.rows[dailyRates.rows.length - 1];
-      await createStatAnomaly({
-        employee_id: 0,
-        branch_id: null,
-        anomaly_type: "ATTENDANCE_RATE_DROP",
-        source_module: "attendance",
-        severity: scoring.severity,
-        title: "Statistical Attendance Rate Drop",
-        description: `Attendance rate dropped to ${(latest * 100).toFixed(1)}% (Z=${zScore.toFixed(2)}, σ=${stddev.toFixed(3)})`,
-        detected_value: `${(latest * 100).toFixed(1)}%`,
-        expected_value: `${(mean * 100).toFixed(1)}% avg`,
-        metadata: { z_score: zScore, mean, stddev, date: today.date, sample_size: values.length },
-        anomaly_score: Math.abs(zScore),
-        confidence: scoring.confidence,
-        baseline_value: `${(mean * 100).toFixed(1)}%`,
-        statistical_method: "ZSCORE",
-      });
-      results.detected++;
+    if (dailyRates.rows.length >= movingAvgRule.threshold_days) {
+      const values = dailyRates.rows.map(r => parseFloat(r.attendance_rate));
+      const mean = calculateMean(values);
+      const stddev = calculateStdDev(values, mean);
+      const latest = values[values.length - 1];
+      const zScore = calculateZScore(latest, mean, stddev);
+      const scoring = mapSeverity(zScore);
+
+      if (scoring && zScore < 0) {
+        const today = dailyRates.rows[dailyRates.rows.length - 1];
+        await createStatAnomaly({
+          employee_id: 0,
+          branch_id: null,
+          anomaly_type: "ATTENDANCE_RATE_DROP",
+          source_module: "attendance",
+          severity: scoring.severity,
+          title: "Statistical Attendance Rate Drop",
+          description: `Attendance rate dropped to ${(latest * 100).toFixed(1)}% (Z=${zScore.toFixed(2)}, σ=${stddev.toFixed(3)})`,
+          detected_value: `${(latest * 100).toFixed(1)}%`,
+          expected_value: `${(mean * 100).toFixed(1)}% avg`,
+          metadata: { z_score: zScore, mean, stddev, date: today.date, sample_size: values.length },
+          anomaly_score: Math.abs(zScore),
+          confidence: scoring.confidence,
+          baseline_value: `${(mean * 100).toFixed(1)}%`,
+          statistical_method: "ZSCORE",
+        });
+        results.detected++;
+      }
     }
   }
 
   // Per-employee: check for sudden absenteeism increase
-  const empAbsence = await pool.query(`
-    SELECT a.employee_id, e.branch_id,
-           COUNT(*) FILTER (WHERE a.status = 'ABSENT' AND a.date >= CURRENT_DATE - INTERVAL '7 days') AS recent_absences,
-           COUNT(*) FILTER (WHERE a.status = 'ABSENT' AND a.date BETWEEN CURRENT_DATE - INTERVAL '30 days' AND CURRENT_DATE - INTERVAL '8 days') AS prior_absences
-    FROM attendance a
-    JOIN employees e ON e.id = a.employee_id
-    WHERE a.date >= CURRENT_DATE - INTERVAL '30 days'
-    GROUP BY a.employee_id, e.branch_id
-    HAVING COUNT(*) FILTER (WHERE a.status = 'ABSENT' AND a.date >= CURRENT_DATE - INTERVAL '7 days') >
-           GREATEST(COUNT(*) FILTER (WHERE a.status = 'ABSENT' AND a.date BETWEEN CURRENT_DATE - INTERVAL '30 days' AND CURRENT_DATE - INTERVAL '8 days'), 0) + 2
-  `);
+  if (absenteeismRule.is_enabled) {
+    const empAbsence = await pool.query(`
+      SELECT a.employee_id, e.branch_id,
+             COUNT(*) FILTER (WHERE a.status = 'ABSENT' AND a.date >= CURRENT_DATE - $1::INTEGER) AS recent_absences,
+             COUNT(*) FILTER (WHERE a.status = 'ABSENT' AND a.date BETWEEN CURRENT_DATE - INTERVAL '30 days' AND CURRENT_DATE - ($1 + 1)::INTEGER) AS prior_absences
+      FROM attendance a
+      JOIN employees e ON e.id = a.employee_id
+      WHERE a.date >= CURRENT_DATE - INTERVAL '30 days'
+      GROUP BY a.employee_id, e.branch_id
+      HAVING COUNT(*) FILTER (WHERE a.status = 'ABSENT' AND a.date >= CURRENT_DATE - $1::INTEGER) >
+             GREATEST(COUNT(*) FILTER (WHERE a.status = 'ABSENT' AND a.date BETWEEN CURRENT_DATE - INTERVAL '30 days' AND CURRENT_DATE - ($1 + 1)::INTEGER), 0) + $2
+    `, [absenteeismRule.threshold_days, absenteeismRule.threshold_count]);
 
-  for (const row of empAbsence.rows) {
+    for (const row of empAbsence.rows) {
     const recent = parseInt(row.recent_absences);
     const prior = parseInt(row.prior_absences);
     if (await shouldSkipDuplicate(row.employee_id, "STAT_ABSENTEEISM_SPIKE", "attendance")) continue;
@@ -160,6 +181,7 @@ const detectStatisticalAttendanceAnomalies = async () => {
       statistical_method: "BASELINE_COMPARISON",
     });
     results.detected++;
+    }
   }
 
   return results;
@@ -230,14 +252,17 @@ const detectStatisticalPayrollAnomalies = async () => {
 const detectStatisticalOvertimeAnomalies = async () => {
   const results = { detected: 0, errors: 0 };
 
+  const otHistoryRule = await getStatRule("stat_anomaly_overtime_history", { threshold_days: 60 });
+  if (!otHistoryRule.is_enabled) return results;
+
   const weeklyOT = await pool.query(`
     SELECT o.employee_id, e.branch_id, DATE_TRUNC('week', o.date) AS week, SUM(o.hours) AS total_hours
     FROM overtime_requests o
     JOIN employees e ON e.id = o.employee_id
-    WHERE o.status = 'APPROVED' AND o.date >= CURRENT_DATE - INTERVAL '60 days'
+    WHERE o.status = 'APPROVED' AND o.date >= CURRENT_DATE - $1::INTEGER
     GROUP BY o.employee_id, e.branch_id, DATE_TRUNC('week', o.date)
     ORDER BY o.employee_id, week
-  `);
+  `, [otHistoryRule.threshold_days]);
 
   const empMap = {};
   for (const row of weeklyOT.rows) {
@@ -286,15 +311,18 @@ const detectStatisticalOvertimeAnomalies = async () => {
 const detectStatisticalLeaveAnomalies = async () => {
   const results = { detected: 0, errors: 0 };
 
+  const leaveFreqRule = await getStatRule("stat_anomaly_leave_frequency", { threshold_count: 90, threshold_days: 30 });
+  if (!leaveFreqRule.is_enabled) return results;
+
   const leaveFreq = await pool.query(`
     SELECT l.employee_id, e.branch_id, COUNT(*) AS leave_count,
-      (SELECT COUNT(*) FROM leaves l2 WHERE l2.employee_id = l.employee_id AND l2.created_at BETWEEN CURRENT_DATE - INTERVAL '90 days' AND CURRENT_DATE - INTERVAL '31 days') AS historical_count
+      (SELECT COUNT(*) FROM leaves l2 WHERE l2.employee_id = l.employee_id AND l2.created_at BETWEEN CURRENT_DATE - $2::INTEGER AND CURRENT_DATE - ($1 + 1)::INTEGER) AS historical_count
     FROM leaves l
     JOIN employees e ON e.id = l.employee_id
-    WHERE l.created_at >= CURRENT_DATE - INTERVAL '30 days'
+    WHERE l.created_at >= CURRENT_DATE - $1::INTEGER
       AND l.status IN ('APPROVED', 'PENDING')
     GROUP BY l.employee_id, e.branch_id
-  `);
+  `, [leaveFreqRule.threshold_days, leaveFreqRule.threshold_count]);
 
   for (const row of leaveFreq.rows) {
     const recent = parseInt(row.leave_count);

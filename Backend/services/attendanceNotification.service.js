@@ -1,7 +1,8 @@
 // services/attendanceNotification.service.js
 const pool = require("../config/db");
 const smtpService = require("./smtp.service");
-const settingService = require("./setting.service");
+const notificationDispatch = require("./notificationDispatch.service");
+const notificationRuleService = require("./notificationRule.service");
 const emailTemplateService = require("./emailTemplate.service");
 
 // Helper to format date
@@ -17,12 +18,10 @@ const formatDate = (dateStr) => {
 // Send late notice email to employee
 const sendLateNoticeEmail = async (employeeId, lateCount, dates) => {
   try {
-    const isEnabled = await settingService.getBoolSetting(
-      "enable_late_email_notice",
-    );
+    const allowed = await notificationDispatch.canSendEmail("late_notice");
 
-    if (!isEnabled) {
-      console.log("Late email notice is disabled");
+    if (!allowed) {
+      console.log("Late email notice is disabled via notification_rules");
       return;
     }
 
@@ -77,12 +76,10 @@ const sendLateNoticeEmail = async (employeeId, lateCount, dates) => {
 // Send absent without leave email to employee
 const sendAbsentWithoutLeaveEmail = async (employeeId, absentDate) => {
   try {
-    const isEnabled = await settingService.getBoolSetting(
-      "enable_absent_no_leave_email",
-    );
+    const allowed = await notificationDispatch.canSendEmail("absent_no_leave");
 
-    if (!isEnabled) {
-      console.log("Absent without leave email is disabled");
+    if (!allowed) {
+      console.log("Absent without leave email is disabled via notification_rules");
       return;
     }
 
@@ -133,12 +130,24 @@ const sendAbsentWithoutLeaveEmail = async (employeeId, absentDate) => {
   }
 };
 
-// Check for employees who are late multiple times in a week
+// Check for employees who are late multiple times within the configured window
 const checkAndSendLateNotices = async (threshold = 3) => {
   try {
-    console.log("Checking for late notices...");
+    const rule = await notificationRuleService.getRuleByKey("late_notice");
 
-    // Get employees who were late 3+ times in the past 7 days
+    const isEnabled = rule?.is_enabled ?? true;
+    if (!isEnabled) {
+      console.log("[LateNotice] Disabled via notification_rules, skipping");
+      return { success: true, skipped: true };
+    }
+
+    const emailEnabled = rule?.email_enabled ?? false;
+    const thresholdCount = Number(rule?.threshold_count ?? threshold);
+    const thresholdDays = Number(rule?.threshold_days ?? 7);
+
+    console.log(`[LateNotice] threshold_count=${thresholdCount}, threshold_days=${thresholdDays}, email=${emailEnabled}`);
+
+    // Get employees who were late thresholdCount+ times in the past thresholdDays days
     const lateEmployees = await pool.query(
       `
       SELECT
@@ -149,25 +158,25 @@ const checkAndSendLateNotices = async (threshold = 3) => {
       JOIN employees e ON e.id = a.employee_id
       JOIN users u ON u.employee_id = e.id
       WHERE a.status = 'LATE'
-        AND a.date >= CURRENT_DATE - INTERVAL '7 days'
+        AND a.date >= CURRENT_DATE - $2::INTEGER
         AND u.role != 'ADMIN'
       GROUP BY e.id
       HAVING COUNT(*) >= $1
       `,
-      [threshold],
+      [thresholdCount, thresholdDays],
     );
 
     for (const employee of lateEmployees.rows) {
-      // Check if email was already sent this week
+      // Check if email was already sent within the same lookback window
       const alreadyNotified = await pool.query(
         `
         SELECT 1 FROM email_logs
         WHERE employee_id = $1
           AND type = 'LATE_NOTICE'
-          AND sent_at >= CURRENT_DATE - INTERVAL '7 days'
+          AND sent_at >= CURRENT_DATE - $2::INTEGER
         LIMIT 1
         `,
-        [employee.employee_id],
+        [employee.employee_id, thresholdDays],
       );
 
       if (alreadyNotified.rows.length === 0) {
@@ -189,6 +198,20 @@ const checkAndSendLateNotices = async (threshold = 3) => {
 // Check for employees absent without leave
 const checkAndSendAbsentWithoutLeaveNotices = async () => {
   try {
+    const rule = await notificationRuleService.getRuleByKey("absent_no_leave");
+
+    const isEnabled = rule?.is_enabled ?? true;
+    if (!isEnabled) {
+      console.log("[AbsentNoLeave] Disabled via notification_rules, skipping");
+      return { success: true, skipped: true };
+    }
+
+    const emailEnabled = rule?.email_enabled ?? false;
+    if (!emailEnabled) {
+      console.log("[AbsentNoLeave] Email disabled via notification_rules, skipping");
+      return { success: true, skipped: true };
+    }
+
     console.log("Checking for absent without leave...");
 
     // Get employees who are absent today without approved leave

@@ -1,6 +1,7 @@
 const model = require("../models/hrForm.model");
 const queueService = require("./queue.service");
 const notificationService = require("./notification.service");
+const { cleanPlainText } = require("../utils/inputSanitizer");
 
 const BULK_THRESHOLD = 50;
 
@@ -155,7 +156,11 @@ const submitForm = async (assignmentId, userId, employeeId, data) => {
   if (assignment.status !== "Pending") throw new Error("Form already submitted or reviewed");
 
   for (const ans of data.answers || []) {
-    await model.upsertAnswer(assignmentId, ans.field_id, ans.answer);
+    await model.upsertAnswer(
+      assignmentId,
+      ans.field_id,
+      typeof ans.answer === "string" ? cleanPlainText(ans.answer) : ans.answer,
+    );
   }
 
   const submission = await model.createSubmission({
@@ -189,7 +194,11 @@ const getSubmissionById = async (submissionId) => {
 const reviewSubmission = async (submissionId, userId, data) => {
   const submission = await model.getSubmissionById(submissionId);
   if (!submission) throw new Error("Submission not found");
-  const result = await model.updateSubmissionReview(submissionId, userId, data.remarks);
+  const result = await model.updateSubmissionReview(
+    submissionId,
+    userId,
+    data.remarks ? cleanPlainText(data.remarks) : data.remarks,
+  );
 
   model.getUserIdsByEmployeeIds([submission.employee_id]).then(userRows => {
     if (userRows.length > 0 && userRows[0].id !== userId) {

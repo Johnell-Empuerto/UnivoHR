@@ -2,6 +2,7 @@ const manHourReportService = require("../services/man_hour_report.service");
 const notificationService = require("../services/notification.service");
 const audit = require("../services/audit.service");
 const pool = require("../config/db");
+const { cleanPlainText } = require("../utils/inputSanitizer");
 
 const fs = require("fs");
 const path = require("path");
@@ -436,6 +437,15 @@ const createManHourReport = async (req, res) => {
     const employeeName =
       req.user.name || `${req.user.first_name} ${req.user.last_name}`;
 
+    if (req.body.remarks) req.body.remarks = cleanPlainText(req.body.remarks);
+    if (req.body.task) req.body.task = cleanPlainText(req.body.task);
+    if (req.body.details && Array.isArray(req.body.details)) {
+      req.body.details = req.body.details.map((d) => ({
+        ...d,
+        activity: d.activity ? cleanPlainText(d.activity) : d.activity,
+      }));
+    }
+
     const data = await manHourReportService.createManHourReport(
       employee_id,
       req.body,
@@ -629,7 +639,7 @@ const approveManHourReport = async (req, res) => {
     const data = await manHourReportService.approveManHourReport(
       id,
       approver_id,
-      comment,
+      comment ? cleanPlainText(comment) : comment,
       userRole,
     );
 
@@ -664,7 +674,7 @@ const rejectManHourReport = async (req, res) => {
     const data = await manHourReportService.rejectManHourReport(
       id,
       approver_id,
-      reason,
+      cleanPlainText(reason),
       userRole,
     );
 

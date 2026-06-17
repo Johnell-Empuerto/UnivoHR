@@ -11,7 +11,9 @@
     "start": "node index.js",
     "worker": "node worker.js",
     "dev:worker": "nodemon worker.js",
-    "dev:all": "concurrently \"npm run dev\" \"npm run dev:worker\""
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:worker\"",
+    "backup:db": "powershell -ExecutionPolicy Bypass -File scripts/backup-db.ps1",
+    "test": "jest --runInBand"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -43,6 +45,7 @@
   "devDependencies": {
     "@types/nodemailer": "^8.0.0",
     "concurrently": "^9.2.1",
+    "jest": "^30.4.2",
     "nodemon": "^3.1.14"
   }
 }

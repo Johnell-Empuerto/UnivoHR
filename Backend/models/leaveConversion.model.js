@@ -1,6 +1,5 @@
 const pool = require("../config/db");
 
-// CREATE LEAVE CONVERSION RECORD
 const create = async (data, client = null) => {
   const {
     employee_id,
@@ -60,7 +59,6 @@ const create = async (data, client = null) => {
   return result.rows[0];
 };
 
-// CHECK IF CONVERSION EXISTS FOR EMPLOYEE/YEAR/TYPE
 const exists = async (employee_id, year, leave_type, client = null) => {
   const query = `
     SELECT 1 FROM leave_conversions
@@ -76,7 +74,6 @@ const exists = async (employee_id, year, leave_type, client = null) => {
   return result.rows.length > 0;
 };
 
-// GET CONVERSION BY EMPLOYEE ID AND YEAR
 const getByEmployeeAndYear = async (employee_id, year) => {
   const query = `
     SELECT * FROM leave_conversions
@@ -88,7 +85,6 @@ const getByEmployeeAndYear = async (employee_id, year) => {
   return result.rows;
 };
 
-// GET TOTAL CONVERSION AMOUNT FOR PAYROLL
 const getTotalAmountForPayroll = async (employee_id, year) => {
   const query = `
     SELECT COALESCE(SUM(amount), 0) as total_amount
@@ -100,7 +96,6 @@ const getTotalAmountForPayroll = async (employee_id, year) => {
   return parseFloat(result.rows[0].total_amount);
 };
 
-// GET EMPLOYEE CONVERSION HISTORY
 const getEmployeeHistory = async (employee_id) => {
   const query = `
     SELECT
@@ -120,7 +115,6 @@ const getEmployeeHistory = async (employee_id) => {
   return result.rows;
 };
 
-// GET ALL ACTIVE EMPLOYEES WITH SALARY INFO
 const getActiveEmployees = async () => {
   const query = `
     SELECT
@@ -132,19 +126,21 @@ const getActiveEmployees = async () => {
       es.basic_salary,
       es.working_days_per_month,
       es.daily_rate,
-      lc.vacation_leave,
-      lc.used_vacation_leave,
-      lc.sick_leave,
-      lc.used_sick_leave,
-      lc.maternity_leave,
-      lc.used_maternity_leave,
-      lc.emergency_leave,
-      lc.used_emergency_leave,
-      lc.last_conversion_year
+      elb.total_days,
+      elb.used_days,
+      elb.carried_over_days,
+      elb.adjusted_days,
+      elb.leave_type_id,
+      lt.code AS leave_type_code,
+      lt.default_days,
+      lt.is_convertible,
+      lt.max_convertible_days
     FROM employees e
     JOIN users u ON u.employee_id = e.id
     LEFT JOIN employee_salary es ON es.employee_id = e.id
-    LEFT JOIN leave_credits lc ON lc.employee_id = e.id
+    LEFT JOIN employee_leave_balances elb ON elb.employee_id = e.id
+      AND elb.year = EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER
+    LEFT JOIN leave_types lt ON lt.id = elb.leave_type_id
     WHERE e.status = 'ACTIVE'
     AND u.role = 'EMPLOYEE'
     ORDER BY e.id
@@ -154,49 +150,30 @@ const getActiveEmployees = async () => {
   return result.rows;
 };
 
-// RESET LEAVE CREDITS FOR NEW YEAR
 const resetLeaveCredits = async (employee_id, leaveTypes, client = null) => {
-  const query = `
-    UPDATE leave_credits
-    SET
-      vacation_leave = $1,
-      used_vacation_leave = 0,
-      sick_leave = $2,
-      used_sick_leave = 0,
-      maternity_leave = $3,
-      used_maternity_leave = 0,
-      emergency_leave = $4,
-      used_emergency_leave = 0,
-      last_conversion_year = $5
-    WHERE employee_id = $6
-    RETURNING *
-  `;
+  const db = client || pool;
+  const now = new Date().getFullYear();
 
-  const values = [
-    leaveTypes.vacation_leave,
-    leaveTypes.sick_leave,
-    leaveTypes.maternity_leave,
-    leaveTypes.emergency_leave,
-    leaveTypes.conversion_year,
-    employee_id,
-  ];
-
-  if (client) {
-    const result = await client.query(query, values);
-    return result.rows[0];
+  for (const lt of leaveTypes) {
+    await db.query(`
+      INSERT INTO employee_leave_balances (employee_id, leave_type_id, year, total_days, used_days, carried_over_days, adjusted_days)
+      VALUES ($1, $2, $3, $4, 0, 0, 0)
+      ON CONFLICT (employee_id, leave_type_id, year)
+      DO UPDATE SET total_days = $4, used_days = 0, updated_at = CURRENT_TIMESTAMP
+    `, [employee_id, lt.id, now, lt.default_days || 0]);
   }
-
-  const result = await pool.query(query, values);
-  return result.rows[0];
 };
 
-// GET LEAVE TYPE SETTINGS
 const getLeaveTypeSettings = async (leave_code) => {
   const query = `
     SELECT
+      id,
+      code,
       default_days,
       is_convertible,
-      max_convertible_days
+      max_convertible_days,
+      requires_balance,
+      is_unlimited
     FROM leave_types
     WHERE code = $1
   `;
@@ -205,7 +182,26 @@ const getLeaveTypeSettings = async (leave_code) => {
   return result.rows[0];
 };
 
-// GET COMPANY SETTINGS
+const getAllBalanceTypes = async () => {
+  const result = await pool.query(`
+    SELECT id, code, default_days, max_convertible_days
+    FROM leave_types
+    WHERE is_enabled = true AND (include_in_credits = true OR requires_balance = true)
+    ORDER BY sort_order, code
+  `);
+  return result.rows;
+};
+
+const getAllConvertibleTypes = async () => {
+  const result = await pool.query(`
+    SELECT id, code, default_days, max_convertible_days
+    FROM leave_types
+    WHERE is_enabled = true AND is_convertible = true
+    ORDER BY sort_order, code
+  `);
+  return result.rows;
+};
+
 const getCompanySettings = async () => {
   const query = `
     SELECT
@@ -220,7 +216,6 @@ const getCompanySettings = async () => {
   return result.rows[0];
 };
 
-// DELETE CONVERSION (FOR ROLLBACK/ADMIN PURPOSES)
 const deleteConversion = async (employee_id, year, leave_type) => {
   const query = `
     DELETE FROM leave_conversions
@@ -232,7 +227,6 @@ const deleteConversion = async (employee_id, year, leave_type) => {
   return result.rows[0];
 };
 
-// GET CONVERSIONS BY YEAR
 const getByYear = async (year) => {
   const query = `
     SELECT
@@ -250,7 +244,6 @@ const getByYear = async (year) => {
   return result.rows;
 };
 
-// GET STATISTICS FOR SUMMARY
 const getStatistics = async (year = null) => {
   let query = `
     SELECT
@@ -281,6 +274,8 @@ module.exports = {
   getActiveEmployees,
   resetLeaveCredits,
   getLeaveTypeSettings,
+  getAllConvertibleTypes,
+  getAllBalanceTypes,
   getCompanySettings,
   deleteConversion,
   getByYear,

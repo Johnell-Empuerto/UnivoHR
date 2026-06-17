@@ -1,5 +1,8 @@
 const rateLimit = require("express-rate-limit");
 
+const WINDOW_MS =
+  (Number(process.env.API_RATE_WINDOW_MINUTES) || 15) * 60 * 1000;
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -66,6 +69,26 @@ const deviceLogLimiter = rateLimit({
   },
 });
 
+const readOnlyLimiter = rateLimit({
+  windowMs: WINDOW_MS,
+  max: Number(process.env.API_READ_LIMIT) || 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Too many requests. Please wait and try again.",
+  },
+});
+
+const writeLimiter = rateLimit({
+  windowMs: WINDOW_MS,
+  max: Number(process.env.API_WRITE_LIMIT) || 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Too many requests. Please wait and try again.",
+  },
+});
+
 module.exports = {
   loginLimiter,
   otpLimiter,
@@ -73,4 +96,6 @@ module.exports = {
   forgotPasswordLimiter,
   resetPasswordLimiter,
   deviceLogLimiter,
+  readOnlyLimiter,
+  writeLimiter,
 };

@@ -26,7 +26,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { leaveService } from "@/services/leaveService";
+import { leaveService, getEnabledLeaveTypes } from "@/services/leaveService";
 import {
   Loader2,
   Search,
@@ -34,12 +34,20 @@ import {
   Save,
   X,
   RefreshCw,
-  Calendar,
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import EmptyState from "@/components/shared/EmptyState";
+import { getTypeColor, getTypeLabel, normalizeCode } from "../utils/leaveTypeUtils";
+
+interface BalanceItem {
+  code: string;
+  total_days: number;
+  used_days: number;
+  remaining_days: number;
+}
 
 interface LeaveCredits {
   id: number;
@@ -51,25 +59,19 @@ interface LeaveCredits {
   employee_code: string;
   department: string;
   position: string;
-  sick_leave: number;
-  vacation_leave: number;
-  maternity_leave: number;
-  emergency_leave: number;
-  used_sick_leave: number;
-  used_vacation_leave: number;
-  used_maternity_leave: number;
-  used_emergency_leave: number;
-  sick_leave_remaining: number;
-  vacation_leave_remaining: number;
-  maternity_leave_remaining: number;
-  emergency_leave_remaining: number;
-}
-
-interface EditData {
-  sick_leave: number;
-  vacation_leave: number;
-  maternity_leave: number;
-  emergency_leave: number;
+  balances?: BalanceItem[];
+  sick_leave?: number;
+  vacation_leave?: number;
+  maternity_leave?: number;
+  emergency_leave?: number;
+  used_sick_leave?: number;
+  used_vacation_leave?: number;
+  used_maternity_leave?: number;
+  used_emergency_leave?: number;
+  sick_leave_remaining?: number;
+  vacation_leave_remaining?: number;
+  maternity_leave_remaining?: number;
+  emergency_leave_remaining?: number;
 }
 
 const EmployeeCreditsTable = () => {
@@ -83,17 +85,22 @@ const EmployeeCreditsTable = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [departmentFilter, setDepartmentFilter] = useState("");
 
+  // Leave types for dynamic columns
+  const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
+
+  useEffect(() => {
+    getEnabledLeaveTypes()
+      .then((types) => {
+        const filtered = (types as any[]).filter((t: any) => t.include_in_credits !== false);
+        setLeaveTypes(filtered);
+      })
+      .catch(() => {});
+  }, []);
+
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<LeaveCredits | null>(
-    null,
-  );
-  const [editData, setEditData] = useState<EditData>({
-    sick_leave: 0,
-    vacation_leave: 0,
-    maternity_leave: 0,
-    emergency_leave: 0,
-  });
+  const [editingEmployee, setEditingEmployee] = useState<LeaveCredits | null>(null);
+  const [editData, setEditData] = useState<Record<string, number>>({});
   const [saving, setSaving] = useState(false);
 
   // Debounce search
@@ -132,12 +139,19 @@ const EmployeeCreditsTable = () => {
 
   const handleEdit = (employee: LeaveCredits) => {
     setEditingEmployee(employee);
-    setEditData({
-      sick_leave: employee.sick_leave,
-      vacation_leave: employee.vacation_leave,
-      maternity_leave: employee.maternity_leave,
-      emergency_leave: employee.emergency_leave,
-    });
+    const data: Record<string, number> = {};
+    const balances = employee.balances || [];
+    if (balances.length > 0) {
+      for (const b of balances) {
+        data[b.code] = b.total_days || 0;
+      }
+    } else {
+      const codeMap: Record<string, string> = { sick_leave: 'SL', vacation_leave: 'VL', maternity_leave: 'ML', emergency_leave: 'EL' };
+      for (const [field, code] of Object.entries(codeMap)) {
+        data[code] = (employee as any)[field] || 0;
+      }
+    }
+    setEditData(data);
     setEditDialogOpen(true);
   };
 
@@ -146,10 +160,11 @@ const EmployeeCreditsTable = () => {
 
     try {
       setSaving(true);
-      await leaveService.updateEmployeeCredits(
-        editingEmployee.employee_id,
-        editData,
-      );
+      const balances = Object.entries(editData).map(([code, total_days]) => ({
+        code,
+        total_days,
+      }));
+      await leaveService.updateEmployeeCredits(editingEmployee.employee_id, { balances });
       toast.success("Credits updated successfully");
       setEditDialogOpen(false);
       fetchCredits();
@@ -272,7 +287,7 @@ const EmployeeCreditsTable = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
+            <CalendarDays className="h-5 w-5" />
             Employee Leave Credits
           </CardTitle>
         </CardHeader>
@@ -290,132 +305,73 @@ const EmployeeCreditsTable = () => {
                   <TableRow className="bg-muted">
                     <TableHead>Employee</TableHead>
                     <TableHead>Department</TableHead>
-                    <TableHead className="text-center">
-                      Sick Leave
-                      <br />
-                      <span className="text-xs text-muted-foreground">
-                        (Used / Total / Remaining)
-                      </span>
-                    </TableHead>
-                    <TableHead className="text-center">
-                      Vacation Leave
-                      <br />
-                      <span className="text-xs text-muted-foreground">
-                        (Used / Total / Remaining)
-                      </span>
-                    </TableHead>
-                    <TableHead className="text-center">
-                      Maternity Leave
-                      <br />
-                      <span className="text-xs text-muted-foreground">
-                        (Used / Total / Remaining)
-                      </span>
-                    </TableHead>
-                    <TableHead className="text-center">
-                      Emergency Leave
-                      <br />
-                      <span className="text-xs text-muted-foreground">
-                        (Used / Total / Remaining)
-                      </span>
-                    </TableHead>
+                    {leaveTypes.filter(lt => lt.code !== 'NP').map((lt: any) => (
+                      <TableHead key={lt.id} className="text-center">
+                        {lt.name}
+                        <br />
+                        <span className="text-xs text-muted-foreground">
+                          (Used / Total / Remaining)
+                        </span>
+                      </TableHead>
+                    ))}
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {credits.map((employee) => (
-                    <TableRow key={employee.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">
-                            {employee.first_name} {employee.last_name}
-                            {employee.suffix && `, ${employee.suffix}`}
+                  {credits.map((employee) => {
+                    const getVal = (code: string, field: 'total_days' | 'used_days' | 'remaining_days'): number => {
+                      const balances = employee.balances || [];
+                      const bal = balances.find((b: any) => b.code === code);
+                      if (bal) return bal[field] ?? 0;
+                      const flatMap: Record<string, Record<string, string>> = {
+                        SL: { total_days: 'sick_leave', used_days: 'used_sick_leave', remaining_days: 'sick_leave_remaining' },
+                        VL: { total_days: 'vacation_leave', used_days: 'used_vacation_leave', remaining_days: 'vacation_leave_remaining' },
+                        ML: { total_days: 'maternity_leave', used_days: 'used_maternity_leave', remaining_days: 'maternity_leave_remaining' },
+                        EL: { total_days: 'emergency_leave', used_days: 'used_emergency_leave', remaining_days: 'emergency_leave_remaining' },
+                      };
+                      const flatField = flatMap[code]?.[field];
+                      return flatField ? (employee as any)[flatField] ?? 0 : 0;
+                    };
+                    return (
+                      <TableRow key={employee.id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">
+                              {employee.first_name} {employee.last_name}
+                              {employee.suffix && `, ${employee.suffix}`}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {employee.employee_code}
+                            </div>
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            {employee.employee_code}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{employee.department}</TableCell>
-                      <TableCell className="text-center">
-                        <div className="text-sm">
-                          {employee.used_sick_leave} /{" "}
-                          <span className="font-medium">
-                            {employee.sick_leave}
-                          </span>{" "}
-                          /{" "}
-                          <span
-                            className={getRemainingClass(
-                              employee.sick_leave_remaining,
-                              employee.sick_leave,
-                            )}
+                        </TableCell>
+                        <TableCell>{employee.department}</TableCell>
+                        {leaveTypes.filter((lt: any) => lt.code !== 'NP').map((lt: any) => {
+                          const total = getVal(lt.code, 'total_days');
+                          const used = getVal(lt.code, 'used_days');
+                          const rem = getVal(lt.code, 'remaining_days');
+                          return (
+                            <TableCell key={lt.code} className="text-center">
+                              <div className="text-sm">
+                                {used} / <span className="font-medium">{total}</span> /{" "}
+                                <span className={getRemainingClass(rem, total)}>{rem}</span>
+                              </div>
+                            </TableCell>
+                          );
+                        })}
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(employee)}
                           >
-                            {employee.sick_leave_remaining}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="text-sm">
-                          {employee.used_vacation_leave} /{" "}
-                          <span className="font-medium">
-                            {employee.vacation_leave}
-                          </span>{" "}
-                          /{" "}
-                          <span
-                            className={getRemainingClass(
-                              employee.vacation_leave_remaining,
-                              employee.vacation_leave,
-                            )}
-                          >
-                            {employee.vacation_leave_remaining}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="text-sm">
-                          {employee.used_maternity_leave} /{" "}
-                          <span className="font-medium">
-                            {employee.maternity_leave}
-                          </span>{" "}
-                          /{" "}
-                          <span
-                            className={getRemainingClass(
-                              employee.maternity_leave_remaining,
-                              employee.maternity_leave,
-                            )}
-                          >
-                            {employee.maternity_leave_remaining}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="text-sm">
-                          {employee.used_emergency_leave} /{" "}
-                          <span className="font-medium">
-                            {employee.emergency_leave}
-                          </span>{" "}
-                          /{" "}
-                          <span
-                            className={getRemainingClass(
-                              employee.emergency_leave_remaining,
-                              employee.emergency_leave,
-                            )}
-                          >
-                            {employee.emergency_leave_remaining}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(employee)}
-                        >
-                          <Edit className="h-4 w-4 mr-1" />
-                          Edit
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            <Edit className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -501,71 +457,19 @@ const EmployeeCreditsTable = () => {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Sick Leave Credits</label>
-              <Input
-                type="number"
-                min="0"
-                value={editData.sick_leave}
-                onChange={(e) =>
-                  setEditData({
-                    ...editData,
-                    sick_leave: parseInt(e.target.value) || 0,
-                  })
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Vacation Leave Credits
-              </label>
-              <Input
-                type="number"
-                min="0"
-                value={editData.vacation_leave}
-                onChange={(e) =>
-                  setEditData({
-                    ...editData,
-                    vacation_leave: parseInt(e.target.value) || 0,
-                  })
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Maternity Leave Credits
-              </label>
-              <Input
-                type="number"
-                min="0"
-                value={editData.maternity_leave}
-                onChange={(e) =>
-                  setEditData({
-                    ...editData,
-                    maternity_leave: parseInt(e.target.value) || 0,
-                  })
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Emergency Leave Credits
-              </label>
-              <Input
-                type="number"
-                min="0"
-                value={editData.emergency_leave}
-                onChange={(e) =>
-                  setEditData({
-                    ...editData,
-                    emergency_leave: parseInt(e.target.value) || 0,
-                  })
-                }
-              />
-            </div>
+            {leaveTypes.filter((lt: any) => lt.code !== 'NP').map((lt: any) => (
+              <div key={lt.code} className="space-y-2">
+                <label className="text-sm font-medium">{lt.name} Credits ({lt.code})</label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={editData[lt.code] ?? 0}
+                  onChange={(e) =>
+                    setEditData({ ...editData, [lt.code]: parseInt(e.target.value) || 0 })
+                  }
+                />
+              </div>
+            ))}
           </div>
 
           <DialogFooter>

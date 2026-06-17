@@ -40,7 +40,7 @@ router.delete("/delete-cutoff", authenticate, requirePermission("payroll.manage"
 
 //  EMPLOYEE VIEW OWN PAYROLL
 router.get("/my", authenticate, requirePermission("payroll.view"), controller.getMyPayroll);
-router.get("/my/benefits", authenticate, requirePermission("payroll.view"), controller.getMyBenefits);
+router.get("/my/benefits", authenticate, controller.getMyBenefits);
 router.get("/my/salary", authenticate, requirePermission("payroll.view"), controller.getMySalaryDetails);
 
 router.get("/:id", authenticate, requirePermission("payroll.view"), controller.getPayrollById);

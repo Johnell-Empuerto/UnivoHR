@@ -41,9 +41,9 @@ const payslipTemplate = async (data) => {
   // CUTOFF SALARY (what they actually earned this period)
   const cutoffSalary = Number(data.basic_salary || 0);
 
-  // GROSS PAY with leave conversion
+  // GROSS PAY with leave conversion + night differential
   const grossPay =
-    cutoffSalary + Number(data.overtime_pay || 0) + leaveConversion;
+    cutoffSalary + Number(data.overtime_pay || 0) + leaveConversion + Number(data.night_differential_pay || 0);
 
   // SAFE PARSE RULES
   const getSafeRules = () => {
@@ -59,18 +59,24 @@ const payslipTemplate = async (data) => {
 
   const rules = getSafeRules();
 
-  // RULE INFO DISPLAY
+  // RULE INFO DISPLAY (supports old + new snapshot format)
   const getRuleInfo = () => {
     if (!rules) return "No rule";
+    const lateConfig = rules.late_deduction_config || {
+      type: rules.late_deduction_type,
+      value: rules.late_deduction_value,
+      enabled: rules.late_deduction_enabled,
+    };
+    const grace = rules.grace_period || (rules.attendance_rules ? rules.attendance_rules.grace_period : null);
     let info = "";
-    if (rules.late_deduction_enabled) {
-      if (rules.late_deduction_type === "FIXED") {
-        info = `Fixed: ₱${rules.late_deduction_value} per late`;
+    if (lateConfig.enabled) {
+      if (lateConfig.type === "FIXED") {
+        info = `Fixed: ₱${lateConfig.value} per late`;
       } else {
-        info = `Per minute: ${rules.late_deduction_value}x rate`;
+        info = `Per minute: ${lateConfig.value}x rate`;
       }
-      if (rules.grace_period) {
-        info += ` (Grace: ${rules.grace_period} min)`;
+      if (grace) {
+        info += ` (Grace: ${grace} min)`;
       }
     } else {
       info = "Disabled";
@@ -270,7 +276,8 @@ const payslipTemplate = async (data) => {
         <div class="info-section">
           <strong>Pay Period:</strong><br/>
           ${formatDate(data.cutoff_start)} - ${formatDate(data.cutoff_end)}<br/>
-          <strong>Pay Date:</strong> ${formatDate(data.pay_date)}
+          <strong>Pay Date:</strong> ${formatDate(data.pay_date)}<br/>
+          <strong>Status:</strong> ${data.status || "UNPAID"}
         </div>
       </div>
 
@@ -326,6 +333,21 @@ const payslipTemplate = async (data) => {
               : ""
           }
 
+          <!-- NIGHT DIFFERENTIAL ROW -->
+          ${
+            data.night_differential_pay && data.night_differential_pay > 0
+              ? `
+          <tr>
+            <td>
+              Night Differential Pay
+              <div class="rule-info">${Number(data.night_differential_hours || 0)} hours</div>
+            </td>
+            <td class="text-right">${formatCurrency(data.night_differential_pay)}</td>
+          </tr>
+          `
+              : ""
+          }
+
           <tr class="total-row">
             <td><strong>Total Earnings</strong></td>
             <td class="text-right"><strong>${formatCurrency(grossPay)}</strong></td>
@@ -367,7 +389,10 @@ const payslipTemplate = async (data) => {
           </tr>
 
           <tr>
-            <td>Absent Deduction</td>
+            <td>
+              Absence Value
+              <div class="rule-info">Already reflected in prorated basic pay</div>
+            </td>
             <td class="text-right">${formatCurrency(data.absent_deduction)}</td>
           </tr>
 
