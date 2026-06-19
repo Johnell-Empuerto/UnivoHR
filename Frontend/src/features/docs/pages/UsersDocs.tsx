@@ -7,7 +7,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import DocScreenshot from "../components/DocScreenshot";
 import DocsNavigation from "../components/DocsNavigation";
 
 const UsersDocs = () => (
@@ -39,10 +38,7 @@ const UsersDocs = () => (
               to view their own HR information. Accounts are for system login only.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/users-management.png"
-              alt="User management page"
-            />
+            
           </div>
 
           <Separator />
@@ -79,10 +75,7 @@ const UsersDocs = () => (
               others.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/users-role-settings.png"
-              alt="User role selection in account form"
-            />
+            
           </div>
 
           <Separator />

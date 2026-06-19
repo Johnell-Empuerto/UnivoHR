@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import DocScreenshot from "../components/DocScreenshot";
 import DocsNavigation from "../components/DocsNavigation";
 
 const adminAccessRows = [
@@ -177,10 +176,7 @@ const PayrollAdminDocs = () => (
               </li>
             </ol>
 
-            <DocScreenshot
-              src="/docs/screenshots/payroll-admin-overview.png"
-              alt="Payroll admin overview with records and summary"
-            />
+            
           </div>
 
           <Separator />
@@ -218,10 +214,7 @@ const PayrollAdminDocs = () => (
               </p>
             </div>
 
-            <DocScreenshot
-              src="/docs/screenshots/payroll-generate.png"
-              alt="Generate payroll screen"
-            />
+            
           </div>
 
           <Separator />
@@ -244,10 +237,7 @@ const PayrollAdminDocs = () => (
               </li>
             </ol>
 
-            <DocScreenshot
-              src="/docs/screenshots/payroll-details.png"
-              alt="Payroll details page"
-            />
+            
           </div>
 
           <Separator />
@@ -289,10 +279,7 @@ const PayrollAdminDocs = () => (
               </li>
             </ol>
 
-            <DocScreenshot
-              src="/docs/screenshots/payroll-settings.png"
-              alt="Edit employee salary and deductions dialog"
-            />
+            
           </div>
 
           <Separator />
@@ -334,10 +321,7 @@ const PayrollAdminDocs = () => (
               </li>
             </ol>
 
-            <DocScreenshot
-              src="/docs/screenshots/payroll-final-pay.png"
-              alt="Final pay preview and processing"
-            />
+            
           </div>
 
           <Separator />
@@ -374,10 +358,7 @@ const PayrollAdminDocs = () => (
               </li>
             </ol>
 
-            <DocScreenshot
-              src="/docs/screenshots/payroll-employee.png"
-              alt="My Payroll employee view"
-            />
+            
           </div>
 
           <Separator />

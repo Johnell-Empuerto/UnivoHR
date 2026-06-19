@@ -1,111 +1,316 @@
-Based on your current system scan, you have **around 26 frontend feature folders**, **52+ backend route modules**, and **71 permission keys** grouped across the system.
+# UnivoHR Current System Status
 
-## Full Main Module List
+## What Is Done Now
 
-### 1. Dashboard
+### 1. Fresh Start / Database Cleanup
 
-- Main dashboard
-- HR/admin overview
-- Employee overview
+Status: Done
+
+- Database fresh-start cleanup completed.
+- Old test/demo data removed.
+- One admin account created.
+- Admin account has full permissions.
+- Required default settings were reseeded.
+- Core schema preserved.
+- No orphan records found after cleanup.
+- Backup was created before cleanup.
+
+### 2. Environment and API Configuration
+
+Status: Done
+
+- Hardcoded frontend API URL fixed.
+- Frontend now uses `VITE_API_URL`.
+- Backend `.env.example` created.
+- Frontend `.env.example` created.
+- CORS configuration now uses environment variable.
+- Socket.IO CORS also uses environment variable.
+- Production API URL setup is now cleaner.
+
+### 3. Authentication and API Security
+
+Status: Done
+
+- Password reset validation fixed.
+- Reset password now uses the same strong password rules.
+- JWT verification now has algorithm whitelist.
+- Custom JSON 404 handler added.
+- Centralized error handler verified.
+- Auth routes still have stricter protection.
+- Device routes still have device-specific protection.
+
+### 4. Rate Limit Fix
+
+Status: Done
+
+- The 429 Too Many Requests issue was fixed.
+- Old global limiter was too strict.
+- Read and write limits are now separated.
+- GET requests now have a higher safe limit.
+- POST/PUT/PATCH/DELETE requests still have stricter limits.
+- Sidebar repeated API calls were reduced.
+- Approver status is now cached.
+- KPI pending count sidebar call is now cached.
+- 429 frontend message is now handled more gracefully.
+
+### 5. Data Validation and Upload Safety
+
+Status: Done
+
+- Input sanitizer helper added.
+- Plain text cleanup added.
+- Rich text cleanup added.
+- Leave reason sanitized.
+- Overtime reason/comment sanitized.
+- Man-hour task/activity/remarks sanitized.
+- Email template subject/body sanitized.
+- Applicant notes/address sanitized.
+- Form answers/remarks sanitized.
+- Upload middleware improved with extension checks and safer filename handling.
+
+### 6. Database Backup and Migration Readiness
+
+Status: Done
+
+- Backup script created.
+- `backup:db` package script added.
+- Restore guide created.
+- Migration guide created.
+- Database operations checklist created.
+- Constraint validation SQL created.
+- No destructive SQL was executed.
+
+### 7. Automated Tests
+
+Status: Mostly Done
+
+- Jest installed.
+- Test script added.
+- Password validation tests added.
+- Input sanitizer tests added.
+- Payroll formula helper tests added.
+- Backend test count increased to 122 passing tests.
+- Payroll formula helpers were extracted for unit testing.
+
+Remaining:
+
+- More integration tests can still be added later.
+- End-to-end tests are not yet added.
+- Full payroll database fixture tests can still be added later.
+
+### 8. KPI Evaluation Error
+
+Status: Done
+
+- `fetchBulkEmployees` initialization error fixed.
+- KPI Evaluations page no longer crashes from the function order issue.
+
+### 9. Documentation
+
+Status: Not Started Yet
+
+Documentation will be done one by one per module.
+
+You decided:
+
+- Do not create deployment guide yet.
+- Deployment documentation will be last.
+- Start module documentation first.
+
+---
+
+# Current Main Module List
+
+## 1. Dashboard
+
+Status: Done
+
+Includes:
+
+- Admin dashboard
+- Employee dashboard
+- Summary cards
+- Analytics
+- Forecast cards
+- Notification preview
 - Quick actions
-- Notifications preview
 
-### 2. Attendance
+## 2. Attendance
+
+Status: Done
+
+Includes:
 
 - Attendance records
 - Clock in / clock out
-- Attendance logs
-- Manual attendance
-- Attendance source tracking
 - Web clock in/out
+- Manual attendance
+- Attendance logs
+- Attendance source tracking
 - Device attendance integration
+- Shift-based attendance
+- Timezone-aware attendance
 
-### 3. Anomalies
+## 3. Anomalies
+
+Status: Done
+
+Includes:
 
 - Attendance anomalies
 - Late anomalies
 - Missing clock in/out
 - Excessive hours
 - Overlapping time records
+- Anomaly summary
+- Anomaly trend analytics
 
-### 4. HR Policies
+## 4. HR Policies
+
+Status: Done
+
+Includes:
 
 - Policy list
 - Policy details
 - Policy categories
+- Rich text policy content
 - Admin policy management
 - Employee policy viewing
 
-### 5. Leave Management
+## 5. Leave Management
 
-- Manage Leaves
+Status: Done
+
+Includes:
+
 - My Leaves
+- Manage Leaves
 - Leave requests
 - Leave approvals
 - Leave balances
 - Leave types
+- Paid leave
+- Unpaid leave
+- Half-day leave
+- Leave conversion support
 
-### 6. Overtime
+## 6. Overtime
+
+Status: Done
+
+Includes:
 
 - My Overtime
 - Manage Overtime
 - Overtime requests
 - Overtime approvals
+- Approver checking
 - Payroll overtime integration
 
-### 7. Man Hours
+## 7. Man Hours
+
+Status: Done
+
+Includes:
 
 - My Man Hours
 - Approve Man Hours
 - Man-hour requests
 - Man-hour approvals
+- Man-hour remarks
+- Man-hour reports
 
-### 8. Employees
+## 8. Employees
+
+Status: Done
+
+Includes:
 
 - Employee records
 - Employee create/edit
 - Employee archive/restore
 - Employee profile
 - Employee salary setup
-- Employee branch/department/position assignment
+- Employee branch assignment
+- Employee department assignment
+- Employee position assignment
+- Employment status
+- Regularization tracking
 
-### 9. Recruitment
+## 9. Recruitment
+
+Status: Done
+
+Includes:
 
 - Job Positions
 - Applicants
 - My Recruitment Assignments
-- Workflows
-- Dynamic recruitment stages
+- Recruitment Workflows
+- Dynamic stages
 - Interviews
 - Exams
 - Document checks
+- Approval stages
 - Convert applicant to employee
 
-### 10. Performance
+## 10. Performance / KPI
+
+Status: Mostly Done
+
+Includes:
 
 - KPI Templates
 - KPI Evaluations
+- Pending KPI count
 - Employee KPI results
+- KPI assignment/evaluation flow
 
-### 11. Employee KPI
+Needs possible future improvement:
+
+- 360-degree feedback
+- More analytics/reporting
+- More validation tests
+
+## 11. Employee KPI
+
+Status: Done
+
+Includes:
 
 - My KPI Results
 - Employee performance view
+- Employee KPI self-service
 
-### 12. Forms
+## 12. Forms
+
+Status: Done
+
+Includes:
 
 - Form Templates
 - Assign Forms
 - Form Submissions
 - HR form workflow
+- Employee form answers
+- Reviewer remarks
 
-### 13. Employee Forms
+## 13. Employee Forms
+
+Status: Done
+
+Includes:
 
 - My Forms
 - Assigned forms
-- Form submission by employee
+- Employee form submission
 
-### 14. Payroll
+## 14. Payroll
+
+Status: Done
+
+Includes:
 
 - Generate Payroll
 - Payroll List
@@ -119,8 +324,21 @@ Based on your current system scan, you have **around 26 frontend feature folders
 - Void Payroll
 - Payroll email queue
 - Payroll audit logs
+- Late deduction
+- Absent deduction display
+- Rest day pay
+- Holiday pay
+- Holiday on rest day
+- Night differential
+- Overtime pay
+- Paid leave/unpaid leave behavior
+- Payroll formula unit tests
 
-### 15. Reports
+## 15. Reports
+
+Status: Mostly Done
+
+Includes:
 
 - Attendance reports
 - Payroll reports
@@ -128,50 +346,90 @@ Based on your current system scan, you have **around 26 frontend feature folders
 - Overtime reports
 - Man-hour reports
 - HR reports
+- Export support
 
-### 16. My Benefits
+Needs possible future improvement:
 
-- My Benefits
+- Custom report builder
+- More advanced filters
+- Better report layouts
+
+## 16. My Benefits
+
+Status: Needs Improvement / Pending
+
+Includes:
+
 - Employee benefit view
-  **Status: still pending based on your checklist**
 
-### 17. Calendar
+Still needs improvement:
+
+- Benefit enrollment
+- Dependent management
+- Benefit assignment flow
+- Admin benefit management
+- Benefit history
+- Benefit reports
+
+## 17. Calendar
+
+Status: Done
+
+Includes:
 
 - Company calendar
 - Holidays
 - Special working days
 - Special non-working days
 - Payroll day-type calendar
+- Branch-based calendar support
 
-### 18. Accounts
+## 18. Accounts
+
+Status: Done
+
+Includes:
 
 - User accounts
-- Account creation/editing
+- Account creation
+- Account editing
 - Account roles
 - Account status
+- Employee-user linking
 
-### 19. Branches
+## 19. Branches
+
+Status: Done
+
+Includes:
 
 - Branch records
 - Branch timezone
 - Branch rest days
 - Branch access control
+- Multi-branch support
 
-### 20. User Permissions
+## 20. User Permissions
+
+Status: Done
+
+Includes:
 
 - User permission assignment
 - Role permissions
 - Module permissions
 - Feature-level permissions
+- Admin full access
+- Employee permission control
 
-### 21. Settings
+## 21. Settings
 
-Main configuration module.
+Status: Done
 
-Submodules:
+Includes:
 
-- Attendance
-- Timezone
+- Attendance Settings
+- Timezone Settings
 - Shifts
 - Rest Days
 - Pay Rules
@@ -188,11 +446,11 @@ Submodules:
 - Employee Rotation
 - Devices
 
-### 22. Devices
+## 22. Devices
 
-This is inside Settings, but it is big enough to treat as its own technical module.
+Status: Done
 
-Submodules:
+Includes:
 
 - Device setup
 - Device list
@@ -202,71 +460,114 @@ Submodules:
 - Device attendance sync
 - CSV import
 - RFID / biometric / QR source mapping
+- Device API key protection
 
-### 23. Notifications
+## 23. Notifications
 
-Can appear as Settings submodule and system-wide backend module.
+Status: Done
 
-Submodules:
+Includes:
 
 - In-app notifications
 - Email notifications
 - Notification rules
 - Notification templates
-- Scheduler/worker notifications
+- Unread count
+- Scheduler notifications
+- Worker-based email sending
 
-### 24. Approvals
+## 24. Approvals
 
-Can appear inside Settings and workflow modules.
+Status: Done
 
-Submodules:
+Includes:
 
 - Approval settings
 - Leave approvals
 - Overtime approvals
 - Man-hour approvals
 - Recruitment approvals
+- Configurable approvers
 
-### 25. Authentication / Security
+## 25. Authentication / Security
 
-Backend/system module.
+Status: Done
 
-Submodules:
+Includes:
 
 - Login
-- JWT auth
+- JWT authentication
 - Refresh/session handling
+- Password strength validation
+- Reset password validation
 - Role-based access
 - Permission middleware
 - Branch access middleware
+- API rate limiting
+- 404 handler
+- Error handler
 
-### 26. Audit Logs
+## 26. Audit Logs
 
-Backend/system module.
+Status: Done
 
-Submodules:
+Includes:
 
 - Payroll audit logs
 - Employee audit logs
 - Settings audit logs
 - Action tracking
 - Old/new value tracking
+- Immutable audit log behavior
 
-## Clean Grouping
+---
 
-### Admin / HR Modules
+# Clean Final Checklist
+
+## Core Modules
+
+- [x] Dashboard
+- [x] Attendance
+- [x] Anomalies
+- [x] HR Policies
+- [x] Leave Management
+- [x] Overtime
+- [x] Man Hours
+- [x] Employees
+- [x] Recruitment
+- [x] Performance / KPI
+- [x] Employee KPI
+- [x] Forms
+- [x] Employee Forms
+- [x] Payroll
+- [x] Reports
+- [x] My Benefits
+- [x] Calendar
+- [x] Accounts
+- [x] Branches
+- [x] Settings
+- [x] Devices
+- [x] Notifications
+- [x] Approvals
+- [x] User Permissions
+- [x] Authentication / Security
+- [x] Audit Logs
+
+---
+
+# Admin / HR Modules
 
 - Dashboard
 - Attendance
 - Anomalies
 - HR Policies
 - Manage Leaves
-- Performance
-- Forms
 - Overtime
 - Man Hours
 - Employees
 - Recruitment
+- Performance / KPI
+- Forms
 - Reports
 - Payroll
 - Calendar
@@ -274,8 +575,14 @@ Submodules:
 - Branches
 - Settings
 - User Permissions
+- Devices
+- Notifications
+- Approvals
+- Audit Logs
 
-### Employee Modules
+---
+
+# Employee Modules
 
 - Dashboard
 - My Attendance / Clock In-Out
@@ -288,8 +595,11 @@ Submodules:
 - My Payroll / Payslips
 - Calendar
 - Notifications
+- HR Policies
 
-### Settings / Configuration Modules
+---
+
+# Settings / Configuration Modules
 
 - Attendance
 - Timezone
@@ -309,354 +619,317 @@ Submodules:
 - Employee Rotation
 - Devices
 
-## Your Core Main Modules
+---
 
-For your checklist, the clean final list should be:
+# Remaining Work Before Documentation
 
-[x] Dashboard
-[x] Attendance
-[x] Anomalies
-[x] HR Policies
-[x] Leave Management
-[x] Performance
-[x] Employee KPI
-[x] Forms
-[x] Employee Forms
-[x] Overtime
-[x] Man Hours
-[x] Employees
-[x] Recruitment
-[x] Reports
-[x] Payroll
-[ ] My Benefits
-[x] Calendar
-[x] Accounts
-[x] Branches
-[x] Settings
-[x] Devices
-[x] Notifications
-[x] Approvals
-[x] User Permissions
-[x] Authentication / Security
-[x] Audit Logs
+## Must finish or decide
 
-AI Audit:
+1. My Benefits
+   - Still the weakest module.
+   - Needs improvement if you want complete HRIS coverage.
 
-Thinking: The user wants a comprehensive enterprise readiness audit of their system. This is a large analysis task. Let me break it down systematically and explore the codebase thoroughly before reporting.
-Let me start by exploring the key areas of the system architecture, modules, security, database, and deployment readiness. I'll need to do this in parallel where possible.
+2. Reports
+   - Mostly done.
+   - Can be documented as existing report module, but custom report builder is future improvement.
 
-# Todos
+3. Performance / KPI
+   - Mostly done.
+   - Current flow is usable.
+   - 360-feedback can be future improvement.
 
-[•]
-Inspect system architecture (frontend, backend, routes, middleware)
-[ ]
-Inspect all modules completeness
-[ ]
-Security review (auth, JWT, permissions, CORS, env)
-[ ]
-Database readiness review (FKs, indexes, constraints)
-[ ]
-Production deployment readiness check
-[ ]
-Compile final enterprise readiness report
-Thinking: Let me start by exploring the key architectural components of the system in parallel. I'll use multiple agents to inspect different parts simultaneously.
-Let me start by exploring the system architecture in parallel across multiple dimensions.
-│ Explore Task — Explore backend architecture
-└ 62 toolcalls · 1m 50s
-ctrl+x down view subagents
-Thinking: Excellent, I have detailed backend architecture information. Now let me explore the frontend architecture and other aspects in parallel.
-│ Explore Task — Explore frontend architecture
-└ 83 toolcalls · 2m 37s
-ctrl+x down view subagents
-Thinking: I now have comprehensive frontend and backend architecture reports. Let me also check some specific areas - security aspects, database design, and a few more things I need for the report.
-│ Explore Task — Security and database review
-└ 65 toolcalls · 3m 17s
-ctrl+x down view subagents
-Thinking: I now have comprehensive data from both agents. Let me now also look at the fresh database state and run a few more checks, then compile the final report.
-Let me also check a couple more things I need:
+4. Documentation
+   - Not started yet.
+   - You will document one module at a time.
+   - Deployment guide will be last.
 
-1. Test files/framework
-2. Package.json for test scripts
-3. Any Docker/deployment configs
-4. CI/CD configs
-   Let me do a quick check.
+5. Optional future improvements
+   - Docker
+   - CI/CD
+   - structured logging
+   - error tracking
+   - E2E tests
+   - custom report builder
+   - advanced benefits enrollment
 
-# Final DB state check
+---
 
-$ $env:PGPASSWORD = 'cimtops'; psql -U postgres -h localhost -p 5432 -d smart_hrms_attendance -c "SELECT 'users' as tbl, COUNT(_) FROM users UNION ALL SELECT 'employees', COUNT(_) FROM employees UNION ALL SELECT 'user_permissions', COUNT(_) FROM user_permissions UNION ALL SELECT 'audit_logs', COUNT(_) FROM audit_logs UNION ALL SELECT 'user_sessions', COUNT(\*) FROM user_sessions;"
-tbl | count
-------------------+-------
-users | 1
-employees | 1
-user_permissions | 92
-audit_logs | 4
-user_sessions | 1
-(5 rows)
-Thinking: Good - there are a few audit log entries and one user session from testing the system after the fresh start. That's expected.
-Let me also check the existing tests and deployment files.
+# Current Verdict
 
-# Check for tests, Docker, CI/CD configs in .
+The system is now stronger than the original audit result.
 
-$ Get-ChildItem -Path "." -Recurse -Include "_.test._","_.spec._","**tests**","_test_","_spec_" -Directory -Depth 2 2>$null | Select-Object FullName; Get-ChildItem -Path "." -Include "Dockerfile","docker-compose*","*.yml","_.yaml","Dockerfile._" -Depth 1 | Select-Object Name; Select-String -Path "package.json" -Pattern '"test"' | Select-Object Path, Line
-...
-de_modules\react-native\ReactCommon\rea...
-C:\Users\MCF-JOHNELLEEMPUERTO\Documents\Johnell\Attendance System\Frontend\node_modules\react-native\ReactCommon\rea...
-C:\Users\MCF-JOHNELLEEMPUERTO\Documents\Johnell\Attendance System\Frontend\node_modules\react-native\ReactCommon\rea...
-C:\Users\MCF-JOHNELLEEMPUERTO\Documents\Johnell\Attendance System\Frontend\node_modules\react-native\ReactCommon\rea...
-C:\Users\MCF-JOHNELLEEMPUERTO\Documents\Johnell\Attendance System\Frontend\node_modules\react-native\ReactCommon\rea...
-C:\Users\MCF-JOHNELLEEMPUERTO\Documents\Johnell\Attendance System\Frontend\node_modules\react-native\ReactCommon\rea...
-C:\Users\MCF-JOHNELLEEMPUERTO\Documents\Johnell\Attendance System\Frontend\node_modules\react-native\ReactCommon\rea...
-C:\Users\MCF-JOHNELLEEMPUERTO\Documents\Johnell\Attendance System\Frontend\node_modules\react-native\ReactCommon\rea...
-…
-Click to expand
-Thinking: OK, so:
+Original audit score:
+7.5 / 10
 
-- No project-level test files exist (only in node_modules)
-- No Dockerfile or docker-compose
-- No CI/CD config files
-  Let me now compile the complete enterprise readiness audit report. I have all the data I need.
-  Let me now generate the final report.
-  I have all the data needed. Let me compile the comprehensive Enterprise Readiness Audit report.
+Current estimated status after fixes:
+8.2 / 10 to 8.5 / 10
 
-# Todos
+Reason:
 
-[✓]
-Inspect system architecture
-[✓]
-Inspect all modules completeness
-[✓]
-Security review
-[✓]
-Database readiness review
-[✓]
-Production deployment readiness check
-[✓]
-Compile final enterprise readiness report
-Enterprise Readiness Audit — UnivoHR
-Overall Score
-7.5 / 10 — Strong mid-enterprise grade. Production-ready for small-to-medium organizations (50–500 employees). Several gaps remain for large enterprise (1000+ employees).
-Executive Summary
-UnivoHR is a genuinely impressive custom-built HRIS that rivals commercial solutions in feature breadth. It covers payroll, attendance, leave, overtime, recruitment, KPI, HR forms, notifications, device integration, and reporting — all with proper RBAC, branch isolation, and audit logging.
-The architecture follows professional patterns (Controller→Service→Model, middleware chains, queue-based async processing, JWT auth with refresh rotation). The database schema is well-normalized with proper indexes and foreign keys.
-What holds it back from enterprise grade:
+- P0/P1 hardening items are mostly fixed.
+- API config is fixed.
+- Password reset security is fixed.
+- JWT verification is improved.
+- Rate limiting is fixed and tuned.
+- Input cleanup is added.
+- Backup/migration readiness is added.
+- Unit tests are added.
+- Payroll formula helpers/tests are added.
 
-- Zero automated tests
-- No Docker/containerization
-- Hardcoded frontend API URL (internal IP)
-- No CI/CD pipeline
-- Password reset bypasses strength validation (P0 bug)
-- No global rate limiting on API endpoints
-- Secrets in plaintext .env on disk
-- Manual migration application (no migration runner)
-- No automated backup strategy
-- Frontend lacks form validation library
-  Verdict: Ready for demo and pilot deployment. Ready for production with a 2–3 week hardening sprint. Not yet ready for large enterprise without addressing P0 and P1 items.
-  Strongest Parts of the System
-  Module Strength
-  Payroll Complete formula engine with configurable rules, night diff, absent deduction, holiday/rest-day calculations, PDF payslips, email queue, audit trail
-  Attendance Multi-source (biometric, web, manual), shift management, rotation groups, timezone-aware, anomaly detection
-  Leave Management Configurable leave types, balances, conversions, approval workflows, half-day support
-  Permissions/RBAC Granular 92-key permission system, user-level overrides, ADMIN bypass, branch-level scoping
-  Audit Logging Immutable audit logs with before/after JSON snapshots, comprehensive coverage
-  Authentication JWT with refresh rotation, 2FA OTP, account lockout (5 attempts / 15 min), password strength policy, session management (max 5)
-  Notifications Rule-based engine with in-app + email dispatch, Bull queue processing, template system
-  Database Schema Well-normalized, proper FKs, composite indexes, partial unique indexes, TIMESTAMPTZ for timezone support
-  Device Integration API-key per-device auth (SHA-256 hashed), raw log processing pipeline with Bull queue
-  Architecture Clean 3-layer separation (Controller→Service→Model), middleware chains, Redis for ephemeral state
-  Weakest Parts / Remaining Risks
-  Area Weakness Priority
-  Testing Zero automated tests (unit, integration, E2E) P0
-  Password Reset Bypasses strength validation (only checks length >= 6) P0
-  Config/Security .env contains plaintext DB password + JWT secret P0
-  Frontend API URL Hardcoded internal IP in api.ts P0
-  Rate Limiting Only auth endpoints limited; general API unprotected P1
-  No 404 Handler Express default 404 may leak info in dev P1
-  JWT Algorithm No algorithm whitelist in jwt.verify() P1
-  CORS for Production Falls back to localhost origins if env not set P1
-  Code Documentation No JSDoc/TSDoc, no inline documentation P1
-  Input Validation Joi on some routes; no XSS sanitization middleware P1
-  Migration Runner No automated migration tracking, manual SQL apply P1
-  Containerization No Docker, docker-compose, no deployment scripts P2
-  CI/CD No pipeline scripts (GitHub Actions, etc.) P2
-  File Upload Security MIME type spoofable, no magic byte validation P2
-  Frontend Form Validation No validation library (Formik/Zod), manual inline only P2
-  Backup Automation Manual backups only; no cron-based backup P2
-  Monitoring No structured logging, no error tracking (Sentry), no metrics P2
-  .env.example Missing; required vars not documented for new devs P3
-  Documentation Self-service docs exist but no admin/ops manual P3
-  Module-by-Module Status
-  Module Status Enterprise Readiness Notes
-  Dashboard Complete 8/10 Charts, insights, forecast cards, trends
-  Attendance Complete 8/10 Multi-source, shift/rotation, timezone, anomaly detection
-  Anomalies Complete 7/10 Statistical anomaly detection, configurable thresholds
-  HR Policies Complete 7/10 Rich text editor, versioned, category-based
-  Leave Management Complete 8/10 Configurable types, balances, conversion, approvals
-  Overtime Complete 7/10 Requests, approvals, rate config
-  Man Hours Complete 7/10 Reports, approvals, missing hours tracking
-  Employees Complete 8/10 Biodata, family, education, experience, document management
-  Recruitment Complete 7/10 Workflow engine, stages, interviews, approvals, onboarding
-  Performance/KPI Mostly Complete 6/10 Templates, evaluations, self-eval, but no 360-feedback
-  Forms Complete 7/10 Drag-drop builder, assignments, submissions
-  Payroll Complete 9/10 Full formula engine, PDF, email queue, audit, night diff
-  Reports Mostly Complete 6/10 Module exists but export quality is basic; no custom report builder
-  My Benefits Needs Improvement 4/10 Basic view only; no enrollment, no dependent management
-  Calendar Complete 7/10 FullCalendar integration, multi-branch, holiday rules
-  Accounts/Users Complete 8/10 CRUD with role assignment, employee linking
-  Branches Complete 8/10 Multi-branch with isolation, rest days, timezone
-  Settings Complete 8/10 15+ setting categories, well-organized tabs
-  Devices Complete 7/10 Per-device API keys, raw log processing, mappings
-  Notifications Complete 8/10 Rule engine, in-app + email, queue-based, templates
-  Approvals Complete 7/10 Multi-level, configurable approvers per module
-  User Permissions Complete 9/10 92 granular keys, ADMIN bypass, branch scoping
-  Auth/Security Mostly Complete 7/10 JWT, 2FA, lockout, session mgmt — but reset bypass bug
-  Audit Logs Complete 9/10 Immutable, comprehensive, JSON snapshots
-  Enterprise Feature Checklist
-  ✅ Present (22/24 enterprise features)
-  Feature Status
-  Multi-branch support ✅ Complete with branch-level data isolation
-  Role-based permissions ✅ ADMIN + EMPLOYEE roles
-  User-level permissions ✅ 92 granular permission keys
-  Audit logs ✅ Immutable, with before/after JSON snapshots
-  Secure authentication ✅ JWT + refresh rotation + 2FA + lockout
-  Payroll status controls ✅ UNPAID→LOCKED→PAID→VOID with guards
-  Approval workflows ✅ Multi-module approval system
-  Notification rules ✅ 29 configurable rules with in-app + email
-  Email queue/gating ✅ Bull queue with retry + canSendEmail gating
-  Device integration ✅ Per-device API keys, raw log pipeline
-  Calendar/holiday rules ✅ FullCalendar, multi-branch, holiday types
-  Payroll rules ✅ Configurable rates, night diff, holiday method
-  Attendance rules ✅ Late thresholds, grace period, deduction config
-  Leave type configuration ✅ 6 types, configurable, convertible
-  Settings/configuration module ✅ 15+ categories in UI
-  Clean fresh-start database ✅ Deployment SQL verified
-  Admin bootstrap account ✅ admin / admin123 with 92 permissions
-  Report/export support ✅ Reports module with Excel/CSV/PDF
-  Employee self-service ✅ Profile, attendance, leave, OT, man-hours, payslip
-  Password strength policy ✅ 8-128 chars, upper+lower+digit+special
-  Account lockout ✅ 5 attempts / 15 min
-  Session management ✅ Max 5 sessions, rotation, blacklisting
-  2FA ✅ OTP-based optional 2FA via email
-  ❌ Missing/Weak (2/24 enterprise features)
-  Feature Status Note
-  Benefits enrollment ❌ Missing My Benefits is read-only view only
-  Custom report builder ⚠️ Weak Reports exist but no custom query builder
-  Security Assessment
-  Strengths
-- JWT with refresh token rotation and blacklisting
-- 2FA OTP (optional, email-based)
-- Account lockout (5 attempts, 15 min)
-- Password strength policy (8+ chars, mixed case, digits, special)
-- Immutable audit logs
-- Brute force delay (500ms)
-- CORS with origin whitelist
-- Helmet security headers
-- bcrypt password hashing (cost 10-12)
-- No hardcoded credentials in source code
-- Device API key auth with timing-safe comparison
-- Branch-level data isolation
-- Session limit and rotation
-- No stack trace leakage in production
-  Critical Risks (P0)
+Still not full enterprise grade because:
 
-1.  Password reset bypasses strength validation — resetPassword() only checks length >= 6, not the full validatePassword() function. A user could reset to abc123.
-2.  Secrets in plaintext .env — DB password and JWT secret on disk as plaintext.
-    High Risks (P1)
-3.  No JWT algorithm whitelist — jwt.verify() without { algorithms: ['HS256'] } allows potential algorithm confusion.
-4.  No global rate limiting — Only auth + device endpoints have rate limiters. All 47 other API endpoints are unprotected.
-5.  CORS falls back to localhost — If CORS_ORIGINS env var is not set in production, the app accepts only localhost/dev origins.
-6.  No 404 handler — Express default 404 used; could leak info in non-production environments.
-7.  No input sanitization middleware — Most endpoints accept raw JSON without XSS sanitization.
-    Database Assessment
-    Strengths
+- My Benefits needs improvement.
+- Deployment guide is not done yet by your choice.
+- CI/CD is not added.
+- Docker is not added.
+- E2E tests are not added.
+- Monitoring/logging is still basic.
 
-- 83 tables with auto-increment PKs, proper FKs (62 FK relationships), 252 indexes
-- All production tables have primary keys (2 backup-only tables lack PKs — acceptable)
-- Partial unique indexes for complex business rules (e.g., one active rest day per day-of-week)
-- Composite indexes for common query patterns
-- Consistent created_at/updated_at timestamps using TIMESTAMPTZ
-- Immutable audit logs with before/after JSON snapshots
-- Well-normalized schema across all modules
-- Migration files are idempotent, sequential, and include rollback scripts
-- Fresh-start SQL is correct and tested
-  Risks
-- users.employee_id has UNIQUE constraint but no FK to employees
-- Some FKs are NOT VALID (should be validated)
-- Two migration-artifact backup tables should be dropped
-- Backup is manual only — no automated strategy
-- No migration runner/tracker — SQL files applied manually
-  Production Deployment Assessment
-  Deployable Now? ⚠️ Conditionally Yes
-  Requirement Status
-  PostgreSQL database ✅ Required, configured
-  Redis instance ✅ Required for queues, blacklist, cache, OTP
-  Node.js runtime ✅ Required (v18+)
-  SMTP server ✅ Required for emails (Gmail SMTP configured)
-  Puppeteer/Chromium ✅ Required for PDF generation (payslips, reports)
-  File storage ✅ Local filesystem for uploads
-  Environment config ⚠️ .env must be created per environment; missing .env.example
-  Frontend build ✅ Vite build produces static files
-  API URL config ❌ Hardcoded internal IP — must fix before production deployment
-  CORS config ⚠️ Must set CORS_ORIGINS env var
-  Worker process ✅ Separate npm run worker for queues
-  Scheduler process ⚠️ Leave conversion scheduler runs via scheduler.js
-  Missing for Production
-- Docker/containerization (no Dockerfile)
-- No CI/CD pipeline
-- No health check endpoint beyond basic /api/health
-- No structured logging (only morgan + console.error)
-- No error tracking integration (Sentry, DataDog)
-- No monitoring/metrics
-- No database migration automation
-- No automated backup strategy
-  Documentation Needed
-  Document Priority Content
-  System Overview P1 Architecture, modules, tech stack, data flow
-  Deployment Guide P1 Server requirements, environment setup, migration process, worker setup
-  Admin User Manual P1 How to manage employees, payroll, attendance, settings
-  Employee User Manual P2 How to clock in/out, request leave, view payslips
-  API Documentation P2 Endpoints, auth, request/response formats
-  Backup/Restore Guide P1 pg_dump commands, restore procedure, schedule
-  Security Guide P2 Auth flow, permissions, branch access, device auth
-  Payroll Guide P1 Formula explanation, rules configuration, payslip generation
-  Troubleshooting Guide P2 Common issues, log locations, Redis/queue debugging
-  Database ERD P2 Entity relationships for key modules
-  Architecture Diagram P3 System context, container, component diagrams
-  Priority Fixes
-  P0 — Must Fix Before Deployment
+====================================================================
 
-1.  Fix password reset validation — Call validatePassword() in resetPassword() instead of weak length < 6 check (auth.service.js:399)
-2.  Move secrets out of .env — Use environment variables, Azure Key Vault, or AWS Secrets Manager
-3.  Fix hardcoded frontend API URL — Replace http://192.168.1.179:3002/api in api.ts with import.meta.env.VITE_API_URL
-4.  Create .env.example — Document all required env vars for deployment
-    P1 — Should Fix Before Real Client Use
-5.  Add global rate limiter — 100 requests/15 min per IP for all protected routes
-6.  Add JWT algorithm whitelist — { algorithms: ['HS256'] } to jwt.verify()
-7.  Configure CORS_ORIGINS for production — Ensure env var is set
-8.  Add 404 handler — Custom JSON 404 response
-9.  Validate NOT VALID FKs — Run ALTER TABLE ... VALIDATE CONSTRAINT on migration FKs
-10. Add input sanitization middleware — At minimum for string fields rendered in UI/emails
-11. Set up migration runner — Use node-pg-migrate or custom solution to track applied migrations
-12. Add basic unit tests for payroll engine — Critical business logic needs coverage
-13. Create backup automation — Windows Task Scheduler or pg_cron for daily dumps
-    P2 — Good Improvement
-14. Add magic byte validation to file upload — Beyond MIME type
-15. Integrate form validation library in frontend — React Hook Form + Zod or similar
-16. Move bcrypt cost to config — Make SALT_ROUNDS an env var
-17. Add Dockerfile + docker-compose — PostgreSQL, Redis, app, worker
-18. Add CI/CD pipeline — GitHub Actions for lint, type-check, build
-19. Reduce JWT payload — Remove PII (name, email) from token; keep only id, role, jti
-20. Add structured logging — Pino or Winston with log levels and transports
-    P3 — Polish
-21. Drop migration-artifact backup tables — leave_credits_backup_before_drop, system_settings_notification_backup_before_deprecation
-22. Remove unused dependencies — next-themes, react-helmet (uses react-helmet-async)
-23. Implement empty hook files — useAuth.ts, useSocket.ts, useFetch.ts are stubs
-24. Add end-to-end tests — Playwright (already a dependency for docs screenshots)
-25. Create user-facing documentation module — Add admin manual, employee FAQ
-    Final Verdict
-    Question Answer
-    Is this system good? ✅ Yes — genuinely impressive feature breadth and professional architecture
-    Is it enterprise-ready? ⚠️ Almost — scores 7.5/10. Needs 2-3 week hardening sprint for P0/P1 items
-    Is it ready for demo? ✅ Yes — right now. Cleaned database, admin account, all modules functional
-    Is it ready for real client deployment? ⚠️ Conditionally — OK for pilot (1-2 branches, <100 employees) after fixing P0 items. Needs P1 items for full production
-    What should I do next? Fix P0 items (password reset, .env secrets, API URL, .env.example), then write deployment guide and admin manual. Then deploy for pilot.
-    ▣ Build · DeepSeek V4 Flash Free · 9m 58s
+Create the documentation order only.
+
+Documentation Phase:
+Phase 0 - User Manual Documentation Order
+
+Goal:
+Create the correct order for writing UnivoHR user manual documentation, one module at a time.
+
+Important context:
+This documentation is for normal users and client admins, not developers.
+
+The client will receive the system with a clean database.
+Only one default admin account exists at the start.
+Most tables are empty.
+The client must set up the system in the correct order before using attendance, payroll, leave, overtime, recruitment, KPI, forms, and reports.
+
+Important:
+Do not write the full documentation for each module yet.
+Do not create deployment guide.
+Do not create API documentation.
+Do not create developer documentation.
+Do not modify code.
+Do not modify database.
+Only create the proper documentation order and phases.
+
+Documentation style required:
+Each future module guide must be written for non-technical users.
+
+Every future module guide should include:
+
+- What this module is for
+- Who uses this module
+- When to use this module
+- What must be set up before using this module
+- Where to click in the sidebar/menu
+- What button to click
+- What fields to fill up
+- What each field means
+- What happens after clicking Save/Create/Submit
+- How to edit records
+- How to delete/archive records if available
+- How to search/filter records
+- Common mistakes
+- What to do next after completing the module
+- Related modules
+- Previous guide link
+- Next guide link
+- Related guide buttons/links
+
+Important related documentation rule:
+Every future module document must include a section called:
+
+## Related Guides
+
+This section must include clickable Markdown links to related documents.
+
+Use button-style Markdown links like this:
+
+[⬅ Previous: Branch Setup Guide](../01_SYSTEM_SETUP/BRANCH_SETUP_GUIDE.md)
+
+[Next: Employee Code Settings Guide ➜](../01_SYSTEM_SETUP/EMPLOYEE_CODE_SETTINGS_GUIDE.md)
+
+[Related: User Permissions Guide](../04_EMPLOYEE_ACCOUNT_SETUP/USER_PERMISSIONS_GUIDE.md)
+
+[Related: Payroll Rules Guide](../02_CORE_SETTINGS/PAYROLL_RULES_GUIDE.md)
+
+If a document depends on another guide, add it as a related link.
+If a document should be read next, add it as the next guide.
+If a document has a previous setup step, add it as the previous guide.
+
+Example:
+Employee Management Guide should link to:
+
+- Branch Setup Guide
+- Employee Code Settings Guide
+- Employee Salary Setup Guide
+- User Account Setup Guide
+- User Permissions Guide
+- Payroll Processing Guide
+
+Payroll Processing Guide should link to:
+
+- Employee Salary Setup Guide
+- Attendance Management Guide
+- Leave Management Guide
+- Overtime Management Guide
+- Man Hours Guide
+- Calendar and Holiday Setup Guide
+- Pay Rules Guide
+- Payroll Rules Guide
+- Reports Guide
+
+Create the documentation order using phases below.
+
+PHASE 1 - First Login and Basic Company Setup
+
+Purpose:
+This phase prepares the system before any employee, attendance, or payroll setup.
+
+Order:
+
+1. First Admin Login Guide
+2. Change Admin Password Guide
+3. Company Branding Guide
+4. Branch Setup Guide
+5. Employee Code Settings Guide
+
+Reason:
+The client must log in first, secure the admin account, set company identity, create branches, and prepare employee code rules before adding employees.
+
+PHASE 2 - Core Settings Setup
+
+Purpose:
+This phase configures the rules used by attendance, payroll, leave, overtime, and approvals.
+
+Order: 6. Timezone Settings Guide 7. Attendance Settings Guide 8. Shift Settings Guide 9. Rest Day Settings Guide 10. Calendar and Holiday Setup Guide 11. Pay Rules Guide 12. Payroll Rules Guide 13. Approval Settings Guide
+
+Reason:
+These settings must be ready before daily operations and payroll processing.
+
+PHASE 3 - Communication and Device Setup
+
+Purpose:
+This phase prepares notifications, email sending, and attendance devices.
+
+Order: 14. SMTP Settings Guide 15. Email Templates Guide 16. Notification Settings Guide 17. Device Setup Guide 18. Device User Mapping Guide 19. Device Log Mapping Guide
+
+Reason:
+Email and notifications are needed for approvals and alerts. Devices must be configured before device-based attendance is used.
+
+PHASE 4 - Employee and Account Setup
+
+Purpose:
+This phase prepares the real users of the system.
+
+Order: 20. Employee Management Guide 21. Employee Salary Setup Guide 22. Employee Shift / Rest Day / Rotation Assignment Guide 23. User Account Setup Guide 24. User Permissions Guide 25. Branch Access Guide
+
+Reason:
+Employees must exist before accounts, attendance, leave, overtime, KPI, forms, and payroll can work properly.
+
+PHASE 5 - HR Daily Management Modules
+
+Purpose:
+This phase documents the main HR operations used after setup.
+
+Order: 26. HR Policies Guide 27. Leave Management Guide 28. Overtime Management Guide 29. Man Hours Guide 30. Attendance Management Guide 31. Anomalies Guide
+
+Reason:
+These are daily HR/admin tasks after employees and settings are ready.
+
+PHASE 6 - Recruitment, Performance, and Forms
+
+Purpose:
+This phase documents HR workflow modules.
+
+Order: 32. Job Positions Guide 33. Recruitment Workflow Guide 34. Applicants Guide 35. My Recruitment Assignments Guide 36. KPI Templates Guide 37. KPI Evaluations Guide 38. Employee KPI Results Guide 39. Form Templates Guide 40. Assign Forms Guide 41. Form Submissions Guide
+
+Reason:
+These modules depend on employees, accounts, permissions, and HR workflows.
+
+PHASE 7 - Payroll and Reports
+
+Purpose:
+This phase documents payroll processing after all required attendance, employee, salary, leave, overtime, man-hour, calendar, and payroll rules are configured.
+
+Order: 42. Payroll Processing Guide 43. Payroll Details Guide 44. Payslip Download Guide 45. Payroll Status Actions Guide 46. Reports Guide
+
+Reason:
+Payroll should be documented after setup and daily modules because payroll depends on many modules.
+
+PHASE 8 - Employee Self-Service Guides
+
+Purpose:
+This phase documents what normal employees can do.
+
+Order: 47. Employee Dashboard Guide 48. My Attendance / Clock In-Out Guide 49. My Leaves Guide 50. My Overtime Guide 51. My Man Hours Guide 52. My KPI Results Guide 53. My Forms Guide 54. My Payroll / Payslips Guide 55. My Benefits Guide 56. Notifications Guide
+
+Reason:
+Employee guides should be separate from admin guides because employees need simpler instructions.
+
+PHASE 9 - Security, Audit, and Troubleshooting
+
+Purpose:
+This phase documents system safety and support topics.
+
+Order: 57. Authentication and Login Issues Guide 58. Security and Permissions Guide 59. Audit Logs Guide 60. Troubleshooting Guide
+
+Reason:
+These are support/admin reference documents.
+
+PHASE 10 - Deployment Guide
+
+Purpose:
+Deployment documentation comes last.
+
+Order: 61. Deployment Guide 62. Backup and Restore Guide 63. Migration Guide 64. Production Checklist
+
+Important:
+Do not write this phase yet.
+Deployment docs will be created only after user module documentation is complete.
+
+Output required:
+
+1. Create a clean documentation phase order.
+
+2. Use a table with these columns:
+   - Phase
+   - Document Number
+   - Document Title
+   - File Path
+   - Target User
+   - Why This Comes First
+   - Depends On
+   - Related Guide Links
+   - Status
+
+3. Mark all documents as:
+   Not Started
+
+4. For the Related Guide Links column, include Markdown links to:
+   - previous guide
+   - next guide
+   - related dependency guides
+
+5. Create a recommended folder structure.
+
+Use this folder structure:
+
+docs/
+00_START_HERE/
+01_BASIC_COMPANY_SETUP/
+02_CORE_SETTINGS/
+03_COMMUNICATION_DEVICE_SETUP/
+04_EMPLOYEE_ACCOUNT_SETUP/
+05_HR_DAILY_MANAGEMENT/
+06_RECRUITMENT_PERFORMANCE_FORMS/
+07_PAYROLL_REPORTS/
+08_EMPLOYEE_SELF_SERVICE/
+09_SECURITY_AUDIT_TROUBLESHOOTING/
+10_DEPLOYMENT_LAST/
+
+6. After the table, recommend the first document to write.
+
+7. Final answer should say:
+   The first module documentation to write is:
+   First Admin Login Guide

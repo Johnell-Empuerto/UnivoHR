@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import DocScreenshot from "../components/DocScreenshot";
 import DocsNavigation from "../components/DocsNavigation";
 
 const LoginDocs = () => (
@@ -183,10 +182,7 @@ const LoginDocs = () => (
             </ul>
           </div>
 
-          <DocScreenshot
-            src="/docs/screenshots/login.png"
-            alt="Login page screenshot"
-          />
+          
         </CardContent>
       </Card>
     </section>

@@ -7,7 +7,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import DocScreenshot from "../components/DocScreenshot";
 import DocsNavigation from "../components/DocsNavigation";
 
 const attendanceAccessRows = [
@@ -94,10 +93,7 @@ const AttendanceDocs = () => (
               check-in, and check-out for quick reference.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/attendance-overview.png"
-              alt="Attendance overview with Records and Time Requests tabs"
-            />
+            
           </div>
 
           <Separator />
@@ -117,10 +113,7 @@ const AttendanceDocs = () => (
               attendance rules configured in System Settings.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/attendance-timein-timeout.png"
-              alt="Dashboard or attendance record showing check-in and check-out times"
-            />
+            
 
             <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800">
               <p className="text-xs font-semibold uppercase tracking-wide text-purple-700 dark:text-purple-300 mb-2">
@@ -190,10 +183,7 @@ const AttendanceDocs = () => (
               days as On Leave.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/attendance-filters.png"
-              alt="Attendance records with date, status, and search filters"
-            />
+            
           </div>
 
           <Separator />
@@ -259,10 +249,7 @@ const AttendanceDocs = () => (
               the first is resolved.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/attendance-time-requests.png"
-              alt="Time modification requests list and approval actions"
-            />
+            
           </div>
 
           <Separator />

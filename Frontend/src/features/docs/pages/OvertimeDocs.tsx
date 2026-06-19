@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import DocScreenshot from "../components/DocScreenshot";
 import DocsNavigation from "../components/DocsNavigation";
 
 const overtimeAccessRows = [
@@ -106,10 +105,7 @@ const OvertimeDocs = () => (
               calculated from the times you enter when you submit.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/overtime-overview.png"
-              alt="Overtime overview page with My Overtime list and filters"
-            />
+            
           </div>
 
           <Separator />
@@ -203,10 +199,7 @@ const OvertimeDocs = () => (
               <strong>12 hours</strong> for one request.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/overtime-request-form.png"
-              alt="Overtime request form with date, times, and reason"
-            />
+            
           </div>
 
           <Separator />
@@ -225,10 +218,7 @@ const OvertimeDocs = () => (
               submission time.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/overtime-details.png"
-              alt="Overtime details view in side panel"
-            />
+            
           </div>
 
           <Separator />
@@ -322,10 +312,7 @@ const OvertimeDocs = () => (
               action — no multi-level approval chain in the app.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/overtime-approval.png"
-              alt="Overtime approval page with employee table and filters"
-            />
+            
 
             <p className="text-sm font-medium text-foreground">
               Reviewing employee overtime

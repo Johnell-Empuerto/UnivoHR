@@ -104,15 +104,17 @@ const Navbar = ({
       {/* RIGHT */}
       <div className="flex items-center gap-3">
         {/* DOCS */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate("/docs")}
-          aria-label="Open user manual"
-          title="User Manual"
-        >
-          <BookOpen className="h-5 w-5 text-primary" />
-        </Button>
+        {hasPermission("docs.view") && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/docs")}
+            aria-label="Open user manual"
+            title="User Manual"
+          >
+            <BookOpen className="h-5 w-5 text-primary" />
+          </Button>
+        )}
 
         {/* THEME */}
         <Button variant="ghost" size="icon" onClick={toggleTheme}>

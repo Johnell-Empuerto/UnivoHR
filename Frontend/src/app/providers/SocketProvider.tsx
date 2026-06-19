@@ -44,7 +44,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     const token = localStorage.getItem("token");
 
     const socketInstance = io(
-      import.meta.env.VITE_API_URL || "http://localhost:3002",
+      import.meta.env.VITE_API_URL || "http://192.168.0.110:3002",
       {
         withCredentials: true,
         auth: { token },

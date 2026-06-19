@@ -21,7 +21,7 @@ app.use(helmet());
 // =====================
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
-  : ["http://localhost:5173"];
+  : ["http://localhost:5173", "http://192.168.0.110:5173"];
 
 app.use(
   cors({
@@ -101,7 +101,10 @@ const deviceIntegrationRoutes = require("./routes/deviceIntegration.routes");
 // Middleware
 const authenticate = require("./middleware/auth.middleware");
 const logger = require("./middleware/logger");
-const { readOnlyLimiter, writeLimiter } = require("./middleware/rateLimit.middleware");
+const {
+  readOnlyLimiter,
+  writeLimiter,
+} = require("./middleware/rateLimit.middleware");
 const errorHandler = require("./middleware/errorHandler");
 
 // =====================

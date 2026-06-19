@@ -111,6 +111,7 @@ const ALL_PERMISSIONS = [
   'benefits.view_own',
   'policies.view',
   'self_service.view',
+  'docs.view',
 ];
 
 const PERMISSION_GROUPS = {
@@ -141,6 +142,7 @@ const PERMISSION_GROUPS = {
   Profile: ['profile.view', 'profile.edit_own', 'change_password'],
   Benefits: ['benefits.view_own'],
   'Self Service': ['self_service.view'],
+  Docs: ['docs.view'],
 };
 
 const EMPLOYEE_DEFAULT_PERMISSIONS = [

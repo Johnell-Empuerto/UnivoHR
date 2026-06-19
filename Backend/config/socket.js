@@ -7,7 +7,7 @@ const initSocket = (server) => {
 
   const allowedOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
-    : ["http://localhost:5173"];
+    : ["http://localhost:5173", "http://192.168.0.110:5173"];
 
   io = new Server(server, {
     cors: {
@@ -24,7 +24,9 @@ const initSocket = (server) => {
 
     if (token) {
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+          algorithms: ["HS256"],
+        });
         socket.user = decoded;
         next();
       } catch {

@@ -2,9 +2,18 @@ const express = require("express");
 const router = express.Router();
 
 const controller = require("../controllers/employee.controller");
+const bulkController = require("../controllers/employeeBulk.controller");
 const authenticate = require("../middleware/auth.middleware");
 const requirePermission = require("../middleware/permission.middleware");
 const { requireBranchAccessFromQuery, requireBranchAccessFromBody } = require("../middleware/branchAccess.middleware");
+const employeeUpload = require("../middleware/employeeUpload.middleware");
+
+// Bulk import routes — MUST be declared before /:id
+router.get("/import/template", authenticate, requirePermission("employees.create"), bulkController.downloadTemplate);
+router.post("/import/validate", authenticate, requirePermission("employees.create"), employeeUpload.single("file"), bulkController.validateImport);
+router.post("/import/commit", authenticate, requirePermission("employees.create"), bulkController.commitImport);
+router.get("/import/history", authenticate, requirePermission("employees.view"), bulkController.getImportHistory);
+router.get("/import/:batchId/errors", authenticate, requirePermission("employees.view"), bulkController.downloadErrorReport);
 
 // Static routes MUST be declared before /:id
 router.get("/search", authenticate, requirePermission("employees.view"), controller.searchEmployees);

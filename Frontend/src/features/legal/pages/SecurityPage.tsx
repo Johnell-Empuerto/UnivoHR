@@ -1,4 +1,3 @@
-// features/legal/pages/SecurityPage.tsx
 import {
   Shield,
   Lock,
@@ -12,6 +11,10 @@ import {
   Globe,
   Clock,
   Bell,
+  UserCheck,
+  FileSearch,
+  RefreshCw,
+  Wifi,
 } from "lucide-react";
 import {
   Card,
@@ -34,7 +37,7 @@ const SecurityPage = () => {
       icon: Lock,
       title: "Password Security",
       description:
-        "All passwords are encrypted using bcrypt with 10 salt rounds",
+        "All passwords are encrypted using bcrypt with 10 salt rounds. Minimum password complexity requirements enforced.",
       badge: "Active",
       badgeColor:
         "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
@@ -42,7 +45,8 @@ const SecurityPage = () => {
     {
       icon: Key,
       title: "JWT Authentication",
-      description: "Secure JSON Web Tokens for stateless session management",
+      description:
+        "Secure JSON Web Tokens for stateless session management. Tokens are signed and verified on every request.",
       badge: "Active",
       badgeColor:
         "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
@@ -51,7 +55,7 @@ const SecurityPage = () => {
       icon: Shield,
       title: "Role-Based Access Control",
       description:
-        "SYSTEM_ADMIN, ADMIN, HR_USER, PAYROLL_USER, and EMPLOYEE roles with granular permissions",
+        "Granular per-module permissions (view, create, edit, delete, approve) across all 10+ system modules. Branch-level data isolation enforced.",
       badge: "Active",
       badgeColor:
         "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
@@ -59,10 +63,47 @@ const SecurityPage = () => {
     {
       icon: Clock,
       title: "Session Management",
-      description: "Automatic timeout and logout after period of inactivity",
+      description:
+        "Automatic timeout after inactivity. Concurrent session detection. Secure logout invalidates tokens immediately.",
       badge: "Active",
       badgeColor:
         "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    },
+    {
+      icon: FileSearch,
+      title: "Audit Logging",
+      description:
+        "Comprehensive audit trail of all INSERT, UPDATE, and DELETE operations. Captures old values, new values, user ID, IP address, and timestamp.",
+      badge: "Active",
+      badgeColor:
+        "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
+    },
+    {
+      icon: Database,
+      title: "SQL Injection Prevention",
+      description:
+        "All database queries use parameterized prepared statements. Raw SQL concatenation is prohibited in the codebase.",
+      badge: "Active",
+      badgeColor:
+        "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400",
+    },
+    {
+      icon: UserCheck,
+      title: "Permission Middleware",
+      description:
+        "Every API endpoint is protected by authentication and permission middleware. Unauthorized requests are rejected with 403.",
+      badge: "Active",
+      badgeColor:
+        "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400",
+    },
+    {
+      icon: Wifi,
+      title: "Device API Security",
+      description:
+        "Biometric device connections use per-device API keys. Device keys are hashed and stored securely.",
+      badge: "Active",
+      badgeColor:
+        "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
     },
   ];
 
@@ -70,32 +111,76 @@ const SecurityPage = () => {
     {
       icon: Database,
       title: "Encryption at Rest",
-      description: "All sensitive data is encrypted in the database",
+      description: "Sensitive data fields encrypted in the database",
     },
     {
       icon: Globe,
       title: "TLS/SSL Encryption",
-      description: "HTTPS for all data transmission",
+      description: "HTTPS for all frontend-to-backend data transmission",
     },
     {
       icon: Server,
       title: "Regular Backups",
-      description: "Automated daily database backups",
+      description: "Automated daily database backups with retention policy",
     },
     {
       icon: Eye,
       title: "Audit Logging",
-      description: "Complete trail of all user actions",
+      description: "Complete immutable trail of all user actions across modules",
+    },
+    {
+      icon: Fingerprint,
+      title: "Input Validation",
+      description: "Server-side validation and sanitization on all endpoints",
+    },
+    {
+      icon: Lock,
+      title: "Branch Isolation",
+      description: "Multi-branch data segregation via branch access middleware",
+    },
+    {
+      icon: RefreshCw,
+      title: "Account Lockout",
+      description: "Account lockout after repeated failed login attempts",
+    },
+    {
+      icon: Bell,
+      title: "Anomaly Detection",
+      description: "Statistical anomaly detection for unusual attendance patterns",
     },
   ];
 
+  const apiSecurity = [
+    "All API endpoints require valid JWT authentication tokens",
+    "Rate limiting prevents brute force and abuse attacks",
+    "Input validation and sanitization on all request parameters",
+    "SQL injection prevention through parameterized queries",
+    "Permission middleware checks on every protected route",
+    "Device API keys are hashed using bcrypt before storage",
+    "CORS configuration restricts cross-origin requests",
+    "File upload validation limits file types and sizes",
+  ];
+
+  const infrastructureSecurity = [
+    "Regular security patches and dependency updates",
+    "Firewall and network-level protection",
+    "Isolated database environment with restricted access",
+    "24/7 monitoring of critical system components",
+    "Environment-specific configuration (development, staging, production)",
+    "Secure environment variable management for secrets",
+    "Docker containerization for consistent deployment",
+    "Health check endpoints for system monitoring",
+  ];
+
   const bestPractices = [
-    "Use a strong, unique password",
-    "Never share your login credentials",
-    "Log out when leaving your workstation",
-    "Report suspicious activity immediately",
-    "Keep your browser updated",
-    "Enable two-factor authentication always",
+    "Use a strong, unique password with at least 8 characters including letters, numbers, and symbols",
+    "Never share your login credentials with anyone",
+    "Always log out or lock your workstation when leaving",
+    "Report suspicious activity or potential security incidents immediately",
+    "Keep your browser and operating system updated",
+    "Do not access the system from public or untrusted networks",
+    "Use the password reset feature if you suspect your account is compromised",
+    "Review your own data periodically for accuracy",
   ];
 
   return (
@@ -106,7 +191,6 @@ const SecurityPage = () => {
 
       <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <div className="container mx-auto px-4 py-6 md:py-10 max-w-5xl">
-          {/* Back Button */}
           <Button
             variant="ghost"
             onClick={() => navigate("/login")}
@@ -116,7 +200,6 @@ const SecurityPage = () => {
             Back to Login
           </Button>
 
-          {/* Hero Section */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-2xl mb-4">
               <Shield className="h-10 w-10 text-primary" />
@@ -125,12 +208,10 @@ const SecurityPage = () => {
               Security
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Your data security is our top priority. Learn how we protect your
-              information.
+              Your data security is our top priority. Learn how UnivoHR protects your information across all modules.
             </p>
           </div>
 
-          {/* Security Features Grid */}
           <div className="grid md:grid-cols-2 gap-5 mb-8">
             {securityFeatures.map((feature, index) => (
               <Card
@@ -161,7 +242,6 @@ const SecurityPage = () => {
             ))}
           </div>
 
-          {/* Data Protection Section */}
           <Card className="border-border/50 shadow-sm mb-8">
             <CardHeader>
               <div className="flex items-center gap-3">
@@ -171,7 +251,7 @@ const SecurityPage = () => {
                 <div>
                   <CardTitle>Data Protection</CardTitle>
                   <CardDescription>
-                    How we safeguard your information
+                    Comprehensive safeguards for your information
                   </CardDescription>
                 </div>
               </div>
@@ -196,9 +276,7 @@ const SecurityPage = () => {
             </CardContent>
           </Card>
 
-          {/* Best Practices & Incident Response */}
           <div className="grid md:grid-cols-2 gap-8 mb-8">
-            {/* Best Practices */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader>
                 <div className="flex items-center gap-3">
@@ -227,7 +305,6 @@ const SecurityPage = () => {
               </CardContent>
             </Card>
 
-            {/* Incident Response */}
             <Card className="border-border/50 shadow-sm">
               <CardHeader>
                 <div className="flex items-center gap-3">
@@ -246,32 +323,31 @@ const SecurityPage = () => {
                 <div className="flex items-start gap-2">
                   <Bell className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                   <span className="text-sm text-muted-foreground">
-                    Immediate notification of security breaches
+                    Immediate notification of security breaches to administrators
                   </span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Server className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                   <span className="text-sm text-muted-foreground">
-                    Rapid containment and investigation procedures
+                    Rapid containment, investigation, and remediation procedures
                   </span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Eye className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                   <span className="text-sm text-muted-foreground">
-                    Affected users are notified promptly
+                    Affected users and stakeholders are notified promptly
                   </span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Shield className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                   <span className="text-sm text-muted-foreground">
-                    Regular security drills and testing
+                    Post-incident review and security improvements implemented
                   </span>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* API Security & Infrastructure */}
           <div className="grid md:grid-cols-2 gap-8 mb-8">
             <Card className="border-border/50 shadow-sm">
               <CardHeader>
@@ -286,30 +362,14 @@ const SecurityPage = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                  <span className="text-sm text-muted-foreground">
-                    All API endpoints require authentication
-                  </span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                  <span className="text-sm text-muted-foreground">
-                    Rate limiting to prevent abuse
-                  </span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                  <span className="text-sm text-muted-foreground">
-                    Input validation and sanitization
-                  </span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                  <span className="text-sm text-muted-foreground">
-                    SQL injection prevention (parameterized queries)
-                  </span>
-                </div>
+                {apiSecurity.map((item, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                    <span className="text-sm text-muted-foreground">
+                      {item}
+                    </span>
+                  </div>
+                ))}
               </CardContent>
             </Card>
 
@@ -326,42 +386,62 @@ const SecurityPage = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                  <span className="text-sm text-muted-foreground">
-                    Regular security patches and updates
-                  </span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                  <span className="text-sm text-muted-foreground">
-                    Firewall and DDoS protection
-                  </span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                  <span className="text-sm text-muted-foreground">
-                    Isolated database environment
-                  </span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                  <span className="text-sm text-muted-foreground">
-                    24/7 monitoring of critical systems
-                  </span>
-                </div>
+                {infrastructureSecurity.map((item, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                    <span className="text-sm text-muted-foreground">
+                      {item}
+                    </span>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </div>
 
-          {/* Contact Section */}
+          {/* Permission Model Section */}
+          <Card className="border-border/50 shadow-sm mb-8">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Shield className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle>Permission Model</CardTitle>
+                  <CardDescription>
+                    Granular access control across all modules
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground space-y-3">
+                <p>
+                  UnivoHR implements a multi-layered permission model that controls access at the module, action, and data levels:
+                </p>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  <div className="p-3 rounded-lg border border-border/50 bg-muted/20">
+                    <h4 className="font-medium text-foreground text-xs mb-1">Module-Level Permissions</h4>
+                    <p className="text-xs">Each module (Employees, Attendance, Payroll, Leave, etc.) has independent view, create, edit, and delete permissions.</p>
+                  </div>
+                  <div className="p-3 rounded-lg border border-border/50 bg-muted/20">
+                    <h4 className="font-medium text-foreground text-xs mb-1">Branch-Level Isolation</h4>
+                    <p className="text-xs">Users can be restricted to specific branches. Data from other branches is invisible.</p>
+                  </div>
+                  <div className="p-3 rounded-lg border border-border/50 bg-muted/20">
+                    <h4 className="font-medium text-foreground text-xs mb-1">Role Hierarchy</h4>
+                    <p className="text-xs">SYSTEM_ADMIN has full access. ADMIN, HR_USER, PAYROLL_USER, and EMPLOYEE roles have progressively scoped permissions.</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="border-border/50 shadow-sm bg-primary/5">
             <CardContent className="p-6 text-center">
               <Fingerprint className="h-8 w-8 text-primary mx-auto mb-3" />
               <h3 className="text-lg font-semibold mb-2">Security Concerns?</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                For security concerns or to report a vulnerability, please
-                contact your system administrator immediately.
+                For security concerns or to report a vulnerability, please contact your system administrator immediately.
               </p>
               <Button variant="outline" onClick={() => navigate("/login")}>
                 Return to Login

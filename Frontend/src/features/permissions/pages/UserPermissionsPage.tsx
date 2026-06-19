@@ -119,6 +119,7 @@ const PERMISSION_LABELS: Record<string, string> = {
   "benefits.view_own": "View Own Benefits",
   "policies.view": "View HR Policies",
   "self_service.view": "Self Service Access",
+  "docs.view": "View User Manual",
 };
 
 const PRESETS: { name: string; label: string; keys: string[] }[] = [
@@ -178,6 +179,7 @@ const PRESETS: { name: string; label: string; keys: string[] }[] = [
       "notifications.view",
       "profile.view",
       "change_password",
+      "docs.view",
     ],
   },
   {
@@ -244,6 +246,7 @@ const PRESETS: { name: string; label: string; keys: string[] }[] = [
       "notifications.view",
       "profile.view",
       "change_password",
+      "docs.view",
     ],
   },
   {
@@ -571,13 +574,13 @@ const UserPermissionsPage = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {Object.entries(filteredGroups).map(([group, keys]) => {
-                    const allChecked = keys.every((k) =>
+                    const allChecked = isAdminUser || keys.every((k) =>
                       userPermissions.includes(k),
                     );
-                    const someChecked = keys.some((k) =>
+                    const someChecked = isAdminUser || keys.some((k) =>
                       userPermissions.includes(k),
                     );
-                    const selectedCount = keys.filter((k) =>
+                    const selectedCount = isAdminUser ? keys.length : keys.filter((k) =>
                       userPermissions.includes(k),
                     ).length;
 

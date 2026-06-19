@@ -7,9 +7,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, Pencil, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, Pencil, Plus, ChevronLeft, ChevronRight, Upload } from "lucide-react";
 import { useState } from "react";
 import EmployeeDrawer from "./EmployeeDrawer";
+import BulkImportDialog from "./BulkImportDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import EmptyState from "@/components/shared/EmptyState";
@@ -64,6 +65,7 @@ const EmployeeTable = ({
   );
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"view" | "edit" | "create">("view");
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const handleDrawerClose = () => {
     setOpen(false);
@@ -156,17 +158,27 @@ const EmployeeTable = ({
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>{title}</CardTitle>
         {canCreate && (
-          <Button
-            onClick={() => {
-              setMode("create");
-              setSelectedEmployee(null);
-              setOpen(true);
-            }}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Employee
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => {
+                setMode("create");
+                setSelectedEmployee(null);
+                setOpen(true);
+              }}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Employee
+            </Button>
+            <Button
+              onClick={() => setBulkOpen(true)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Bulk Upload
+            </Button>
+          </div>
         )}
       </CardHeader>
       <CardContent>
@@ -332,6 +344,12 @@ const EmployeeTable = ({
         canEdit={canEdit}
         canCreate={canCreate}
         canView={canView}
+      />
+
+      <BulkImportDialog
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        onImportComplete={() => onPageChange(currentPage)}
       />
     </Card>
   );

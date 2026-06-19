@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import DocScreenshot from "../components/DocScreenshot";
 import DocsNavigation from "../components/DocsNavigation";
 
 const accessRows = [
@@ -169,15 +168,9 @@ const CalendarDocs = () => (
               </li>
             </ol>
 
-            <DocScreenshot
-              src="/docs/screenshots/calendar-overview.png"
-              alt="Calendar overview page"
-            />
+            
 
-            <DocScreenshot
-              src="/docs/screenshots/calendar-day-details.png"
-              alt="Legend and selected date details panel"
-            />
+            
           </div>
 
           <Separator />
@@ -226,10 +219,7 @@ const CalendarDocs = () => (
               </li>
             </ol>
 
-            <DocScreenshot
-              src="/docs/screenshots/calendar-add-edit.png"
-              alt="Add or edit calendar day dialog"
-            />
+            
           </div>
 
           <Separator />
@@ -274,10 +264,7 @@ const CalendarDocs = () => (
               </li>
             </ol>
 
-            <DocScreenshot
-              src="/docs/screenshots/calendar-bulk-upload.png"
-              alt="Bulk upload holiday template window"
-            />
+            
           </div>
 
           <Separator />

@@ -7,7 +7,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import DocScreenshot from "../components/DocScreenshot";
 import DocsNavigation from "../components/DocsNavigation";
 
 const leaveAccessRows = [
@@ -119,10 +118,7 @@ const LeavesDocs = () => (
               (unpaid; no balance limit).
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/leaves-overview.png"
-              alt="Leave management page overview"
-            />
+            
           </div>
 
           <Separator />
@@ -173,10 +169,7 @@ const LeavesDocs = () => (
               payroll may treat the days as non-working or unpaid (No Pay).
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/leaves-request-form.png"
-              alt="Leave request form drawer"
-            />
+            
           </div>
 
           <Separator />
@@ -248,10 +241,7 @@ const LeavesDocs = () => (
               employees mapped to them.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/leaves-approval.png"
-              alt="Leave approval list with filters and actions"
-            />
+            
           </div>
 
           <Separator />
@@ -274,10 +264,7 @@ const LeavesDocs = () => (
               leave requests).
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/leaves-history.png"
-              alt="Leave credits and transaction history table"
-            />
+            
           </div>
 
           <Separator />
@@ -303,10 +290,7 @@ const LeavesDocs = () => (
               requests and payroll leave conversion where applicable.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/leaves-credits.png"
-              alt="Leave credits balance cards and management table"
-            />
+            
           </div>
 
           <Separator />

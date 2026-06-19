@@ -11,6 +11,8 @@ import { isApprover as checkIsApprover } from "@/services/overtimeService";
 import DocsSidebar from "../components/DocsSidebar";
 
 const docPageTitles: Record<string, string> = {
+  overview: "Overview",
+  "first-admin-login": "First Admin Login Guide",
   login: "Login",
   dashboard: "Dashboard",
   attendance: "Attendance",
@@ -25,7 +27,7 @@ const docPageTitles: Record<string, string> = {
   profile: "Profile",
 };
 
-const DOCS_MODULE_COUNT = 12;
+const DOCS_MODULE_COUNT = 64;
 
 const DocsLayout = () => {
   const { isAuth, user } = useAuth();
@@ -71,7 +73,7 @@ const DocsLayout = () => {
   const backLabel = isAuth ? "Back to Dashboard" : "Back to Login";
 
   if (location.pathname === "/docs" || location.pathname === "/docs/") {
-    return <Navigate to="/docs/login" replace />;
+    return <Navigate to="/docs/overview" replace />;
   }
 
   return (

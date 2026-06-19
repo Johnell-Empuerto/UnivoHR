@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import DocScreenshot from "../components/DocScreenshot";
 import DocsNavigation from "../components/DocsNavigation";
 
 const manHoursAccessRows = [
@@ -105,10 +104,7 @@ const ManHoursDocs = () => (
               those entries.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/manhours-overview.png"
-              alt="Man-hours overview page with My Man Hours tabs"
-            />
+            
           </div>
 
           <Separator />
@@ -227,10 +223,7 @@ const ManHoursDocs = () => (
               is detected.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/manhours-submit.png"
-              alt="Man-hours submission form with time entries"
-            />
+            
           </div>
 
           <Separator />
@@ -363,10 +356,7 @@ const ManHoursDocs = () => (
               (submitted, approved, or rejected) with who acted and when.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/manhours-details.png"
-              alt="Man-hours details view with time entries and approval timeline"
-            />
+            
           </div>
 
           <Separator />
@@ -379,10 +369,7 @@ const ManHoursDocs = () => (
               submissions.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/manhours-approval.png"
-              alt="Man-hours approval page with employee table and filters"
-            />
+            
 
             <p className="text-sm font-medium text-foreground">
               Reviewing employee man-hours

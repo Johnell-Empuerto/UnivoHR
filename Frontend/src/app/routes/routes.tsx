@@ -25,6 +25,32 @@ import PrivacyPage from "@/features/legal/pages/PrivacyPage";
 import TermsPage from "@/features/legal/pages/TermsPage";
 import SecurityPage from "@/features/legal/pages/SecurityPage";
 import DocsLayout from "@/features/docs/pages/DocsLayout";
+import DocsOverview from "@/features/docs/pages/DocsOverview";
+import FirstAdminLoginDocs from "@/features/docs/pages/FirstAdminLoginDocs";
+import ChangeAdminPasswordDocs from "@/features/docs/pages/ChangeAdminPasswordDocs";
+import CompanyBrandingDocs from "@/features/docs/pages/CompanyBrandingDocs";
+import BranchSetupDocs from "@/features/docs/pages/BranchSetupDocs";
+import EmployeeCodeSettingsDocs from "@/features/docs/pages/EmployeeCodeSettingsDocs";
+import TimezoneSettingsDocs from "@/features/docs/pages/TimezoneSettingsDocs";
+import AttendanceSettingsDocs from "@/features/docs/pages/AttendanceSettingsDocs";
+import ShiftSettingsDocs from "@/features/docs/pages/ShiftSettingsDocs";
+import RestDaySettingsDocs from "@/features/docs/pages/RestDaySettingsDocs";
+import CalendarHolidaySetupDocs from "@/features/docs/pages/CalendarHolidaySetupDocs";
+import PayRulesDocs from "@/features/docs/pages/PayRulesDocs";
+import PayrollRulesDocs from "@/features/docs/pages/PayrollRulesDocs";
+import ApprovalSettingsDocs from "@/features/docs/pages/ApprovalSettingsDocs";
+import SMTPSettingsDocs from "@/features/docs/pages/SMTPSettingsDocs";
+import EmailTemplatesDocs from "@/features/docs/pages/EmailTemplatesDocs";
+import NotificationSettingsDocs from "@/features/docs/pages/NotificationSettingsDocs";
+import DeviceSetupDocs from "@/features/docs/pages/DeviceSetupDocs";
+import DeviceUserMappingDocs from "@/features/docs/pages/DeviceUserMappingDocs";
+import DeviceLogMappingDocs from "@/features/docs/pages/DeviceLogMappingDocs";
+import EmployeeSalarySetupDocs from "@/features/docs/pages/EmployeeSalarySetupDocs";
+import EmployeeShiftAssignmentDocs from "@/features/docs/pages/EmployeeShiftAssignmentDocs";
+import UserPermissionsDocs from "@/features/docs/pages/UserPermissionsDocs";
+import BranchAccessDocs from "@/features/docs/pages/BranchAccessDocs";
+import HRPoliciesDocs from "@/features/docs/pages/HRPoliciesDocs";
+import AnomaliesDocs from "@/features/docs/pages/AnomaliesDocs";
 import LoginDocs from "@/features/docs/pages/LoginDocs";
 import DashboardDocs from "@/features/docs/pages/DashboardDocs";
 import AttendanceDocs from "@/features/docs/pages/AttendanceDocs";
@@ -36,7 +62,39 @@ import ManHoursDocs from "@/features/docs/pages/ManHoursDocs";
 import OvertimeDocs from "@/features/docs/pages/OvertimeDocs";
 import SettingsDocs from "@/features/docs/pages/SettingsDocs";
 import EmployeesDocs from "@/features/docs/pages/EmployeesDocs";
+import EmployeeBulkUploadDocs from "@/features/docs/pages/EmployeeBulkUploadDocs";
 import UsersDocs from "@/features/docs/pages/UsersDocs";
+import JobPositionsDocs from "@/features/docs/pages/JobPositionsDocs";
+import RecruitmentWorkflowDocs from "@/features/docs/pages/RecruitmentWorkflowDocs";
+import ApplicantsDocs from "@/features/docs/pages/ApplicantsDocs";
+import MyRecruitmentAssignmentsDocs from "@/features/docs/pages/MyRecruitmentAssignmentsDocs";
+import KpiTemplatesDocs from "@/features/docs/pages/KpiTemplatesDocs";
+import KpiEvaluationsDocs from "@/features/docs/pages/KpiEvaluationsDocs";
+import EmployeeKpiResultsDocs from "@/features/docs/pages/EmployeeKpiResultsDocs";
+import FormTemplatesDocs from "@/features/docs/pages/FormTemplatesDocs";
+import AssignFormsDocs from "@/features/docs/pages/AssignFormsDocs";
+import FormSubmissionsDocs from "@/features/docs/pages/FormSubmissionsDocs";
+import PayrollDetailsDocs from "@/features/docs/pages/PayrollDetailsDocs";
+import PayslipDownloadDocs from "@/features/docs/pages/PayslipDownloadDocs";
+import PayrollStatusActionsDocs from "@/features/docs/pages/PayrollStatusActionsDocs";
+import ReportsDocs from "@/features/docs/pages/ReportsDocs";
+import MyAttendanceClockDocs from "@/features/docs/pages/MyAttendanceClockDocs";
+import MyLeavesDocs from "@/features/docs/pages/MyLeavesDocs";
+import MyOvertimeDocs from "@/features/docs/pages/MyOvertimeDocs";
+import MyManHoursDocs from "@/features/docs/pages/MyManHoursDocs";
+import MyKpiResultsDocs from "@/features/docs/pages/MyKpiResultsDocs";
+import MyFormsDocs from "@/features/docs/pages/MyFormsDocs";
+import MyPayrollPayslipsDocs from "@/features/docs/pages/MyPayrollPayslipsDocs";
+import MyBenefitsDocs from "@/features/docs/pages/MyBenefitsDocs";
+import NotificationsGuideDocs from "@/features/docs/pages/NotificationsGuideDocs";
+import AuthenticationLoginIssuesDocs from "@/features/docs/pages/AuthenticationLoginIssuesDocs";
+import SecurityPermissionsDocs from "@/features/docs/pages/SecurityPermissionsDocs";
+import AuditLogsDocs from "@/features/docs/pages/AuditLogsDocs";
+import TroubleshootingDocs from "@/features/docs/pages/TroubleshootingDocs";
+import DeploymentDocs from "@/features/docs/pages/DeploymentDocs";
+import BackupRestoreDocs from "@/features/docs/pages/BackupRestoreDocs";
+import MigrationDocs from "@/features/docs/pages/MigrationDocs";
+import ProductionChecklistDocs from "@/features/docs/pages/ProductionChecklistDocs";
 import BranchesPage from "@/features/branches/pages/BranchesPage";
 import AnomalyPage from "@/features/anomalies/pages/AnomalyPage";
 import HRPolicies from "@/pages/HRPolicies";
@@ -134,7 +192,43 @@ const AppRoutes = () => {
         <Route path="/security" element={<SecurityPage />} />
 
         {/* docs */}
-        <Route path="/docs" element={<DocsLayout />}>
+        <Route
+          path="/docs"
+          element={
+            hasPermission("docs.view") ? (
+              <DocsLayout />
+            ) : (
+              <Navigate to={isAuth ? "/dashboard" : "/login"} replace />
+            )
+          }
+        >
+          <Route index element={<DocsOverview />} />
+          <Route path="overview" element={<DocsOverview />} />
+          <Route path="first-admin-login" element={<FirstAdminLoginDocs />} />
+          <Route path="change-admin-password" element={<ChangeAdminPasswordDocs />} />
+          <Route path="company-branding" element={<CompanyBrandingDocs />} />
+          <Route path="branch-setup" element={<BranchSetupDocs />} />
+          <Route path="employee-code-settings" element={<EmployeeCodeSettingsDocs />} />
+          <Route path="timezone-settings" element={<TimezoneSettingsDocs />} />
+          <Route path="attendance-settings" element={<AttendanceSettingsDocs />} />
+          <Route path="shift-settings" element={<ShiftSettingsDocs />} />
+          <Route path="rest-day-settings" element={<RestDaySettingsDocs />} />
+          <Route path="calendar-holiday-setup" element={<CalendarHolidaySetupDocs />} />
+          <Route path="pay-rules" element={<PayRulesDocs />} />
+          <Route path="payroll-rules" element={<PayrollRulesDocs />} />
+          <Route path="approval-settings" element={<ApprovalSettingsDocs />} />
+          <Route path="smtp-settings" element={<SMTPSettingsDocs />} />
+          <Route path="email-templates" element={<EmailTemplatesDocs />} />
+          <Route path="notification-settings" element={<NotificationSettingsDocs />} />
+          <Route path="device-setup" element={<DeviceSetupDocs />} />
+          <Route path="device-user-mapping" element={<DeviceUserMappingDocs />} />
+          <Route path="device-log-mapping" element={<DeviceLogMappingDocs />} />
+          <Route path="employee-salary-setup" element={<EmployeeSalarySetupDocs />} />
+          <Route path="employee-shift-assignment" element={<EmployeeShiftAssignmentDocs />} />
+          <Route path="user-permissions" element={<UserPermissionsDocs />} />
+          <Route path="branch-access" element={<BranchAccessDocs />} />
+          <Route path="hr-policies" element={<HRPoliciesDocs />} />
+          <Route path="anomalies" element={<AnomaliesDocs />} />
           <Route path="login" element={<LoginDocs />} />
           <Route path="dashboard" element={<DashboardDocs />} />
           <Route path="attendance" element={<AttendanceDocs />} />
@@ -143,10 +237,44 @@ const AppRoutes = () => {
           <Route path="man-hours" element={<ManHoursDocs />} />
           <Route path="overtime" element={<OvertimeDocs />} />
           <Route path="payroll-admin" element={<PayrollAdminDocs />} />
-          <Route path="employees" element={<EmployeesDocs />} />
-          <Route path="users" element={<UsersDocs />} />
+  <Route path="employees" element={<EmployeesDocs />} />
+  <Route path="employee-bulk-upload" element={<EmployeeBulkUploadDocs />} />
+  <Route path="users" element={<UsersDocs />} />
           <Route path="settings" element={<SettingsDocs />} />
           <Route path="profile" element={<ProfileDocs />} />
+          <Route path="job-positions" element={<JobPositionsDocs />} />
+          <Route path="recruitment-workflow" element={<RecruitmentWorkflowDocs />} />
+          <Route path="applicants" element={<ApplicantsDocs />} />
+          <Route path="my-recruitment-assignments" element={<MyRecruitmentAssignmentsDocs />} />
+          <Route path="kpi-templates" element={<KpiTemplatesDocs />} />
+          <Route path="kpi-evaluations" element={<KpiEvaluationsDocs />} />
+          <Route path="employee-kpi-results" element={<EmployeeKpiResultsDocs />} />
+          <Route path="form-templates" element={<FormTemplatesDocs />} />
+          <Route path="assign-forms" element={<AssignFormsDocs />} />
+          <Route path="form-submissions" element={<FormSubmissionsDocs />} />
+          <Route path="payroll-details" element={<PayrollDetailsDocs />} />
+          <Route path="payslip-download" element={<PayslipDownloadDocs />} />
+          <Route path="payroll-status-actions" element={<PayrollStatusActionsDocs />} />
+          <Route path="reports" element={<ReportsDocs />} />
+          <Route path="my-attendance-clock" element={<MyAttendanceClockDocs />} />
+          <Route path="my-leaves" element={<MyLeavesDocs />} />
+          <Route path="my-overtime" element={<MyOvertimeDocs />} />
+          <Route path="my-man-hours" element={<MyManHoursDocs />} />
+          <Route path="my-kpi-results" element={<MyKpiResultsDocs />} />
+          <Route path="my-forms" element={<MyFormsDocs />} />
+          <Route path="my-payroll-payslips" element={<MyPayrollPayslipsDocs />} />
+          <Route path="my-benefits" element={<MyBenefitsDocs />} />
+          <Route path="notifications-guide" element={<NotificationsGuideDocs />} />
+          {/* Phase 9 — Security, Audit & Troubleshooting */}
+          <Route path="authentication-login-issues" element={<AuthenticationLoginIssuesDocs />} />
+          <Route path="security-permissions" element={<SecurityPermissionsDocs />} />
+          <Route path="audit-logs" element={<AuditLogsDocs />} />
+          <Route path="troubleshooting" element={<TroubleshootingDocs />} />
+          {/* Phase 10 — Deployment */}
+          <Route path="deployment" element={<DeploymentDocs />} />
+          <Route path="backup-restore" element={<BackupRestoreDocs />} />
+          <Route path="migration" element={<MigrationDocs />} />
+          <Route path="production-checklist" element={<ProductionChecklistDocs />} />
         </Route>
 
         {/* PROTECTED - WITH LAYOUT */}

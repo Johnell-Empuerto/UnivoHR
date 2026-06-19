@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import DocScreenshot from "../components/DocScreenshot";
 import DocsNavigation from "../components/DocsNavigation";
 
 const accessRows = [
@@ -97,10 +96,7 @@ const SettingsDocs = () => (
               on this page.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/settings-overview.png"
-              alt="System Settings overview with seven tabs"
-            />
+            
           </div>
 
           <Separator />
@@ -198,10 +194,7 @@ const SettingsDocs = () => (
               under Payroll → Settings.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/settings-attendance.png"
-              alt="Attendance settings page"
-            />
+            
           </div>
 
           <Separator />
@@ -235,10 +228,7 @@ const SettingsDocs = () => (
               payroll is generated — holiday and special day pay rates.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/settings-payroll.png"
-              alt="Pay Rules settings tab"
-            />
+            
           </div>
 
           <Separator />
@@ -275,10 +265,7 @@ const SettingsDocs = () => (
               requests without a mapping.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/settings-approvals.png"
-              alt="Approval configuration page"
-            />
+            
           </div>
 
           <Separator />
@@ -354,10 +341,7 @@ const SettingsDocs = () => (
               <li>Payroll marked paid</li>
             </ul>
 
-            <DocScreenshot
-              src="/docs/screenshots/settings-notifications.png"
-              alt="Notification settings page"
-            />
+            
           </div>
 
           <Separator />
@@ -400,10 +384,7 @@ const SettingsDocs = () => (
               in the system before you can edit it here.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/settings-email-templates.png"
-              alt="Email template editor"
-            />
+            
           </div>
 
           <Separator />
@@ -428,10 +409,7 @@ const SettingsDocs = () => (
               to employees.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/settings-branding.png"
-              alt="Company branding settings"
-            />
+            
           </div>
 
           <Separator />

@@ -44,3 +44,52 @@ export const getEmploymentStats = async () => {
   const response = await api.get("/employees/employment-stats");
   return response.data;
 };
+
+export const downloadEmployeeImportTemplate = async () => {
+  const response = await api.get("/employees/import/template", {
+    responseType: "blob",
+  });
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "employee_import_template.xlsx");
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+  return true;
+};
+
+export const validateEmployeeImport = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await api.post("/employees/import/validate", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+};
+
+export const commitEmployeeImport = async (batchId: number) => {
+  const response = await api.post("/employees/import/commit", { batchId });
+  return response.data;
+};
+
+export const getEmployeeImportHistory = async () => {
+  const response = await api.get("/employees/import/history");
+  return response.data;
+};
+
+export const downloadEmployeeImportErrors = async (batchId: number) => {
+  const response = await api.get(`/employees/import/${batchId}/errors`, {
+    responseType: "blob",
+  });
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", `employee_import_errors_batch_${batchId}.xlsx`);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+  return true;
+};

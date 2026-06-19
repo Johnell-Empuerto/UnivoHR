@@ -7,7 +7,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import DocScreenshot from "../components/DocScreenshot";
 import DocsNavigation from "../components/DocsNavigation";
 
 const employeeAccessRows = [
@@ -75,10 +74,7 @@ const EmployeesDocs = () => (
               <strong>Profile</strong> page (read-only).
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/employees-list.png"
-              alt="Employees list page"
-            />
+            
           </div>
 
           <Separator />
@@ -108,10 +104,7 @@ const EmployeesDocs = () => (
               </li>
             </ol>
 
-            <DocScreenshot
-              src="/docs/screenshots/employees-profile.png"
-              alt="Employee details drawer"
-            />
+            
           </div>
 
           <Separator />
@@ -137,10 +130,7 @@ const EmployeesDocs = () => (
               </li>
             </ul>
 
-            <DocScreenshot
-              src="/docs/screenshots/employees-filters.png"
-              alt="Employee search and status filters"
-            />
+            
           </div>
 
           <Separator />
@@ -179,10 +169,7 @@ const EmployeesDocs = () => (
               access until an account is created.
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/employees-add-form.png"
-              alt="Add employee form"
-            />
+            
           </div>
 
           <Separator />
@@ -207,10 +194,7 @@ const EmployeesDocs = () => (
               company list in this screen).
             </p>
 
-            <DocScreenshot
-              src="/docs/screenshots/employees-edit-form.png"
-              alt="Edit employee form"
-            />
+            
           </div>
 
           <Separator />

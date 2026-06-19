@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import DocScreenshot from "../components/DocScreenshot";
 import DocsNavigation from "../components/DocsNavigation";
 
 const DashboardDocs = () => (
@@ -159,10 +158,7 @@ const DashboardDocs = () => (
             </ul>
           </div>
 
-          <DocScreenshot
-            src="/docs/screenshots/dashboard.png"
-            alt="Dashboard screenshot"
-          />
+          
         </CardContent>
       </Card>
     </section>
