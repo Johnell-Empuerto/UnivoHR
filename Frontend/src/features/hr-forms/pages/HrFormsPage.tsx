@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Plus, Loader2, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ClipboardList, ListChecks, ToggleLeft, ToggleRight } from "lucide-react";
+import { FileText, Plus, Loader2, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, ClipboardList, ListChecks, ToggleLeft, ToggleRight, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
@@ -20,8 +22,8 @@ interface HrForm { id: number; title: string; description: string | null; is_act
 
 const statusBadge = (active: boolean) => {
   return active
-    ? <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">Active</Badge>
-    : <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">Inactive</Badge>;
+    ? <Badge className={getStatusBadgeClass("success")}>Active</Badge>
+    : <Badge className={getStatusBadgeClass("neutral")}>Inactive</Badge>;
 };
 
 const HrFormsPage = () => {
@@ -32,6 +34,8 @@ const HrFormsPage = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState("10");
   const [search, setSearch] = useState("");
+
+  const activeFilterCount = [search].filter(Boolean).length;
 
   const totalPages = Math.ceil(total / Number(pageSize));
   const start = (page - 1) * Number(pageSize) + 1;
@@ -73,6 +77,11 @@ const HrFormsPage = () => {
     try { setLoading(true); const r = await getHrForms(page, Number(pageSize), search); setForms(r.data); setTotal(r.pagination.total); }
     catch { toast.error("Failed to load forms"); setForms([]); }
     finally { setLoading(false); }
+  };
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setPage(1);
   };
 
   const handleOpenCreate = () => { setEditId(null); setFormData({ title: "", description: "" }); setDialogOpen(true); };
@@ -120,9 +129,18 @@ const HrFormsPage = () => {
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
-            <Input placeholder="Search forms..." value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="w-64" />
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search forms..." value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                className="pl-9" />
+            </div>
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" onClick={handleClearFilters}>
+                <X className="h-4 w-4 mr-2" />
+                Clear Filters
+              </Button>
+            )}
           </div>
           <div className="flex gap-2">
             <Button onClick={() => navigate("/hr-forms/assignments")} variant="outline" className="flex items-center gap-2">
@@ -236,12 +254,12 @@ const HrFormsPage = () => {
           <DialogHeader><DialogTitle>{editId ? "Edit Form" : "Create Form"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Title <span className="text-red-500">*</span></p>
+              <Label>Title <span className="text-red-500">*</span></Label>
               <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="e.g., Employee Satisfaction Survey" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Description</p>
+              <Label>Description</Label>
               <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
             </div>
           </div>

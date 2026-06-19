@@ -6,12 +6,13 @@ import {
 } from "@/services/kpiService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 import Loader from "@/components/shared/Loader";
@@ -24,11 +25,13 @@ import { useAuth } from "@/app/providers/AuthProvider";
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
-    Draft: "bg-gray-100 text-gray-800", "In Progress": "bg-blue-100 text-blue-800",
-    Submitted: "bg-amber-100 text-amber-800", Completed: "bg-green-100 text-green-800",
-    Approved: "bg-green-100 text-green-800",
+    Draft: getStatusBadgeClass("neutral"),
+    "In Progress": getStatusBadgeClass("info"),
+    Submitted: getStatusBadgeClass("warning"),
+    Completed: getStatusBadgeClass("success"),
+    Approved: getStatusBadgeClass("success"),
   };
-  return <Badge className={map[s] || ""}>{s}</Badge>;
+  return <Badge className={map[s] || getStatusBadgeClass("neutral")}>{s}</Badge>;
 };
 
 const KpiEvaluationPage = () => {
@@ -42,15 +45,13 @@ const KpiEvaluationPage = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
+  const activeFilterCount = [search, statusFilter].filter(Boolean).length;
+
   const totalPages = Math.ceil(total / pageSize);
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);
 
   const goToPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
-  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setPageSize(Number(e.target.value));
-    setPage(1);
-  };
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisible = 5;
@@ -127,6 +128,12 @@ const KpiEvaluationPage = () => {
   const fetchEvaluations = async () => {
     try { setLoading(true); const r = await getKpiHrView(search, statusFilter, page, pageSize); setEvaluations(r.data); setTotal(r.pagination.total); }
     catch (err: any) { toast.error(err.message || "Failed to load"); } finally { setLoading(false); }
+  };
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setStatusFilter("");
+    setPage(1);
   };
 
   const handleOpenAssign = async () => {
@@ -285,6 +292,12 @@ const KpiEvaluationPage = () => {
                 <SelectItem value="Approved">Approved</SelectItem>
               </SelectContent>
             </Select>
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" onClick={handleClearFilters}>
+                <X className="h-4 w-4 mr-2" />
+                Clear Filters
+              </Button>
+            )}
           </div>
           {isHr && <div className="flex gap-2"><Button onClick={handleOpenAssign} className="flex items-center gap-2"><Plus className="h-4 w-4" /> Assign</Button><Button onClick={handleOpenBulkAssign} variant="outline" className="flex items-center gap-2"><CheckSquare className="h-4 w-4" /> Bulk Assign</Button></div>}
         </CardHeader>
@@ -318,11 +331,11 @@ const KpiEvaluationPage = () => {
                       <TableCell>{statusBadge(ev.status)}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" title="View" onClick={() => handleViewDetail(ev.id)}><Eye className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon-sm" title="View" onClick={() => handleViewDetail(ev.id)}><Eye className="h-4 w-4" /></Button>
                           {isHr && ev.status === "Submitted" && (
                             <>
-                              <Button variant="ghost" size="sm" className="text-green-600" title="Approve" onClick={() => handleOpenApprove(ev)}><CheckCircle className="h-4 w-4" /></Button>
-                              <Button variant="ghost" size="sm" className="text-red-600" title="Reject" onClick={() => handleOpenReject(ev)}><XCircle className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon-sm" className="text-green-600" title="Approve" onClick={() => handleOpenApprove(ev)}><CheckCircle className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon-sm" className="text-red-600" title="Reject" onClick={() => handleOpenReject(ev)}><XCircle className="h-4 w-4" /></Button>
                             </>
                           )}
                         </div>
@@ -337,13 +350,15 @@ const KpiEvaluationPage = () => {
             <div className="p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Rows per page:</span>
-                <select value={pageSize} onChange={handleRowsPerPageChange}
-                  className="border rounded px-2 py-1 text-sm bg-background">
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                </select>
+                <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
+                  <SelectTrigger className="w-16 h-8"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="text-sm text-muted-foreground">
                 Showing {start} to {end} of {total} entries
@@ -385,7 +400,7 @@ const KpiEvaluationPage = () => {
                       {selectedEmployee.department || selectedEmployee.branch_name || ""}
                     </span>
                   </div>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0" onClick={() => setSelectedEmployee(null)}>
+                  <Button variant="ghost" size="icon-sm" className="h-7 w-7 p-0 shrink-0" onClick={() => setSelectedEmployee(null)}>
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
@@ -410,7 +425,7 @@ const KpiEvaluationPage = () => {
                       {selectedEvaluator.department || selectedEvaluator.branch_name || ""}
                     </span>
                   </div>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0" onClick={() => setSelectedEvaluator(null)}>
+                  <Button variant="ghost" size="icon-sm" className="h-7 w-7 p-0 shrink-0" onClick={() => setSelectedEvaluator(null)}>
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
@@ -502,7 +517,7 @@ const KpiEvaluationPage = () => {
                         {selectedBulkEvaluator.department || selectedBulkEvaluator.branch_name || ""}
                       </span>
                     </div>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0" onClick={() => setSelectedBulkEvaluator(null)}>
+                    <Button variant="ghost" size="icon-sm" className="h-7 w-7 p-0 shrink-0" onClick={() => setSelectedBulkEvaluator(null)}>
                       <X className="h-4 w-4" />
                     </Button>
                   </div>

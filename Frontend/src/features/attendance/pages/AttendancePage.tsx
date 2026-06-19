@@ -384,10 +384,8 @@ const AttendancePage = () => {
     setTimeRequestsPage(Math.max(1, Math.min(page, timeRequestsTotalPages)));
   };
 
-  const handleTimeRequestsRowsPerPageChange = (
-    e: React.ChangeEvent<HTMLSelectElement>,
-  ) => {
-    const newRows = Number(e.target.value);
+  const handleTimeRequestsRowsPerPageChange = (value: string) => {
+    const newRows = Number(value);
     setTimeRequestsRowsPerPage(newRows);
     setTimeRequestsPage(1);
   };
@@ -468,17 +466,18 @@ const AttendancePage = () => {
                 </div>
 
                 <div className="w-32">
-                  <select
-                    value={statusFilter || "all"}
-                    onChange={(e) => handleStatusChange(e.target.value)}
-                    className="border rounded px-3 py-2 text-sm bg-background w-full"
-                  >
-                    <option value="all">All Status</option>
-                    <option value="PRESENT">Present</option>
-                    <option value="LATE">Late</option>
-                    <option value="ABSENT">Absent</option>
-                    <option value="LEAVE">On Leave</option>
-                  </select>
+                  <Select value={statusFilter || "all"} onValueChange={handleStatusChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="PRESENT">Present</SelectItem>
+                      <SelectItem value="LATE">Late</SelectItem>
+                      <SelectItem value="ABSENT">Absent</SelectItem>
+                      <SelectItem value="LEAVE">On Leave</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -677,16 +676,17 @@ const AttendancePage = () => {
                         <span className="text-sm text-muted-foreground">
                           Rows per page:
                         </span>
-                        <select
-                          value={timeRequestsRowsPerPage}
-                          onChange={handleTimeRequestsRowsPerPageChange}
-                          className="border rounded px-2 py-1 text-sm bg-background"
-                        >
-                          <option value={5}>5</option>
-                          <option value={10}>10</option>
-                          <option value={25}>25</option>
-                          <option value={50}>50</option>
-                        </select>
+                        <Select value={String(timeRequestsRowsPerPage)} onValueChange={handleTimeRequestsRowsPerPageChange}>
+                          <SelectTrigger className="w-16 h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="5">5</SelectItem>
+                            <SelectItem value="10">10</SelectItem>
+                            <SelectItem value="25">25</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       {/* Showing X to Y of Z */}

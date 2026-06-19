@@ -20,7 +20,7 @@ import { getProfile, type Profile } from "@/services/profileService";
 import { changePassword } from "@/services/authService";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -240,10 +240,10 @@ const ProfilePage = () => {
             </div>
             <span className={`inline-block px-2 py-0.5 text-xs rounded font-semibold ${
               profile.employment_status === "REGULAR"
-                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                ? getStatusBadgeClass("success")
                 : profile.employment_status === "PROBATIONARY"
-                  ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
-                  : "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
+                  ? getStatusBadgeClass("warning")
+                  : getStatusBadgeClass("neutral")
             }`}>
               {profile.employment_status || "REGULAR"}
             </span>

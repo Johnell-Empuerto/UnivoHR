@@ -18,11 +18,11 @@ const getAll = async (page = 1, limit = 10, search = "", status = "", jobPositio
      LEFT JOIN job_positions jp ON jp.id = a.job_position_id
      LEFT JOIN applicant_workflow_instances awi ON awi.id = a.workflow_instance_id
      LEFT JOIN recruitment_workflows rw ON rw.id = awi.workflow_id
-     WHERE ($3 = '' OR a.first_name ILIKE $3 OR a.last_name ILIKE $3 OR a.email ILIKE $3)
-       AND ($4 = '' OR a.status = $4)
-       AND ($5 = '' OR a.job_position_id = $5::int)
-     ORDER BY a.created_at DESC
-     LIMIT $1 OFFSET $2`,
+      WHERE ($3 = '' OR a.first_name ILIKE $3 OR a.last_name ILIKE $3 OR a.email ILIKE $3)
+        AND ($4 = '' OR a.status = $4)
+        AND ($5 = '' OR ($5 ~ '^\d+$' AND a.job_position_id = $5::int))
+      ORDER BY a.created_at DESC
+      LIMIT $1 OFFSET $2`,
     [limit, offset, searchValue, status, jobPositionId],
   );
 
@@ -30,7 +30,7 @@ const getAll = async (page = 1, limit = 10, search = "", status = "", jobPositio
     `SELECT COUNT(*) FROM applicants a
      WHERE ($1 = '' OR a.first_name ILIKE $1 OR a.last_name ILIKE $1 OR a.email ILIKE $1)
        AND ($2 = '' OR a.status = $2)
-       AND ($3 = '' OR a.job_position_id = $3::int)`,
+       AND ($3 = '' OR ($3 ~ '^\d+$' AND a.job_position_id = $3::int))`,
     [searchValue, status, jobPositionId],
   );
 

@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, ArrowLeft, Plus, Pencil, Trash2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
@@ -173,23 +174,23 @@ const HrFormBuilderPage = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>{editFieldId ? "Edit Question" : "Add Question"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Question Label <span className="text-red-500">*</span></p>
-              <Input value={fieldForm.label} onChange={(e) => setFieldForm({ ...fieldForm, label: e.target.value })}
-                placeholder="e.g., How satisfied are you?" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">Field Type</p>
-              <Select value={fieldForm.field_type} onValueChange={(v) => setFieldForm({ ...fieldForm, field_type: v })}>
+              <div>
+                <Label>Question Label <span className="text-red-500">*</span></Label>
+                <Input value={fieldForm.label} onChange={(e) => setFieldForm({ ...fieldForm, label: e.target.value })}
+                  placeholder="e.g., How satisfied are you?" />
+              </div>
+              <div>
+                <Label>Field Type</Label>
+                <Select value={fieldForm.field_type} onValueChange={(v) => setFieldForm({ ...fieldForm, field_type: v })}>
                 <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {FIELD_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            {(fieldForm.field_type === "dropdown" || fieldForm.field_type === "radio" || fieldForm.field_type === "checkbox") && (
+              {(fieldForm.field_type === "dropdown" || fieldForm.field_type === "radio" || fieldForm.field_type === "checkbox") && (
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Options <span className="text-red-500">*</span></p>
+                <Label>Options <span className="text-red-500">*</span></Label>
                 <Textarea value={fieldForm.options} onChange={(e) => setFieldForm({ ...fieldForm, options: e.target.value })}
                   placeholder="Enter options separated by commas&#10;e.g., Excellent, Good, Fair, Poor" />
               </div>

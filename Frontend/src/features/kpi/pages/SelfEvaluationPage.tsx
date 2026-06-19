@@ -14,14 +14,17 @@ import EmptyState from "@/components/shared/EmptyState";
 import { FileText, Loader2, Save, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers/AuthProvider";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
-    Draft: "bg-gray-100 text-gray-800", "In Progress": "bg-blue-100 text-blue-800",
-    Submitted: "bg-amber-100 text-amber-800", Completed: "bg-green-100 text-green-800",
-    Approved: "bg-green-100 text-green-800",
+    Draft: getStatusBadgeClass("neutral"),
+    "In Progress": getStatusBadgeClass("info"),
+    Submitted: getStatusBadgeClass("warning"),
+    Completed: getStatusBadgeClass("success"),
+    Approved: getStatusBadgeClass("success"),
   };
-  return <Badge className={map[s] || ""}>{s}</Badge>;
+  return <Badge className={map[s] || getStatusBadgeClass("neutral")}>{s}</Badge>;
 };
 
 const SelfEvaluationPage = () => {

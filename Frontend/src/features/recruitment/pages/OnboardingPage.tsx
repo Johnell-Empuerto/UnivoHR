@@ -10,13 +10,19 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { formatDateShort } from "@/utils/formatDate";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
-import { ClipboardList, Plus, ChevronLeft, ChevronRight, Loader2, Trash2, CheckCircle, Eye } from "lucide-react";
+import { ClipboardList, Plus, ChevronLeft, ChevronRight, Loader2, Trash2, CheckCircle, Eye, Search, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface Onboarding {
@@ -34,10 +40,10 @@ interface Requirement {
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
-    PENDING: "bg-gray-100 text-gray-800", SUBMITTED: "bg-blue-100 text-blue-800",
-    VERIFIED: "bg-green-100 text-green-800", REJECTED: "bg-red-100 text-red-800",
-    IN_PROGRESS: "bg-amber-100 text-amber-800", COMPLETED: "bg-emerald-100 text-emerald-800",
-    CANCELLED: "bg-gray-100 text-gray-800",
+    PENDING: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300", SUBMITTED: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    VERIFIED: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400", REJECTED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+    IN_PROGRESS: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400", COMPLETED: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
+    CANCELLED: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
   };
   return <Badge className={map[status] || ""}>{status.replace(/_/g, " ")}</Badge>;
 };
@@ -51,15 +57,13 @@ const OnboardingPage = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
+  const activeFilterCount = [search, statusFilter].filter(Boolean).length;
+
   const totalPages = Math.ceil(total / pageSize);
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);
 
   const goToPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
-  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setPageSize(Number(e.target.value));
-    setPage(1);
-  };
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisible = 5;
@@ -114,6 +118,12 @@ const OnboardingPage = () => {
       setRequirements([]);
     }
     setDetailOpen(true);
+  };
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setStatusFilter("");
+    setPage(1);
   };
 
   const handleStatusChange = async (id: number, status: string) => {
@@ -194,23 +204,33 @@ const OnboardingPage = () => {
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
-            <input
-              placeholder="Search employees..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="border rounded px-3 py-1.5 text-sm bg-background w-64"
-            />
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="border rounded px-3 py-1.5 text-sm bg-background"
-            >
-              <option value="">All Status</option>
-              <option value="PENDING">Pending</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search employees..."
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                className="pl-9"
+              />
+            </div>
+            <Select value={statusFilter || undefined} onValueChange={(v) => { setStatusFilter(v === "all" ? "" : v); setPage(1); }}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                <SelectItem value="COMPLETED">Completed</SelectItem>
+                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" onClick={handleClearFilters}>
+                <X className="h-4 w-4 mr-2" />
+                Clear Filters
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -241,16 +261,16 @@ const OnboardingPage = () => {
                       <TableCell>{statusBadge(o.status)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="sm" title="View Requirements" onClick={() => openDetail(o)}>
+                            <Button variant="ghost" size="icon-sm" title="View Requirements" onClick={() => openDetail(o)}>
                             <Eye className="h-4 w-4" />
                           </Button>
                           {o.status === "PENDING" && (
-                            <Button variant="ghost" size="sm" title="Start Onboarding" onClick={() => handleStatusChange(o.id, "IN_PROGRESS")}>
+                            <Button variant="ghost" size="icon-sm" title="Start Onboarding" onClick={() => handleStatusChange(o.id, "IN_PROGRESS")}>
                               <CheckCircle className="h-4 w-4 text-green-500" />
                             </Button>
                           )}
                           {o.status === "IN_PROGRESS" && (
-                            <Button variant="ghost" size="sm" title="Complete" onClick={() => handleStatusChange(o.id, "COMPLETED")}>
+                            <Button variant="ghost" size="icon-sm" title="Complete" onClick={() => handleStatusChange(o.id, "COMPLETED")}>
                               <CheckCircle className="h-4 w-4 text-green-500" />
                             </Button>
                           )}
@@ -266,13 +286,15 @@ const OnboardingPage = () => {
             <div className="p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Rows per page:</span>
-                <select value={pageSize} onChange={handleRowsPerPageChange}
-                  className="border rounded px-2 py-1 text-sm bg-background">
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                </select>
+                <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
+                  <SelectTrigger className="w-16 h-8"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="text-sm text-muted-foreground">
                 Showing {start} to {end} of {total} entries
@@ -342,7 +364,7 @@ const OnboardingPage = () => {
                             <Button size="sm" variant="outline" className="text-red-600" onClick={() => handleReqStatus(r.id, "REJECTED")}>Reject</Button>
                           </>
                         )}
-                        <Button variant="ghost" size="sm" onClick={() => handleDeleteReq(r.id)}>
+                        <Button variant="ghost" size="icon-sm" onClick={() => handleDeleteReq(r.id)}>
                           <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
                       </div>
@@ -360,12 +382,12 @@ const OnboardingPage = () => {
           <DialogHeader><DialogTitle>Add Requirement</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Requirement Name <span className="text-red-500">*</span></p>
-              <input value={reqForm.requirement_name} onChange={(e) => setReqForm({ ...reqForm, requirement_name: e.target.value })} className="w-full border rounded px-2 py-1 bg-background" placeholder="e.g., NBI Clearance" />
+              <Label>Requirement Name <span className="text-red-500">*</span></Label>
+              <Input value={reqForm.requirement_name} onChange={(e) => setReqForm({ ...reqForm, requirement_name: e.target.value })} placeholder="e.g., NBI Clearance" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Description</p>
-              <textarea value={reqForm.description} onChange={(e) => setReqForm({ ...reqForm, description: e.target.value })} className="w-full border rounded px-2 py-1 bg-background min-h-[60px]" />
+              <Label>Description</Label>
+              <Textarea value={reqForm.description} onChange={(e) => setReqForm({ ...reqForm, description: e.target.value })} className="min-h-[60px]" />
             </div>
           </div>
           <DialogFooter>

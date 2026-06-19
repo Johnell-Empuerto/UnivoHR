@@ -5,15 +5,17 @@ import {
 } from "@/services/kpiService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
-import { FileText, Plus, ChevronLeft, ChevronRight, Loader2, Pencil, Trash2, ToggleLeft, ToggleRight, Search } from "lucide-react";
+import { FileText, Plus, ChevronLeft, ChevronRight, Loader2, Pencil, Trash2, ToggleLeft, ToggleRight, Search, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface Template { id: number; name: string; description: string | null; department: string | null; is_active: boolean; item_count: string; }
@@ -30,11 +32,18 @@ const KpiTemplatesPage = () => {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
 
+  const activeFilterCount = [search].filter(Boolean).length;
+
   const totalPages = Math.ceil(total / pageSize);
   const start = (page - 1) * pageSize + 1;
   const end = Math.min(page * pageSize, total);
 
   const goToPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
+  const handleClearFilters = () => {
+    setSearch("");
+    setPage(1);
+  };
+
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisible = 5;
@@ -189,6 +198,12 @@ const KpiTemplatesPage = () => {
               <Input placeholder="Search templates..." value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 className="pl-8" />
+              {activeFilterCount > 0 && (
+                <Button variant="ghost" onClick={handleClearFilters}>
+                  <X className="h-4 w-4 mr-2" />
+                  Clear Filters
+                </Button>
+              )}
             </div>
           </div>
           <Button onClick={handleOpenCreate} className="flex items-center gap-2">
@@ -218,13 +233,13 @@ const KpiTemplatesPage = () => {
                       <TableCell className="font-medium">{t.name}</TableCell>
                       <TableCell>{t.department || "-"}</TableCell>
                       <TableCell>{t.item_count || 0}</TableCell>
-                      <TableCell><Badge className={t.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>{t.is_active ? "Active" : "Inactive"}</Badge></TableCell>
+                      <TableCell><Badge className={t.is_active ? getStatusBadgeClass("success") : getStatusBadgeClass("neutral")}>{t.is_active ? "Active" : "Inactive"}</Badge></TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="sm" title="Manage Items" onClick={() => handleOpenItems(t)}><FileText className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="sm" title="Toggle Active" onClick={() => handleToggle(t.id)}>{t.is_active ? <ToggleRight className="h-4 w-4 text-green-600" /> : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}</Button>
-                          <Button variant="ghost" size="sm" title="Edit" onClick={() => handleOpenEdit(t)}><Pencil className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="sm" title="Delete" onClick={() => { setDeleteTargetId(t.id); setDeleteTargetName(t.name); setDeleteDialogOpen(true); }}><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                          <Button variant="ghost" size="icon-sm" title="Manage Items" onClick={() => handleOpenItems(t)}><FileText className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon-sm" title="Toggle Active" onClick={() => handleToggle(t.id)}>{t.is_active ? <ToggleRight className="h-4 w-4 text-green-600" /> : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}</Button>
+                          <Button variant="ghost" size="icon-sm" title="Edit" onClick={() => handleOpenEdit(t)}><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon-sm" title="Delete" onClick={() => { setDeleteTargetId(t.id); setDeleteTargetName(t.name); setDeleteDialogOpen(true); }}><Trash2 className="h-4 w-4 text-red-500" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -320,8 +335,8 @@ const KpiTemplatesPage = () => {
                       <TableCell>{item.weight}%</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => handleOpenEditItem(item)}><Pencil className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => { setDeleteItemTargetId(item.id); setDeleteItemTargetName(item.kpi_name); setDeleteItemDialogOpen(true); }}><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                          <Button variant="ghost" size="icon-sm" onClick={() => handleOpenEditItem(item)}><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon-sm" onClick={() => { setDeleteItemTargetId(item.id); setDeleteItemTargetName(item.kpi_name); setDeleteItemDialogOpen(true); }}><Trash2 className="h-4 w-4 text-red-500" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -358,37 +373,36 @@ const KpiTemplatesPage = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete Template</DialogTitle>
-            <DialogDescription>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent className="sm:max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Template</AlertDialogTitle>
+            <AlertDialogDescription>
               Are you sure? This will also delete all associated items.
-            </DialogDescription>
-          </DialogHeader>
-          <p className="text-sm">Deleting <strong>{deleteTargetName}</strong>. This action cannot be undone.</p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={() => deleteTargetId && handleDelete(deleteTargetId)}>Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              Deleting <strong>{deleteTargetName}</strong> cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteTargetId && handleDelete(deleteTargetId)}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-      <Dialog open={deleteItemDialogOpen} onOpenChange={setDeleteItemDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Delete KPI Item</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this KPI item?
-            </DialogDescription>
-          </DialogHeader>
-          <p className="text-sm">Deleting <strong>{deleteItemTargetName}</strong>.</p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteItemDialogOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={() => deleteItemTargetId && handleDeleteItem(deleteItemTargetId)}>Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AlertDialog open={deleteItemDialogOpen} onOpenChange={setDeleteItemDialogOpen}>
+        <AlertDialogContent className="sm:max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete KPI Item</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{deleteItemTargetName}</strong>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteItemTargetId && handleDeleteItem(deleteItemTargetId)}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { getHrSubmissionById, reviewHrSubmission } from "@/services/hrFormServic
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, ArrowLeft, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -13,8 +14,8 @@ import { formatDateShort } from "@/utils/formatDate";
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
-    Submitted: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-    Reviewed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    Submitted: getStatusBadgeClass("info"),
+    Reviewed: getStatusBadgeClass("success"),
   };
   return <Badge className={map[s] || ""}>{s}</Badge>;
 };

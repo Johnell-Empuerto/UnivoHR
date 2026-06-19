@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import {
   Dialog,
   DialogContent,
@@ -33,13 +34,13 @@ import {
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
-    Draft: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
-    "In Progress": "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-    Submitted: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
-    Completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-    Approved: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    Draft: getStatusBadgeClass("neutral"),
+    "In Progress": getStatusBadgeClass("info"),
+    Submitted: getStatusBadgeClass("warning"),
+    Completed: getStatusBadgeClass("success"),
+    Approved: getStatusBadgeClass("success"),
   };
-  return <Badge className={map[s] || ""}>{s}</Badge>;
+  return <Badge className={map[s] || getStatusBadgeClass("neutral")}>{s}</Badge>;
 };
 
 const MyKpiResultsPage = () => {

@@ -10,6 +10,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
@@ -195,13 +196,13 @@ const BulkImportDialog = ({ open, onClose, onImportComplete }: BulkImportDialogP
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "valid":
-        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">Valid</Badge>;
+        return <Badge className={getStatusBadgeClass("success")}>Valid</Badge>;
       case "invalid":
-        return <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">Invalid</Badge>;
+        return <Badge className={getStatusBadgeClass("danger")}>Invalid</Badge>;
       case "completed":
-        return <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">Completed</Badge>;
+        return <Badge className={getStatusBadgeClass("success")}>Completed</Badge>;
       case "failed":
-        return <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">Failed</Badge>;
+        return <Badge className={getStatusBadgeClass("danger")}>Failed</Badge>;
       case "validated":
         return <Badge variant="secondary">Validated</Badge>;
       case "importing":

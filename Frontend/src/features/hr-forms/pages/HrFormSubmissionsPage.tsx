@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Eye, ChevronLeft, ChevronRight, FileText } from "lucide-react";
@@ -15,8 +16,8 @@ import { formatDateShort } from "@/utils/formatDate";
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
-    Submitted: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-    Reviewed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    Submitted: getStatusBadgeClass("info"),
+    Reviewed: getStatusBadgeClass("success"),
   };
   return <Badge className={map[s] || ""}>{s}</Badge>;
 };

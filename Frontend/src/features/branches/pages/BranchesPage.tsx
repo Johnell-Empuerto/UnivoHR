@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import {
   Dialog,
   DialogContent,
@@ -231,11 +232,7 @@ const BranchesPage = () => {
                       <TableCell>
                         <Badge
                           variant={branch.is_active ? "default" : "secondary"}
-                          className={
-                            branch.is_active
-                              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                              : "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"
-                          }
+                          className={branch.is_active ? getStatusBadgeClass("success") : getStatusBadgeClass("neutral")}
                         >
                           {branch.is_active ? "Active" : "Inactive"}
                         </Badge>

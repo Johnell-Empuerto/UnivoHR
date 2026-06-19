@@ -4,12 +4,13 @@ import {
 } from "@/services/kpiService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
@@ -19,11 +20,13 @@ import { useAuth } from "@/app/providers/AuthProvider";
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
-    Draft: "bg-gray-100 text-gray-800", "In Progress": "bg-blue-100 text-blue-800",
-    Submitted: "bg-amber-100 text-amber-800", Completed: "bg-green-100 text-green-800",
-    Approved: "bg-green-100 text-green-800",
+    Draft: getStatusBadgeClass("neutral"),
+    "In Progress": getStatusBadgeClass("info"),
+    Submitted: getStatusBadgeClass("warning"),
+    Completed: getStatusBadgeClass("success"),
+    Approved: getStatusBadgeClass("success"),
   };
-  return <Badge className={map[s] || ""}>{s}</Badge>;
+  return <Badge className={map[s] || getStatusBadgeClass("neutral")}>{s}</Badge>;
 };
 
 const EmployeeEvaluationPage = () => {
@@ -183,7 +186,7 @@ const EmployeeEvaluationPage = () => {
                       <TableCell>{a.template_name}</TableCell>
                       <TableCell>{a.final_score || "-"}</TableCell>
                       <TableCell>{statusBadge(a.status)}</TableCell>
-                      <TableCell>{a.self_evaluation ? <Badge className="bg-green-100 text-green-800">Completed</Badge> : <Badge className="bg-red-100 text-red-800">Missing</Badge>}</TableCell>
+                      <TableCell>{a.self_evaluation ? <Badge className={getStatusBadgeClass("success")}>Completed</Badge> : <Badge className={getStatusBadgeClass("danger")}>Missing</Badge>}</TableCell>
                       <TableCell>
                         <Button size="sm" variant="outline" onClick={() => handleOpenEval(a.id)} className="flex items-center gap-1">
                           <Star className="h-4 w-4" /> Evaluate

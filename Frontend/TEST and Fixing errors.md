@@ -933,3 +933,563 @@ docs/
 7. Final answer should say:
    The first module documentation to write is:
    First Admin Login Guide
+
+   =========================================================================
+
+   Here is the full checklist of what we already finished and what is still not done.
+
+## Current Overall Status
+
+You are currently at:
+
+**Phase 1D.6 Audit completed only.**
+**Phase 1D.6 implementation is not yet done.**
+
+Latest completed work was the **High-Risk Badge Audit** for Attendance, Payroll, Recruitment, Overtime, Man Hours, Anomalies, and Device Integration. It recommends implementing only safe subsets first.
+
+---
+
+# Done
+
+## 1. Employee Bulk Upload Module
+
+Done:
+
+- Created `employeeBulk.service.js`
+- Created `employeeBulk.controller.js`
+- Created `employeeUpload.middleware.js`
+- Added backend routes
+- Fixed duplicate tracking bug from `Set` to `Map`
+- Ran migration `053_employee_import_batches.sql`
+- Added parse and validate logic
+- Added import batch persistence
+- Added transaction-safe commit/import logic
+- Added import history endpoint
+- Added error report generation endpoint
+- Added frontend `BulkImportDialog.tsx`
+- Added API methods
+- Added Bulk Upload button in Employees module
+
+Status: **Complete**
+
+---
+
+## 2. Docs / User Manual / Legal Pages
+
+Done:
+
+- Created `EmployeeBulkUploadDocs.tsx`
+- Registered route for employee bulk upload docs
+- Updated `docsData.ts`
+- Renumbered docs order
+- Removed `DocScreenshot` imports from 68 docs pages
+- Rewrote:
+  - `PrivacyPage.tsx`
+  - `TermsPage.tsx`
+  - `SecurityPage.tsx`
+
+Status: **Complete**
+
+---
+
+## 3. Phase 1A — Critical UI Fixes
+
+Done:
+
+- Fixed wrong Input import casing in `KpiTemplatesPage.tsx`
+  - from `@/components/ui/input`
+  - to `@/components/ui/Input`
+
+- Removed stray `console.log` in `PayRollPage.tsx`
+- Added dark mode badge classes to:
+  - `KpiTemplatesPage.tsx`
+  - `KpiEvaluationPage.tsx`
+  - `OnboardingPage.tsx`
+
+- Ran TypeScript check
+
+Status: **Complete**
+
+---
+
+## 4. Phase 1B — UI Consistency Fixes
+
+Done:
+
+- Added Clear Filters buttons to 5 pages
+- Replaced `<p>` labels with `<Label>` in 3 pages
+- Replaced delete confirmation `Dialog` with `AlertDialog` in `KpiTemplatesPage`
+- Replaced safe raw `<select>` / `<input>` with shadcn components in:
+  - `AttendancePage`
+  - `OnboardingPage`
+
+- Ran TypeScript check
+
+Status: **Complete**
+
+---
+
+## 5. Applicants API Bug Fix
+
+Done:
+
+Fixed this error:
+
+```txt
+invalid input syntax for type integer: "all"
+```
+
+Cause:
+
+```txt
+job_position_id=all
+```
+
+Fixes applied:
+
+- Frontend normalized `jobFilter === "all"` to `""`
+- Frontend normalized `statusFilter === "all"` to `""`
+- Backend controller validates `job_position_id`
+- Backend returns `400` for invalid non-numeric IDs
+- Backend model added regex SQL guard before casting to integer
+- Tested:
+  - no filters
+  - `job_position_id=all`
+  - valid job position
+  - invalid job position
+  - `status=all`
+
+Status: **Complete**
+
+---
+
+## 6. Phase 1B Regression Testing
+
+Done:
+
+Tested affected Phase 1B pages for similar API/filter errors:
+
+- Applicants
+- Attendance
+- HR Forms
+- HR Form Builder
+- KPI Templates
+- KPI Evaluation
+- Onboarding
+- Branches
+
+Result:
+
+- No more integer-casting filter errors found
+- TypeScript passed
+
+Status: **Complete**
+
+---
+
+## 7. Phase 1C — UI Cleanup
+
+Done:
+
+- Added Search icon wrappers to:
+  - `HrFormsPage`
+  - `OnboardingPage`
+
+- Standardized icon-only buttons from `size="sm"` to `size="icon-sm"` in:
+  - `KpiTemplatesPage`
+  - `KpiEvaluationPage`
+  - `OnboardingPage`
+
+- Replaced raw pagination `<select>` with shadcn `<Select>` in:
+  - `KpiEvaluationPage`
+  - `OnboardingPage`
+
+- Verified Phase 1C
+- Fixed `KpiEvaluationPage` Input import casing
+- Ran TypeScript check
+
+Status: **Complete**
+
+---
+
+## 8. Full Input Import Casing Fix
+
+Done:
+
+Fixed all remaining lowercase Input imports:
+
+- `EvaluationHistoryPage.tsx`
+- `EmployeeEvaluationPage.tsx`
+- `EmployeeRotation.tsx`
+- `ShiftManagement.tsx`
+- `ProfilePage.tsx`
+- `ReportFilters.tsx`
+
+Changed:
+
+```ts
+import { Input } from "@/components/ui/input";
+```
+
+to:
+
+```ts
+import { Input } from "@/components/ui/Input";
+```
+
+Status: **Complete**
+
+---
+
+## 9. Phase 1D.1 — Route Titles Cleanup
+
+Done:
+
+Updated:
+
+- `Frontend/src/components/layout/AppLayout.tsx`
+
+Added missing titles for modules like:
+
+- Profile
+- HR Policies
+- Branches
+- Anomalies
+- Benefits
+- Reports
+- Recruitment routes
+- KPI routes
+- My Performance routes
+- HR Forms routes
+- My Forms
+- User Permissions
+
+Added dynamic title handling for:
+
+- Payroll Details
+- Applicant Details
+- New Applicant
+- Form Builder
+- Form Submission
+- Fill Form
+
+Status: **Complete**
+
+---
+
+## 10. Phase 1D.2 — Badge / Status Audit
+
+Done:
+
+Audited badge/status usage across frontend.
+
+Findings:
+
+- Around 200+ badge usages
+- Around 25+ duplicated badge helpers
+- No shared badge utility existed
+- Some pages missing dark mode badge styles
+- Some statuses use inconsistent colors
+
+Status: **Complete**
+
+---
+
+## 11. Phase 1D.3 — Shared Badge Utility
+
+Done:
+
+Created:
+
+```txt
+Frontend/src/utils/statusBadge.ts
+```
+
+Added exports:
+
+- `StatusBadgeTone`
+- `getStatusBadgeClass`
+- `getStatusTone`
+- `getStatusBadgeClassByStatus`
+- `formatStatusLabel`
+
+Added literal Tailwind class strings only.
+
+Added warning comments for context-sensitive modules:
+
+- Attendance
+- Payroll
+- Recruitment
+- Device sync
+- Anomalies
+- HR Policies
+- Legal/docs badges
+
+Status: **Complete**
+
+---
+
+## 12. Phase 1D.4 — Low-Risk Badge Migration
+
+Done:
+
+Applied shared badge utility to low-risk modules:
+
+- `BranchesPage`
+- `JobPositionsPage`
+- `DeviceTable`
+- HR Forms pages:
+  - `HrFormsPage`
+  - `HrFormAssignmentsPage`
+  - `HrFormSubmissionsPage`
+  - `HrFormSubmissionViewPage`
+  - `MyFormsPage`
+
+Status: **Complete**
+
+---
+
+## 13. Phase 1D.5 — Medium-Risk Badge Migration
+
+Done:
+
+Applied shared badge utility to medium-risk modules:
+
+KPI / Performance:
+
+- `EmployeeEvaluationPage`
+- `EvaluationHistoryPage`
+- `SelfEvaluationPage`
+- `KpiEvaluationPage`
+- `MyKpiResultsPage`
+- `KpiTemplatesPage`
+
+Employees:
+
+- `EmployeeTable`
+- `BulkImportDialog`
+
+Profile:
+
+- `ProfilePage`
+
+Also improved dark mode for KPI badges.
+
+Status: **Complete**
+
+---
+
+## 14. Phase 1D.6 — High-Risk Badge Audit
+
+Done:
+
+Audited but did **not implement** high-risk modules:
+
+- Attendance
+- Payroll
+- Recruitment
+- Overtime
+- Man Hours
+- Anomalies
+- Device Integration sync logs
+
+Result:
+
+- Safe subsets identified
+- Risky badges identified
+- Modules to skip identified
+- Implementation order recommended
+
+Status: **Audit Complete, Implementation Not Done**
+
+---
+
+# Not Done Yet
+
+## 1. Phase 1D.6A — Overtime + Man Hours Safe Badge Migration
+
+Not done.
+
+Recommended first implementation:
+
+- `OvertimeTable.tsx`
+- `ManHourReportTable.tsx`
+
+Safe statuses:
+
+- `APPROVED` → success
+- `REJECTED` → danger
+- `PENDING` / `SUBMITTED` → warning
+
+Do not touch yet:
+
+- `OvertimeDrawer`
+- `ManHourReportDrawer`
+
+Status: **Pending**
+
+---
+
+## 2. Phase 1D.6B — Payroll Safe Badge Migration
+
+Not done.
+
+Possible safe files:
+
+- `PayrollTable.tsx`
+- `FinalPayTable.tsx`
+
+Safe statuses:
+
+- `PAID`
+- `Processed`
+- `RESIGNED`
+- `TERMINATED`
+
+Be careful with:
+
+- `UNPAID`
+- `Pending`
+
+Status: **Pending**
+
+---
+
+## 3. Phase 1D.6C — Device Integration Safe Subset
+
+Not done.
+
+Safe candidates:
+
+- `PROCESSED`
+- Mapping Active
+- Mapping Inactive
+
+Do not touch yet:
+
+- `FAILED`
+- `DUPLICATE`
+- `PENDING`
+- Device sync log special badges
+
+Status: **Pending**
+
+---
+
+## 4. Phase 1D.6D — Attendance Safe Subset
+
+Not done.
+
+Possible safe statuses:
+
+- `PRESENT`
+- `ABSENT`
+- `APPROVED`
+- `REJECTED`
+- default fallback
+
+Do not touch yet:
+
+- `LATE`
+- `PENDING`
+- `LEAVE`
+- source badges like WEB / MANUAL / BIOMETRIC
+- timezone badges
+
+Status: **Pending**
+
+---
+
+## 5. Phase 1D.6E — Recruitment Safe Subset
+
+Not done.
+
+Possible safe statuses:
+
+- Initial
+- Final Interview
+- Completed
+- Fail
+- Requirement Completed
+- Requirement Rejected
+- Recommendation Passed / Failed / For Review
+- Interview Completed / Scheduled / Cancelled
+- Onboarding statuses except emerald Completed
+
+Do not touch yet:
+
+- Pending purple
+- Exam Interview indigo
+- Onboarding Completed emerald
+- MyInterviewAssignments spans
+- workflow timeline spans
+
+Status: **Pending**
+
+---
+
+## 6. Skip / Leave As-Is For Now
+
+Not done and should **not be touched yet**:
+
+- `AnomalyPage`
+- `MyInterviewAssignmentsPage`
+- `OvertimeDrawer`
+- `ManHourReportDrawer`
+- HR Policy category badges
+- Legal pages
+- Docs pages
+- Recruitment purple / indigo badges
+- Onboarding emerald Completed badge
+- Attendance LEAVE border badge
+- Device sync special statuses
+
+Status: **Skip for now**
+
+---
+
+## 7. Phase 1D.7 — Final Visual Regression Test
+
+Not done.
+
+Need to test:
+
+- Light mode
+- Dark mode
+- Badge colors
+- Table layouts
+- Dialogs/drawers
+- No console errors
+- No API 500 errors
+- TypeScript check
+
+Status: **Pending**
+
+---
+
+## 8. Phase 1E — Pagination Standardization
+
+Not done.
+
+Known remaining raw pagination selects:
+
+- `NotificationsPage`
+- `LeaveApprovers`
+
+Also still not done:
+
+- Shared pagination component
+- Shared DataTable component
+- Full pagination cleanup across all modules
+
+Status: **Pending / Optional**
+
+---
+
+# Next Recommended Step
+
+Do this next:
+
+**Phase 1D.6A only — apply shared badge utility to OvertimeTable and ManHourReportTable.**
+
+Do not jump to Attendance, Payroll, or Recruitment yet.

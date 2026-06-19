@@ -13,6 +13,7 @@ import EmployeeDrawer from "./EmployeeDrawer";
 import BulkImportDialog from "./BulkImportDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import EmptyState from "@/components/shared/EmptyState";
 
 type Employee = {
@@ -118,7 +119,7 @@ const EmployeeTable = ({
         return (
           <Badge
             variant="default"
-            className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
+            className={getStatusBadgeClass("success")}
           >
             ACTIVE
           </Badge>
@@ -127,7 +128,7 @@ const EmployeeTable = ({
         return (
           <Badge
             variant="destructive"
-            className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
+            className={getStatusBadgeClass("danger")}
           >
             RESIGNED
           </Badge>
@@ -136,7 +137,7 @@ const EmployeeTable = ({
         return (
           <Badge
             variant="secondary"
-            className="bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400"
+            className={getStatusBadgeClass("neutral")}
           >
             TERMINATED
           </Badge>
@@ -145,7 +146,7 @@ const EmployeeTable = ({
         return (
           <Badge
             variant="secondary"
-            className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+            className={getStatusBadgeClass("warning")}
           >
             {status}
           </Badge>
@@ -217,10 +218,10 @@ const EmployeeTable = ({
                         variant="outline"
                         className={
                           item.employment_status === "REGULAR"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                            ? getStatusBadgeClass("success")
                             : item.employment_status === "PROBATIONARY"
-                              ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
-                              : ""
+                              ? getStatusBadgeClass("warning")
+                              : getStatusBadgeClass("neutral")
                         }
                       >
                         {item.employment_status || "REGULAR"}

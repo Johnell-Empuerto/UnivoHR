@@ -23,7 +23,7 @@ import {
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
 import { formatDateShort } from "@/utils/formatDate";
-import { Users, Plus, ChevronLeft, ChevronRight, Eye, Trash2 } from "lucide-react";
+import { Users, Plus, ChevronLeft, ChevronRight, Eye, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface Applicant {
@@ -76,6 +76,8 @@ const ApplicantsPage = () => {
   const [jobPositions, setJobPositions] = useState<JobPosition[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<Applicant | null>(null);
 
+  const activeFilterCount = [search, statusFilter, jobFilter].filter(Boolean).length;
+
   const pageSizeNum = Number(pageSize);
   const totalPages = Math.ceil(total / pageSizeNum);
   const start = (page - 1) * pageSizeNum + 1;
@@ -111,7 +113,9 @@ const ApplicantsPage = () => {
   const fetchApplicants = async () => {
     try {
       setLoading(true);
-      const result = await getApplicants(page, pageSizeNum, search, statusFilter, jobFilter);
+      const normalizedStatus = statusFilter === "all" ? "" : statusFilter;
+      const normalizedJob = jobFilter === "all" ? "" : jobFilter;
+      const result = await getApplicants(page, pageSizeNum, search, normalizedStatus, normalizedJob);
       setApplicants(result.data);
       setTotal(result.pagination.total);
     } catch (err: any) {
@@ -139,6 +143,13 @@ const ApplicantsPage = () => {
       toast.error(err?.response?.data?.message || err.message || "Delete failed");
       setDeleteTarget(null);
     }
+  };
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setStatusFilter("");
+    setJobFilter("");
+    setPage(1);
   };
 
   return (
@@ -187,6 +198,12 @@ const ApplicantsPage = () => {
                 ))}
               </SelectContent>
             </Select>
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" onClick={handleClearFilters}>
+                <X className="h-4 w-4 mr-2" />
+                Clear Filters
+              </Button>
+            )}
           </div>
           <Button onClick={() => navigate("/recruitment/applicants/new")} className="flex items-center gap-2">
             <Plus className="h-4 w-4" /> Add Applicant

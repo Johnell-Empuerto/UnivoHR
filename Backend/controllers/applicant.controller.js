@@ -4,7 +4,24 @@ const audit = require("../services/audit.service");
 
 const getAll = async (req, res) => {
   try {
-    const { page, limit, search, status, job_position_id } = req.query;
+    let { page, limit, search, status, job_position_id } = req.query;
+
+    // Normalize status: treat falsy or "all" as no filter
+    if (!status || status === "all" || status === "null") {
+      status = "";
+    }
+
+    // Normalize/validate job_position_id: treat falsy or "all" as no filter
+    if (!job_position_id || job_position_id === "all" || job_position_id === "null") {
+      job_position_id = "";
+    } else {
+      const parsed = parseInt(job_position_id, 10);
+      if (isNaN(parsed) || String(parsed) !== job_position_id.trim()) {
+        return res.status(400).json({ message: "Invalid job_position_id filter." });
+      }
+      job_position_id = String(parsed);
+    }
+
     const result = await applicantService.getAll(page, limit, search, status, job_position_id);
     res.json(result);
   } catch (error) {

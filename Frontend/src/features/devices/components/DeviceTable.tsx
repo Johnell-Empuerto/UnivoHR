@@ -7,6 +7,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import EmptyState from "@/components/shared/EmptyState";
@@ -85,7 +86,7 @@ const DeviceTable = ({
         return (
           <Badge
             variant="default"
-            className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
+            className={getStatusBadgeClass("success")}
           >
             ACTIVE
           </Badge>
@@ -94,7 +95,7 @@ const DeviceTable = ({
         return (
           <Badge
             variant="secondary"
-            className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+            className={getStatusBadgeClass("warning")}
           >
             OFFLINE
           </Badge>
@@ -103,7 +104,7 @@ const DeviceTable = ({
         return (
           <Badge
             variant="secondary"
-            className="bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400"
+            className={getStatusBadgeClass("neutral")}
           >
             INACTIVE
           </Badge>

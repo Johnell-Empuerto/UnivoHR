@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { getKpiHistory, getKpiEvaluationById, getFriendlyKpiError } from "@/services/kpiService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,6 +13,7 @@ import { History, Eye, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { formatDateShort } from "@/utils/formatDate";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 
 const EvaluationHistoryPage = () => {
   const { user, hasPermission } = useAuth();
@@ -79,8 +80,8 @@ const EvaluationHistoryPage = () => {
   };
 
   const statusBadge = (s: string) => {
-    const map: Record<string, string> = { Approved: "bg-green-100 text-green-800", Completed: "bg-green-100 text-green-800", Submitted: "bg-amber-100 text-amber-800" };
-    return <Badge className={map[s] || ""}>{s}</Badge>;
+    const map: Record<string, string> = { Approved: getStatusBadgeClass("success"), Completed: getStatusBadgeClass("success"), Submitted: getStatusBadgeClass("warning") };
+    return <Badge className={map[s] || getStatusBadgeClass("neutral")}>{s}</Badge>;
   };
 
   return (

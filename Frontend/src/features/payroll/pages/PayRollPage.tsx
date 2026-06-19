@@ -58,7 +58,6 @@ import FinalPayTable from "../components/FinalPayTable";
 import { getEmployeesForFinalPay } from "@/services/finalPayService";
 
 const PayRollPage = () => {
-  console.log("PayRollPage component RENDERED");
 
   const navigate = useNavigate();
   const { hasPermission } = useAuth();

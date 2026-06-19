@@ -4,6 +4,7 @@ import { getMyHrAssignments } from "@/services/hrFormService";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Button } from "@/components/ui/button";
 import { ClipboardList, Eye, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import Loader from "@/components/shared/Loader";
@@ -13,9 +14,9 @@ import { toast } from "sonner";
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
-    Pending: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
-    Submitted: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-    Reviewed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    Pending: getStatusBadgeClass("warning"),
+    Submitted: getStatusBadgeClass("info"),
+    Reviewed: getStatusBadgeClass("success"),
   };
   return <Badge className={map[s] || ""}>{s}</Badge>;
 };
