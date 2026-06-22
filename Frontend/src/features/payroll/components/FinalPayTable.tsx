@@ -10,14 +10,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Button } from "@/components/ui/button";
+import { TablePagination } from "@/components/shared/TablePagination";
 import {
   Eye,
   DollarSign,
   Loader2,
   CheckCircle,
   Download,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import {
   Dialog,
@@ -116,9 +115,7 @@ const FinalPayTable = ({
   const [previewData, setPreviewData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [pendingRowsPerPage, setPendingRowsPerPage] = useState(
-    pendingPagination?.limit || 10,
-  );
+
 
   // History state
   const [historyData, setHistoryData] = useState<FinalPayRecord[]>([]);
@@ -273,106 +270,6 @@ const FinalPayTable = ({
     return date ? formatDate(date) : "—";
   };
 
-  // Pending table pagination helpers
-  const pendingStart = pendingPagination
-    ? (pendingPagination.page - 1) * pendingPagination.limit + 1
-    : 1;
-  const pendingEnd = pendingPagination
-    ? Math.min(
-        pendingPagination.page * pendingPagination.limit,
-        pendingPagination.total,
-      )
-    : data.length;
-
-  const goToPendingPage = (page: number) => {
-    if (page >= 1 && page <= (pendingPagination?.totalPages || 1)) {
-      onPendingPageChange?.(page);
-    }
-  };
-
-  const handlePendingRowsPerPageChange = (
-    e: React.ChangeEvent<HTMLSelectElement>,
-  ) => {
-    const newLimit = Number(e.target.value);
-    setPendingRowsPerPage(newLimit);
-    onPendingLimitChange?.(newLimit);
-  };
-
-  const getPendingPageNumbers = () => {
-    const totalPages = pendingPagination?.totalPages || 1;
-    const currentPage = pendingPagination?.page || 1;
-    const pageNumbers: (number | string)[] = [];
-    const maxPagesToShow = 5;
-
-    if (totalPages <= maxPagesToShow) {
-      for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
-    } else {
-      if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) pageNumbers.push(i);
-        pageNumbers.push("...");
-        pageNumbers.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
-        pageNumbers.push(1);
-        pageNumbers.push("...");
-        for (let i = totalPages - 3; i <= totalPages; i++) pageNumbers.push(i);
-      } else {
-        pageNumbers.push(1);
-        pageNumbers.push("...");
-        for (let i = currentPage - 1; i <= currentPage + 1; i++)
-          pageNumbers.push(i);
-        pageNumbers.push("...");
-        pageNumbers.push(totalPages);
-      }
-    }
-    return pageNumbers;
-  };
-
-  // History pagination helpers
-  const historyStart = (historyCurrentPage - 1) * historyRowsPerPage + 1;
-  const historyEnd = Math.min(
-    historyCurrentPage * historyRowsPerPage,
-    historyTotalRecords,
-  );
-
-  const goToHistoryPage = (page: number) => {
-    setHistoryCurrentPage(Math.max(1, Math.min(page, historyTotalPages)));
-  };
-
-  const handleHistoryRowsPerPageChange = (
-    e: React.ChangeEvent<HTMLSelectElement>,
-  ) => {
-    setHistoryRowsPerPage(Number(e.target.value));
-    setHistoryCurrentPage(1);
-  };
-
-  const getHistoryPageNumbers = () => {
-    const pageNumbers: (number | string)[] = [];
-    const maxPagesToShow = 5;
-
-    if (historyTotalPages <= maxPagesToShow) {
-      for (let i = 1; i <= historyTotalPages; i++) pageNumbers.push(i);
-    } else {
-      if (historyCurrentPage <= 3) {
-        for (let i = 1; i <= 4; i++) pageNumbers.push(i);
-        pageNumbers.push("...");
-        pageNumbers.push(historyTotalPages);
-      } else if (historyCurrentPage >= historyTotalPages - 2) {
-        pageNumbers.push(1);
-        pageNumbers.push("...");
-        for (let i = historyTotalPages - 3; i <= historyTotalPages; i++)
-          pageNumbers.push(i);
-      } else {
-        pageNumbers.push(1);
-        pageNumbers.push("...");
-        for (let i = historyCurrentPage - 1; i <= historyCurrentPage + 1; i++)
-          pageNumbers.push(i);
-        pageNumbers.push("...");
-        pageNumbers.push(historyTotalPages);
-      }
-    }
-    return pageNumbers;
-  };
-
   return (
     <div className="space-y-8">
       {/* PENDING FINAL PAY TABLE */}
@@ -453,71 +350,15 @@ const FinalPayTable = ({
           </Table>
         </div>
 
-        {/* Pending Table Pagination */}
         {pendingPagination && pendingPagination.total > 0 && (
-          <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                Rows per page:
-              </span>
-              <select
-                value={pendingRowsPerPage}
-                onChange={handlePendingRowsPerPageChange}
-                className="border rounded px-2 py-1 text-sm bg-background"
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
-            </div>
-
-            <div className="text-sm text-muted-foreground">
-              Showing {pendingStart} to {pendingEnd} of{" "}
-              {pendingPagination.total} entries
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToPendingPage(pendingPagination.page - 1)}
-                disabled={pendingPagination.page === 1}
-                className="h-8 w-8 p-0"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-
-              {getPendingPageNumbers().map((page, index) => (
-                <Button
-                  key={index}
-                  variant={
-                    pendingPagination.page === page ? "default" : "outline"
-                  }
-                  size="sm"
-                  onClick={() =>
-                    typeof page === "number" && goToPendingPage(page)
-                  }
-                  disabled={page === "..."}
-                  className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
-                >
-                  {page}
-                </Button>
-              ))}
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToPendingPage(pendingPagination.page + 1)}
-                disabled={
-                  pendingPagination.page === pendingPagination.totalPages
-                }
-                className="h-8 w-8 p-0"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          <TablePagination
+            page={pendingPagination.page}
+            totalPages={pendingPagination.totalPages}
+            totalItems={pendingPagination.total}
+            pageSize={pendingPagination.limit}
+            onPageChange={(p) => onPendingPageChange?.(p)}
+            onPageSizeChange={(size) => onPendingLimitChange?.(size)}
+          />
         )}
       </div>
 
@@ -650,68 +491,14 @@ const FinalPayTable = ({
           </Table>
         </div>
 
-        {/* History Pagination */}
-        {historyTotalRecords > 0 && (
-          <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                Rows per page:
-              </span>
-              <select
-                value={historyRowsPerPage}
-                onChange={handleHistoryRowsPerPageChange}
-                className="border rounded px-2 py-1 text-sm bg-background"
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
-            </div>
-
-            <div className="text-sm text-muted-foreground">
-              Showing {historyStart} to {historyEnd} of {historyTotalRecords}{" "}
-              entries
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToHistoryPage(historyCurrentPage - 1)}
-                disabled={historyCurrentPage === 1}
-                className="h-8 w-8 p-0"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-
-              {getHistoryPageNumbers().map((page, index) => (
-                <Button
-                  key={index}
-                  variant={historyCurrentPage === page ? "default" : "outline"}
-                  size="sm"
-                  onClick={() =>
-                    typeof page === "number" && goToHistoryPage(page)
-                  }
-                  disabled={page === "..."}
-                  className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
-                >
-                  {page}
-                </Button>
-              ))}
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToHistoryPage(historyCurrentPage + 1)}
-                disabled={historyCurrentPage === historyTotalPages}
-                className="h-8 w-8 p-0"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
+        <TablePagination
+          page={historyCurrentPage}
+          totalPages={historyTotalPages}
+          totalItems={historyTotalRecords}
+          pageSize={historyRowsPerPage}
+          onPageChange={setHistoryCurrentPage}
+          onPageSizeChange={(size) => { setHistoryRowsPerPage(size); setHistoryCurrentPage(1); }}
+        />
       </div>
 
       {/* Preview Dialog */}
