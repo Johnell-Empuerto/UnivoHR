@@ -14,8 +14,6 @@ import {
   Plus,
   CheckCircle,
   XCircle,
-  ChevronLeft,
-  ChevronRight,
   Search,
   RefreshCw,
   Loader2,
@@ -34,6 +32,7 @@ import {
 import { formatDate } from "@/utils/formatDate";
 import { Badge } from "@/components/ui/badge";
 import EmptyState from "@/components/shared/EmptyState";
+import { TablePagination } from "@/components/shared/TablePagination";
 import { getEnabledLeaveTypes } from "@/services/leaveService";
 import { getTypeColor, getTypeLabel, normalizeCode } from "../utils/leaveTypeUtils";
 
@@ -246,8 +245,6 @@ const LeaveTable = ({
   const [selectedLeave, setSelectedLeave] = useState<Leave | null>(null);
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"view" | "edit" | "create">("view");
-  const [rowsPerPage, setRowsPerPage] = useState(pagination?.limit || 10);
-
   useEffect(() => {
     setLeaves(data);
   }, [data]);
@@ -260,46 +257,6 @@ const LeaveTable = ({
   const handleStatusUpdate = (id: number, status: string) => {
     onUpdate(id, status);
   };
-
-  const goToPage = (page: number) => {
-    if (page >= 1 && page <= (pagination?.totalPages || 1)) {
-      onPageChange?.(page);
-    }
-  };
-
-  const getPageNumbers = () => {
-    const totalPages = pagination?.totalPages || 1;
-    const currentPage = pagination?.page || 1;
-    const pageNumbers: (number | string)[] = [];
-    const maxPagesToShow = 5;
-
-    if (totalPages <= maxPagesToShow) {
-      for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
-    } else {
-      if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) pageNumbers.push(i);
-        pageNumbers.push("...");
-        pageNumbers.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
-        pageNumbers.push(1);
-        pageNumbers.push("...");
-        for (let i = totalPages - 3; i <= totalPages; i++) pageNumbers.push(i);
-      } else {
-        pageNumbers.push(1);
-        pageNumbers.push("...");
-        for (let i = currentPage - 1; i <= currentPage + 1; i++)
-          pageNumbers.push(i);
-        pageNumbers.push("...");
-        pageNumbers.push(totalPages);
-      }
-    }
-    return pageNumbers;
-  };
-
-  const start = pagination ? (pagination.page - 1) * pagination.limit + 1 : 1;
-  const end = pagination
-    ? Math.min(pagination.page * pagination.limit, pagination.total)
-    : data.length;
 
   return (
     <Card>
@@ -473,75 +430,15 @@ const LeaveTable = ({
               </Table>
             </div>
 
-            {/* Pagination Controls */}
             {pagination && pagination.total > 0 && (
-              <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
-                {/* Rows per page */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    Rows per page:
-                  </span>
-                  <Select
-                    value={rowsPerPage.toString()}
-                    onValueChange={(val) => {
-                      const newLimit = Number(val);
-                      setRowsPerPage(newLimit);
-                      onLimitChange?.(newLimit);
-                    }}
-                  >
-                    <SelectTrigger className="w-20 h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="5">5</SelectItem>
-                      <SelectItem value="10">10</SelectItem>
-                      <SelectItem value="25">25</SelectItem>
-                      <SelectItem value="50">50</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Showing X to Y of Z */}
-                <div className="text-sm text-muted-foreground">
-                  Showing {start} to {end} of {pagination.total} entries
-                </div>
-
-                {/* Pagination Buttons */}
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => goToPage(pagination.page - 1)}
-                    disabled={pagination.page === 1}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-
-                  {getPageNumbers().map((page, index) => (
-                    <Button
-                      key={index}
-                      variant={pagination.page === page ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => typeof page === "number" && goToPage(page)}
-                      disabled={page === "..."}
-                      className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
-                    >
-                      {page}
-                    </Button>
-                  ))}
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => goToPage(pagination.page + 1)}
-                    disabled={pagination.page === pagination.totalPages}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+              <TablePagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.total}
+                pageSize={pagination.limit}
+                onPageChange={(p) => onPageChange?.(p)}
+                onPageSizeChange={(size) => { onLimitChange?.(size); onPageChange?.(1); }}
+              />
             )}
           </>
         )}

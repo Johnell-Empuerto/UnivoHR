@@ -7,7 +7,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, Pencil, Plus, ChevronLeft, ChevronRight, Upload } from "lucide-react";
+import { Eye, Pencil, Plus, Upload } from "lucide-react";
 import { useState } from "react";
 import EmployeeDrawer from "./EmployeeDrawer";
 import BulkImportDialog from "./BulkImportDialog";
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getStatusBadgeClass } from "@/utils/statusBadge";
 import EmptyState from "@/components/shared/EmptyState";
+import { TablePagination } from "@/components/shared/TablePagination";
 
 type Employee = {
   id: number;
@@ -71,46 +72,6 @@ const EmployeeTable = ({
   const handleDrawerClose = () => {
     setOpen(false);
     setSelectedEmployee(null);
-  };
-
-  const start = (currentPage - 1) * rowsPerPage + 1;
-  const end = Math.min(currentPage * rowsPerPage, totalRecords);
-
-  const goToPage = (page: number) => {
-    onPageChange(Math.max(1, Math.min(page, totalPages)));
-  };
-
-  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newRows = Number(e.target.value);
-    onRowsPerPageChange(newRows);
-    onPageChange(1);
-  };
-
-  const getPageNumbers = () => {
-    const pageNumbers: (number | string)[] = [];
-    const maxPagesToShow = 5;
-
-    if (totalPages <= maxPagesToShow) {
-      for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
-    } else {
-      if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) pageNumbers.push(i);
-        pageNumbers.push("...");
-        pageNumbers.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
-        pageNumbers.push(1);
-        pageNumbers.push("...");
-        for (let i = totalPages - 3; i <= totalPages; i++) pageNumbers.push(i);
-      } else {
-        pageNumbers.push(1);
-        pageNumbers.push("...");
-        for (let i = currentPage - 1; i <= currentPage + 1; i++)
-          pageNumbers.push(i);
-        pageNumbers.push("...");
-        pageNumbers.push(totalPages);
-      }
-    }
-    return pageNumbers;
   };
 
   const getStatusBadge = (status: string) => {
@@ -275,65 +236,14 @@ const EmployeeTable = ({
           </Table>
         </div>
 
-        {/* Pagination Controls */}
-        {totalRecords > 0 && (
-          <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                Rows per page:
-              </span>
-              <select
-                value={rowsPerPage}
-                onChange={handleRowsPerPageChange}
-                className="border rounded px-2 py-1 text-sm bg-background"
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
-            </div>
-
-            <div className="text-sm text-muted-foreground">
-              Showing {start} to {end} of {totalRecords} entries
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="h-8 w-8 p-0"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-
-              {getPageNumbers().map((page, index) => (
-                <Button
-                  key={index}
-                  variant={currentPage === page ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => typeof page === "number" && goToPage(page)}
-                  disabled={page === "..."}
-                  className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
-                >
-                  {page}
-                </Button>
-              ))}
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="h-8 w-8 p-0"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
+        <TablePagination
+          page={currentPage}
+          totalPages={totalPages}
+          totalItems={totalRecords}
+          pageSize={rowsPerPage}
+          onPageChange={onPageChange}
+          onPageSizeChange={(size) => { onRowsPerPageChange(size); onPageChange(1); }}
+        />
       </CardContent>
 
       <EmployeeDrawer
