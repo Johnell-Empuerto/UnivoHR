@@ -189,9 +189,9 @@ const AnomalyPage = () => {
             variant="outline"
             onClick={handleRunScan}
             disabled={scanning}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground disabled:text-muted-foreground disabled:opacity-50 disabled:pointer-events-none"
           >
-            <Scan className={`h-4 w-4 ${scanning ? "animate-spin" : ""}`} />
+            <Scan className={`h-4 w-4 text-current ${scanning ? "animate-spin" : ""}`} />
             {scanning ? "Scanning..." : "Run Daily Scan"}
           </Button>
         )}
