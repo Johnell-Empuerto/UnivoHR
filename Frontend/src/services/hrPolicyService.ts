@@ -5,6 +5,19 @@ export const getHrPolicies = async () => {
   return response.data;
 };
 
+export const getHrPoliciesPaginated = async (
+  page: number,
+  pageSize: number,
+  search: string,
+  category: string,
+  status: string,
+) => {
+  const response = await api.get("/hr-policies", {
+    params: { page, limit: pageSize, search, category, status },
+  });
+  return response.data;
+};
+
 export const getHrPolicyById = async (id: number) => {
   const response = await api.get(`/hr-policies/${id}`);
   return response.data;

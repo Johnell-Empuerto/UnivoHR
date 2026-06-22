@@ -4,6 +4,17 @@ const { hasPermission } = require("../services/permission.service");
 
 const getAll = async (req, res) => {
   try {
+    const { page, limit, search, category, status } = req.query;
+    if (page) {
+      const result = await hrPolicyService.getAllPaginated(req.user, {
+        page: Math.max(1, parseInt(page) || 1),
+        limit: Math.min(100, Math.max(1, parseInt(limit) || 10)),
+        search: search || "",
+        category: category || "",
+        status: status || "all",
+      });
+      return res.json(result);
+    }
     const policies = await hrPolicyService.getAll(req.user);
     res.json(policies);
   } catch (error) {

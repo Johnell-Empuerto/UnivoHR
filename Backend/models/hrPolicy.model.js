@@ -13,6 +13,56 @@ const getAll = async ({ includeInactive } = {}) => {
   return result.rows;
 };
 
+const getAllPaginated = async ({ page = 1, limit = 10, search = "", category = "", status = "all", includeInactive = false } = {}) => {
+  const offset = (page - 1) * limit;
+  const conditions = [];
+  const params = [];
+  let idx = 1;
+
+  if (!includeInactive) {
+    conditions.push(`is_active = true`);
+  } else if (status === "active") {
+    conditions.push(`is_active = true`);
+  } else if (status === "inactive") {
+    conditions.push(`is_active = false`);
+  }
+
+  if (search) {
+    conditions.push(`(title ILIKE $${idx} OR content::text ILIKE $${idx})`);
+    params.push(`%${search}%`);
+    idx++;
+  }
+
+  if (category) {
+    conditions.push(`category = $${idx}`);
+    params.push(category);
+    idx++;
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const countResult = await pool.query(
+    `SELECT COUNT(*) FROM hr_policy_documents ${where}`,
+    params,
+  );
+  const total = parseInt(countResult.rows[0].count);
+
+  const dataResult = await pool.query(
+    `SELECT * FROM hr_policy_documents ${where} ORDER BY is_active DESC, updated_at DESC LIMIT $${idx} OFFSET $${idx + 1}`,
+    [...params, limit, offset],
+  );
+
+  return {
+    data: dataResult.rows,
+    pagination: {
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(total / limit) || 1,
+    },
+  };
+};
+
 const getById = async (id) => {
   const result = await pool.query(
     `SELECT * FROM hr_policy_documents WHERE id = $1`,
@@ -139,6 +189,7 @@ const search = async (question, category) => {
 
 module.exports = {
   getAll,
+  getAllPaginated,
   getById,
   getByCategory,
   create,

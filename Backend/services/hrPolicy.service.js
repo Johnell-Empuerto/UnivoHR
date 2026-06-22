@@ -121,6 +121,18 @@ const getAll = async (user) => {
   return await hrPolicyModel.getAll({ includeInactive: false });
 };
 
+const getAllPaginated = async (user, { page, limit, search, category, status } = {}) => {
+  const canManage = await hasPermission(user, "hr_policies.manage");
+  return await hrPolicyModel.getAllPaginated({
+    page,
+    limit,
+    search,
+    category,
+    status,
+    includeInactive: canManage,
+  });
+};
+
 const getById = async (id) => {
   const policy = await hrPolicyModel.getById(id);
   if (!policy) throw new Error("Policy not found");
@@ -302,6 +314,7 @@ const answerPolicyQuestion = async (question, category) => {
 
 module.exports = {
   getAll,
+  getAllPaginated,
   getById,
   create,
   update,

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   getHrPolicies,
+  getHrPoliciesPaginated,
   createHrPolicy,
   updateHrPolicy,
   deleteHrPolicy,
@@ -50,6 +51,7 @@ import { RichTextEditor } from "@/features/hr-policies/components/RichTextEditor
 import { PolicyViewer } from "@/features/hr-policies/components/PolicyViewer";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
+import { TablePagination } from "@/components/shared/TablePagination";
 
 interface HrPolicy {
   id: number;
@@ -94,6 +96,9 @@ const HRPolicies = () => {
 
   const [policies, setPolicies] = useState<HrPolicy[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState("10");
+  const [total, setTotal] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -105,16 +110,41 @@ const HRPolicies = () => {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("_all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [nonAdminPage, setNonAdminPage] = useState(1);
+  const nonAdminPageSize = 10;
 
   useEffect(() => {
-    fetchPolicies();
-  }, []);
+    if (isAdmin) {
+      fetchPaginatedPolicies();
+    } else {
+      fetchAllPolicies();
+    }
+  }, [isAdmin, page, pageSize, search, categoryFilter, statusFilter]);
 
-  const fetchPolicies = async () => {
+  const fetchAllPolicies = async () => {
     try {
       setLoading(true);
       const data = await getHrPolicies();
       setPolicies(data);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load policies");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchPaginatedPolicies = async () => {
+    try {
+      setLoading(true);
+      const result = await getHrPoliciesPaginated(
+        page,
+        Number(pageSize),
+        search,
+        categoryFilter === "_all" ? "" : categoryFilter,
+        statusFilter,
+      );
+      setPolicies(result.data);
+      setTotal(result.pagination.total);
     } catch (err: any) {
       toast.error(err.message || "Failed to load policies");
     } finally {
@@ -177,7 +207,11 @@ const HRPolicies = () => {
         toast.success("Policy created");
       }
       setDialogOpen(false);
-      fetchPolicies();
+      if (isAdmin) {
+        setPage(1);
+      } else {
+        fetchAllPolicies();
+      }
     } catch (err: any) {
       toast.error(err.message || "Operation failed");
     } finally {
@@ -187,13 +221,13 @@ const HRPolicies = () => {
 
   const handleToggleActive = async (policy: HrPolicy) => {
     try {
-      const updated = await setHrPolicyStatus(policy.id, !policy.is_active);
-      setPolicies((prev) =>
-        prev.map((p) => (p.id === policy.id ? updated : p)),
-      );
-      toast.success(
-        updated.is_active ? "Policy activated" : "Policy deactivated",
-      );
+      await setHrPolicyStatus(policy.id, !policy.is_active);
+      toast.success(policy.is_active ? "Policy deactivated" : "Policy activated");
+      if (isAdmin) {
+        fetchPaginatedPolicies();
+      } else {
+        fetchAllPolicies();
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to update policy status");
     }
@@ -212,7 +246,11 @@ const HRPolicies = () => {
       toast.success("Policy deleted");
       setDeleteDialogOpen(false);
       setDeleteTarget(null);
-      fetchPolicies();
+      if (isAdmin) {
+        setPage(1);
+      } else {
+        fetchAllPolicies();
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to delete policy");
     } finally {
@@ -222,19 +260,22 @@ const HRPolicies = () => {
 
   const activePolicies = policies.filter((p) => p.is_active);
 
-  const filteredPolicies = (isAdmin ? policies : activePolicies).filter((p) => {
+  useEffect(() => {
+    setNonAdminPage(1);
+  }, [search, categoryFilter]);
+
+  const filteredPolicies = activePolicies.filter((p) => {
     const matchesSearch =
       !search ||
       p.title.toLowerCase().includes(search.toLowerCase()) ||
       p.content.toLowerCase().includes(search.toLowerCase());
     const matchesCategory =
       categoryFilter === "_all" || p.category === categoryFilter;
-    const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === "active" && p.is_active) ||
-      (statusFilter === "inactive" && !p.is_active);
-    return matchesSearch && matchesCategory && matchesStatus;
+    return matchesSearch && matchesCategory;
   });
+
+  const nonAdminStart = (nonAdminPage - 1) * nonAdminPageSize;
+  const nonAdminPaginatedPolicies = filteredPolicies.slice(nonAdminStart, nonAdminStart + nonAdminPageSize);
 
   if (!isAdmin) {
     return (
@@ -283,11 +324,11 @@ const HRPolicies = () => {
 
         {loading ? (
           <Loader message="Loading policies..." />
-        ) : filteredPolicies.length === 0 ? (
+        ) : nonAdminPaginatedPolicies.length === 0 ? (
           <EmptyState message="No policies found" />
         ) : (
           <div className="grid gap-4">
-            {filteredPolicies.map((policy) => (
+            {nonAdminPaginatedPolicies.map((policy) => (
               <Card
                 key={policy.id}
                 className="shadow-sm hover:shadow-md transition-shadow cursor-pointer"
@@ -330,6 +371,18 @@ const HRPolicies = () => {
               </Card>
             ))}
           </div>
+        )}
+        {!loading && filteredPolicies.length > 0 && (
+          <TablePagination
+            page={nonAdminPage}
+            totalPages={Math.ceil(filteredPolicies.length / nonAdminPageSize)}
+            totalItems={filteredPolicies.length}
+            pageSize={nonAdminPageSize}
+            onPageChange={setNonAdminPage}
+            onPageSizeChange={() => {}}
+            showPageSize={false}
+            itemLabel="policies"
+          />
         )}
 
         <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
@@ -394,14 +447,14 @@ const HRPolicies = () => {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 placeholder="Search policies..."
                 className="pl-8"
               />
             </div>
             <Select
               value={categoryFilter}
-              onValueChange={setCategoryFilter}
+              onValueChange={(v) => { setCategoryFilter(v); setPage(1); }}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="All Categories" />
@@ -417,7 +470,7 @@ const HRPolicies = () => {
             </Select>
             <Select
               value={statusFilter}
-              onValueChange={setStatusFilter}
+              onValueChange={(v) => { setStatusFilter(v); setPage(1); }}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="All Status" />
@@ -432,7 +485,7 @@ const HRPolicies = () => {
 
           {loading ? (
             <Loader message="Loading policies..." />
-          ) : filteredPolicies.length === 0 ? (
+          ) : policies.length === 0 ? (
             <EmptyState message="No policies found" />
           ) : (
             <div className="rounded-md border">
@@ -447,7 +500,7 @@ const HRPolicies = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPolicies.map((policy) => (
+                  {policies.map((policy) => (
                     <TableRow key={policy.id}>
                       <TableCell className="font-medium">
                         {policy.title}
@@ -519,6 +572,14 @@ const HRPolicies = () => {
               </Table>
             </div>
           )}
+          <TablePagination
+            page={page}
+            totalPages={Math.ceil(total / Number(pageSize))}
+            totalItems={total}
+            pageSize={Number(pageSize)}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => { setPageSize(String(size)); setPage(1); }}
+          />
         </CardContent>
       </Card>
 
