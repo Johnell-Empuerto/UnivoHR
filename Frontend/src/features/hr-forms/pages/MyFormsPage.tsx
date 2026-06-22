@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, Eye, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { TablePagination } from "@/components/shared/TablePagination";
+import { ClipboardList, Eye, Loader2 } from "lucide-react";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
 import { formatDateShort } from "@/utils/formatDate";
@@ -28,12 +29,6 @@ const MyFormsPage = () => {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [total, setTotal] = useState(0);
-
-  const totalPages = Math.ceil(total / pageSize);
-  const start = (page - 1) * pageSize + 1;
-  const end = Math.min(page * pageSize, total);
-
-  const goToPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
 
   useEffect(() => {
     const fetch = async () => {
@@ -103,27 +98,15 @@ const MyFormsPage = () => {
             </div>
           )}
 
-          {total > 0 && (
-            <div className="flex items-center justify-between pt-4">
-              <p className="text-sm text-muted-foreground">
-                Showing {start} to {end} of {total} entries
-              </p>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => goToPage(page - 1)}
-                  disabled={page === 1} className="h-8 w-8 p-0">
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <Button key={p} variant={page === p ? "default" : "outline"} size="sm"
-                    onClick={() => goToPage(p)} className="h-8 w-8 p-0">{p}</Button>
-                ))}
-                <Button variant="outline" size="sm" onClick={() => goToPage(page + 1)}
-                  disabled={page === totalPages} className="h-8 w-8 p-0">
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <TablePagination
+            page={page}
+            totalPages={Math.ceil(total / pageSize)}
+            totalItems={total}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={() => {}}
+            showPageSize={false}
+          />
         </CardContent>
       </Card>
     </div>
