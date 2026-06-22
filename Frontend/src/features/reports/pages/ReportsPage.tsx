@@ -25,12 +25,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TablePagination } from "@/components/shared/TablePagination";
 import {
   FileText,
   Search,
   RefreshCw,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import {
   getEmployeeReport,
@@ -102,44 +101,6 @@ const ReportsPage = () => {
 
   const rows = Array.isArray(data) ? data : [];
   const [pageSize, setPageSize] = useState(10);
-
-  const totalPages = pagination.totalPages || 1;
-  const currentPage = pagination.page || 1;
-  const totalRecords = pagination.total || 0;
-  const startRow = (currentPage - 1) * pageSize + 1;
-  const endRow = Math.min(currentPage * pageSize, totalRecords);
-
-  const goToPage = (page: number) =>
-    fetchData(Math.max(1, Math.min(page, totalPages)));
-
-  const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newRows = Number(e.target.value);
-    setPageSize(newRows);
-    fetchData(1);
-  };
-
-  const getPageNumbers = () => {
-    const pages: (number | string)[] = [];
-    const maxPages = 5;
-    if (totalPages <= maxPages) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else if (currentPage <= 3) {
-      for (let i = 1; i <= 4; i++) pages.push(i);
-      pages.push("...");
-      pages.push(totalPages);
-    } else if (currentPage >= totalPages - 2) {
-      pages.push(1);
-      pages.push("...");
-      for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
-    } else {
-      pages.push(1);
-      pages.push("...");
-      for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
-      pages.push("...");
-      pages.push(totalPages);
-    }
-    return pages;
-  };
 
   const getReportType = useCallback(() => {
     if (activeTab === "employees") return reportTypeFilter || "master_list";
@@ -1302,62 +1263,14 @@ const ReportsPage = () => {
                   </div>
                 )}
 
-                {rows.length > 0 && (
-                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-t pt-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        Rows per page:
-                      </span>
-                      <select
-                        value={pageSize}
-                        onChange={handleRowsPerPageChange}
-                        className="border rounded px-2 py-1 text-sm bg-background"
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={25}>25</option>
-                        <option value={50}>50</option>
-                      </select>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Showing {startRow} to {endRow} of {totalRecords} entries
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => goToPage(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="h-8 w-8 p-0"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      {getPageNumbers().map((page, index) => (
-                        <Button
-                          key={index}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() =>
-                            typeof page === "number" && goToPage(page)
-                          }
-                          disabled={page === "..."}
-                          className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
-                        >
-                          {page}
-                        </Button>
-                      ))}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => goToPage(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="h-8 w-8 p-0"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <TablePagination
+                  page={pagination.page || 1}
+                  totalPages={pagination.totalPages || 1}
+                  totalItems={pagination.total || 0}
+                  pageSize={pageSize}
+                  onPageChange={(p) => fetchData(p)}
+                  onPageSizeChange={(size) => { setPageSize(size); fetchData(1); }}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -1434,62 +1347,14 @@ const ReportsPage = () => {
                   <div className="rounded-md border">{renderLeaveTable()}</div>
                 )}
 
-                {rows.length > 0 && (
-                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-t pt-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        Rows per page:
-                      </span>
-                      <select
-                        value={pageSize}
-                        onChange={handleRowsPerPageChange}
-                        className="border rounded px-2 py-1 text-sm bg-background"
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={25}>25</option>
-                        <option value={50}>50</option>
-                      </select>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Showing {startRow} to {endRow} of {totalRecords} entries
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => goToPage(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="h-8 w-8 p-0"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      {getPageNumbers().map((page, index) => (
-                        <Button
-                          key={index}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() =>
-                            typeof page === "number" && goToPage(page)
-                          }
-                          disabled={page === "..."}
-                          className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
-                        >
-                          {page}
-                        </Button>
-                      ))}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => goToPage(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="h-8 w-8 p-0"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <TablePagination
+                  page={pagination.page || 1}
+                  totalPages={pagination.totalPages || 1}
+                  totalItems={pagination.total || 0}
+                  pageSize={pageSize}
+                  onPageChange={(p) => fetchData(p)}
+                  onPageSizeChange={(size) => { setPageSize(size); fetchData(1); }}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -1568,62 +1433,14 @@ const ReportsPage = () => {
                   </div>
                 )}
 
-                {rows.length > 0 && (
-                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-t pt-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        Rows per page:
-                      </span>
-                      <select
-                        value={pageSize}
-                        onChange={handleRowsPerPageChange}
-                        className="border rounded px-2 py-1 text-sm bg-background"
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={25}>25</option>
-                        <option value={50}>50</option>
-                      </select>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Showing {startRow} to {endRow} of {totalRecords} entries
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => goToPage(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="h-8 w-8 p-0"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      {getPageNumbers().map((page, index) => (
-                        <Button
-                          key={index}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() =>
-                            typeof page === "number" && goToPage(page)
-                          }
-                          disabled={page === "..."}
-                          className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
-                        >
-                          {page}
-                        </Button>
-                      ))}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => goToPage(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="h-8 w-8 p-0"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <TablePagination
+                  page={pagination.page || 1}
+                  totalPages={pagination.totalPages || 1}
+                  totalItems={pagination.total || 0}
+                  pageSize={pageSize}
+                  onPageChange={(p) => fetchData(p)}
+                  onPageSizeChange={(size) => { setPageSize(size); fetchData(1); }}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -1703,64 +1520,14 @@ const ReportsPage = () => {
                     </div>
                   )}
 
-                  {rows.length > 0 && (
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-t pt-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">
-                          Rows per page:
-                        </span>
-                        <select
-                          value={pageSize}
-                          onChange={handleRowsPerPageChange}
-                          className="border rounded px-2 py-1 text-sm bg-background"
-                        >
-                          <option value={5}>5</option>
-                          <option value={10}>10</option>
-                          <option value={25}>25</option>
-                          <option value={50}>50</option>
-                        </select>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Showing {startRow} to {endRow} of {totalRecords} entries
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => goToPage(currentPage - 1)}
-                          disabled={currentPage === 1}
-                          className="h-8 w-8 p-0"
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        {getPageNumbers().map((page, index) => (
-                          <Button
-                            key={index}
-                            variant={
-                              currentPage === page ? "default" : "outline"
-                            }
-                            size="sm"
-                            onClick={() =>
-                              typeof page === "number" && goToPage(page)
-                            }
-                            disabled={page === "..."}
-                            className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
-                          >
-                            {page}
-                          </Button>
-                        ))}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => goToPage(currentPage + 1)}
-                          disabled={currentPage === totalPages}
-                          className="h-8 w-8 p-0"
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                  <TablePagination
+                    page={pagination.page || 1}
+                    totalPages={pagination.totalPages || 1}
+                    totalItems={pagination.total || 0}
+                    pageSize={pageSize}
+                    onPageChange={(p) => fetchData(p)}
+                    onPageSizeChange={(size) => { setPageSize(size); fetchData(1); }}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1840,62 +1607,14 @@ const ReportsPage = () => {
                   </div>
                 )}
 
-                {rows.length > 0 && (
-                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-t pt-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        Rows per page:
-                      </span>
-                      <select
-                        value={pageSize}
-                        onChange={handleRowsPerPageChange}
-                        className="border rounded px-2 py-1 text-sm bg-background"
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={25}>25</option>
-                        <option value={50}>50</option>
-                      </select>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Showing {startRow} to {endRow} of {totalRecords} entries
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => goToPage(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="h-8 w-8 p-0"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      {getPageNumbers().map((page, index) => (
-                        <Button
-                          key={index}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() =>
-                            typeof page === "number" && goToPage(page)
-                          }
-                          disabled={page === "..."}
-                          className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
-                        >
-                          {page}
-                        </Button>
-                      ))}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => goToPage(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="h-8 w-8 p-0"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <TablePagination
+                  page={pagination.page || 1}
+                  totalPages={pagination.totalPages || 1}
+                  totalItems={pagination.total || 0}
+                  pageSize={pageSize}
+                  onPageChange={(p) => fetchData(p)}
+                  onPageSizeChange={(size) => { setPageSize(size); fetchData(1); }}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -1974,62 +1693,14 @@ const ReportsPage = () => {
                   </div>
                 )}
 
-                {rows.length > 0 && (
-                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-t pt-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        Rows per page:
-                      </span>
-                      <select
-                        value={pageSize}
-                        onChange={handleRowsPerPageChange}
-                        className="border rounded px-2 py-1 text-sm bg-background"
-                      >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={25}>25</option>
-                        <option value={50}>50</option>
-                      </select>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Showing {startRow} to {endRow} of {totalRecords} entries
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => goToPage(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="h-8 w-8 p-0"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      {getPageNumbers().map((page, index) => (
-                        <Button
-                          key={index}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() =>
-                            typeof page === "number" && goToPage(page)
-                          }
-                          disabled={page === "..."}
-                          className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
-                        >
-                          {page}
-                        </Button>
-                      ))}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => goToPage(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="h-8 w-8 p-0"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <TablePagination
+                  page={pagination.page || 1}
+                  totalPages={pagination.totalPages || 1}
+                  totalItems={pagination.total || 0}
+                  pageSize={pageSize}
+                  onPageChange={(p) => fetchData(p)}
+                  onPageSizeChange={(size) => { setPageSize(size); fetchData(1); }}
+                />
               </CardContent>
             </Card>
           </TabsContent>
