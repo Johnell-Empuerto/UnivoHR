@@ -15,6 +15,7 @@ import { formatDateTimeLocal } from "@/utils/formatDate";
 import { useAuth } from "@/app/providers/AuthProvider";
 import ErrorMessage from "@/components/shared/ErrorMessage";
 import Loader from "@/components/shared/Loader";
+import { TablePagination } from "@/components/shared/TablePagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,8 +38,6 @@ import {
   RefreshCw,
   Eye,
   ClipboardCheck,
-  ChevronLeft,
-  ChevronRight,
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -465,32 +464,15 @@ const MyInterviewAssignmentsPage = () => {
               </tbody>
             </table>
           </div>
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>
-              Showing {interviewStartIdx + 1}–{Math.min(interviewStartIdx + rowsPerPage, interviewFiltered.length)} of{" "}
-              {interviewFiltered.length}
-            </span>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={currentPage <= 1}
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="px-2">
-                Page {currentPage} of {interviewPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={currentPage >= interviewPages}
-                onClick={() => setCurrentPage((p) => Math.min(interviewPages, p + 1))}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+          <TablePagination
+            page={currentPage}
+            totalPages={interviewPages}
+            totalItems={activeTab === "table" ? dynamicStageFiltered.length + interviewFiltered.length : allItems.length}
+            pageSize={rowsPerPage}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={() => {}}
+            showPageSize={false}
+          />
           </div>
         </>
       )}

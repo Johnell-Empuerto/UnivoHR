@@ -23,7 +23,8 @@ import {
 } from "@/components/ui/dialog";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
-import { ClipboardList, Plus, ChevronLeft, ChevronRight, Loader2, Trash2, CheckCircle, Eye, Search, X } from "lucide-react";
+import { TablePagination } from "@/components/shared/TablePagination";
+import { ClipboardList, Plus, Loader2, Trash2, CheckCircle, Eye, Search, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface Onboarding {
@@ -59,32 +60,6 @@ const OnboardingPage = () => {
   const [statusFilter, setStatusFilter] = useState("");
 
   const activeFilterCount = [search, statusFilter].filter(Boolean).length;
-
-  const totalPages = Math.ceil(total / pageSize);
-  const start = (page - 1) * pageSize + 1;
-  const end = Math.min(page * pageSize, total);
-
-  const goToPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
-  const getPageNumbers = () => {
-    const pages: (number | string)[] = [];
-    const maxVisible = 5;
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      if (page <= 3) {
-        for (let i = 1; i <= 4; i++) pages.push(i);
-        pages.push("..."); pages.push(totalPages);
-      } else if (page >= totalPages - 2) {
-        pages.push(1); pages.push("...");
-        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
-      } else {
-        pages.push(1); pages.push("...");
-        for (let i = page - 1; i <= page + 1; i++) pages.push(i);
-        pages.push("..."); pages.push(totalPages);
-      }
-    }
-    return pages;
-  };
 
   const [selectedOnboarding, setSelectedOnboarding] = useState<Onboarding | null>(null);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
@@ -283,40 +258,14 @@ const OnboardingPage = () => {
               </Table>
             </div>
           )}
-          {total > 0 && (
-            <div className="p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Rows per page:</span>
-                <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
-                  <SelectTrigger className="w-16 h-8"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">5</SelectItem>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Showing {start} to {end} of {total} entries
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => goToPage(page - 1)}
-                  disabled={page === 1} className="h-8 w-8 p-0">
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                {getPageNumbers().map((p, i) => (
-                  <Button key={i} variant={page === p ? "default" : "outline"} size="sm"
-                    onClick={() => typeof p === "number" && goToPage(p)} disabled={p === "..."}
-                    className={`h-8 w-8 p-0 ${p === "..." ? "cursor-default" : ""}`}>{p}</Button>
-                ))}
-                <Button variant="outline" size="sm" onClick={() => goToPage(page + 1)}
-                  disabled={page === totalPages} className="h-8 w-8 p-0">
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <TablePagination
+            page={page}
+            totalPages={Math.ceil(total / pageSize)}
+            totalItems={total}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+          />
         </CardContent>
       </Card>
 
