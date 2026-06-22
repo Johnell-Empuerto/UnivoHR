@@ -473,7 +473,6 @@ const MyInterviewAssignmentsPage = () => {
             onPageSizeChange={() => {}}
             showPageSize={false}
           />
-          </div>
         </>
       )}
     </>
