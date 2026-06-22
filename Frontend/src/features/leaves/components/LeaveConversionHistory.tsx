@@ -25,11 +25,11 @@ import {
   Calendar,
   DollarSign,
   RefreshCw,
-  ChevronLeft,
-  ChevronRight,
+
 } from "lucide-react";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
+import { TablePagination } from "@/components/shared/TablePagination";
 import { historyLeaveService } from "@/services/historyLeaveService";
 import type {
   LeaveConversion,
@@ -122,39 +122,7 @@ const LeaveConversionHistory = () => {
     return `${emp.first_name}${middle} ${emp.last_name}${suffix}`;
   };
 
-  const start = (currentPage - 1) * rowsPerPage + 1;
-  const end = Math.min(currentPage * rowsPerPage, totalRecords);
 
-  const goToPage = (page: number) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-  };
-
-  const getPageNumbers = () => {
-    const pageNumbers: (number | string)[] = [];
-    const maxPagesToShow = 5;
-
-    if (totalPages <= maxPagesToShow) {
-      for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
-    } else {
-      if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) pageNumbers.push(i);
-        pageNumbers.push("...");
-        pageNumbers.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
-        pageNumbers.push(1);
-        pageNumbers.push("...");
-        for (let i = totalPages - 3; i <= totalPages; i++) pageNumbers.push(i);
-      } else {
-        pageNumbers.push(1);
-        pageNumbers.push("...");
-        for (let i = currentPage - 1; i <= currentPage + 1; i++)
-          pageNumbers.push(i);
-        pageNumbers.push("...");
-        pageNumbers.push(totalPages);
-      }
-    }
-    return pageNumbers;
-  };
 
   return (
     <div className="space-y-6">
@@ -375,75 +343,14 @@ const LeaveConversionHistory = () => {
                     </Table>
                   </div>
 
-                  {/* Pagination Controls */}
-                  <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
-                    {/* Rows per page */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        Rows per page:
-                      </span>
-                      <Select
-                        value={rowsPerPage.toString()}
-                        onValueChange={(value) => {
-                          setRowsPerPage(Number(value));
-                          setCurrentPage(1);
-                        }}
-                      >
-                        <SelectTrigger className="w-20">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="5">5</SelectItem>
-                          <SelectItem value="10">10</SelectItem>
-                          <SelectItem value="25">25</SelectItem>
-                          <SelectItem value="50">50</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Showing X to Y of Z */}
-                    <div className="text-sm text-muted-foreground">
-                      Showing {start} to {end} of {totalRecords} entries
-                    </div>
-
-                    {/* Pagination Buttons */}
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => goToPage(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="h-8 w-8 p-0"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-
-                      {getPageNumbers().map((page, index) => (
-                        <Button
-                          key={index}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() =>
-                            typeof page === "number" && goToPage(page)
-                          }
-                          disabled={page === "..."}
-                          className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
-                        >
-                          {page}
-                        </Button>
-                      ))}
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => goToPage(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="h-8 w-8 p-0"
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
+                  <TablePagination
+                    page={currentPage}
+                    totalPages={totalPages}
+                    totalItems={totalRecords}
+                    pageSize={rowsPerPage}
+                    onPageChange={setCurrentPage}
+                    onPageSizeChange={(size) => { setRowsPerPage(size); setCurrentPage(1); }}
+                  />
                 </>
               )}
             </>

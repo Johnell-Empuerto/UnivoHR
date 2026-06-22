@@ -39,8 +39,6 @@ import {
   Clock,
   CheckCircle2,
   Activity,
-  ChevronLeft,
-  ChevronRight,
   FileText,
   RefreshCw,
   Scan,
@@ -50,6 +48,7 @@ import {
 import { useAuth } from "@/app/providers/AuthProvider";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
+import { TablePagination } from "@/components/shared/TablePagination";
 
 const severityConfig: Record<string, { label: string; variant: "destructive" | "default" | "secondary" }> = {
   HIGH: { label: "HIGH", variant: "destructive" },
@@ -168,26 +167,7 @@ const AnomalyPage = () => {
     setDrawerOpen(true);
   };
 
-  const goToPage = (p: number) => {
-    setPage(Math.max(1, Math.min(p, totalPages)));
-  };
 
-  const getPageNumbers = () => {
-    const pages: (number | string)[] = [];
-    const maxVisible = 5;
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      pages.push(1);
-      if (page > 3) pages.push("...");
-      for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) {
-        pages.push(i);
-      }
-      if (page < totalPages - 2) pages.push("...");
-      pages.push(totalPages);
-    }
-    return pages;
-  };
 
   return (
     <div className="space-y-6 p-6">
@@ -444,48 +424,16 @@ const AnomalyPage = () => {
             </Table>
           </div>
 
-          {/* Pagination */}
-          {!loading && totalPages > 0 && (
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Showing {((page - 1) * rowsPerPage) + 1} to{" "}
-                {Math.min(page * rowsPerPage, totalRecords)} of {totalRecords} records
-              </p>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => goToPage(page - 1)}
-                  disabled={page <= 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                {getPageNumbers().map((p, i) =>
-                  typeof p === "string" ? (
-                    <span key={`e${i}`} className="px-2 text-muted-foreground">...</span>
-                  ) : (
-                    <Button
-                      key={p}
-                      variant={p === page ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => goToPage(p)}
-                      className="min-w-9"
-                    >
-                      {p}
-                    </Button>
-                  )
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => goToPage(page + 1)}
-                  disabled={page >= totalPages}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalRecords}
+            pageSize={rowsPerPage}
+            onPageChange={setPage}
+            onPageSizeChange={() => {}}
+            showPageSize={false}
+            itemLabel="records"
+          />
         </CardContent>
       </Card>
 

@@ -53,14 +53,13 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDateLocal, formatTimeLocal } from "@/utils/formatDate";
 import ErrorMessage from "@/components/shared/ErrorMessage";
 import EmptyState from "@/components/shared/EmptyState";
 import Loader from "@/components/shared/Loader";
+import { TablePagination } from "@/components/shared/TablePagination";
 import { useAuth } from "@/app/providers/AuthProvider";
 
 const AttendancePage = () => {
@@ -374,54 +373,7 @@ const AttendancePage = () => {
     }
   };
 
-  // Pagination helper functions for time requests
-  const start = (timeRequestsPage - 1) * timeRequestsRowsPerPage + 1;
-  const end = Math.min(
-    timeRequestsPage * timeRequestsRowsPerPage,
-    timeRequestsTotalRecords,
-  );
 
-  const goToPage = (page: number) => {
-    setTimeRequestsPage(Math.max(1, Math.min(page, timeRequestsTotalPages)));
-  };
-
-  const handleTimeRequestsRowsPerPageChange = (value: string) => {
-    const newRows = Number(value);
-    setTimeRequestsRowsPerPage(newRows);
-    setTimeRequestsPage(1);
-  };
-
-  const getPageNumbers = () => {
-    const pageNumbers: (number | string)[] = [];
-    const maxPagesToShow = 5;
-
-    if (timeRequestsTotalPages <= maxPagesToShow) {
-      for (let i = 1; i <= timeRequestsTotalPages; i++) pageNumbers.push(i);
-    } else {
-      if (timeRequestsPage <= 3) {
-        for (let i = 1; i <= 4; i++) pageNumbers.push(i);
-        pageNumbers.push("...");
-        pageNumbers.push(timeRequestsTotalPages);
-      } else if (timeRequestsPage >= timeRequestsTotalPages - 2) {
-        pageNumbers.push(1);
-        pageNumbers.push("...");
-        for (
-          let i = timeRequestsTotalPages - 3;
-          i <= timeRequestsTotalPages;
-          i++
-        )
-          pageNumbers.push(i);
-      } else {
-        pageNumbers.push(1);
-        pageNumbers.push("...");
-        for (let i = timeRequestsPage - 1; i <= timeRequestsPage + 1; i++)
-          pageNumbers.push(i);
-        pageNumbers.push("...");
-        pageNumbers.push(timeRequestsTotalPages);
-      }
-    }
-    return pageNumbers;
-  };
 
   if (error) return <ErrorMessage message={error} />;
 
@@ -669,74 +621,14 @@ const AttendancePage = () => {
                     </TableBody>
                   </Table>
 
-                  {/* Pagination Controls - Matching AttendanceTable styling */}
-                  {timeRequestsTotalRecords > 0 && (
-                    <div className="p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
-                      {/* Rows per page */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">
-                          Rows per page:
-                        </span>
-                        <Select value={String(timeRequestsRowsPerPage)} onValueChange={handleTimeRequestsRowsPerPageChange}>
-                          <SelectTrigger className="w-16 h-8">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="5">5</SelectItem>
-                            <SelectItem value="10">10</SelectItem>
-                            <SelectItem value="25">25</SelectItem>
-                            <SelectItem value="50">50</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Showing X to Y of Z */}
-                      <div className="text-sm text-muted-foreground">
-                        Showing {start} to {end} of {timeRequestsTotalRecords}{" "}
-                        entries
-                      </div>
-
-                      {/* Pagination Buttons */}
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => goToPage(timeRequestsPage - 1)}
-                          disabled={timeRequestsPage === 1}
-                          className="h-8 w-8 p-0"
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                        </Button>
-
-                        {getPageNumbers().map((page, index) => (
-                          <Button
-                            key={index}
-                            variant={
-                              timeRequestsPage === page ? "default" : "outline"
-                            }
-                            size="sm"
-                            onClick={() =>
-                              typeof page === "number" && goToPage(page)
-                            }
-                            disabled={page === "..."}
-                            className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
-                          >
-                            {page}
-                          </Button>
-                        ))}
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => goToPage(timeRequestsPage + 1)}
-                          disabled={timeRequestsPage === timeRequestsTotalPages}
-                          className="h-8 w-8 p-0"
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                  <TablePagination
+                    page={timeRequestsPage}
+                    totalPages={timeRequestsTotalPages}
+                    totalItems={timeRequestsTotalRecords}
+                    pageSize={timeRequestsRowsPerPage}
+                    onPageChange={setTimeRequestsPage}
+                    onPageSizeChange={(size) => { setTimeRequestsRowsPerPage(size); setTimeRequestsPage(1); }}
+                  />
                 </div>
               )}
             </CardContent>
