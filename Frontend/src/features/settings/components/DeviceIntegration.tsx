@@ -59,6 +59,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import Loader from "@/components/shared/Loader";
+import { TablePagination } from "@/components/shared/TablePagination";
 import { useAuth } from "@/app/providers/AuthProvider";
 import {
   Monitor,
@@ -69,8 +70,6 @@ import {
   Trash2,
   Edit,
   Eye,
-  ChevronLeft,
-  ChevronRight,
   RefreshCw,
   Server,
   Search,
@@ -78,75 +77,6 @@ import {
 } from "lucide-react";
 
 const ITEMS_PER_PAGE = 10;
-
-function Pagination({
-  page,
-  totalPages,
-  onPageChange,
-}: {
-  page: number;
-  totalPages: number;
-  onPageChange: (p: number) => void;
-}) {
-  const getPageNumbers = (): (number | string)[] => {
-    const pages: (number | string)[] = [];
-    if (totalPages <= 5) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else if (page <= 3) {
-      for (let i = 1; i <= 4; i++) pages.push(i);
-      pages.push("...");
-      pages.push(totalPages);
-    } else if (page >= totalPages - 2) {
-      pages.push(1);
-      pages.push("...");
-      for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
-    } else {
-      pages.push(1);
-      pages.push("...");
-      for (let i = page - 1; i <= page + 1; i++) pages.push(i);
-      pages.push("...");
-      pages.push(totalPages);
-    }
-    return pages;
-  };
-
-  if (totalPages <= 1) return null;
-
-  return (
-    <div className="flex items-center justify-center gap-2 mt-4">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => onPageChange(page - 1)}
-        disabled={page <= 1}
-        className="h-8 w-8 p-0"
-      >
-        <ChevronLeft className="h-4 w-4" />
-      </Button>
-      {getPageNumbers().map((p, i) => (
-        <Button
-          key={i}
-          variant={page === p ? "default" : "outline"}
-          size="sm"
-          onClick={() => typeof p === "number" && onPageChange(p)}
-          disabled={p === "..."}
-          className={`h-8 w-8 p-0 ${p === "..." ? "cursor-default" : ""}`}
-        >
-          {p}
-        </Button>
-      ))}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => onPageChange(page + 1)}
-        disabled={page >= totalPages}
-        className="h-8 w-8 p-0"
-      >
-        <ChevronRight className="h-4 w-4" />
-      </Button>
-    </div>
-  );
-}
 
 export default function DeviceIntegration() {
   const { hasPermission } = useAuth();
@@ -222,6 +152,7 @@ function DevicesTab({ canManage }: { canManage: boolean }) {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [showDialog, setShowDialog] = useState(false);
   const [editing, setEditing] = useState<Device | null>(null);
@@ -248,6 +179,7 @@ function DevicesTab({ canManage }: { canManage: boolean }) {
       const res = await getDevices({ page, limit: ITEMS_PER_PAGE, search });
       setDevices(res.data);
       setTotalPages(res.pagination.totalPages);
+      setTotal(res.pagination.total);
     } catch {
       toast.error("Failed to load devices");
     } finally {
@@ -467,7 +399,15 @@ function DevicesTab({ canManage }: { canManage: boolean }) {
         </div>
       )}
 
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      <TablePagination
+        page={page}
+        totalPages={totalPages}
+        totalItems={total}
+        pageSize={ITEMS_PER_PAGE}
+        showPageSize={false}
+        onPageChange={setPage}
+        onPageSizeChange={() => {}}
+      />
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-5xl!">
@@ -621,6 +561,7 @@ function RawLogsTab() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [deviceFilter, setDeviceFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [sourceFilter, setSourceFilter] = useState("");
@@ -655,6 +596,7 @@ function RawLogsTab() {
       });
       setLogs(res.data);
       setTotalPages(res.pagination.totalPages);
+      setTotal(res.pagination.total);
     } catch {
       toast.error("Failed to load raw logs");
     } finally {
@@ -874,7 +816,15 @@ function RawLogsTab() {
         </div>
       )}
 
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      <TablePagination
+        page={page}
+        totalPages={totalPages}
+        totalItems={total}
+        pageSize={ITEMS_PER_PAGE}
+        showPageSize={false}
+        onPageChange={setPage}
+        onPageSizeChange={() => {}}
+      />
 
       <Dialog open={payloadDialog} onOpenChange={setPayloadDialog}>
         <DialogContent className="!max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto">
@@ -946,6 +896,7 @@ function DeviceUserMappingTab({ canManage }: { canManage: boolean }) {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
 
   const [showDialog, setShowDialog] = useState(false);
@@ -1004,6 +955,7 @@ function DeviceUserMappingTab({ canManage }: { canManage: boolean }) {
       const res = await getEmployeeDeviceUsers({ page, limit: ITEMS_PER_PAGE });
       setMappings(res.data);
       setTotalPages(res.pagination.totalPages);
+      setTotal(res.pagination.total);
     } catch {
       toast.error("Failed to load device user mappings");
     } finally {
@@ -1217,7 +1169,15 @@ function DeviceUserMappingTab({ canManage }: { canManage: boolean }) {
         </div>
       )}
 
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      <TablePagination
+        page={page}
+        totalPages={totalPages}
+        totalItems={total}
+        pageSize={ITEMS_PER_PAGE}
+        showPageSize={false}
+        onPageChange={setPage}
+        onPageSizeChange={() => {}}
+      />
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="!max-w-2xl w-full max-h-[90vh] overflow-y-auto">

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateShort } from "@/utils/formatDate";
+import { TablePagination } from "@/components/shared/TablePagination";
 import {
   Search,
   Loader2,
@@ -11,8 +12,6 @@ import {
   Pencil,
   Trash2,
   Users,
-  ChevronLeft,
-  ChevronRight,
   User,
 } from "lucide-react";
 import {
@@ -257,39 +256,6 @@ const ApprovalSettings = () => {
     }
   };
 
-  const start = (currentPage - 1) * rowsPerPage + 1;
-  const end = Math.min(currentPage * rowsPerPage, totalRecords);
-
-  const goToPage = (page: number) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-  };
-
-  const getPageNumbers = () => {
-    const pageNumbers: (number | string)[] = [];
-    const maxPagesToShow = 5;
-
-    if (totalPages <= maxPagesToShow) {
-      for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
-    } else {
-      if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) pageNumbers.push(i);
-        pageNumbers.push("...");
-        pageNumbers.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
-        pageNumbers.push(1);
-        pageNumbers.push("...");
-        for (let i = totalPages - 3; i <= totalPages; i++) pageNumbers.push(i);
-      } else {
-        pageNumbers.push(1);
-        pageNumbers.push("...");
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) pageNumbers.push(i);
-        pageNumbers.push("...");
-        pageNumbers.push(totalPages);
-      }
-    }
-    return pageNumbers;
-  };
-
   const getApprovalTypeBadge = (type: string) => {
     switch (type) {
       case "OVERTIME":
@@ -412,37 +378,15 @@ const ApprovalSettings = () => {
               </Table>
             </div>
 
-            {totalRecords > 0 && (
-              <div className="mt-4 pt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Rows per page:</span>
-                  <span className="text-sm">{rowsPerPage}</span>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Showing {start} to {end} of {totalRecords} entries
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 1} className="h-8 w-8 p-0">
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  {getPageNumbers().map((page, index) => (
-                    <Button
-                      key={index}
-                      variant={currentPage === page ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => typeof page === "number" && goToPage(page)}
-                      disabled={page === "..."}
-                      className={`h-8 w-8 p-0 ${page === "..." ? "cursor-default" : ""}`}
-                    >
-                      {page}
-                    </Button>
-                  ))}
-                  <Button variant="outline" size="sm" onClick={() => goToPage(currentPage + 1)} disabled={currentPage === totalPages} className="h-8 w-8 p-0">
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
+            <TablePagination
+              page={currentPage}
+              totalPages={totalPages}
+              totalItems={totalRecords}
+              pageSize={rowsPerPage}
+              showPageSize={false}
+              onPageChange={(p) => setCurrentPage(p)}
+              onPageSizeChange={() => {}}
+            />
           </>
         )}
       </CardContent>
