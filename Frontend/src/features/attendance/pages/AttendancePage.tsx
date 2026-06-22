@@ -382,7 +382,7 @@ const AttendancePage = () => {
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <Clock className="h-5 w-5 text-primary dark:text-black" />
+          <Clock className="h-5 w-5 text-primary" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-muted-foreground">

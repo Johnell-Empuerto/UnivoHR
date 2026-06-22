@@ -110,7 +110,7 @@ const MyBenefitsPage = () => {
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <HeartHandshake className="h-5 w-5 text-primary dark:text-black" />
+          <HeartHandshake className="h-5 w-5 text-primary" />
         </div>
         <div>
           <h1 className="text-2xl font-bold text-muted-foreground">
@@ -253,7 +253,7 @@ const MyBenefitsPage = () => {
                               </p>
                             </div>
                           </div>
-                          <Badge className="bg-primary/10 text-primary dark:text-black text-sm px-3 py-1">
+                          <Badge className="bg-primary/10 text-primary text-sm px-3 py-1">
                             ₱{formatCurrency(Number(ded.amount))}
                           </Badge>
                         </div>

@@ -137,7 +137,7 @@ const AdminDashboardContent = React.memo(
         {/* Header - Matching consistent theme */}
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <LayoutDashboard className="h-5 w-5 text-primary dark:text-black" />
+            <LayoutDashboard className="h-5 w-5 text-primary" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-muted-foreground">
@@ -413,7 +413,7 @@ const EmployeeDashboardContent = React.memo(
         {/* Header */}
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <LayoutDashboard className="h-5 w-5 text-primary dark:text-black" />
+            <LayoutDashboard className="h-5 w-5 text-primary" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-muted-foreground">
@@ -1001,7 +1001,7 @@ const Dashboard = () => {
       <div className="space-y-6 p-6">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <LayoutDashboard className="h-5 w-5 text-primary dark:text-black" />
+            <LayoutDashboard className="h-5 w-5 text-primary" />
           </div>
           <div>
             <Skeleton className="h-8 w-64" />

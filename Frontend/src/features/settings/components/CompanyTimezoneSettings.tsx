@@ -67,7 +67,7 @@ const CompanyTimezoneSettings = () => {
       <CardHeader>
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-            <Globe className="h-4 w-4 text-primary dark:text-black" />
+            <Globe className="h-4 w-4 text-primary" />
           </div>
           <div>
             <CardTitle>Company Default Timezone</CardTitle>
