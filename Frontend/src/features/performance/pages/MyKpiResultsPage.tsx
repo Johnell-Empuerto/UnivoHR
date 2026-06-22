@@ -4,6 +4,7 @@ import {
   getKpiEvaluationById,
 } from "@/services/kpiService";
 import { Button } from "@/components/ui/button";
+import { TablePagination } from "@/components/shared/TablePagination";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -28,8 +29,6 @@ import { toast } from "sonner";
 import {
   ClipboardList,
   Eye,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 
 const statusBadge = (s: string) => {
@@ -53,12 +52,6 @@ const MyKpiResultsPage = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
-
-  const totalPages = Math.ceil(total / pageSize);
-  const start = (page - 1) * pageSize + 1;
-  const end = Math.min(page * pageSize, total);
-
-  const goToPage = (p: number) => setPage(Math.max(1, Math.min(p, totalPages)));
 
   const fetchEvaluations = async () => {
     try {
@@ -172,27 +165,14 @@ const MyKpiResultsPage = () => {
               </Table>
             </div>
 
-            {total > 0 && (
-              <div className="flex items-center justify-between px-4 pb-4">
-                <p className="text-sm text-muted-foreground">
-                  Showing {start} to {end} of {total} entries
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => goToPage(page - 1)}
-                    disabled={page === 1} className="h-8 w-8 p-0">
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                    <Button key={p} variant={page === p ? "default" : "outline"} size="sm"
-                      onClick={() => goToPage(p)} className="h-8 w-8 p-0">{p}</Button>
-                  ))}
-                  <Button variant="outline" size="sm" onClick={() => goToPage(page + 1)}
-                    disabled={page === totalPages} className="h-8 w-8 p-0">
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
+            <TablePagination
+              page={page}
+              totalPages={Math.ceil(total / pageSize)}
+              totalItems={total}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+            />
           </CardContent>
         </Card>
       )}
