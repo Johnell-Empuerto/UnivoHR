@@ -7,6 +7,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, FileClock } from "lucide-react";
 import EmptyState from "@/components/shared/EmptyState";
@@ -69,7 +70,7 @@ const AttendanceTable = ({
         return (
           <Badge
             variant="default"
-            className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
+            className={getStatusBadgeClass("success")}
           >
             PRESENT
           </Badge>
@@ -87,7 +88,7 @@ const AttendanceTable = ({
         return (
           <Badge
             variant="destructive"
-            className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
+            className={getStatusBadgeClass("danger")}
           >
             ABSENT
           </Badge>
@@ -105,7 +106,7 @@ const AttendanceTable = ({
         return (
           <Badge
             variant="secondary"
-            className="bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400"
+            className={getStatusBadgeClass("neutral")}
           >
             {status}
           </Badge>

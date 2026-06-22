@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate } from "@/utils/formatDate";
 import EmptyState from "@/components/shared/EmptyState";
@@ -64,7 +65,7 @@ const getStatusBadge = (status: OvertimeStatus) => {
       return (
         <Badge
           variant="secondary"
-          className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/30"
+          className={getStatusBadgeClass("warning")}
         >
           <Clock className="h-3 w-3 mr-1" />
           PENDING
@@ -74,7 +75,7 @@ const getStatusBadge = (status: OvertimeStatus) => {
       return (
         <Badge
           variant="default"
-          className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
+          className={getStatusBadgeClass("success")}
         >
           <CheckCircle className="h-3 w-3 mr-1" />
           APPROVED
@@ -84,7 +85,7 @@ const getStatusBadge = (status: OvertimeStatus) => {
       return (
         <Badge
           variant="destructive"
-          className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
+          className={getStatusBadgeClass("danger")}
         >
           <XCircle className="h-3 w-3 mr-1" />
           REJECTED
@@ -94,7 +95,7 @@ const getStatusBadge = (status: OvertimeStatus) => {
       return (
         <Badge
           variant="secondary"
-          className="bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400"
+          className={getStatusBadgeClass("neutral")}
         >
           {status}
         </Badge>

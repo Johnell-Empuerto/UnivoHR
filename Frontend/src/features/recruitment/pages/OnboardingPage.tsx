@@ -10,6 +10,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -40,12 +41,12 @@ interface Requirement {
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
-    PENDING: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300", SUBMITTED: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-    VERIFIED: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400", REJECTED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-    IN_PROGRESS: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400", COMPLETED: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
-    CANCELLED: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
+    PENDING: getStatusBadgeClass("neutral"), SUBMITTED: getStatusBadgeClass("info"),
+    VERIFIED: getStatusBadgeClass("success"), REJECTED: getStatusBadgeClass("danger"),
+    IN_PROGRESS: getStatusBadgeClass("warning"), COMPLETED: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
+    CANCELLED: getStatusBadgeClass("neutral"),
   };
-  return <Badge className={map[status] || ""}>{status.replace(/_/g, " ")}</Badge>;
+  return <Badge className={map[status] || getStatusBadgeClass("neutral")}>{status.replace(/_/g, " ")}</Badge>;
 };
 
 const OnboardingPage = () => {

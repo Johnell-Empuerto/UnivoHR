@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import {
   Dialog,
   DialogContent,
@@ -347,7 +348,7 @@ const AttendancePage = () => {
         return (
           <Badge
             variant="default"
-            className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30"
+            className={getStatusBadgeClass("success")}
           >
             APPROVED
           </Badge>
@@ -356,7 +357,7 @@ const AttendancePage = () => {
         return (
           <Badge
             variant="destructive"
-            className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
+            className={getStatusBadgeClass("danger")}
           >
             REJECTED
           </Badge>
@@ -365,7 +366,7 @@ const AttendancePage = () => {
         return (
           <Badge
             variant="secondary"
-            className="bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400"
+            className={getStatusBadgeClass("neutral")}
           >
             {status}
           </Badge>

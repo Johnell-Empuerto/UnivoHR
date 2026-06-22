@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Button } from "@/components/ui/button";
 import {
   Eye,
@@ -247,7 +248,7 @@ const FinalPayTable = ({
   const getStatusBadge = (_status: string, processed: boolean) => {
     if (processed) {
       return (
-        <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+        <Badge className={getStatusBadgeClass("success")}>
           <CheckCircle className="h-3 w-3 mr-1" />
           Processed
         </Badge>
@@ -599,8 +600,8 @@ const FinalPayTable = ({
                         variant={record.status === "RESIGNED" ? "destructive" : "secondary"}
                         className={
                           record.status === "RESIGNED"
-                            ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                            : "bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400"
+                            ? getStatusBadgeClass("danger")
+                            : getStatusBadgeClass("neutral")
                         }
                       >
                         {record.status}

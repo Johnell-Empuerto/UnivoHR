@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Button } from "@/components/ui/button";
 import {
   Eye,
@@ -212,7 +213,7 @@ const PayrollTable = ({
                     variant={record.status === "PAID" ? "default" : "secondary"}
                     className={
                       record.status === "PAID"
-                        ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                        ? getStatusBadgeClass("success")
                         : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
                     }
                   >

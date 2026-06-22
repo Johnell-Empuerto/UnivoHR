@@ -12,6 +12,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
   AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
@@ -51,14 +52,14 @@ interface JobPosition {
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
-    Initial: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    Initial: getStatusBadgeClass("info"),
     Pending: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-    "Final Interview": "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+    "Final Interview": getStatusBadgeClass("warning"),
     "Exam Interview": "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400",
-    Completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-    Fail: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+    Completed: getStatusBadgeClass("success"),
+    Fail: getStatusBadgeClass("danger"),
   };
-  return <Badge className={map[status] || ""}>{status}</Badge>;
+  return <Badge className={map[status] || getStatusBadgeClass("neutral")}>{status}</Badge>;
 };
 
 const ApplicantsPage = () => {
@@ -238,7 +239,7 @@ const ApplicantsPage = () => {
                       <TableCell>{a.applied_date ? formatDateShort(a.applied_date) : "-"}</TableCell>
                       <TableCell>{statusBadge(a.status)}</TableCell>
                       <TableCell>
-                        <Badge className={a.workflow_instance_id ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" : "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400"}>
+                        <Badge className={a.workflow_instance_id ? getStatusBadgeClass("info") : getStatusBadgeClass("neutral")}>
                           {a.workflow_instance_id ? "Dynamic" : "Legacy"}
                         </Badge>
                       </TableCell>

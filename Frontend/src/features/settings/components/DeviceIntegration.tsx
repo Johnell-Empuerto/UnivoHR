@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -700,8 +701,7 @@ function RawLogsTab() {
     };
     const colors: Record<string, string> = {
       PENDING: "",
-      PROCESSED:
-        "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+      PROCESSED: getStatusBadgeClass("success"),
       FAILED: "",
       DUPLICATE: "",
     };
@@ -1181,8 +1181,8 @@ function DeviceUserMappingTab({ canManage }: { canManage: boolean }) {
                         variant={m.active ? "default" : "secondary"}
                         className={
                           m.active
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                            : ""
+                            ? getStatusBadgeClass("success")
+                            : getStatusBadgeClass("neutral")
                         }
                       >
                         {m.active ? "Active" : "Inactive"}
@@ -1684,8 +1684,8 @@ function MappingsTab({ canManage }: { canManage: boolean }) {
                         variant={m.is_active ? "default" : "secondary"}
                         className={
                           m.is_active
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                            : ""
+                            ? getStatusBadgeClass("success")
+                            : getStatusBadgeClass("neutral")
                         }
                       >
                         {m.is_active ? "Active" : "Inactive"}

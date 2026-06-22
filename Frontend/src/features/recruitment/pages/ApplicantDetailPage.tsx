@@ -50,6 +50,7 @@ import { formatDateShort } from "@/utils/formatDate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClass } from "@/utils/statusBadge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -92,23 +93,23 @@ interface Requirement {
 
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
-    Initial: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+    Initial: getStatusBadgeClass("info"),
     Pending: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
-    "Final Interview": "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+    "Final Interview": getStatusBadgeClass("warning"),
     "Exam Interview": "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400",
-    Completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-    Fail: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+    Completed: getStatusBadgeClass("success"),
+    Fail: getStatusBadgeClass("danger"),
   };
-  return <Badge className={map[status] || ""}>{status}</Badge>;
+  return <Badge className={map[status] || getStatusBadgeClass("neutral")}>{status}</Badge>;
 };
 
 const reqStatusBadge = (status: string) => {
   const map: Record<string, string> = {
-    Pending: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
-    Completed: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-    Rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+    Pending: getStatusBadgeClass("neutral"),
+    Completed: getStatusBadgeClass("success"),
+    Rejected: getStatusBadgeClass("danger"),
   };
-  return <Badge className={map[status] || ""}>{status}</Badge>;
+  return <Badge className={map[status] || getStatusBadgeClass("neutral")}>{status}</Badge>;
 };
 
 const ApplicantDetailPage = () => {
@@ -979,12 +980,12 @@ const ApplicantDetailPage = () => {
         <div className="ml-auto flex items-center gap-2">
           {statusBadge(applicant.status)}
           {applicant.workflow_instance_id ? (
-            <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">Dynamic Workflow</Badge>
+            <Badge className={getStatusBadgeClass("info")}>Dynamic Workflow</Badge>
           ) : (
-            <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400">Legacy Applicant</Badge>
+            <Badge className={getStatusBadgeClass("neutral")}>Legacy Applicant</Badge>
           )}
           {applicant.employee_id && (
-            <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
+            <Badge className={getStatusBadgeClass("success") + " flex items-center gap-1"}>
               <UserPlus className="h-3 w-3" /> Converted to Employee
             </Badge>
           )}
@@ -1348,11 +1349,11 @@ const ApplicantDetailPage = () => {
                     };
                     const recommendationBadge = (rec: string) => {
                       const map: Record<string, string> = {
-                        PASSED: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-                        FAILED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-                        FOR_REVIEW: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+                        PASSED: getStatusBadgeClass("success"),
+                        FAILED: getStatusBadgeClass("danger"),
+                        FOR_REVIEW: getStatusBadgeClass("warning"),
                       };
-                      return <Badge className={map[rec] || ""}>{rec}</Badge>;
+                      return <Badge className={map[rec] || getStatusBadgeClass("neutral")}>{rec}</Badge>;
                     };
                     return (
                       <div key={iv.id} className="relative pl-8 pb-6 last:pb-0">
@@ -1370,10 +1371,10 @@ const ApplicantDetailPage = () => {
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge className={
-                                iv.status === "COMPLETED" ? "bg-green-100 text-green-800" :
-                                iv.status === "SCHEDULED" ? "bg-blue-100 text-blue-800" :
-                                iv.status === "CANCELLED" ? "bg-red-100 text-red-800" :
-                                "bg-gray-100 text-gray-800"
+                                iv.status === "COMPLETED" ? getStatusBadgeClass("success") :
+                                iv.status === "SCHEDULED" ? getStatusBadgeClass("info") :
+                                iv.status === "CANCELLED" ? getStatusBadgeClass("danger") :
+                                getStatusBadgeClass("neutral")
                               }>{iv.status || "-"}</Badge>
                               {hasPermission("recruitment.interviews.manage") && (
                                 <Button variant="ghost" size="sm" onClick={() => handleOpenEditInterview(iv)}>
@@ -1448,21 +1449,21 @@ const ApplicantDetailPage = () => {
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">{stage.stage_type}</span>
                               {stage.recommendation && (
                                 <Badge className={
-                                  stage.recommendation === "PASSED" ? "bg-green-100 text-green-800" :
-                                  stage.recommendation === "FAILED" ? "bg-red-100 text-red-800" :
-                                  stage.recommendation === "FOR_REVIEW" ? "bg-amber-100 text-amber-800" :
+                                  stage.recommendation === "PASSED" ? getStatusBadgeClass("success") :
+                                  stage.recommendation === "FAILED" ? getStatusBadgeClass("danger") :
+                                  stage.recommendation === "FOR_REVIEW" ? getStatusBadgeClass("warning") :
                                   ""
                                 }>{stage.recommendation}</Badge>
                               )}
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge className={
-                                stage.status === "COMPLETED" ? "bg-green-100 text-green-800" :
-                                stage.is_current && stage.status !== "COMPLETED" && stage.status !== "FAILED" ? "bg-blue-100 text-blue-800" :
-                                stage.status === "FAILED" ? "bg-red-100 text-red-800" :
-                                stage.status === "CANCELLED" ? "bg-red-100 text-red-800" :
-                                stage.status === "SCHEDULED" ? "bg-blue-100 text-blue-800" :
-                                "bg-gray-100 text-gray-800"
+                                stage.status === "COMPLETED" ? getStatusBadgeClass("success") :
+                                stage.is_current && stage.status !== "COMPLETED" && stage.status !== "FAILED" ? getStatusBadgeClass("info") :
+                                stage.status === "FAILED" ? getStatusBadgeClass("danger") :
+                                stage.status === "CANCELLED" ? getStatusBadgeClass("danger") :
+                                stage.status === "SCHEDULED" ? getStatusBadgeClass("info") :
+                                getStatusBadgeClass("neutral")
                               }>{stage.status || "-"}</Badge>
                             </div>
                           </div>
