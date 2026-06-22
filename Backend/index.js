@@ -77,6 +77,7 @@ const drilldownRoutes = require("./routes/drilldown.routes");
 const forecastRoutes = require("./routes/forecast.routes");
 const statisticalAnomalyRoutes = require("./routes/statisticalAnomaly.routes");
 const analyticsRoutes = require("./routes/analytics.routes");
+const auditLogRoutes = require("./routes/auditLog.routes");
 const hrPolicyRoutes = require("./routes/hrPolicy.routes");
 const jobPositionRoutes = require("./routes/jobPosition.routes");
 const applicantRoutes = require("./routes/applicant.routes");
@@ -189,6 +190,7 @@ app.use("/api/drilldown", authenticate, drilldownRoutes);
 app.use("/api/forecast", authenticate, forecastRoutes);
 app.use("/api/stats-anomaly", authenticate, statisticalAnomalyRoutes);
 app.use("/api/analytics", authenticate, analyticsRoutes);
+app.use("/api/audit-logs", authenticate, auditLogRoutes);
 app.use("/api/hr-policies", authenticate, hrPolicyRoutes);
 
 app.use("/api/job-positions", authenticate, jobPositionRoutes);

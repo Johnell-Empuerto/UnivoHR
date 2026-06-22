@@ -22,6 +22,7 @@ import RotationAssignments from "../components/RotationAssignments";
 import EmployeeRotation from "../components/EmployeeRotation";
 import DeviceIntegration from "../components/DeviceIntegration";
 import LeaveTypeSettings from "../components/LeaveTypeSettings";
+import AuditLogsSettings from "../components/AuditLogsSettings";
 
 const Setting = () => {
   const { hasPermission } = useAuth();
@@ -42,6 +43,7 @@ const Setting = () => {
   const canViewRotation = hasPermission("settings.attendance_rules");
   const canViewDeviceIntegration = hasPermission("devices.view");
   const canViewLeaveTypes = hasPermission("leave.manage");
+  const canViewAuditLogs = hasPermission("audit_logs.view");
 
   return (
     <div className="space-y-6 p-6">
@@ -229,6 +231,15 @@ const Setting = () => {
               Leave Types
             </TabsTrigger>
           )}
+          {canViewAuditLogs && (
+            <TabsTrigger
+              className="rounded-full px-5 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm bg-muted hover:bg-muted/80 text-muted-foreground border-0 transition-all"
+              style={{ height: "auto", flex: "none" }}
+              value="audit-logs"
+            >
+              Audit Logs
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <div style={{ marginTop: "24px" }}>
@@ -326,6 +337,11 @@ const Setting = () => {
           {canViewLeaveTypes && (
             <TabsContent value="leave-types" className="mt-0">
               <LeaveTypeSettings />
+            </TabsContent>
+          )}
+          {canViewAuditLogs && (
+            <TabsContent value="audit-logs" className="mt-0">
+              <AuditLogsSettings />
             </TabsContent>
           )}
         </div>
