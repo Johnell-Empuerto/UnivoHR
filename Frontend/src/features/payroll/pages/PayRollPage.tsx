@@ -52,7 +52,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getActiveBranches } from "@/services/branchService";
+import { useActiveBranches } from "@/hooks/useBranches";
 import { useAuth } from "@/app/providers/AuthProvider";
 import FinalPayTable from "../components/FinalPayTable";
 import { getEmployeesForFinalPay } from "@/services/finalPayService";
@@ -84,15 +84,8 @@ const PayRollPage = () => {
   const [searchInput, setSearchInput] = useState("");
 
   // Branch Filter State
-  const [branches, setBranches] = useState<any[]>([]);
+  const { data: branches = [] } = useActiveBranches();
   const [branchFilter, setBranchFilter] = useState("");
-
-  // Fetch branches on mount
-  useEffect(() => {
-    getActiveBranches()
-      .then((data) => setBranches(data))
-      .catch(() => {});
-  }, []);
 
   // Final Pay Pagination State
   const [pendingCurrentPage, setPendingCurrentPage] = useState(1);
