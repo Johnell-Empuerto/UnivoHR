@@ -5,7 +5,7 @@ import {
   updateDevice,
   deleteDevice,
 } from "@/services/deviceIntegrationService";
-import { getActiveBranches } from "@/services/branchService";
+import { useActiveBranches } from "@/hooks/useBranches";
 import type { Device } from "@/services/deviceIntegrationService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
@@ -45,9 +45,7 @@ const DevicePage = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showDialog, setShowDialog] = useState(false);
   const [editing, setEditing] = useState<Device | null>(null);
-  const [branches, setBranches] = useState<
-    { id: number; name: string; timezone: string }[]
-  >([]);
+  const { data: branches = [] } = useActiveBranches();
   const [form, setForm] = useState({
     name: "",
     type: "BIOMETRIC",
@@ -91,12 +89,6 @@ const DevicePage = () => {
   useEffect(() => {
     fetchDevices();
   }, [fetchDevices]);
-
-  useEffect(() => {
-    getActiveBranches()
-      .then(setBranches)
-      .catch(() => {});
-  }, []);
 
   const openCreate = () => {
     setEditing(null);
@@ -331,7 +323,7 @@ const DevicePage = () => {
                   <SelectValue placeholder="No branch assigned" />
                 </SelectTrigger>
                 <SelectContent>
-                  {branches.map((b) => (
+                  {branches.map((b: { id: number; name: string; timezone?: string }) => (
                     <SelectItem key={b.id} value={String(b.id)}>
                       {b.name}
                       {b.timezone ? ` (${b.timezone})` : ""}
