@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getActiveBranches } from "@/services/branchService";
+import { useActiveBranches } from "@/hooks/useBranches";
 import {
   getAllBranchRestDays,
   getBranchRestDays,
@@ -31,14 +31,8 @@ import {
 } from "@/components/ui/select";
 import { Sun, Trash2, Plus } from "lucide-react";
 
-interface Branch {
-  id: number;
-  name: string;
-  code: string;
-}
-
 const BranchRestDays = () => {
-  const [branches, setBranches] = useState<Branch[]>([]);
+  const { data: branches = [] } = useActiveBranches();
   const [branchRestDays, setBranchRestDays] = useState<BranchRestDay[]>([]);
   const [loading, setLoading] = useState(false);
   const [branchFilter, setBranchFilter] = useState("");
@@ -48,8 +42,7 @@ const BranchRestDays = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [b, r] = await Promise.all([getActiveBranches(), getAllBranchRestDays()]);
-      setBranches(b);
+      const r = await getAllBranchRestDays();
       setBranchRestDays(r);
     } catch {
       toast.error("Failed to load branch rest days");
@@ -126,7 +119,7 @@ const BranchRestDays = () => {
                 <SelectValue placeholder="Select branch..." />
               </SelectTrigger>
               <SelectContent>
-                {branches.map((b) => (
+                {branches.map((b: { id: number; name: string }) => (
                   <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -157,7 +150,7 @@ const BranchRestDays = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Branches</SelectItem>
-              {branches.map((b) => (
+              {branches.map((b: { id: number; name: string }) => (
                 <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
               ))}
             </SelectContent>
