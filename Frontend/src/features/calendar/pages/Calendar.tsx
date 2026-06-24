@@ -46,8 +46,8 @@ import {
   deleteCalendarDay,
   bulkUploadCalendar,
 } from "@/services/calendarService";
-import { getActiveBranches } from "@/services/branchService";
 import { useAuth } from "@/app/providers/AuthProvider";
+import { useActiveBranches } from "@/hooks/useBranches";
 
 // Import for date picker
 import {
@@ -56,12 +56,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-
-interface Branch {
-  id: number;
-  name: string;
-  code: string;
-}
 
 interface CalendarDay {
   id: number;
@@ -115,7 +109,7 @@ const CalendarPage: React.FC = () => {
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
 
   // Branch filter state
-  const [branches, setBranches] = useState<Branch[]>([]);
+  const { data: branches = [] } = useActiveBranches();
   const [branchViewFilter, setBranchViewFilter] = useState("");
 
   // Client-side branch filter (backend returns all events)
@@ -154,13 +148,6 @@ const CalendarPage: React.FC = () => {
   // State for date picker
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-
-  // Fetch branches on mount
-  useEffect(() => {
-    getActiveBranches()
-      .then((data) => setBranches(data))
-      .catch(() => {});
-  }, []);
 
   // Fetch calendar days for current month
   useEffect(() => {
@@ -774,7 +761,7 @@ const CalendarPage: React.FC = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Branches (Global)</SelectItem>
-            {branches.map((b) => (
+            {branches.map((b: { id: number; name: string }) => (
               <SelectItem key={b.id} value={String(b.id)}>
                 {b.name}
               </SelectItem>
@@ -1094,7 +1081,7 @@ const CalendarPage: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="global">Global (All Branches)</SelectItem>
-                    {branches.map((b) => (
+                    {branches.map((b: { id: number; name: string }) => (
                       <SelectItem key={b.id} value={String(b.id)}>
                         {b.name}
                       </SelectItem>
