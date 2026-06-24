@@ -18,7 +18,7 @@ import {
   deleteEmployeeDeviceUser,
   searchEmployees,
 } from "@/services/deviceIntegrationService";
-import { getActiveBranches } from "@/services/branchService";
+import { useActiveBranches } from "@/hooks/useBranches";
 import type {
   Device,
   RawLog,
@@ -156,9 +156,7 @@ function DevicesTab({ canManage }: { canManage: boolean }) {
   const [search, setSearch] = useState("");
   const [showDialog, setShowDialog] = useState(false);
   const [editing, setEditing] = useState<Device | null>(null);
-  const [branches, setBranches] = useState<
-    { id: number; name: string; timezone: string }[]
-  >([]);
+  const { data: branches = [] } = useActiveBranches();
   const [form, setForm] = useState({
     name: "",
     type: "BIOMETRIC",
@@ -190,12 +188,6 @@ function DevicesTab({ canManage }: { canManage: boolean }) {
   useEffect(() => {
     fetchDevices();
   }, [fetchDevices]);
-
-  useEffect(() => {
-    getActiveBranches()
-      .then(setBranches)
-      .catch(() => {});
-  }, []);
 
   const openCreate = () => {
     setEditing(null);
