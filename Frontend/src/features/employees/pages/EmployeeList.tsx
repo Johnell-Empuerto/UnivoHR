@@ -1,5 +1,5 @@
 import { employees as employeesAPI } from "@/services/employeeService";
-import { getActiveBranches } from "@/services/branchService";
+import { useActiveBranches } from "@/hooks/useBranches";
 import { useEffect, useState } from "react";
 import EmployeeTable from "../components/EmployeeTable";
 import ErrorMessage from "@/components/shared/ErrorMessage";
@@ -70,15 +70,9 @@ const EmployeeList = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [branchFilter, setBranchFilter] = useState("");
-  const [branches, setBranches] = useState<{ id: number; name: string }[]>([]);
+  const { data: branches = [] } = useActiveBranches();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    getActiveBranches()
-      .then((data) => setBranches(data))
-      .catch(() => {});
-  }, []);
 
   // Debounce search
   useEffect(() => {
@@ -227,7 +221,7 @@ const EmployeeList = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Branches</SelectItem>
-                {branches.map((b) => (
+                {branches.map((b: { id: number; name: string }) => (
                   <SelectItem key={b.id} value={String(b.id)}>
                     {b.name}
                   </SelectItem>
