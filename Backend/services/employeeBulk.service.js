@@ -759,7 +759,7 @@ const getImportHistory = async (userId) => {
       b.imported_count AS "importedCount",
       b.failed_count AS "failedCount",
       b.status,
-      u.name AS "createdBy",
+      COALESCE(u.username, 'System') AS "createdBy",
       b.created_at AS "createdAt",
       b.completed_at AS "completedAt"
     FROM employee_import_batches b
