@@ -1,5 +1,5 @@
 // features/payroll/pages/PayrollGenerate.tsx
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { generatePayroll } from "@/services/payrollService";
-import { getActiveBranches } from "@/services/branchService";
+import { useActiveBranches } from "@/hooks/useBranches";
 import {
   Select,
   SelectContent,
@@ -23,12 +23,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
-interface Branch {
-  id: number;
-  name: string;
-  code: string;
-}
-
 interface PayrollGenerateProps {
   onGenerateComplete?: () => void;
 }
@@ -38,15 +32,9 @@ const PayrollGenerate = ({ onGenerateComplete }: PayrollGenerateProps) => {
   const [cutoffEnd, setCutoffEnd] = useState<Date | null>(new Date());
   const [payDate, setPayDate] = useState<Date | null>(new Date());
   const [selectedBranch, setSelectedBranch] = useState("");
-  const [branches, setBranches] = useState<Branch[]>([]);
+  const { data: branches = [] } = useActiveBranches();
 
   const [generating, setGenerating] = useState(false);
-
-  useEffect(() => {
-    getActiveBranches()
-      .then((data) => setBranches(data))
-      .catch(() => {});
-  }, []);
 
   const handleGenerate = async () => {
     if (!cutoffStart || !cutoffEnd || !payDate) {
