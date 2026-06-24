@@ -39,27 +39,20 @@ const addPayslipToQueue = async (payroll, employee) => {
 
 // Add multiple payslips to queue
 const addBulkPayslipsToQueue = async (payrolls) => {
-  const jobs = [];
-  let delay = 0;
+  const bulkData = payrolls.map((item) => ({
+    name: "send-payslip",
+    data: {
+      payroll: item.payroll,
+      employee: item.employee,
+    },
+    opts: {
+      delay: 0,
+    },
+  }));
 
-  for (const item of payrolls) {
-    const job = await payslipQueue.add(
-      "send-payslip",
-      {
-        payroll: item.payroll,
-        employee: item.employee,
-      },
-      {
-        delay: delay,
-      },
-    );
-    jobs.push(job);
-    delay += 1500;
-    console.log(
-      `📬 Added payslip for ${item.employee.email} to queue (Job ID: ${job.id})`,
-    );
-  }
+  const jobs = await payslipQueue.addBulk(bulkData);
 
+  console.log(`📬 Added ${jobs.length} payslips to queue via addBulk`);
   return jobs;
 };
 

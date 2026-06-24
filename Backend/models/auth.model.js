@@ -52,7 +52,16 @@ const findUserById = async (id) => {
   return result.rows[0];
 };
 
+const findPasswordHashByUsername = async (username) => {
+  const result = await pool.query(
+    "SELECT password_hash FROM users WHERE LOWER(username) = LOWER($1)",
+    [username],
+  );
+  return result.rows[0] || null;
+};
+
 module.exports = {
   findUserByUsername,
   findUserById,
+  findPasswordHashByUsername,
 };

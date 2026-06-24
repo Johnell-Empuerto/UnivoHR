@@ -4,8 +4,10 @@ const pool = require("./config/db");
 const port = 3002;
 const http = require("http");
 const server = http.createServer(app);
+server.timeout = Number(process.env.SERVER_TIMEOUT) || 120000;
 const cors = require("cors");
 const helmet = require("helmet");
+const compression = require("compression");
 
 const { initSocket } = require("./config/socket");
 
@@ -17,11 +19,16 @@ initSocket(server);
 app.use(helmet());
 
 // =====================
+// RESPONSE COMPRESSION
+// =====================
+app.use(compression());
+
+// =====================
 // CORS
 // =====================
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
-  : ["http://localhost:5173", "http://192.168.0.110:5173"];
+  : ["http://localhost:5173", "http://192.168.0.109:5173"];
 
 app.use(
   cors({
@@ -33,7 +40,8 @@ app.use(
 // =====================
 // BODY PARSER
 // =====================
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // =====================
 // HEALTH CHECK (public)
@@ -281,19 +289,19 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 // Graceful shutdown - clean up queues
-process.on("SIGTERM", async () => {
-  console.log("SIGTERM received, closing queues...");
-  await queueService.payslipQueue.close();
-  await deviceProcessingQueue.deviceProcessingQueue.close();
+const shutdown = async (signal) => {
+  console.log(`${signal} received, closing queues...`);
+  await Promise.allSettled([
+    queueService.payslipQueue.close(),
+    queueService.hrFormQueue.close(),
+    deviceProcessingQueue.deviceProcessingQueue.close(),
+  ]);
+  console.log("All queues closed. Exiting.");
   process.exit(0);
-});
+};
 
-process.on("SIGINT", async () => {
-  console.log("SIGINT received, closing queues...");
-  await queueService.payslipQueue.close();
-  await deviceProcessingQueue.deviceProcessingQueue.close();
-  process.exit(0);
-});
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
 
 // =====================
 // DB CONNECTION

@@ -16,10 +16,25 @@ const invalidateUserCache = async (username) => {
   await redisClient.del(key);
 };
 
+const SENSITIVE_FIELDS = [
+  "password_hash",
+  "password",
+  "reset_token",
+  "reset_token_expires",
+  "refresh_token",
+  "otp",
+  "otp_expires",
+  "otp_secret",
+];
+
 const cacheUserForLogin = async (username, user) => {
   const key = userCacheKey(username);
   if (!key || key === "user:" || !user) return;
-  await redisClient.setEx(key, USER_CACHE_TTL_SECONDS, JSON.stringify(user));
+  const safe = { ...user };
+  for (const field of SENSITIVE_FIELDS) {
+    delete safe[field];
+  }
+  await redisClient.setEx(key, USER_CACHE_TTL_SECONDS, JSON.stringify(safe));
 };
 
 module.exports = {

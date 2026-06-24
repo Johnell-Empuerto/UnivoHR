@@ -123,6 +123,10 @@ const login = async ({ username, password }, req) => {
   let user;
   if (cachedUser) {
     user = JSON.parse(cachedUser);
+    const pwUser = await authModel.findPasswordHashByUsername(normalizedUsername);
+    if (pwUser) {
+      user.password_hash = pwUser.password_hash;
+    }
   } else {
     user = await authModel.findUserByUsername(normalizedUsername);
   }
