@@ -4,7 +4,7 @@ import {
   attendance as attendanceApi,
   getAttendanceByEmployee,
 } from "@/services/attendanceService";
-import { getActiveBranches } from "@/services/branchService";
+import { useActiveBranches } from "@/hooks/useBranches";
 import {
   createTimeModificationRequest,
   getMyTimeModificationRequests,
@@ -92,7 +92,7 @@ const AttendancePage = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const formattedDate = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
   const [branchFilter, setBranchFilter] = useState("");
-  const [branches, setBranches] = useState<{ id: number; name: string }[]>([]);
+  const { data: branches = [] } = useActiveBranches();
 
   // ========== TIME REQUEST TAB STATE ==========
   const [activeTab, setActiveTab] = useState("attendance");
@@ -247,12 +247,6 @@ const AttendancePage = () => {
     setSelectedDate(new Date());
     setCurrentPage(1);
   };
-
-  useEffect(() => {
-    getActiveBranches()
-      .then((data) => setBranches(data))
-      .catch(() => {});
-  }, []);
 
   const activeFilterCount = [searchInput, statusFilter, branchFilter].filter(Boolean).length;
 
@@ -462,7 +456,7 @@ const AttendancePage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Branches</SelectItem>
-                    {branches.map((b) => (
+                    {branches.map((b: { id: number; name: string }) => (
                       <SelectItem key={b.id} value={String(b.id)}>
                         {b.name}
                       </SelectItem>
