@@ -5,7 +5,7 @@ import {
   updateJobPosition,
   deleteJobPosition,
 } from "@/services/jobPositionService";
-import { getActiveBranches } from "@/services/branchService";
+import { useActiveBranches } from "@/hooks/useBranches";
 import { getRecruitmentWorkflows } from "@/services/recruitmentWorkflowService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -54,12 +54,6 @@ interface JobPosition {
   created_at?: string;
 }
 
-interface Branch {
-  id: number;
-  name: string;
-  code: string;
-}
-
 interface RecruitmentWorkflow {
   id: number;
   name: string;
@@ -91,13 +85,12 @@ const JobPositionsPage = () => {
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
   const [saving, setSaving] = useState(false);
-  const [branches, setBranches] = useState<Branch[]>([]);
+  const { data: branches = [] } = useActiveBranches();
   const [workflows, setWorkflows] = useState<RecruitmentWorkflow[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<JobPosition | null>(null);
 
   useEffect(() => {
     fetchPositions();
-    getActiveBranches().then(setBranches).catch(() => {});
     getRecruitmentWorkflows().then((res) => setWorkflows(res.data || [])).catch(() => {});
   }, [page, pageSize, search, statusFilter]);
 
@@ -358,7 +351,7 @@ const JobPositionsPage = () => {
                     <SelectValue placeholder="Select branch" />
                   </SelectTrigger>
                   <SelectContent>
-                    {branches.map((b) => (
+                    {branches.map((b: { id: number; name: string; code?: string }) => (
                       <SelectItem key={b.id} value={String(b.id)}>{b.name} ({b.code})</SelectItem>
                     ))}
                   </SelectContent>
