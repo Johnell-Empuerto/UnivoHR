@@ -13,6 +13,16 @@ jobs:
     name: Run Backend Jest Tests
     runs-on: ubuntu-latest
 
+    env:
+      NODE_ENV: test
+      JWT_SECRET: test-jwt-secret
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: test
+      DB_PASSWORD: test
+      DB_NAME: test
+      DEVICE_API_KEY: test-device-key
+
     defaults:
       run:
         working-directory: Backend
