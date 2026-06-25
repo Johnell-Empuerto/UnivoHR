@@ -35,4 +35,4 @@ jobs:
         run: npx vite build
 
       - name: Check TypeScript (tsc)
-        run: npx tsc -b --noEmit || echo "WARN: tsc strict-mode errors exist (unused imports). See PHASE_4C1_FRONTEND_BUILD_CI_REPORT.md"
+        run: 'npx tsc -b --noEmit || echo "WARN: tsc strict-mode errors exist (unused imports). See PHASE_4C1_FRONTEND_BUILD_CI_REPORT.md"'
