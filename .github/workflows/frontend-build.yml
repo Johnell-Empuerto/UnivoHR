@@ -38,10 +38,10 @@ jobs:
         id: build
         run: |
           set +e
-          node ./node_modules/vite/bin/vite.js build
+          OUTPUT=$(node ./node_modules/vite/bin/vite.js build 2>&1)
           EXITCODE=$?
           if [ $EXITCODE -ne 0 ]; then
-            echo "::error::VITE BUILD FAILED WITH EXIT CODE $EXITCODE"
+            echo "::error::$OUTPUT"
             exit $EXITCODE
           fi
 
