@@ -27,7 +27,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: Frontend/package-lock.json
 
@@ -35,7 +35,18 @@ jobs:
         run: npm install
 
       - name: Build frontend (vite build)
-        run: node ./node_modules/vite/bin/vite.js build
+        id: build
+        run: |
+          node ./node_modules/vite/bin/vite.js build --debug 2>&1 | tee ${{ runner.temp }}/vite-build.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Upload vite build log
+        if: always() && steps.build.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vite-build-log-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/vite-build.log
 
       - name: Check TypeScript (tsc)
         run: 'npx tsc -b --noEmit || echo "WARN: tsc strict-mode errors exist (unused imports). See PHASE_4C1_FRONTEND_BUILD_CI_REPORT.md"'
