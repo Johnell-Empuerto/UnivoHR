@@ -151,7 +151,7 @@ const createLeave = async (req, res) => {
     // 🚀 OPTIMIZATION 2: Don't wait for notifications (fire and forget)
     // This makes the response INSTANT for the user
     Promise.all(notificationPromises).catch((error) => {
-      console.error("❌ Failed to send some notifications:", error);
+      console.error(" Failed to send some notifications:", error);
     });
 
     // 🚀 OPTIMIZATION 3: Send response IMMEDIATELY (don't wait for notifications)
@@ -160,13 +160,22 @@ const createLeave = async (req, res) => {
       table_name: "leaves",
       record_id: leave.id,
       employee_id: employeeId,
-      new_values: { employee_id: employeeId, type, from_date, to_date, reason, day_fraction, half_day_type: half_day_type ? half_day_type.toUpperCase() : null, status: "PENDING" },
+      new_values: {
+        employee_id: employeeId,
+        type,
+        from_date,
+        to_date,
+        reason,
+        day_fraction,
+        half_day_type: half_day_type ? half_day_type.toUpperCase() : null,
+        status: "PENDING",
+      },
       description: `Leave request created: ${type} from ${from_date} to ${to_date}`,
     });
 
     res.status(201).json(leave);
   } catch (error) {
-    console.error("❌ Create leave error:", error);
+    console.error(" Create leave error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -274,10 +283,8 @@ const updateStatus = async (req, res) => {
 
     const canApprove =
       isAssignedApprover.rows.length > 0 ||
-      (owner === ROLES.EMPLOYEE &&
-        [ROLES.ADMIN].includes(userRole)) ||
-      (owner === ROLES.EMPLOYEE &&
-        [ROLES.ADMIN].includes(userRole)) ||
+      (owner === ROLES.EMPLOYEE && [ROLES.ADMIN].includes(userRole)) ||
+      (owner === ROLES.EMPLOYEE && [ROLES.ADMIN].includes(userRole)) ||
       (owner === ROLES.ADMIN && userRole === ROLES.ADMIN);
 
     if (!canApprove) {

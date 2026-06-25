@@ -87,7 +87,11 @@ const NotificationsPage = () => {
         navigate("/attendance?tab=time-requests");
         break;
       case "PAYROLL":
-        if (notification.title.includes("Available") || notification.title.includes("Payslip") || notification.title.includes("Paid")) {
+        if (
+          notification.title.includes("Available") ||
+          notification.title.includes("Payslip") ||
+          notification.title.includes("Paid")
+        ) {
           navigate("/my-payroll");
         } else {
           navigate("/payroll");
@@ -101,7 +105,10 @@ const NotificationsPage = () => {
         }
         break;
       case "HR_FORM":
-        if (notification.title.includes("Submitted") || notification.title.includes("New")) {
+        if (
+          notification.title.includes("Submitted") ||
+          notification.title.includes("New")
+        ) {
           navigate("/hr-forms/assignments");
         } else {
           navigate("/hr-forms/my-assignments");
@@ -110,7 +117,10 @@ const NotificationsPage = () => {
       case "KPI_EVALUATION":
         if (notification.title === "Evaluation Submitted") {
           navigate("/kpi/evaluations");
-        } else if (!notification.meta?.employee_id || Number(user?.employee_id) === Number(notification.meta.employee_id)) {
+        } else if (
+          !notification.meta?.employee_id ||
+          Number(user?.employee_id) === Number(notification.meta.employee_id)
+        ) {
           navigate("/kpi/self-evaluation");
         } else {
           navigate("/kpi/my-evaluations");
@@ -206,20 +216,22 @@ const NotificationsPage = () => {
     }
     if (notification.type === "KPI_EVALUATION") {
       if (notification.title.includes("Assigned")) return "Evaluation Assigned";
-      if (notification.title.includes("Submitted")) return "Evaluation Submitted";
+      if (notification.title.includes("Submitted"))
+        return "Evaluation Submitted";
       if (notification.title.includes("Approved")) return "Evaluation Approved";
       if (notification.title.includes("Returned")) return "Evaluation Returned";
       return "Performance Update";
     }
     if (notification.type === "RECRUITMENT") {
       if (notification.title.includes("New")) return "New Applicant";
-      if (notification.title.includes("Interview")) return "Interview Scheduled";
+      if (notification.title.includes("Interview"))
+        return "Interview Scheduled";
       if (notification.title.includes("Approval")) return "Approval";
       if (notification.title.includes("Hired")) return "Applicant Hired";
       if (notification.title.includes("Updated")) return "Status Updated";
       return "Recruitment Update";
     }
-    return notification.title.replace(/[✅❌💰📋⏰]/g, "").trim();
+    return notification.title.replace(/[💰📋⏰]/g, "").trim();
   };
 
   const getTypeIcon = (type: string) => {
@@ -365,7 +377,10 @@ const NotificationsPage = () => {
                   totalItems={totalCount}
                   pageSize={pageSize}
                   onPageChange={(p) => setPage(p)}
-                  onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+                  onPageSizeChange={(size) => {
+                    setPageSize(size);
+                    setPage(1);
+                  }}
                 />
               )}
             </div>
@@ -377,4 +392,3 @@ const NotificationsPage = () => {
 };
 
 export default NotificationsPage;
-

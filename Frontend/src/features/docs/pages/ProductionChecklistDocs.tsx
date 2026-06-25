@@ -37,45 +37,42 @@ const ProductionChecklistDocs = () => (
           <div>
             <div className="flex items-center gap-2 mb-3">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <h3 className="font-semibold text-sm">
-                Pre-launch verification
-              </h3>
+              <h3 className="font-semibold text-sm">Pre-launch verification</h3>
             </div>
             <ul className="space-y-3 list-disc list-inside text-sm text-muted-foreground">
               <li className="leading-relaxed pl-1">
-                ✅ All Phase 1-5 setup is complete (branches, settings,
-                devices, employees, user accounts).
+                All Phase 1-5 setup is complete (branches, settings, devices,
+                employees, user accounts).
               </li>
               <li className="leading-relaxed pl-1">
-                ✅ SMTP and email templates configured — test email works.
+                SMTP and email templates configured — test email works.
               </li>
               <li className="leading-relaxed pl-1">
-                ✅ Attendance devices set up, user mapping done, and test
-                punches recorded successfully.
+                Attendance devices set up, user mapping done, and test punches
+                recorded successfully.
               </li>
               <li className="leading-relaxed pl-1">
-                ✅ Employee shifts and rest days assigned correctly.
+                Employee shifts and rest days assigned correctly.
               </li>
               <li className="leading-relaxed pl-1">
-                ✅ Pay rules and payroll rules configured according to
-                company policy.
+                Pay rules and payroll rules configured according to company
+                policy.
               </li>
               <li className="leading-relaxed pl-1">
-                ✅ Test payroll generated and verified for a sample cutoff
-                period.
+                Test payroll generated and verified for a sample cutoff period.
               </li>
               <li className="leading-relaxed pl-1">
-                ✅ SSL certificate installed — site accessible via HTTPS.
+                SSL certificate installed — site accessible via HTTPS.
               </li>
               <li className="leading-relaxed pl-1">
-                ✅ Database backups configured (daily automated).
+                Database backups configured (daily automated).
               </li>
               <li className="leading-relaxed pl-1">
-                ✅ User accounts created for all employees with correct
+                User accounts created for all employees with correct
                 permissions.
               </li>
               <li className="leading-relaxed pl-1">
-                ✅ HR policies published and visible to employees.
+                HR policies published and visible to employees.
               </li>
             </ul>
           </div>
@@ -105,8 +102,6 @@ const ProductionChecklistDocs = () => (
               </li>
             </ol>
           </div>
-
-          
         </CardContent>
       </Card>
     </section>

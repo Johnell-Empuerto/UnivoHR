@@ -772,7 +772,7 @@ const EmployeeDrawer = ({
 
                   {employee?.final_pay_processed && (
                     <div className="mt-2 p-2 bg-green-50 dark:bg-green-950/30 rounded">
-                      <Info label="Final Pay Processed" value="✅ Yes" />
+                      <Info label="Final Pay Processed" value=" Yes" />
                       {employee?.final_pay_date && (
                         <Info
                           label="Final Pay Date"

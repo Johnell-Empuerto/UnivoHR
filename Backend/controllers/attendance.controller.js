@@ -12,18 +12,26 @@ const createAttendance = async (req, res) => {
 
     if (result.id) {
       audit.auditLog(req, {
-        action: result.check_in_time && !result.check_out_time ? "INSERT" : "UPDATE",
+        action:
+          result.check_in_time && !result.check_out_time ? "INSERT" : "UPDATE",
         table_name: "attendance",
         record_id: result.id,
         employee_id: result.employee_id,
-        new_values: { employee_id: result.employee_id, check_in_time: result.check_in_time, check_out_time: result.check_out_time, date: result.date, status: result.status, work_fraction: result.work_fraction },
+        new_values: {
+          employee_id: result.employee_id,
+          check_in_time: result.check_in_time,
+          check_out_time: result.check_out_time,
+          date: result.date,
+          status: result.status,
+          work_fraction: result.work_fraction,
+        },
         description: `Attendance ${result.check_out_time ? "check-out" : "check-in"}: employee ${result.employee_id} on ${result.date}`,
       });
     }
 
     res.status(201).json(result);
   } catch (error) {
-    console.error("❌ ERROR:", error.message);
+    console.error(" ERROR:", error.message);
     res.status(500).json({ message: error.message });
   }
 };
@@ -86,8 +94,24 @@ const updateRules = async (req, res) => {
       action: "UPDATE",
       table_name: "attendance_rules",
       record_id: data.id,
-      old_values: oldRules ? { late_threshold: oldRules.late_threshold, grace_period: oldRules.grace_period, max_work_hours: oldRules.max_work_hours, late_deduction_type: oldRules.late_deduction_type, late_deduction_value: oldRules.late_deduction_value, late_deduction_enabled: oldRules.late_deduction_enabled } : null,
-      new_values: { late_threshold: data.late_threshold, grace_period: data.grace_period, max_work_hours: data.max_work_hours, late_deduction_type: data.late_deduction_type, late_deduction_value: data.late_deduction_value, late_deduction_enabled: data.late_deduction_enabled },
+      old_values: oldRules
+        ? {
+            late_threshold: oldRules.late_threshold,
+            grace_period: oldRules.grace_period,
+            max_work_hours: oldRules.max_work_hours,
+            late_deduction_type: oldRules.late_deduction_type,
+            late_deduction_value: oldRules.late_deduction_value,
+            late_deduction_enabled: oldRules.late_deduction_enabled,
+          }
+        : null,
+      new_values: {
+        late_threshold: data.late_threshold,
+        grace_period: data.grace_period,
+        max_work_hours: data.max_work_hours,
+        late_deduction_type: data.late_deduction_type,
+        late_deduction_value: data.late_deduction_value,
+        late_deduction_enabled: data.late_deduction_enabled,
+      },
       description: "Attendance rules updated",
     });
     res.json(data);
@@ -114,7 +138,15 @@ const createRule = async (req, res) => {
       action: "INSERT",
       table_name: "attendance_rules",
       record_id: data.id,
-      new_values: { late_threshold: data.late_threshold, grace_period: data.grace_period, max_work_hours: data.max_work_hours, late_deduction_type: data.late_deduction_type, late_deduction_value: data.late_deduction_value, late_deduction_enabled: data.late_deduction_enabled, is_active: data.is_active },
+      new_values: {
+        late_threshold: data.late_threshold,
+        grace_period: data.grace_period,
+        max_work_hours: data.max_work_hours,
+        late_deduction_type: data.late_deduction_type,
+        late_deduction_value: data.late_deduction_value,
+        late_deduction_enabled: data.late_deduction_enabled,
+        is_active: data.is_active,
+      },
       description: "New attendance rule created",
     });
     res.json(data);
@@ -143,13 +175,23 @@ const setActiveRule = async (req, res) => {
 //  DELETE
 const deleteRule = async (req, res) => {
   try {
-    const oldValues = await audit.fetchOldValues("attendance_rules", req.params.id);
+    const oldValues = await audit.fetchOldValues(
+      "attendance_rules",
+      req.params.id,
+    );
     const data = await rulesService.deleteRule(req.params.id);
     audit.auditLog(req, {
       action: "DELETE",
       table_name: "attendance_rules",
       record_id: Number(req.params.id),
-      old_values: oldValues ? { late_threshold: oldValues.late_threshold, grace_period: oldValues.grace_period, max_work_hours: oldValues.max_work_hours, is_active: oldValues.is_active } : null,
+      old_values: oldValues
+        ? {
+            late_threshold: oldValues.late_threshold,
+            grace_period: oldValues.grace_period,
+            max_work_hours: oldValues.max_work_hours,
+            is_active: oldValues.is_active,
+          }
+        : null,
       description: `Attendance rule ${req.params.id} deleted`,
     });
     res.json(data);
@@ -160,14 +202,35 @@ const deleteRule = async (req, res) => {
 
 const updateRule = async (req, res) => {
   try {
-    const oldValues = await audit.fetchOldValues("attendance_rules", req.params.id);
+    const oldValues = await audit.fetchOldValues(
+      "attendance_rules",
+      req.params.id,
+    );
     const data = await rulesService.updateRule(req.params.id, req.body);
     audit.auditLog(req, {
       action: "UPDATE",
       table_name: "attendance_rules",
       record_id: Number(req.params.id),
-      old_values: oldValues ? { late_threshold: oldValues.late_threshold, grace_period: oldValues.grace_period, max_work_hours: oldValues.max_work_hours, late_deduction_type: oldValues.late_deduction_type, late_deduction_value: oldValues.late_deduction_value, late_deduction_enabled: oldValues.late_deduction_enabled, is_active: oldValues.is_active } : null,
-      new_values: { late_threshold: data.late_threshold, grace_period: data.grace_period, max_work_hours: data.max_work_hours, late_deduction_type: data.late_deduction_type, late_deduction_value: data.late_deduction_value, late_deduction_enabled: data.late_deduction_enabled, is_active: data.is_active },
+      old_values: oldValues
+        ? {
+            late_threshold: oldValues.late_threshold,
+            grace_period: oldValues.grace_period,
+            max_work_hours: oldValues.max_work_hours,
+            late_deduction_type: oldValues.late_deduction_type,
+            late_deduction_value: oldValues.late_deduction_value,
+            late_deduction_enabled: oldValues.late_deduction_enabled,
+            is_active: oldValues.is_active,
+          }
+        : null,
+      new_values: {
+        late_threshold: data.late_threshold,
+        grace_period: data.grace_period,
+        max_work_hours: data.max_work_hours,
+        late_deduction_type: data.late_deduction_type,
+        late_deduction_value: data.late_deduction_value,
+        late_deduction_enabled: data.late_deduction_enabled,
+        is_active: data.is_active,
+      },
       description: `Attendance rule ${req.params.id} updated`,
     });
     res.json(data);
@@ -238,7 +301,13 @@ const createTimeModificationRequest = async (req, res) => {
       table_name: "time_modification_requests",
       record_id: request.id,
       employee_id: employeeId,
-      new_values: { employee_id: employeeId, attendance_id, requested_check_in, requested_check_out, reason },
+      new_values: {
+        employee_id: employeeId,
+        attendance_id,
+        requested_check_in,
+        requested_check_out,
+        reason,
+      },
       description: `Time modification request created for attendance ${attendance_id}`,
     });
 
@@ -366,7 +435,8 @@ const updateTimeModificationStatus = async (req, res) => {
 
     if (!userIsAdmin && hasApprovePermission.rows.length === 0) {
       return res.status(403).json({
-        message: "You are not allowed to approve/reject this time modification request",
+        message:
+          "You are not allowed to approve/reject this time modification request",
       });
     }
 
@@ -383,7 +453,12 @@ const updateTimeModificationStatus = async (req, res) => {
       table_name: "time_modification_requests",
       record_id: Number(id),
       employee_id: request.employee_id,
-      new_values: { status, reviewed_by: userId, reviewed_at: new Date().toISOString(), rejection_reason: rejection_reason || null },
+      new_values: {
+        status,
+        reviewed_by: userId,
+        reviewed_at: new Date().toISOString(),
+        rejection_reason: rejection_reason || null,
+      },
       description: `Time modification request ${id} ${status.toLowerCase()}${rejection_reason ? `: ${rejection_reason}` : ""}`,
     });
 
@@ -419,7 +494,9 @@ const updateTimeModificationStatus = async (req, res) => {
 // WEB CLOCK IN — employee self-service
 const webClockIn = async (req, res) => {
   try {
-    const isEnabled = await settingService.getBoolSetting("enable_web_clock_in_out");
+    const isEnabled = await settingService.getBoolSetting(
+      "enable_web_clock_in_out",
+    );
     if (!isEnabled) {
       return res.status(403).json({
         message: "Web clock-in/out is currently disabled by administrator.",
@@ -428,7 +505,9 @@ const webClockIn = async (req, res) => {
 
     const employeeId = req.user.employee_id;
     const timezone = await timezoneResolver.resolveEmployeeTimezone(employeeId);
-    const timestamp = new Date().toLocaleString('sv-SE', { timeZone: timezone }).replace(' ', 'T');
+    const timestamp = new Date()
+      .toLocaleString("sv-SE", { timeZone: timezone })
+      .replace(" ", "T");
 
     const result = await attendanceService.webClockIn(employeeId, timestamp);
 
@@ -437,7 +516,12 @@ const webClockIn = async (req, res) => {
       table_name: "attendance",
       record_id: result.id,
       employee_id: employeeId,
-      new_values: { employee_id: employeeId, check_in_time: result.check_in_time, date: result.date, source: "WEB" },
+      new_values: {
+        employee_id: employeeId,
+        check_in_time: result.check_in_time,
+        date: result.date,
+        source: "WEB",
+      },
       description: `Web clock-in: employee ${employeeId} at ${result.check_in_time}`,
     });
 
@@ -454,7 +538,9 @@ const webClockIn = async (req, res) => {
 // WEB CLOCK OUT — employee self-service
 const webClockOut = async (req, res) => {
   try {
-    const isEnabled = await settingService.getBoolSetting("enable_web_clock_in_out");
+    const isEnabled = await settingService.getBoolSetting(
+      "enable_web_clock_in_out",
+    );
     if (!isEnabled) {
       return res.status(403).json({
         message: "Web clock-in/out is currently disabled by administrator.",
@@ -463,8 +549,14 @@ const webClockOut = async (req, res) => {
 
     const employeeId = req.user.employee_id;
     const timezone = await timezoneResolver.resolveEmployeeTimezone(employeeId);
-    const timestamp = new Date().toLocaleString('sv-SE', { timeZone: timezone }).replace(' ', 'T');
-    const existingRecord = await attendanceModel.getTodayRecord(employeeId, timestamp, timezone);
+    const timestamp = new Date()
+      .toLocaleString("sv-SE", { timeZone: timezone })
+      .replace(" ", "T");
+    const existingRecord = await attendanceModel.getTodayRecord(
+      employeeId,
+      timestamp,
+      timezone,
+    );
 
     const result = await attendanceService.webClockOut(employeeId, timestamp);
 
@@ -473,7 +565,11 @@ const webClockOut = async (req, res) => {
       table_name: "attendance",
       record_id: result.id,
       employee_id: employeeId,
-      new_values: { employee_id: employeeId, check_out_time: result.check_out_time, date: result.date },
+      new_values: {
+        employee_id: employeeId,
+        check_out_time: result.check_out_time,
+        date: result.date,
+      },
       description: `Web clock-out: employee ${employeeId} at ${result.check_out_time}`,
     });
 

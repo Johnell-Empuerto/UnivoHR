@@ -119,7 +119,7 @@ table {
   --input: oklch(1 0 0 / 35%);
   --ring: oklch(0.556 0 0);
 
-  /* 🔥 Dark mode chart colors - bright and visible */
+  /*  Dark mode chart colors - bright and visible */
   --chart-1: 199 89% 48%; /* Bright Cyan/Blue */
   --chart-2: 142 71% 45%; /* Bright Green */
   --chart-3: 0 84% 60%; /* Bright Red */
@@ -148,7 +148,7 @@ table {
   }
 }
 
-/* 🔥 Additional styles for charts in dark mode */
+/*  Additional styles for charts in dark mode */
 .dark .recharts-cartesian-grid-horizontal line,
 .dark .recharts-cartesian-grid-vertical line {
   stroke: rgba(255, 255, 255, 0.1);

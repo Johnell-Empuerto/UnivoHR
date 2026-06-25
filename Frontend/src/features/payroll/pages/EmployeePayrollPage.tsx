@@ -68,7 +68,7 @@ const formatDeductionLabel = (type: string) => {
   }
 };
 
-// 🔥 Currency formatter
+//  Currency formatter
 const formatCurrency = (value: number) => {
   return Number(value || 0).toLocaleString("en-PH", {
     minimumFractionDigits: 2,
@@ -485,7 +485,8 @@ const EmployeePayrollPage = () => {
                     <div className="flex justify-between text-indigo-600">
                       <span>Night Differential Pay</span>
                       <span>
-                        +₱{formatCurrency(selectedRecord.night_differential_pay)}
+                        +₱
+                        {formatCurrency(selectedRecord.night_differential_pay)}
                       </span>
                     </div>
                   )}
@@ -517,7 +518,8 @@ const EmployeePayrollPage = () => {
                 )}
                 {selectedRecord.absent_deduction > 0 && (
                   <p className="text-xs text-muted-foreground italic">
-                    Already reflected through prorated basic pay — not deducted again
+                    Already reflected through prorated basic pay — not deducted
+                    again
                   </p>
                 )}
 

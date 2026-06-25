@@ -47,7 +47,10 @@ const Users = () => {
   const [totalRecords, setTotalRecords] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<{id: number, username: string} | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: number;
+    username: string;
+  } | null>(null);
 
   // Drawer states
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -131,12 +134,7 @@ const Users = () => {
     try {
       await deleteUser(deleteTarget.id);
       toast.success("User deleted successfully");
-      const res = await getUsers(
-        currentPage,
-        rowsPerPage,
-        search,
-        roleFilter,
-      );
+      const res = await getUsers(currentPage, rowsPerPage, search, roleFilter);
       setData(res.data);
       setTotalPages(res.pagination.totalPages);
       setTotalRecords(res.pagination.total);
@@ -148,11 +146,11 @@ const Users = () => {
     }
   };
 
-  // ✅ FIXED: Proper handleSubmit with API calls
+  //  FIXED: Proper handleSubmit with API calls
   const handleSubmit = async (formData: any) => {
     try {
       if (mode === "create") {
-        // 🔥 CREATE USER - API CALL
+        //  CREATE USER - API CALL
         await createUser({
           username: formData.username,
           password: formData.password,
@@ -168,7 +166,7 @@ const Users = () => {
         setTotalPages(res.pagination.totalPages);
         setTotalRecords(res.pagination.total);
       } else {
-        // 🔥 UPDATE USER - API CALL
+        //  UPDATE USER - API CALL
         if (editingUser) {
           await updateUser(editingUser.id, {
             username: formData.username,
@@ -243,8 +241,8 @@ const Users = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
-                    <SelectItem value="EMPLOYEE">Employee</SelectItem>
+                <SelectItem value="ADMIN">Admin</SelectItem>
+                <SelectItem value="EMPLOYEE">Employee</SelectItem>
               </SelectContent>
             </Select>
 
@@ -296,12 +294,16 @@ const Users = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete user "{deleteTarget?.username}"? This action cannot be undone.
+              Are you sure you want to delete user "{deleteTarget?.username}"?
+              This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleConfirmDelete}>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleConfirmDelete}
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

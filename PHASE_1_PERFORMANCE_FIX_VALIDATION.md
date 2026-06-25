@@ -2,16 +2,16 @@
 
 ## Files Reviewed
 
-| File | Change | Status |
-|------|--------|--------|
-| `Backend/index.js` | Compression, body limits, server timeout, graceful shutdown | ✅ Validated |
-| `Backend/config/db.js` | Pool config (max, idle, connection timeout, error handler) | ✅ Validated |
-| `Backend/services/queue.service.js` | `addBulk()` replaces sequential loop | ✅ Validated |
-| `Backend/services/userCache.service.js` | Sensitive field stripping before Redis cache | ✅ Validated |
-| `Backend/models/auth.model.js` | New `findPasswordHashByUsername()` (lightweight query) | ✅ Validated |
-| `Backend/services/auth.service.js` | Re-fetch password_hash from DB on cache hit | ✅ Validated (regression fix) |
-| `Backend/package.json` | Added `compression` dependency | ✅ Validated |
-| `Backend/package-lock.json` | Auto-updated by npm install | ✅ Validated |
+| File                                    | Change                                                      | Status                     |
+| --------------------------------------- | ----------------------------------------------------------- | -------------------------- |
+| `Backend/index.js`                      | Compression, body limits, server timeout, graceful shutdown | Validated                  |
+| `Backend/config/db.js`                  | Pool config (max, idle, connection timeout, error handler)  | Validated                  |
+| `Backend/services/queue.service.js`     | `addBulk()` replaces sequential loop                        | Validated                  |
+| `Backend/services/userCache.service.js` | Sensitive field stripping before Redis cache                | Validated                  |
+| `Backend/models/auth.model.js`          | New `findPasswordHashByUsername()` (lightweight query)      | Validated                  |
+| `Backend/services/auth.service.js`      | Re-fetch password_hash from DB on cache hit                 | Validated (regression fix) |
+| `Backend/package.json`                  | Added `compression` dependency                              | Validated                  |
+| `Backend/package-lock.json`             | Auto-updated by npm install                                 | Validated                  |
 
 ## Issues Found and Fixed
 
@@ -28,41 +28,49 @@
 ## Validation Results
 
 ### Syntax Checks
+
 All 6 modified `.js` files pass `node -c` syntax validation.
 
 ### Dependency Verification
+
 - `compression@1.8.1` installed (required `^1.7.4`)
 - `bull@4.16.5` — `addBulk()` supported since Bull v3.x
 
 ### Runtime Safety
 
 #### Compression middleware
+
 - Placed after `helmet()` — compresses responses after security headers set
 - No known compatibility issues with Socket.IO or streaming
 
 #### Request body limits (10mb)
-- >= payload size of any existing JSON/urlencoded endpoint
+
+- > = payload size of any existing JSON/urlencoded endpoint
 - File uploads handled by multer (own limits); not affected
 - Prevents memory exhaustion from oversized payloads
 
 #### DB pool config
+
 - `max: 25` — safe increase from default (10); pg has no connection overhead issues
 - `idleTimeoutMillis: 30000` — closes idle connections after 30s
 - `connectionTimeoutMillis: 10000` — fails fast on DB unavailability
 - All env-configurable with `parseInt` + `||` fallback (NaN-safe)
 
 #### Server timeout (120s)
+
 - Sets idle keep-alive timeout, NOT request processing timeout
 - Socket.IO handles own keepalive (ping/pong at 25s intervals); no interference
 - Background queue workers (payslip, etc.) unaffected — run independently
 
 #### Queue `addBulk()`
+
 - Same queue: `payslip-emails`, job name: `send-payslip`, same data shape — no consumer changes needed
 - `delay: 0` (was 1.5s cumulative stagger per job) — eliminates 25min delay for 1000-job batch
 - Worker concurrency: 1 (default) — jobs still processed sequentially, no stampede
 - `addBulk()` is atomic — single Redis multi/exec; no partial-failure hazard
 
 #### User cache security
+
 - `SENSITIVE_FIELDS`: `password_hash`, `password`, `reset_token`, `reset_token_expires`, `refresh_token`, `otp`, `otp_expires`, `otp_secret`
 - Stripped via `delete` on spread copy (`const safe = { ...user }`) — original never mutated
 - Auth flow: `password_hash` re-fetched from DB on cache hit (see Issue #1)
@@ -70,6 +78,7 @@ All 6 modified `.js` files pass `node -c` syntax validation.
 - `invalidateUserCache()` (called on password/username change) clears Redis key immediately — no stale data
 
 #### Graceful shutdown
+
 - `Promise.allSettled` — one failing queue close doesn't block others
 - Closes all 3 queues: `payslipQueue`, `hrFormQueue`, `deviceProcessingQueue`
 - `process.exit(0)` only after all close promises settle — no force-exit
@@ -80,6 +89,7 @@ All 6 modified `.js` files pass `node -c` syntax validation.
 **All 7 fixes are safe and ready for commit.** One critical regression (password_hash missing on cache hit) was identified and fixed during validation. No other regressions found.
 
 ### git add / commit ready
+
 ```
 git add Backend/index.js Backend/config/db.js Backend/services/queue.service.js Backend/services/userCache.service.js Backend/services/auth.service.js Backend/models/auth.model.js Backend/package.json Backend/package-lock.json
 git commit -m "perf(phase1): implement 7 performance fixes with security and stability improvements
@@ -95,6 +105,7 @@ git commit -m "perf(phase1): implement 7 performance fixes with security and sta
 ```
 
 ## Uncommitted files (NOT part of Phase 1)
+
 - `Backend/config/socket.js` — pre-existing unrelated change
 - `Backend/database/backup_pre_cleanup_20260529_155453.sql` — pre-existing
 - `Backend/database/backups/backup_before_full_fresh_start_20260617_1503.sql` — pre-existing

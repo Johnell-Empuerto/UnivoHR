@@ -92,7 +92,10 @@ const NotificationDropdown = () => {
         return "/attendance?tab=time-requests";
 
       case "PAYROLL":
-        if (notification.title.includes("Available") || notification.title.includes("Payslip")) {
+        if (
+          notification.title.includes("Available") ||
+          notification.title.includes("Payslip")
+        ) {
           return "/my-payroll";
         }
         if (notification.title.includes("Paid") && !canManage) {
@@ -120,7 +123,10 @@ const NotificationDropdown = () => {
         if (notification.title === "Evaluation Submitted") {
           return "/kpi/evaluations";
         }
-        if (!notification.meta?.employee_id || (Number(user?.employee_id) === Number(notification.meta.employee_id))) {
+        if (
+          !notification.meta?.employee_id ||
+          Number(user?.employee_id) === Number(notification.meta.employee_id)
+        ) {
           return "/kpi/self-evaluation";
         }
         return "/kpi/my-evaluations";
@@ -340,20 +346,22 @@ const NotificationDropdown = () => {
     }
     if (notification.type === "KPI_EVALUATION") {
       if (notification.title.includes("Assigned")) return "Evaluation Assigned";
-      if (notification.title.includes("Submitted")) return "Evaluation Submitted";
+      if (notification.title.includes("Submitted"))
+        return "Evaluation Submitted";
       if (notification.title.includes("Approved")) return "Evaluation Approved";
       if (notification.title.includes("Returned")) return "Evaluation Returned";
       return "Performance Update";
     }
     if (notification.type === "RECRUITMENT") {
       if (notification.title.includes("New")) return "New Applicant";
-      if (notification.title.includes("Interview")) return "Interview Scheduled";
+      if (notification.title.includes("Interview"))
+        return "Interview Scheduled";
       if (notification.title.includes("Approval")) return "Approval";
       if (notification.title.includes("Hired")) return "Applicant Hired";
       if (notification.title.includes("Updated")) return "Status Updated";
       return "Recruitment Update";
     }
-    return notification.title.replace(/[✅❌💰📋⏰]/g, "").trim();
+    return notification.title.replace(/[💰📋⏰]/g, "").trim();
   };
 
   const getTypeIcon = (type: string) => {

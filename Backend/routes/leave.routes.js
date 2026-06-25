@@ -25,10 +25,10 @@ const leaveSchema = Joi.object({
 
   reason: Joi.string().optional().allow(""),
 
-  // ✅ ADD THIS
+  //  ADD THIS
   day_fraction: Joi.number().valid(0.5, 1).default(1),
 
-  // ✅ ADD THIS (SMART VALIDATION)
+  //  ADD THIS (SMART VALIDATION)
   half_day_type: Joi.when("day_fraction", {
     is: 0.5,
     then: Joi.string().valid("MORNING", "AFTERNOON").required(),
@@ -75,73 +75,94 @@ router.get("/approvers", authenticate, canAccessLeaveApprovers, (req, res) => {
 });
 
 // CREATE LEAVE
-router.post("/", authenticate, requirePermission("leave.view"), validate(leaveSchema), controller.createLeave);
+router.post(
+  "/",
+  authenticate,
+  requirePermission("leave.view"),
+  validate(leaveSchema),
+  controller.createLeave,
+);
 
 // MY LEAVES
-router.get("/my", authenticate, requirePermission("leave.view"), controller.getMyLeaves);
+router.get(
+  "/my",
+  authenticate,
+  requirePermission("leave.view"),
+  controller.getMyLeaves,
+);
 
 // VIEW ALL LEAVES (+ approvers)
-router.get("/", authenticate, async (req, res, next) => {
-  const role = req.user.role;
-  if (HR_ACCESS.includes(role)) return next();
+router.get(
+  "/",
+  authenticate,
+  async (req, res, next) => {
+    const role = req.user.role;
+    if (HR_ACCESS.includes(role)) return next();
 
-  try {
-    const pool = require("../config/db");
-    const result = await pool.query(
-      `SELECT EXISTS (
+    try {
+      const pool = require("../config/db");
+      const result = await pool.query(
+        `SELECT EXISTS (
         SELECT 1 FROM employee_approvers 
         WHERE approver_id = $1 
         AND (approval_type = 'LEAVE' OR approval_type = 'ALL')
         LIMIT 1
       ) as is_leave_approver`,
-      [req.user.id],
-    );
-    if (result.rows[0].is_leave_approver) return next();
-  } catch (error) {
-    console.error("Error checking leave approver status:", error);
-  }
-
-  return res.status(403).json({
-    message: "Forbidden: Insufficient permissions",
-    required: HR_ACCESS,
-    yourRole: req.user.role,
-  });
-}, controller.getLeaves);
-
-// APPROVE / REJECT
-router.put("/:id/status", authenticate, async (req, res, next) => {
-  const role = req.user.role;
-  if (HR_ACCESS.includes(role)) return next();
-
-  try {
-    const leaveId = req.params.id;
-    const pool = require("../config/db");
-    const leaveResult = await pool.query(
-      `SELECT employee_id FROM leaves WHERE id = $1`,
-      [leaveId],
-    );
-    if (leaveResult.rows.length === 0) {
-      return res.status(404).json({ message: "Leave not found" });
+        [req.user.id],
+      );
+      if (result.rows[0].is_leave_approver) return next();
+    } catch (error) {
+      console.error("Error checking leave approver status:", error);
     }
 
-    const employeeId = leaveResult.rows[0].employee_id;
-    const approverResult = await pool.query(
-      `SELECT 1 FROM employee_approvers 
+    return res.status(403).json({
+      message: "Forbidden: Insufficient permissions",
+      required: HR_ACCESS,
+      yourRole: req.user.role,
+    });
+  },
+  controller.getLeaves,
+);
+
+// APPROVE / REJECT
+router.put(
+  "/:id/status",
+  authenticate,
+  async (req, res, next) => {
+    const role = req.user.role;
+    if (HR_ACCESS.includes(role)) return next();
+
+    try {
+      const leaveId = req.params.id;
+      const pool = require("../config/db");
+      const leaveResult = await pool.query(
+        `SELECT employee_id FROM leaves WHERE id = $1`,
+        [leaveId],
+      );
+      if (leaveResult.rows.length === 0) {
+        return res.status(404).json({ message: "Leave not found" });
+      }
+
+      const employeeId = leaveResult.rows[0].employee_id;
+      const approverResult = await pool.query(
+        `SELECT 1 FROM employee_approvers 
        WHERE employee_id = $1 
        AND approver_id = $2 
        AND (approval_type = 'LEAVE' OR approval_type = 'ALL')
        LIMIT 1`,
-      [employeeId, req.user.id],
-    );
-    if (approverResult.rows.length > 0) return next();
-  } catch (error) {
-    console.error("Error checking leave approver status:", error);
-  }
+        [employeeId, req.user.id],
+      );
+      if (approverResult.rows.length > 0) return next();
+    } catch (error) {
+      console.error("Error checking leave approver status:", error);
+    }
 
-  return res.status(403).json({
-    message: "You are not allowed to approve this leave request",
-  });
-}, controller.updateStatus);
+    return res.status(403).json({
+      message: "You are not allowed to approve this leave request",
+    });
+  },
+  controller.updateStatus,
+);
 
 // ENABLED LEAVE TYPES (for dynamic dropdown)
 router.get("/leave-types", authenticate, async (req, res) => {
@@ -162,19 +183,42 @@ router.get("/leave-types", authenticate, async (req, res) => {
 });
 
 // MY CREDITS
-router.get("/credits", authenticate, requirePermission("leave.view"), leaveCreditController.getMyCredits);
+router.get(
+  "/credits",
+  authenticate,
+  requirePermission("leave.view"),
+  leaveCreditController.getMyCredits,
+);
 
 // CREDITS MANAGEMENT
-router.get("/credits/all", authenticate, requirePermission("leave.manage"), leaveCreditController.getAllCredits);
-router.get("/credits/:employeeId", authenticate, requirePermission("leave.manage"), leaveCreditController.getEmployeeCredits);
-router.put("/credits/:employeeId", authenticate, requirePermission("leave.manage"), leaveCreditController.updateCredits);
+router.get(
+  "/credits/all",
+  authenticate,
+  requirePermission("leave.manage"),
+  leaveCreditController.getAllCredits,
+);
+router.get(
+  "/credits/:employeeId",
+  authenticate,
+  requirePermission("leave.manage"),
+  leaveCreditController.getEmployeeCredits,
+);
+router.put(
+  "/credits/:employeeId",
+  authenticate,
+  requirePermission("leave.manage"),
+  leaveCreditController.updateCredits,
+);
 
 // ==========================================
 // LEAVE TYPE MANAGEMENT (Admin/Settings)
 // ==========================================
 
 const leaveTypeSchema = Joi.object({
-  code: Joi.string().pattern(/^[A-Z][A-Z_ -]*[A-Z]$/).max(20).required(),
+  code: Joi.string()
+    .pattern(/^[A-Z][A-Z_ -]*[A-Z]$/)
+    .max(20)
+    .required(),
   name: Joi.string().max(50).required(),
   description: Joi.string().allow(null, "").optional(),
   is_enabled: Joi.boolean().optional(),
@@ -195,7 +239,10 @@ const leaveTypeSchema = Joi.object({
 });
 
 const leaveTypeUpdateSchema = Joi.object({
-  code: Joi.string().pattern(/^[A-Z][A-Z_ -]*[A-Z]$/).max(20).optional(),
+  code: Joi.string()
+    .pattern(/^[A-Z][A-Z_ -]*[A-Z]$/)
+    .max(20)
+    .optional(),
   name: Joi.string().max(50).optional(),
   description: Joi.string().allow(null, "").optional(),
   is_enabled: Joi.boolean().optional(),
@@ -216,14 +263,41 @@ const leaveTypeUpdateSchema = Joi.object({
 });
 
 // All leave types (including disabled) — admin only
-router.get("/leave-types/all", authenticate, requirePermission("leave.manage"), leaveTypeController.getAll);
+router.get(
+  "/leave-types/all",
+  authenticate,
+  requirePermission("leave.manage"),
+  leaveTypeController.getAll,
+);
 // Create leave type
-router.post("/leave-types", authenticate, requirePermission("leave.manage"), validate(leaveTypeSchema), leaveTypeController.create);
+router.post(
+  "/leave-types",
+  authenticate,
+  requirePermission("leave.manage"),
+  validate(leaveTypeSchema),
+  leaveTypeController.create,
+);
 // Update leave type
-router.put("/leave-types/:id", authenticate, requirePermission("leave.manage"), validate(leaveTypeUpdateSchema), leaveTypeController.update);
+router.put(
+  "/leave-types/:id",
+  authenticate,
+  requirePermission("leave.manage"),
+  validate(leaveTypeUpdateSchema),
+  leaveTypeController.update,
+);
 // Toggle enabled
-router.patch("/leave-types/:id/toggle", authenticate, requirePermission("leave.manage"), leaveTypeController.toggleEnabled);
+router.patch(
+  "/leave-types/:id/toggle",
+  authenticate,
+  requirePermission("leave.manage"),
+  leaveTypeController.toggleEnabled,
+);
 // Soft delete (disable)
-router.delete("/leave-types/:id", authenticate, requirePermission("leave.manage"), leaveTypeController.remove);
+router.delete(
+  "/leave-types/:id",
+  authenticate,
+  requirePermission("leave.manage"),
+  leaveTypeController.remove,
+);
 
 module.exports = router;

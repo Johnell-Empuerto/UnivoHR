@@ -10,14 +10,14 @@
 --   per-employee, per-year, per-type balances.
 --
 -- Prerequisites (verified before creating this migration):
---   ✅ Zero `leave_credits` references in backend source code
---   ✅ Payroll uses employee_leave_balances
---   ✅ Reports use employee_leave_balances
---   ✅ Final Pay uses employee_leave_balances
---   ✅ Leave Management uses employee_leave_balances
---   ✅ All syntax checks pass
---   ✅ Runtime tests pass (VL convertible, CL non-convertible, CL convertible)
---   ✅ leave_credits row count unchanged (no writes during tests)
+--    Zero `leave_credits` references in backend source code
+--    Payroll uses employee_leave_balances
+--    Reports use employee_leave_balances
+--    Final Pay uses employee_leave_balances
+--    Leave Management uses employee_leave_balances
+--    All syntax checks pass
+--    Runtime tests pass (VL convertible, CL non-convertible, CL convertible)
+--    leave_credits row count unchanged (no writes during tests)
 --
 -- Steps:
 --   1. Back up old data to leave_credits_backup_before_drop

@@ -6,8 +6,8 @@ Converted all 93 page-level route components from static/eager imports to `React
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
+| File                                 | Change                                                                                     |
+| ------------------------------------ | ------------------------------------------------------------------------------------------ |
 | `Frontend/src/app/routes/routes.tsx` | 93 imports converted to `lazy()`, `withSuspense` wrapper added, all route elements wrapped |
 
 ## What Was Lazy-Loaded
@@ -51,20 +51,21 @@ All page-level route components — 93 total:
 
 ## Route Behavior Preservation
 
-| Property | Status |
-|----------|--------|
-| All route paths | ✅ Unchanged (verified via diff) |
-| Auth guards (`isAuth`) | ✅ Unchanged |
-| Permission checks (`hasPermission(...)`) | ✅ Unchanged |
-| Role checks (`user?.employee_id`) | ✅ Unchanged |
-| Conditional routing (`canAccessOvertime`, etc.) | ✅ Unchanged |
-| Navigate redirects on auth failure | ✅ Unchanged |
-| Route nesting (docs layout) | ✅ Unchanged |
-| AppLayout wrapping | ✅ Unchanged |
+| Property                                        | Status                        |
+| ----------------------------------------------- | ----------------------------- |
+| All route paths                                 | Unchanged (verified via diff) |
+| Auth guards (`isAuth`)                          | Unchanged                     |
+| Permission checks (`hasPermission(...)`)        | Unchanged                     |
+| Role checks (`user?.employee_id`)               | Unchanged                     |
+| Conditional routing (`canAccessOvertime`, etc.) | Unchanged                     |
+| Navigate redirects on auth failure              | Unchanged                     |
+| Route nesting (docs layout)                     | Unchanged                     |
+| AppLayout wrapping                              | Unchanged                     |
 
 ## Implementation Details
 
 ### Import Changes
+
 - Added `lazy, Suspense` to the React import
 - Added `import Loader` from existing shared component
 - Created `withSuspense` helper:
@@ -77,20 +78,23 @@ All page-level route components — 93 total:
 - Wraps all lazy component usage: `withSuspense(<X />)`
 
 ### Boundary Strategy
+
 - Each lazy route is individually wrapped with `withSuspense` rather than wrapping the entire `<Routes>` block. This ensures that navigating between routes shows a loading spinner specific to that route, rather than a full app re-suspense.
 
 ### Existing Loader Component
+
 - Used `Loader` from `@/components/shared/Loader` with `fullPage` prop — provides centered `Loader2` spinner animation consistent with the app's design.
 
 ## Validation Commands and Results
 
-| Command | Result |
-|---------|--------|
-| `npx tsc --noEmit --pretty` | ✅ Zero errors |
-| `npm run build` (tsc -b && vite build) | ⚠️ Build fails due to **773 pre-existing** TypeScript errors across unrelated files — zero errors from routes.tsx |
-| Lint (`npx eslint src/app/routes/routes.tsx`) | ✅ 0 new errors — 1 pre-existing unused catch variable (`'error'` on line 152) |
+| Command                                       | Result                                                                                                            |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `npx tsc --noEmit --pretty`                   | Zero errors                                                                                                       |
+| `npm run build` (tsc -b && vite build)        | ⚠️ Build fails due to **773 pre-existing** TypeScript errors across unrelated files — zero errors from routes.tsx |
+| Lint (`npx eslint src/app/routes/routes.tsx`) | 0 new errors — 1 pre-existing unused catch variable (`'error'` on line 152)                                       |
 
 ### Pre-existing Build Errors (not caused by this change)
+
 - Unused imports in docs pages (46 files)
 - Type mismatches in attendance, profile, recruitment, kpi, hr-forms
 - Unused variables across multiple feature components

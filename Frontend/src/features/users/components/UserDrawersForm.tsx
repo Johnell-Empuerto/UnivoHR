@@ -216,7 +216,7 @@ const UserDrawerForm = ({
                   </SelectContent>
                 </Select>
 
-                {/* ✅ Show helpful message when no employees available */}
+                {/*  Show helpful message when no employees available */}
                 {loadingEmployees && (
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <Loader2 className="h-3 w-3 animate-spin" />

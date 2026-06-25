@@ -102,7 +102,9 @@ const LeaveDrawer = ({
     const fetchLeaveTypes = async () => {
       try {
         const types = await getEnabledLeaveTypes();
-        setLeaveTypes(types.filter((t: any) => t.employee_requestable !== false));
+        setLeaveTypes(
+          types.filter((t: any) => t.employee_requestable !== false),
+        );
       } catch (err) {
         console.error("Failed to load leave types:", err);
       }
@@ -415,7 +417,9 @@ const LeaveDrawer = ({
                 </SelectTrigger>
                 <SelectContent>
                   {leaveTypes.length === 0 ? (
-                    <SelectItem value="_none" disabled>No leave types available</SelectItem>
+                    <SelectItem value="_none" disabled>
+                      No leave types available
+                    </SelectItem>
                   ) : (
                     leaveTypes.map((lt: any) => (
                       <SelectItem key={lt.id} value={lt.code}>
@@ -586,7 +590,7 @@ const LeaveDrawer = ({
             leave?.rejection_reason && (
               <div className="rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/20 p-4 space-y-2">
                 <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase flex items-center gap-1">
-                  <span>❌</span> Rejection Reason
+                  <span></span> Rejection Reason
                 </p>
                 <p className="text-sm text-red-700 dark:text-red-300">
                   {leave.rejection_reason}

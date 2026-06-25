@@ -11,13 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Button } from "@/components/ui/button";
 import { TablePagination } from "@/components/shared/TablePagination";
-import {
-  Eye,
-  DollarSign,
-  Loader2,
-  CheckCircle,
-  Download,
-} from "lucide-react";
+import { Eye, DollarSign, Loader2, CheckCircle, Download } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -115,7 +109,6 @@ const FinalPayTable = ({
   const [previewData, setPreviewData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
-
 
   // History state
   const [historyData, setHistoryData] = useState<FinalPayRecord[]>([]);
@@ -366,7 +359,7 @@ const FinalPayTable = ({
       <div>
         <div className="flex items-center gap-2 mb-4">
           <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-            <span className="text-green-600">✅</span>
+            <span className="text-green-600"></span>
           </div>
           <h2 className="text-xl font-semibold">Processed Final Pay History</h2>
           <Badge variant="secondary" className="ml-2">
@@ -438,7 +431,11 @@ const FinalPayTable = ({
                     <TableCell>{formatEmployeeName(record)}</TableCell>
                     <TableCell>
                       <Badge
-                        variant={record.status === "RESIGNED" ? "destructive" : "secondary"}
+                        variant={
+                          record.status === "RESIGNED"
+                            ? "destructive"
+                            : "secondary"
+                        }
                         className={
                           record.status === "RESIGNED"
                             ? getStatusBadgeClass("danger")
@@ -497,7 +494,10 @@ const FinalPayTable = ({
           totalItems={historyTotalRecords}
           pageSize={historyRowsPerPage}
           onPageChange={setHistoryCurrentPage}
-          onPageSizeChange={(size) => { setHistoryRowsPerPage(size); setHistoryCurrentPage(1); }}
+          onPageSizeChange={(size) => {
+            setHistoryRowsPerPage(size);
+            setHistoryCurrentPage(1);
+          }}
         />
       </div>
 

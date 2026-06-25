@@ -47,7 +47,7 @@ const calculateWorkUnits = async (employeeId, startDate, endDate) => {
     // Skip non-working days that are not holidays
     if (!isWorkingDay && !isHoliday) continue;
 
-    // 🔥 FIX: Skip holiday if no attendance (only count if worked)
+    //  FIX: Skip holiday if no attendance (only count if worked)
     if (isHoliday && !row.status) continue;
 
     let workUnits = 0;
@@ -65,7 +65,7 @@ const calculateWorkUnits = async (employeeId, startDate, endDate) => {
       half_days++;
       if (isHoliday) holiday_worked += workUnits;
     } else if (row.status === "LEAVE") {
-      workUnits = 1; // ✅ Paid leave
+      workUnits = 1; //  Paid leave
       leave_days++;
     } else if (!row.status || row.status === "ABSENT") {
       workUnits = 0;
@@ -94,7 +94,12 @@ const calculateWorkUnits = async (employeeId, startDate, endDate) => {
 // ============================================
 // GET EMPLOYEES FOR FINAL PAY (WITH PAGINATION)
 // ============================================
-const getEmployeesForFinalPay = async (page = 1, limit = 10, search = "", allowedBranchIds = null) => {
+const getEmployeesForFinalPay = async (
+  page = 1,
+  limit = 10,
+  search = "",
+  allowedBranchIds = null,
+) => {
   const offset = (page - 1) * limit;
   const searchValue = `%${search}%`;
 
@@ -173,9 +178,13 @@ const getEmployeesForFinalPay = async (page = 1, limit = 10, search = "", allowe
   const total = parseInt(countQuery.rows[0].count);
 
   const empIds = dataQuery.rows.map((r) => r.id);
-  const balancesByEmp = empIds.length > 0
-    ? await leaveBalanceService.getEmployeesBalances(empIds, new Date().getFullYear())
-    : new Map();
+  const balancesByEmp =
+    empIds.length > 0
+      ? await leaveBalanceService.getEmployeesBalances(
+          empIds,
+          new Date().getFullYear(),
+        )
+      : new Map();
 
   const enrichedData = dataQuery.rows.map((r) => {
     const bs = balancesByEmp.get(r.id) || [];
@@ -185,10 +194,10 @@ const getEmployeesForFinalPay = async (page = 1, limit = 10, search = "", allowe
     };
     return {
       ...r,
-      vacation_leave: getVal('VL', 'total_days'),
-      used_vacation_leave: getVal('VL', 'used_days'),
-      sick_leave: getVal('SL', 'total_days'),
-      used_sick_leave: getVal('SL', 'used_days'),
+      vacation_leave: getVal("VL", "total_days"),
+      used_vacation_leave: getVal("VL", "used_days"),
+      sick_leave: getVal("SL", "total_days"),
+      used_sick_leave: getVal("SL", "used_days"),
       balances: bs,
     };
   });
@@ -207,8 +216,15 @@ const getEmployeesForFinalPay = async (page = 1, limit = 10, search = "", allowe
 // ============================================
 // DYNAMIC LEAVE CONVERSION AMOUNT (from all is_convertible types)
 // ============================================
-const calculateDynamicLeaveConversionAmount = async (employeeId, year, dailyRate) => {
-  const balances = await leaveBalanceService.getConvertibleBalances(employeeId, year);
+const calculateDynamicLeaveConversionAmount = async (
+  employeeId,
+  year,
+  dailyRate,
+) => {
+  const balances = await leaveBalanceService.getConvertibleBalances(
+    employeeId,
+    year,
+  );
 
   let totalAmount = 0;
   const details = [];
@@ -222,9 +238,10 @@ const calculateDynamicLeaveConversionAmount = async (employeeId, year, dailyRate
 
     if (remaining <= 0) continue;
 
-    const maxDays = b.max_convertible_days !== null && b.max_convertible_days !== undefined
-      ? Number(b.max_convertible_days)
-      : remaining;
+    const maxDays =
+      b.max_convertible_days !== null && b.max_convertible_days !== undefined
+        ? Number(b.max_convertible_days)
+        : remaining;
 
     const convertibleDays = Math.min(remaining, maxDays);
     const amount = convertibleDays * Number(dailyRate || 0);
@@ -277,19 +294,22 @@ const calculateFinalPay = async (employeeId) => {
     const emp = employeeRes.rows[0];
 
     // Fetch dynamic leave balances
-    const balancesByEmp = await leaveBalanceService.getEmployeesBalances([employeeId], new Date().getFullYear());
+    const balancesByEmp = await leaveBalanceService.getEmployeesBalances(
+      [employeeId],
+      new Date().getFullYear(),
+    );
     const bs = balancesByEmp.get(employeeId) || [];
     const getBal = (code, field) => {
       const b = bs.find((x) => x.code === code);
       return b ? Number(b[field]) : 0;
     };
-    emp.vacation_leave = getBal('VL', 'total_days');
-    emp.used_vacation_leave = getBal('VL', 'used_days');
-    emp.sick_leave = getBal('SL', 'total_days');
-    emp.used_sick_leave = getBal('SL', 'used_days');
+    emp.vacation_leave = getBal("VL", "total_days");
+    emp.used_vacation_leave = getBal("VL", "used_days");
+    emp.sick_leave = getBal("SL", "total_days");
+    emp.used_sick_leave = getBal("SL", "used_days");
     emp.balances = bs;
 
-    // 🔥 FIX: Get last working date with proper timezone handling
+    //  FIX: Get last working date with proper timezone handling
     let lastWorkingDateRaw =
       emp.last_working_date || emp.resignation_date || emp.termination_date;
 
@@ -297,7 +317,7 @@ const calculateFinalPay = async (employeeId) => {
       throw new Error("No resignation/termination date found");
     }
 
-    // 🔥 CRITICAL FIX: Convert to YYYY-MM-DD format without timezone issues
+    //  CRITICAL FIX: Convert to YYYY-MM-DD format without timezone issues
     const formatDateOnly = (dateValue) => {
       if (!dateValue) return null;
       // If it's a Date object or string, extract just the date part
@@ -317,7 +337,7 @@ const calculateFinalPay = async (employeeId) => {
     const dailyRate =
       emp.daily_rate || emp.basic_salary / (emp.working_days_per_month || 26);
 
-    // 🔥 FIX: Calculate start of month using the formatted date
+    //  FIX: Calculate start of month using the formatted date
     const lastWorkingDateObj = new Date(lastWorkingDate);
     const startOfMonth = new Date(
       lastWorkingDateObj.getFullYear(),
@@ -329,7 +349,7 @@ const calculateFinalPay = async (employeeId) => {
     console.log(`[Final Pay] Start date: ${startDate}`);
     console.log(`[Final Pay] End date: ${lastWorkingDate}`);
 
-    // 🔥 USE SHARED FUNCTION for work units
+    //  USE SHARED FUNCTION for work units
     const workUnitsResult = await calculateWorkUnits(
       employeeId,
       startDate,
@@ -364,14 +384,20 @@ const calculateFinalPay = async (employeeId) => {
     // Calculate dynamic leave conversion amount from all convertible types
     const payrollYear = new Date().getFullYear();
     const conversionResult = await calculateDynamicLeaveConversionAmount(
-      employeeId, payrollYear, dailyRate,
+      employeeId,
+      payrollYear,
+      dailyRate,
     );
 
     const leaveConversionAmount = conversionResult.totalAmount;
 
-    console.log(`[Final Pay] Dynamic leave conversion: ₱${leaveConversionAmount} across ${conversionResult.details.length} convertible type(s)`);
+    console.log(
+      `[Final Pay] Dynamic leave conversion: ₱${leaveConversionAmount} across ${conversionResult.details.length} convertible type(s)`,
+    );
     for (const d of conversionResult.details) {
-      console.log(`  - ${d.name} (${d.code}): ${d.convertible_days} days × ${dailyRate} = ₱${d.amount}`);
+      console.log(
+        `  - ${d.name} (${d.code}): ${d.convertible_days} days × ${dailyRate} = ₱${d.amount}`,
+      );
     }
 
     // Preserve conversion records for audit/history (non-blocking, amount unused)
@@ -382,7 +408,9 @@ const calculateFinalPay = async (employeeId) => {
         emp.status === "RESIGNED" ? "RESIGNATION" : "TERMINATION",
       );
     } catch (convError) {
-      console.warn(`[Final Pay] Conversion record creation failed (non-critical): ${convError.message}`);
+      console.warn(
+        `[Final Pay] Conversion record creation failed (non-critical): ${convError.message}`,
+      );
     }
 
     // Calculate total final pay
@@ -404,7 +432,7 @@ const calculateFinalPay = async (employeeId) => {
           ? formatDateOnly(emp.termination_date)
           : null,
         last_working_date: lastWorkingDate,
-        // 🔥 Use work_units (not days) for accuracy
+        //  Use work_units (not days) for accuracy
         work_units: parseFloat(total_work_units.toFixed(2)),
         // For display purposes
         display_days: displayWorkUnits,
@@ -418,7 +446,8 @@ const calculateFinalPay = async (employeeId) => {
         },
         daily_rate: dailyRate,
         salary_until_last_day: parseFloat(salaryUntilLastDay.toFixed(2)),
-        unused_vacation_leave: (emp.vacation_leave || 0) - (emp.used_vacation_leave || 0),
+        unused_vacation_leave:
+          (emp.vacation_leave || 0) - (emp.used_vacation_leave || 0),
         leave_conversion_amount: parseFloat(leaveConversionAmount.toFixed(2)),
         total_final_pay: parseFloat(totalFinalPay.toFixed(2)),
       },
@@ -507,7 +536,12 @@ const processFinalPay = async (employeeId, processedBy) => {
 // ============================================
 // GET FINAL PAY HISTORY
 // ============================================
-const getFinalPayHistory = async (page = 1, limit = 10, search = "", allowedBranchIds = null) => {
+const getFinalPayHistory = async (
+  page = 1,
+  limit = 10,
+  search = "",
+  allowedBranchIds = null,
+) => {
   const offset = (page - 1) * limit;
 
   const params = [limit, offset, `%${search}%`];
