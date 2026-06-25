@@ -37,13 +37,11 @@ jobs:
       - name: Build frontend (vite build)
         id: build
         run: |
-          OUTPUT=$(node ./node_modules/vite/bin/vite.js build 2>&1)
+          set +e
+          node ./node_modules/vite/bin/vite.js build
           EXITCODE=$?
           if [ $EXITCODE -ne 0 ]; then
-            echo "::error::VITE BUILD FAILED (exit $EXITCODE)"
-            echo "$OUTPUT" | head -20 | while IFS= read -r line; do
-              echo "::error::$line"
-            done
+            echo "::error::VITE BUILD FAILED WITH EXIT CODE $EXITCODE"
             exit $EXITCODE
           fi
 
