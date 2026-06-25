@@ -13,6 +13,9 @@ jobs:
     name: Run Frontend Build
     runs-on: ubuntu-latest
 
+    env:
+      NODE_OPTIONS: --max-old-space-size=8192
+
     defaults:
       run:
         working-directory: Frontend
@@ -32,7 +35,7 @@ jobs:
         run: npm install
 
       - name: Build frontend (vite build)
-        run: npx vite build
+        run: npx --yes vite build
 
       - name: Check TypeScript (tsc)
         run: 'npx tsc -b --noEmit || echo "WARN: tsc strict-mode errors exist (unused imports). See PHASE_4C1_FRONTEND_BUILD_CI_REPORT.md"'
