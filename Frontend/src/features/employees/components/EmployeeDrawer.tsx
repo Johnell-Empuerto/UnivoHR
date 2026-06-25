@@ -12,7 +12,7 @@ import { formatDate, formatDateForInput } from "@/utils/formatDate";
 
 import { useState, useEffect } from "react";
 import { updateEmployee, createEmployee } from "@/services/employeeService";
-import { getActiveBranches } from "@/services/branchService";
+import { useActiveBranches } from "@/hooks/useBranches";
 import {
   getEmployeeFamily,
   createEmployeeFamily,
@@ -169,9 +169,7 @@ const EmployeeDrawer = ({
   useAuth();
   const [form, setForm] = useState<any>({});
   const [loading, setLoading] = useState(false);
-  const [branches, setBranches] = useState<
-    { id: number; name: string; code: string }[]
-  >([]);
+  const { data: branches = [] } = useActiveBranches();
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [restDays, setRestDays] = useState<EmployeeRestDay[]>([]);
   const [restDaysLoading, setRestDaysLoading] = useState(false);
@@ -207,15 +205,6 @@ const EmployeeDrawer = ({
 
   useEffect(() => {
     if (!open) return;
-    const fetchBranches = async () => {
-      try {
-        const data = await getActiveBranches();
-        setBranches(data);
-      } catch {
-        // silently fail - branches are optional for the form
-      }
-    };
-    fetchBranches();
     const fetchShifts = async () => {
       try {
         setShifts(await getActiveShifts());
