@@ -45,7 +45,7 @@ import {
   updateApplicantExperience,
   deleteApplicantExperience,
 } from "@/services/applicantBiodataService";
-import { getActiveBranches } from "@/services/branchService";
+import { useActiveBranches } from "@/hooks/useBranches";
 import { formatDateShort } from "@/utils/formatDate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -118,7 +118,7 @@ const ApplicantDetailPage = () => {
   const { hasPermission, user } = useAuth();
 
   const [applicant, setApplicant] = useState<Applicant | null>(null);
-  const [branches, setBranches] = useState<{ id: number; code: string; name: string }[]>([]);
+  const { data: branches = [] } = useActiveBranches();
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -326,15 +326,13 @@ const ApplicantDetailPage = () => {
   const fetchAll = async () => {
     try {
       setLoading(true);
-      const [app, reqs, brs, ivs] = await Promise.all([
+      const [app, reqs, ivs] = await Promise.all([
         getApplicantById(Number(id)),
         getApplicantRequirements(Number(id)).catch(() => []),
-        getActiveBranches().catch(() => []),
         getApplicantInterviews(Number(id)).catch(() => []),
       ]);
       setApplicant(app);
       setRequirements(reqs);
-      setBranches(brs);
       setInterviews(ivs);
       setEditForm({ status: app.status, rating: app.rating || "", notes: app.notes || "" });
       if (app.workflow_instance_id) {
