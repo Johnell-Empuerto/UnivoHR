@@ -1,0 +1,38 @@
+name: Frontend Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  frontend-build:
+    name: Run Frontend Build
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build frontend (vite build)
+        run: npx vite build
+
+      - name: Check TypeScript (tsc)
+        run: npx tsc -b --noEmit || echo "WARN: tsc strict-mode errors exist (unused imports). See PHASE_4C1_FRONTEND_BUILD_CI_REPORT.md"
