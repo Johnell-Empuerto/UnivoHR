@@ -34,10 +34,18 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Debug - check node and vite versions
+        run: |
+          node --version
+          echo "vite path:"
+          node -e "console.log(require.resolve('vite'))"
+          echo "vite version:"
+          node -e "console.log(require('./node_modules/vite/package.json').version)"
+
       - name: Build frontend (vite build)
         id: build
         run: |
-          node ./node_modules/vite/bin/vite.js build --debug 2>&1 | tee ${{ runner.temp }}/vite-build.log
+          node ./node_modules/vite/bin/vite.js build 2>&1 | tee ${{ runner.temp }}/vite-build.log
           exit ${PIPESTATUS[0]}
 
       - name: Upload vite build log
