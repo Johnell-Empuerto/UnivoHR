@@ -152,6 +152,14 @@ const HRPolicies = () => {
     }
   };
 
+  const refreshAdminPolicies = () => {
+    if (page === 1) {
+      fetchPaginatedPolicies();
+    } else {
+      setPage(1);
+    }
+  };
+
   const handleOpenCreate = () => {
     setEditId(null);
     setForm({ ...emptyForm });
@@ -208,7 +216,7 @@ const HRPolicies = () => {
       }
       setDialogOpen(false);
       if (isAdmin) {
-        setPage(1);
+        refreshAdminPolicies();
       } else {
         fetchAllPolicies();
       }
@@ -247,7 +255,7 @@ const HRPolicies = () => {
       setDeleteDialogOpen(false);
       setDeleteTarget(null);
       if (isAdmin) {
-        setPage(1);
+        refreshAdminPolicies();
       } else {
         fetchAllPolicies();
       }

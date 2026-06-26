@@ -229,6 +229,47 @@ const generateTemplate = async () => {
     };
   });
 
+  // --- Dropdown Data Validations ---
+  const MAX_DROPDOWN_ROWS = 1000;
+
+  const addInlineDV = (col, options) => {
+    for (let i = 2; i <= MAX_DROPDOWN_ROWS + 1; i++) {
+      ws.getCell(i, col).dataValidation = {
+        type: "list",
+        formulae: [`"${options.join(",")}"`],
+        showErrorMessage: true,
+        error: `Please select from: ${options.join(", ")}`,
+      };
+    }
+  };
+
+  addInlineDV(8, ["Male", "Female", "Other"]);
+  addInlineDV(14, ["Probationary", "Regular"]);
+  addInlineDV(15, ["ACTIVE", "RESIGNED", "TERMINATED"]);
+  addInlineDV(28, ["ADMIN", "EMPLOYEE"]);
+
+  // Branch (column 11) — uses a hidden helper column to safely handle commas and long name lists
+  const activeBranches = await branchModel.getActive();
+  const branchNames = activeBranches.map((b) => b.name);
+  const numBranches = branchNames.length;
+
+  if (numBranches > 0) {
+    const HELPER_COL = 29; // Column AC
+    branchNames.forEach((name, i) => {
+      ws.getCell(1 + i, HELPER_COL).value = name;
+    });
+    ws.getColumn(HELPER_COL).hidden = true;
+
+    for (let i = 2; i <= MAX_DROPDOWN_ROWS + 1; i++) {
+      ws.getCell(i, 11).dataValidation = {
+        type: "list",
+        formulae: [`Template!$AC$1:$AC$${numBranches}`],
+        showErrorMessage: true,
+        error: "Please select a Branch from the list",
+      };
+    }
+  }
+
   const instructions = workbook.addWorksheet("Instructions");
 
   const instructionsData = [

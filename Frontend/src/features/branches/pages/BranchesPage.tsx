@@ -150,6 +150,7 @@ const BranchesPage = () => {
       }
       setDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ["branches"] });
+      fetchBranches();
     } catch (err: any) {
       toast.error(err.message || "Operation failed");
     } finally {
