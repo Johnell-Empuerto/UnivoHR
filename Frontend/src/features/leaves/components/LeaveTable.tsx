@@ -33,7 +33,7 @@ import { formatDate } from "@/utils/formatDate";
 import { Badge } from "@/components/ui/badge";
 import EmptyState from "@/components/shared/EmptyState";
 import { TablePagination } from "@/components/shared/TablePagination";
-import { getEnabledLeaveTypes } from "@/services/leaveService";
+import { useEnabledLeaveTypes } from "@/hooks/useLeaveTypes";
 import { getTypeColor, getTypeLabel, normalizeCode } from "../utils/leaveTypeUtils";
 
 type Leave = {
@@ -144,11 +144,7 @@ const SearchFilters = ({
   const [searchInput, setSearchInput] = useState("");
   const [statusFilter, setStatusFilter] = useState("_all");
   const [typeFilter, setTypeFilter] = useState("_all");
-  const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
-
-  useEffect(() => {
-    getEnabledLeaveTypes().then(setLeaveTypes).catch(() => {});
-  }, []);
+  const { data: leaveTypes = [] } = useEnabledLeaveTypes();
 
   // Debounce search
   useEffect(() => {

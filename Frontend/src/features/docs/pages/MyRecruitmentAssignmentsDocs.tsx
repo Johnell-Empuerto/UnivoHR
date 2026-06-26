@@ -1,4 +1,4 @@
-import { CheckCircle2, ClipboardList, Users } from "lucide-react";
+import { CheckCircle2, ClipboardList } from "lucide-react";
 import {
   Card,
   CardContent,

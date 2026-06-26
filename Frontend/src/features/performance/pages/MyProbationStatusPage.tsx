@@ -50,7 +50,7 @@ const getReadinessBadge = (readiness: string) => {
 const MyProbationStatusPage = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  useAuth();
 
   useEffect(() => {
     const fetchData = async () => {

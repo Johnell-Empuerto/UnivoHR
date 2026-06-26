@@ -1,4 +1,4 @@
-import { CheckCircle2, Workflow, Users } from "lucide-react";
+import { CheckCircle2, Users } from "lucide-react";
 import {
   Card,
   CardContent,

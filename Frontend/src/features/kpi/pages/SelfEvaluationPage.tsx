@@ -7,7 +7,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
@@ -29,8 +28,7 @@ const statusBadge = (s: string) => {
 };
 
 const SelfEvaluationPage = () => {
-  const { user } = useAuth();
-  const employeeId = user?.employee_id;
+  useAuth();
   const [evaluations, setEvaluations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -47,7 +45,7 @@ const SelfEvaluationPage = () => {
   const fetchAll = async () => {
     try {
       setLoading(true);
-      const r = await getMyKpiEvaluations("", page, pageSize);
+      const r = await getMyKpiEvaluations("");
       setEvaluations(r.data || (Array.isArray(r) ? r : []));
       setTotal(r.pagination?.total || (Array.isArray(r) ? r.length : 0));
     } catch { setEvaluations([]); }

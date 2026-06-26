@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Info, Shield, Users } from "lucide-react";
+import { Info, Shield, Users } from "lucide-react";
 import {
   Card,
   CardContent,

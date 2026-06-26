@@ -8,6 +8,7 @@ import {
   updateManHourReport,
   deleteManHourReport,
   getManHourReportDetails,
+  type ManHourDetail,
 } from "@/services/manHourReportService";
 import ErrorMessage from "@/components/shared/ErrorMessage";
 import Loader from "@/components/shared/Loader";
@@ -336,7 +337,7 @@ const MyManHoursReport = () => {
     }
   };
 
-  const handleTimeEntriesChange = (details: ManHourReport["details"]) => {
+  const handleTimeEntriesChange = (details: ManHourDetail[]) => {
     setFormData((prev) => ({ ...prev, details: details ?? [] }));
     setEntriesDirty(true);
   };

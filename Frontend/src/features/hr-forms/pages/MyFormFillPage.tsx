@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getHrAssignmentById, submitHrForm } from "@/services/hrFormService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Loader2, ArrowLeft, Send } from "lucide-react";
 import { toast } from "sonner";
 import Loader from "@/components/shared/Loader";

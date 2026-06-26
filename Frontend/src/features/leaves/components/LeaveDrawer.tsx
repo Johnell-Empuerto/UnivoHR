@@ -24,7 +24,8 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { Loader2 } from "lucide-react";
 
-import { leaveService, getEnabledLeaveTypes } from "@/services/leaveService";
+import { leaveService } from "@/services/leaveService";
+import { useEnabledLeaveTypes } from "@/hooks/useLeaveTypes";
 
 import { formatDateForInput } from "@/utils/formatDate";
 
@@ -80,7 +81,8 @@ const LeaveDrawer = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
   const [isHalfDay, setIsHalfDay] = useState(false);
-  const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
+  const { data: leaveTypesRaw = [] } = useEnabledLeaveTypes();
+  const leaveTypes = leaveTypesRaw.filter((t: any) => t.employee_requestable !== false);
 
   // Auto-populate employee info when in create mode and user is employee
   useEffect(() => {
@@ -96,21 +98,6 @@ const LeaveDrawer = ({
       }));
     }
   }, [mode, user]);
-
-  // Load leave types for dynamic dropdown
-  useEffect(() => {
-    const fetchLeaveTypes = async () => {
-      try {
-        const types = await getEnabledLeaveTypes();
-        setLeaveTypes(
-          types.filter((t: any) => t.employee_requestable !== false),
-        );
-      } catch (err) {
-        console.error("Failed to load leave types:", err);
-      }
-    };
-    fetchLeaveTypes();
-  }, []);
 
   // Load employees for admin selection
   useEffect(() => {

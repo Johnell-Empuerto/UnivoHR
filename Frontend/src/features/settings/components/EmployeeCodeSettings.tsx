@@ -11,14 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Hash, Eye, Save, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
-  getAllSettings,
   updateSetting,
   getNextEmployeeCode,
-  type Setting,
 } from "@/services/settingsService";
+import { useAllSettings } from "@/hooks/useSettings";
 
 const SETTINGS_KEYS = [
   "employee_code_auto_generate",
@@ -29,8 +29,9 @@ const SETTINGS_KEYS = [
 ];
 
 const EmployeeCodeSettings = () => {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { data: settingsData = [], isLoading } = useAllSettings();
+  const [, setSaving] = useState<string | null>(null);
   const [savingAll, setSavingAll] = useState(false);
   const [settings, setSettings] = useState({
     employee_code_auto_generate: "true",
@@ -47,18 +48,8 @@ const EmployeeCodeSettings = () => {
   const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
-    loadSettings();
-  }, []);
-
-  useEffect(() => {
-    updatePreview();
-  }, [settings]);
-
-  const loadSettings = async () => {
-    try {
-      setLoading(true);
-      const data: Setting[] = await getAllSettings();
-      const map = new Map(data.map((s) => [s.key, s.value]));
+    if (settingsData.length > 0) {
+      const map = new Map(settingsData.map((s) => [s.key, s.value]));
       setSettings({
         employee_code_auto_generate:
           map.get("employee_code_auto_generate") || "true",
@@ -69,12 +60,12 @@ const EmployeeCodeSettings = () => {
         employee_code_padding: map.get("employee_code_padding") || "4",
         employee_code_counter: map.get("employee_code_counter") || "0",
       });
-    } catch {
-      toast.error("Failed to load employee code settings");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [settingsData]);
+
+  useEffect(() => {
+    updatePreview();
+  }, [settings]);
 
   const updatePreview = () => {
     const prefix = settings.employee_code_prefix;
@@ -112,6 +103,7 @@ const EmployeeCodeSettings = () => {
       setSaving(key);
       await updateSetting(key, value);
       setSettings((prev) => ({ ...prev, [key]: value }));
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
     } catch {
       toast.error(`Failed to save ${key}`);
     } finally {
@@ -127,6 +119,7 @@ const EmployeeCodeSettings = () => {
         return updateSetting(key, value);
       });
       await Promise.all(promises);
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
       toast.success("Employee code settings saved successfully");
     } catch {
       toast.error("Failed to save employee code settings");
@@ -138,7 +131,7 @@ const EmployeeCodeSettings = () => {
   const isAutoGen = settings.employee_code_auto_generate === "true";
   const prefixEmpty = !settings.employee_code_prefix.trim();
 
-  if (loading) {
+  if (isLoading && settingsData.length === 0) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">

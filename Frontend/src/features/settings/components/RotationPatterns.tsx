@@ -57,13 +57,12 @@ import {
   updateRotationPattern,
   deleteRotationPattern,
 } from "@/services/rotationService";
-import { getActiveShifts } from "@/services/shiftService";
+import { useActiveShifts } from "@/hooks/useShifts";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 import type {
   RotationPattern,
   RotationPatternStep,
 } from "@/services/rotationService";
-import type { Shift } from "@/services/shiftService";
 
 const defaultForm = {
   name: "",
@@ -81,7 +80,7 @@ const shiftIcons: Record<string, React.ReactNode> = {
 
 const RotationPatterns = () => {
   const [patterns, setPatterns] = useState<RotationPattern[]>([]);
-  const [shifts, setShifts] = useState<Shift[]>([]);
+  const { data: shifts = [] } = useActiveShifts();
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<RotationPattern | null>(null);
@@ -104,18 +103,8 @@ const RotationPatterns = () => {
     }
   }, []);
 
-  const fetchShifts = async () => {
-    try {
-      const data = await getActiveShifts();
-      setShifts(data);
-    } catch {
-      setShifts([]);
-    }
-  };
-
   useEffect(() => {
     fetchPatterns();
-    fetchShifts();
   }, [fetchPatterns]);
 
   const openCreate = () => {

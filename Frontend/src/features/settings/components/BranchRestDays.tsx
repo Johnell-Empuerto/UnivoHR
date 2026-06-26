@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useActiveBranches } from "@/hooks/useBranches";
 import {
   getAllBranchRestDays,
-  getBranchRestDays,
   createBranchRestDay,
   deleteBranchRestDay,
   getDayLabel,
@@ -60,7 +59,8 @@ const BranchRestDays = () => {
     : branchRestDays;
 
   const getBranchName = (branchId: number) =>
-    branches.find((b) => b.id === branchId)?.name || `Branch #${branchId}`;
+    branches.find((b: { id: number; name: string }) => b.id === branchId)
+      ?.name || `Branch #${branchId}`;
 
   const handleAdd = async () => {
     const branchId = parseInt(selectedBranchId);

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   getBranches,
   createBranch,
@@ -80,6 +81,7 @@ const emptyForm = {
 };
 
 const BranchesPage = () => {
+  const queryClient = useQueryClient();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -147,7 +149,7 @@ const BranchesPage = () => {
         toast.success("Branch created");
       }
       setDialogOpen(false);
-      fetchBranches();
+      queryClient.invalidateQueries({ queryKey: ["branches"] });
     } catch (err: any) {
       toast.error(err.message || "Operation failed");
     } finally {
@@ -161,6 +163,7 @@ const BranchesPage = () => {
       setBranches((prev) =>
         prev.map((b) => (b.id === branch.id ? updated : b)),
       );
+      queryClient.invalidateQueries({ queryKey: ["branches"] });
       toast.success(
         updated.is_active ? "Branch activated" : "Branch deactivated",
       );

@@ -169,7 +169,7 @@ const AttendanceTable = ({
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <span className="font-mono text-sm">
-                      {formatTimeLocal(item.check_in_time_utc || item.check_in_time, item.timezone_used)}
+                      {formatTimeLocal(item.check_in_time_utc || item.check_in_time, item.timezone_used ?? undefined)}
                     </span>
                     {item.timezone_used && (
                       <Badge variant="outline" className="text-[10px] h-4 px-1 leading-none">
@@ -187,7 +187,7 @@ const AttendanceTable = ({
                   {item.check_out_time ? (
                     <div className="flex items-center gap-1">
                       <span className="font-mono text-sm">
-                        {formatTimeLocal(item.check_out_time_utc || item.check_out_time, item.timezone_used)}
+                        {formatTimeLocal(item.check_out_time_utc || item.check_out_time, item.timezone_used ?? undefined)}
                       </span>
                       {item.timezone_used && (
                         <Badge variant="outline" className="text-[10px] h-4 px-1 leading-none">

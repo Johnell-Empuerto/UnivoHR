@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -31,13 +31,14 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Clock, Plus, Pencil, Trash2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  getShifts,
   createShift,
   updateShift,
   deleteShift,
 } from "@/services/shiftService";
 import type { Shift } from "@/services/shiftService";
+import { useShifts } from "@/hooks/useShifts";
 
 type ShiftType = "MORNING" | "MID" | "NIGHT" | "FLEXITIME";
 
@@ -65,28 +66,12 @@ const defaultForm = {
 };
 
 const ShiftManagement = () => {
-  const [shifts, setShifts] = useState<Shift[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: shifts = [], isLoading } = useShifts();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [form, setForm] = useState(defaultForm);
   const [saving, setSaving] = useState(false);
-
-  const fetchShifts = async () => {
-    try {
-      setLoading(true);
-      const data = await getShifts();
-      setShifts(data);
-    } catch {
-      toast.error("Failed to load shifts");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchShifts();
-  }, []);
 
   const openCreate = () => {
     setEditingShift(null);
@@ -142,7 +127,7 @@ const ShiftManagement = () => {
         toast.success("Shift created");
       }
       setDialogOpen(false);
-      fetchShifts();
+      queryClient.invalidateQueries({ queryKey: ["shifts"] });
     } catch {
       toast.error("Failed to save shift");
     } finally {
@@ -155,7 +140,7 @@ const ShiftManagement = () => {
     try {
       await deleteShift(shift.id);
       toast.success("Shift deleted");
-      fetchShifts();
+      queryClient.invalidateQueries({ queryKey: ["shifts"] });
     } catch {
       toast.error("Failed to delete shift");
     }
@@ -174,7 +159,7 @@ const ShiftManagement = () => {
         </Button>
       </CardHeader>
       <CardContent>
-        {loading ? (
+        {isLoading ? (
           <div className="text-center py-8 text-muted-foreground">Loading shifts...</div>
         ) : shifts.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">

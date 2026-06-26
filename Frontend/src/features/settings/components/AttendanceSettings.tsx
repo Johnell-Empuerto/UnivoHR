@@ -9,7 +9,9 @@ import {
   activateAttendanceRule,
   deleteAttendanceRule,
 } from "@/services/attendanceService";
-import { getSetting, toggleSetting } from "@/services/settingsService";
+import { useQueryClient } from "@tanstack/react-query";
+import { useSetting } from "@/hooks/useSettings";
+import { toggleSetting } from "@/services/settingsService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -68,23 +70,20 @@ const AttendanceSettings = () => {
   });
 
   // WEB CLOCK TOGGLE
-  const [webClockEnabled, setWebClockEnabled] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: webClockSetting } = useSetting("enable_web_clock_in_out");
+  const webClockEnabled = webClockSetting?.value === "true";
   const [toggling, setToggling] = useState<string | null>(null);
-
-  const fetchWebClockSetting = async () => {
-    try {
-      const setting = await getSetting("enable_web_clock_in_out");
-      setWebClockEnabled(setting?.value === "true");
-    } catch {
-      console.warn("Failed to load web clock setting");
-    }
-  };
 
   const handleWebClockToggle = async () => {
     try {
       setToggling("enable_web_clock_in_out");
       const result = await toggleSetting("enable_web_clock_in_out");
-      setWebClockEnabled(result.value);
+      queryClient.setQueryData(["settings", "enable_web_clock_in_out"], {
+        key: "enable_web_clock_in_out",
+        value: result.value ? "true" : "false",
+      });
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
       toast.success(
         `Web Clock In/Out ${result.value ? "enabled" : "disabled"}`,
       );
@@ -108,7 +107,6 @@ const AttendanceSettings = () => {
 
   useEffect(() => {
     fetchRules();
-    fetchWebClockSetting();
   }, []);
 
   // HANDLE INPUT

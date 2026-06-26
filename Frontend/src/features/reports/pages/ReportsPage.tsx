@@ -81,7 +81,7 @@ const formatDeductionLabel = (type?: string | null) => {
 };
 
 const ReportsPage = () => {
-  const { user, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
   const [activeTab, setActiveTab] = useState("employees");
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);

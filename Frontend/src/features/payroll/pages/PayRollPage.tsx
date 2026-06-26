@@ -416,7 +416,7 @@ const PayRollPage = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Branches</SelectItem>
-                        {branches.map((b) => (
+                        {branches.map((b: { id: number; name: string }) => (
                           <SelectItem key={b.id} value={String(b.id)}>
                             {b.name}
                           </SelectItem>

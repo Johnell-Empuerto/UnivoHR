@@ -48,7 +48,7 @@ const HrFormAssignmentsPage = () => {
   const [empPage, setEmpPage] = useState(1);
   const [empSearch, setEmpSearch] = useState("");
   const [empLoading, setEmpLoading] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { fetchAssignments(); }, [page, pageSize, search]);
 

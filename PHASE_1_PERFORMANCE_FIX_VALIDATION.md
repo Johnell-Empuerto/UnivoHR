@@ -23,7 +23,7 @@
 
 ### 2. [Information] CORS IP difference in `index.js`
 
-`192.168.0.110` → `192.168.0.109` on line 31 is a pre-existing working tree change, not part of Phase 1. No impact.
+`192.168.0.110` → `192.168.0.102` on line 31 is a pre-existing working tree change, not part of Phase 1. No impact.
 
 ## Validation Results
 

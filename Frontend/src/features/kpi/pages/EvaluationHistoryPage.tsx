@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { getKpiHistory, getKpiEvaluationById, getFriendlyKpiError } from "@/services/kpiService";
+import { getKpiHistory, getKpiEvaluationById } from "@/services/kpiService";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/Input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
@@ -17,8 +16,7 @@ import { formatDateShort } from "@/utils/formatDate";
 import { getStatusBadgeClass } from "@/utils/statusBadge";
 
 const EvaluationHistoryPage = () => {
-  const { user, hasPermission } = useAuth();
-  const employeeId = user?.employee_id;
+  const { hasPermission } = useAuth();
   const isHr = hasPermission("performance.view");
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

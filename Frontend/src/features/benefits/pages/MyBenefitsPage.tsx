@@ -83,7 +83,7 @@ const formatCurrency = (value: number) => {
 const MyBenefitsPage = () => {
   const [benefits, setBenefits] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  useAuth();
 
   useEffect(() => {
     const fetchBenefits = async () => {

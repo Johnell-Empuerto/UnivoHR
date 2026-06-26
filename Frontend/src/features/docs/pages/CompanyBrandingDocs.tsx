@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Info, Users, Building } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, Users } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -9,8 +9,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import DocsNavigation from "../components/DocsNavigation";
-
-const COMPANY_BRANDING_PATH = "/settings";
 
 const CompanyBrandingDocs = () => (
   <div className="space-y-8">

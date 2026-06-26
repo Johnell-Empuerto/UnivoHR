@@ -16,7 +16,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import { getProfile, type Profile } from "@/services/profileService";
+import { getProfile, type Profile as ServiceProfile } from "@/services/profileService";
 import { changePassword } from "@/services/authService";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,12 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
+
+type Profile = ServiceProfile & {
+  employment_status?: string | null;
+  probation_period_months?: number | null;
+  regularization_date?: string | null;
+};
 
 const SPECIAL_CHARS = "!@#$%^&*(),.?\":{}|<>_-~`[]\\;/'" as const;
 const hasSpecialChar = (s: string) => [...s].some((ch) => SPECIAL_CHARS.includes(ch));

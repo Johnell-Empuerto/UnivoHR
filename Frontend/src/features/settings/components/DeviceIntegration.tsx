@@ -506,7 +506,11 @@ function DevicesTab({ canManage }: { canManage: boolean }) {
                   <SelectValue placeholder="No branch assigned" />
                 </SelectTrigger>
                 <SelectContent>
-                  {branches.map((b) => (
+                  {branches.map((b: {
+                    id: number;
+                    name: string;
+                    timezone?: string | null;
+                  }) => (
                     <SelectItem key={b.id} value={String(b.id)}>
                       {b.name}
                       {b.timezone ? ` (${b.timezone})` : ""}

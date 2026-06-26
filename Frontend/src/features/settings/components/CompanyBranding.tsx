@@ -8,41 +8,31 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Building, Image as ImageIcon, X, AlertCircle } from "lucide-react";
 import {
-  getAllSettings,
   updateSetting,
   type Setting,
 } from "@/services/settingsService";
+import { useAllSettings } from "@/hooks/useSettings";
 
 const CompanyBranding = () => {
+  const queryClient = useQueryClient();
+  const { data: settingsList = [], isLoading } = useAllSettings();
   const [settings, setSettings] = useState<Map<string, string>>(new Map());
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
   const [logoError, setLogoError] = useState(false);
 
-  // Fetch all settings
-  const fetchSettings = async () => {
-    try {
-      setLoading(true);
-      const data = await getAllSettings();
-      const settingsMap = new Map();
-      data.forEach((setting: Setting) => {
+  useEffect(() => {
+    if (settingsList.length > 0 && settings.size === 0) {
+      const settingsMap = new Map<string, string>();
+      settingsList.forEach((setting: Setting) => {
         settingsMap.set(setting.key, setting.value);
       });
       setSettings(settingsMap);
-    } catch (error) {
-      console.error("Failed to fetch settings:", error);
-      toast.error("Failed to load company settings");
-    } finally {
-      setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchSettings();
-  }, []);
+  }, [settingsList, settings.size]);
 
   const handleChange = (key: string, value: string) => {
     setSettings((prev) => new Map(prev).set(key, value));
@@ -74,6 +64,7 @@ const CompanyBranding = () => {
         }
       }
       await Promise.all(promises);
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
       toast.success("Company branding saved successfully");
     } catch (error) {
       console.error("Failed to save settings:", error);
@@ -83,7 +74,7 @@ const CompanyBranding = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card className="border-border/50 shadow-sm">
         <CardContent className="p-8 text-center">

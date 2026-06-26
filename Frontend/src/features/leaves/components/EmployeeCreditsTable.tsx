@@ -26,7 +26,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { leaveService, getEnabledLeaveTypes } from "@/services/leaveService";
+import { leaveService } from "@/services/leaveService";
+import { useEnabledLeaveTypes } from "@/hooks/useLeaveTypes";
 import {
   Loader2,
   Search,
@@ -40,7 +41,7 @@ import {
 import { toast } from "sonner";
 import EmptyState from "@/components/shared/EmptyState";
 import { TablePagination } from "@/components/shared/TablePagination";
-import { getTypeColor, getTypeLabel, normalizeCode } from "../utils/leaveTypeUtils";
+
 
 interface BalanceItem {
   code: string;
@@ -86,16 +87,8 @@ const EmployeeCreditsTable = () => {
   const [departmentFilter, setDepartmentFilter] = useState("");
 
   // Leave types for dynamic columns
-  const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
-
-  useEffect(() => {
-    getEnabledLeaveTypes()
-      .then((types) => {
-        const filtered = (types as any[]).filter((t: any) => t.include_in_credits !== false);
-        setLeaveTypes(filtered);
-      })
-      .catch(() => {});
-  }, []);
+  const { data: leaveTypesRaw = [] } = useEnabledLeaveTypes();
+  const leaveTypes = leaveTypesRaw.filter((t: any) => t.include_in_credits !== false);
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -189,14 +182,6 @@ const EmployeeCreditsTable = () => {
 
 
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
   const getRemainingClass = (remaining: number, total: number) => {
     const percentage = (remaining / total) * 100;
     if (percentage <= 25) return "text-red-600 dark:text-red-400 font-semibold";
@@ -276,7 +261,7 @@ const EmployeeCreditsTable = () => {
                   <TableRow className="bg-muted">
                     <TableHead>Employee</TableHead>
                     <TableHead>Department</TableHead>
-                    {leaveTypes.filter(lt => lt.code !== 'NP').map((lt: any) => (
+                    {leaveTypes.filter((lt: { code: string }) => lt.code !== 'NP').map((lt: any) => (
                       <TableHead key={lt.id} className="text-center">
                         {lt.name}
                         <br />

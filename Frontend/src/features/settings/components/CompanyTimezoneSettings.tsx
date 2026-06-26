@@ -12,7 +12,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Globe, Info } from "lucide-react";
-import { getSetting, updateSetting } from "@/services/settingsService";
+import { useQueryClient } from "@tanstack/react-query";
+import { updateSetting } from "@/services/settingsService";
+import { useSetting } from "@/hooks/useSettings";
 
 const TIMEZONES = [
   "Asia/Manila",
@@ -26,26 +28,16 @@ const TIMEZONES = [
 ];
 
 const CompanyTimezoneSettings = () => {
+  const queryClient = useQueryClient();
+  const { data: settingResult, isLoading } = useSetting("company_timezone");
   const [timezone, setTimezone] = useState<string>("");
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchTimezone();
-  }, []);
-
-  const fetchTimezone = async () => {
-    try {
-      setLoading(true);
-      const result = await getSetting("company_timezone");
-      setTimezone(result.value || "Asia/Manila");
-    } catch (error) {
-      console.error("Failed to fetch company timezone:", error);
-      toast.error("Failed to load company timezone setting");
-    } finally {
-      setLoading(false);
+    if (settingResult && !timezone) {
+      setTimezone(settingResult.value || "Asia/Manila");
     }
-  };
+  }, [settingResult, timezone]);
 
   const handleChange = async (value: string) => {
     const previous = timezone;
@@ -53,6 +45,7 @@ const CompanyTimezoneSettings = () => {
     setSaving(true);
     try {
       await updateSetting("company_timezone", value);
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
       toast.success(`Company timezone updated to ${value}`);
     } catch (error: any) {
       setTimezone(previous);
@@ -79,7 +72,7 @@ const CompanyTimezoneSettings = () => {
         </div>
       </CardHeader>
       <CardContent>
-        {loading ? (
+        {isLoading ? (
           <div className="flex items-center gap-2 text-muted-foreground py-2">
             <Loader2 className="h-4 w-4 animate-spin" />
             <span className="text-sm">Loading timezone setting...</span>

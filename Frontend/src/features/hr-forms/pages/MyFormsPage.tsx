@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Button } from "@/components/ui/button";
 import { TablePagination } from "@/components/shared/TablePagination";
-import { ClipboardList, Eye, Loader2 } from "lucide-react";
+import { ClipboardList, Eye } from "lucide-react";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
 import { formatDateShort } from "@/utils/formatDate";

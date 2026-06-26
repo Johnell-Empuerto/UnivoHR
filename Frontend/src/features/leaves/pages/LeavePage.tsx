@@ -8,8 +8,7 @@ import CreditLeaveTable from "../components/CreditLeaveTable";
 import EmployeeCreditsTable from "../components/EmployeeCreditsTable";
 import { leaveService } from "@/services/leaveService";
 import { toast } from "sonner";
-import { CalendarDays, Loader2 } from "lucide-react";
-import EmptyState from "@/components/shared/EmptyState";
+import { CalendarDays } from "lucide-react";
 import Loader from "@/components/shared/Loader";
 import { isApprover as checkIsApprover } from "@/services/overtimeService";
 

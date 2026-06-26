@@ -3,12 +3,11 @@ import { useActiveBranches } from "@/hooks/useBranches";
 import { useEffect, useState } from "react";
 import EmployeeTable from "../components/EmployeeTable";
 import ErrorMessage from "@/components/shared/ErrorMessage";
-import EmptyState from "@/components/shared/EmptyState";
 import Loader from "@/components/shared/Loader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Loader2, RefreshCw, Users, Building2 } from "lucide-react";
+import { Search, RefreshCw, Users, Building2 } from "lucide-react";
 import { useAuth } from "@/app/providers/AuthProvider";
 import {
   Select,

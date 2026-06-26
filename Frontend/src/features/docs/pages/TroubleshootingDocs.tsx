@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Info, Wrench } from "lucide-react";
+import { AlertTriangle, Wrench } from "lucide-react";
 import {
   Card,
   CardContent,

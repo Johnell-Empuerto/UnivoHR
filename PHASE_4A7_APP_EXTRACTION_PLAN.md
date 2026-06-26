@@ -123,7 +123,7 @@ app.use(compression());
 // ── CORS ──
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
-  : ["http://localhost:5173", "http://192.168.0.109:5173"];
+  : ["http://localhost:5173", "http://192.168.0.102:5173"];
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 // ── Body parser ──

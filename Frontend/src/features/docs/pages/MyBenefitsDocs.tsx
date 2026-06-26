@@ -1,4 +1,4 @@
-import { CheckCircle2, Gift, Users } from "lucide-react";
+import { CheckCircle2, Gift } from "lucide-react";
 import {
   Card,
   CardContent,

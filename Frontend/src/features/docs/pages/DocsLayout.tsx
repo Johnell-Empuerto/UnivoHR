@@ -31,7 +31,7 @@ const DOCS_MODULE_COUNT = 64;
 
 const DocsLayout = () => {
   const { isAuth, user } = useAuth();
-  const [isUserApprover, setIsUserApprover] = useState(false);
+  const [, setIsUserApprover] = useState(false);
   const [approverLoading, setApproverLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();

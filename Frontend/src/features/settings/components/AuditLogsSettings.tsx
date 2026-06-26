@@ -27,7 +27,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { TablePagination } from "@/components/shared/TablePagination";
-import { Badge } from "@/components/ui/badge";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
 import { getAuditLogs, type AuditLog } from "@/services/auditLogService";

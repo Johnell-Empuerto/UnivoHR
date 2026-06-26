@@ -1,4 +1,4 @@
-import { CheckCircle2, Bell, Users } from "lucide-react";
+import { CheckCircle2, Bell } from "lucide-react";
 import {
   Card,
   CardContent,

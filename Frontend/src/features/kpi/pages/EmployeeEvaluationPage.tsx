@@ -3,10 +3,9 @@ import {
   getMyKpiAssignments, getKpiEvaluationById, saveKpiScores, submitKpiEvaluation, getFriendlyKpiError,
 } from "@/services/kpiService";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -31,8 +30,7 @@ const statusBadge = (s: string) => {
 };
 
 const EmployeeEvaluationPage = () => {
-  const { user } = useAuth();
-  const employeeId = user?.employee_id;
+  useAuth();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);

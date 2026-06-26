@@ -15,7 +15,7 @@ interface JobPosition {
   title: string;
   department?: string | null;
   branch_name?: string | null;
-  workflow_id: number | null;
+  workflow_id?: number | null;
   workflow_name: string | null;
   status?: string;
 }

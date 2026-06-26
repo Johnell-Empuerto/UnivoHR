@@ -13,6 +13,7 @@ import { formatDate, formatDateForInput } from "@/utils/formatDate";
 import { useState, useEffect } from "react";
 import { updateEmployee, createEmployee } from "@/services/employeeService";
 import { useActiveBranches } from "@/hooks/useBranches";
+import { useActiveShifts } from "@/hooks/useShifts";
 import {
   getEmployeeFamily,
   createEmployeeFamily,
@@ -27,8 +28,7 @@ import {
   updateEmployeeExperience,
   deleteEmployeeExperience,
 } from "@/services/employeeBiodataService";
-import { getActiveShifts, assignShift } from "@/services/shiftService";
-import type { Shift } from "@/services/shiftService";
+import { assignShift } from "@/services/shiftService";
 import {
   getEmployeeRestDays,
   createEmployeeRestDay,
@@ -170,12 +170,11 @@ const EmployeeDrawer = ({
   const [form, setForm] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const { data: branches = [] } = useActiveBranches();
-  const [shifts, setShifts] = useState<Shift[]>([]);
+  const { data: shifts = [] } = useActiveShifts();
   const [restDays, setRestDays] = useState<EmployeeRestDay[]>([]);
   const [restDaysLoading, setRestDaysLoading] = useState(false);
   const [branchRestDays, setBranchRestDays] = useState<BranchRestDay[]>([]);
-  const [branchRestDaysLoading, setBranchRestDaysLoading] = useState(false);
-
+  const [, setBranchRestDaysLoading] = useState(false);
   const [familyOpen, setFamilyOpen] = useState(false);
   const [familyData, setFamilyData] = useState<any[]>([]);
   const [familyDialog, setFamilyDialog] = useState<{
@@ -202,18 +201,6 @@ const EmployeeDrawer = ({
     item: any;
   }>({ open: false, mode: "create", item: null });
   const [editingExperience, setEditingExperience] = useState<any>({});
-
-  useEffect(() => {
-    if (!open) return;
-    const fetchShifts = async () => {
-      try {
-        setShifts(await getActiveShifts());
-      } catch {
-        /* silent */
-      }
-    };
-    fetchShifts();
-  }, [open]);
 
   useEffect(() => {
     if (employee?.id && (mode === "edit" || mode === "view")) {
@@ -1696,7 +1683,7 @@ const EmployeeDrawer = ({
                     disabled={!canEditMode}
                     className="w-full border rounded px-2 py-1 bg-background"
                   >
-                    {branches.map((b) => (
+                    {branches.map((b: { id: number; name: string; code: string }) => (
                       <option key={b.id} value={b.id}>
                         {b.name} ({b.code})
                       </option>

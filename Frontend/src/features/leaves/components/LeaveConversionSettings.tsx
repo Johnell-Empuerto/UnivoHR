@@ -17,8 +17,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { DollarSign, Shield, Settings2, Infinity, Loader2 } from "lucide-react";
 import Loader from "@/components/shared/Loader";
+import { useQueryClient } from "@tanstack/react-query";
+import { useLeaveConversionTypes } from "@/hooks/useLeaveTypes";
 import {
-  getLeaveTypes,
   getConversionSettings,
   updateLeaveType,
   updateConversionSettings,
@@ -27,12 +28,11 @@ import {
 
 interface LeaveTypeConfig {
   id: number;
-  code: string;
   name: string;
+  code: string;
+  is_paid: boolean;
   is_convertible: boolean;
   max_convertible_days: number | null;
-  requires_balance: boolean;
-  is_paid: boolean;
 }
 
 interface CompanySettings {
@@ -42,56 +42,37 @@ interface CompanySettings {
 }
 
 const LeaveConversionSettings = () => {
-  const [leaveTypes, setLeaveTypes] = useState<LeaveTypeConfig[]>([]);
+  const queryClient = useQueryClient();
+  const { data: leaveTypesData, isLoading: typesLoading } =
+    useLeaveConversionTypes();
+  const leaveTypes: LeaveTypeConfig[] = leaveTypesData ?? [];
   const [companySettings, setCompanySettings] = useState<CompanySettings>({
     enforce_sil: true,
     sil_min_days: 5,
     conversion_rate: 1.0,
   });
-  const [loading, setLoading] = useState(true);
+  const [settingsLoading, setSettingsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("leave_types");
 
   useEffect(() => {
-    fetchSettings();
+    getConversionSettings()
+      .then((settings) => {
+        setCompanySettings({
+          enforce_sil: settings?.enforce_sil ?? true,
+          sil_min_days: settings?.sil_min_days ?? 5,
+          conversion_rate: settings?.conversion_rate ?? 1.0,
+        });
+      })
+      .catch(() => {
+        toast.warning("Failed to load conversion settings, using defaults.");
+      })
+      .finally(() => {
+        setSettingsLoading(false);
+      });
   }, []);
 
-  const fetchSettings = async () => {
-    try {
-      setLoading(true);
-
-      const [types, settings] = await Promise.all([
-        getLeaveTypes().catch((err) => {
-          console.error("Failed to load leave types:", err);
-          return [];
-        }),
-        getConversionSettings().catch((err) => {
-          console.error("Failed to load conversion settings:", err);
-          return null;
-        }),
-      ]);
-
-      setLeaveTypes(types);
-
-      setCompanySettings({
-        enforce_sil: settings?.enforce_sil ?? true,
-        sil_min_days: settings?.sil_min_days ?? 5,
-        conversion_rate: settings?.conversion_rate ?? 1.0,
-      });
-
-      if (!types.length) {
-        toast.error("Leave types failed to load.");
-      }
-      if (!settings) {
-        toast.warning("Company conversion settings used defaults.");
-      }
-    } catch (error) {
-      console.error("Unexpected error:", error);
-      toast.error("An unexpected error occurred");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loading = typesLoading || settingsLoading;
 
   const handleToggleConvertible = async (
     id: number,
@@ -100,11 +81,13 @@ const LeaveConversionSettings = () => {
     try {
       await updateLeaveType(id, { is_convertible: isConvertible });
 
-      setLeaveTypes((prev) =>
-        prev.map((type) =>
+      queryClient.setQueryData(["leave-conversion", "types"], (prev: any) =>
+        prev?.map((type: any) =>
           type.id === id ? { ...type, is_convertible: isConvertible } : type,
         ),
       );
+      queryClient.invalidateQueries({ queryKey: ["leave-types"] });
+      queryClient.invalidateQueries({ queryKey: ["leave-conversion", "types"] });
 
       toast.success(`Conversion ${isConvertible ? "enabled" : "disabled"}`);
     } catch (error) {
@@ -125,11 +108,13 @@ const LeaveConversionSettings = () => {
     try {
       await updateLeaveType(id, { max_convertible_days: maxDays });
 
-      setLeaveTypes((prev) =>
-        prev.map((type) =>
+      queryClient.setQueryData(["leave-conversion", "types"], (prev: any) =>
+        prev?.map((type: any) =>
           type.id === id ? { ...type, max_convertible_days: maxDays } : type,
         ),
       );
+      queryClient.invalidateQueries({ queryKey: ["leave-types"] });
+      queryClient.invalidateQueries({ queryKey: ["leave-conversion", "types"] });
 
       toast.success("Max conversion days updated");
     } catch (error) {

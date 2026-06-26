@@ -1,18 +1,6 @@
 // features/dashboard/pages/Dashboard.tsx
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/app/providers/AuthProvider";
-import {
-  getDashboardSummary,
-  getTodayStatus,
-  getAdminAnalytics,
-  getMyAnalytics,
-} from "@/services/dashboardService";
-import { getAnomalySummary } from "@/services/anomalyService";
-import { leaveService } from "@/services/leaveService";
-import {
-  getEmploymentStats,
-  getDueForRegularization,
-} from "@/services/employeeService";
 import { formatDateShort, formatTimeLocal, getTimezoneAbbr } from "@/utils/formatDate";
 import StatsCard from "../components/StatsCard";
 import AttendanceChart from "../components/AttendanceChart";
@@ -44,7 +32,18 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { webClockIn, webClockOut } from "@/services/attendanceService";
-import { getSetting } from "@/services/settingsService";
+import {
+  useAdminDashboardSummary,
+  useAdminAnalytics,
+  useAnomalySummaryQuery,
+  useEmploymentStats,
+  useDueForRegularization,
+  useMyAnalytics,
+  useTodayStatus,
+  useLeaveCredits,
+  useMyRecentLeaves,
+  useWebClockSetting,
+} from "@/hooks/useDashboardQueries";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -907,69 +906,44 @@ const EmployeeDashboardContent = React.memo(
 const Dashboard = () => {
   const { user, hasPermission } = useAuth();
   const navigate = useNavigate();
-  const [summary, setSummary] = useState<any>(null);
-  const [today, setToday] = useState<any>(null);
-  const [webClockEnabled, setWebClockEnabled] = useState(true);
-  const [leaveCredits, setLeaveCredits] = useState<LeaveCredits | null>(null);
-  const [recentLeaves, setRecentLeaves] = useState<RecentLeave[]>([]);
-  const [adminAnalytics, setAdminAnalytics] = useState<any>(null);
-  const [anomalySummary, setAnomalySummary] = useState<any>(null);
-  const [employmentStats, setEmploymentStats] = useState<any>(null);
-  const [dueForRegularization, setDueForRegularization] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [employeeTrends, setEmployeeTrends] = useState<any>(null);
 
   const isAdminLevel = user?.role === "ADMIN";
+  const canRunAdminQueries = !!user && isAdminLevel;
+  const canRunEmployeeQueries = !!user && !isAdminLevel;
 
-  // Memoize fetchData to prevent unnecessary re-renders
-  const fetchData = useCallback(async () => {
-    if (!user) return;
+  // Admin queries
+  const adminSummaryQuery = useAdminDashboardSummary(canRunAdminQueries);
+  const adminAnalyticsQuery = useAdminAnalytics(canRunAdminQueries);
+  const anomalyQuery = useAnomalySummaryQuery(canRunAdminQueries);
+  const employmentStatsQuery = useEmploymentStats(canRunAdminQueries);
+  const dueRegQuery = useDueForRegularization(canRunAdminQueries);
 
-    try {
-      setLoading(true);
+  // Employee queries
+  const myAnalyticsQuery = useMyAnalytics(canRunEmployeeQueries);
+  const todayQuery = useTodayStatus(canRunEmployeeQueries);
+  const creditsQuery = useLeaveCredits(canRunEmployeeQueries);
+  const leavesQuery = useMyRecentLeaves(canRunEmployeeQueries);
+  const clockQuery = useWebClockSetting(canRunEmployeeQueries);
 
-      if (isAdminLevel) {
-        const [summaryData, analyticsData, anomalyData, empStats, dueReg] = await Promise.all([
-          getDashboardSummary().catch(() => null),
-          getAdminAnalytics().catch(() => null),
-          getAnomalySummary().catch(() => null),
-          getEmploymentStats().catch(() => null),
-          getDueForRegularization().catch(() => []),
-        ]);
-        setSummary(summaryData);
-        setAdminAnalytics(analyticsData);
-        setAnomalySummary(anomalyData);
-        setEmploymentStats(empStats);
-        setDueForRegularization(dueReg);
-      } else {
-        const [analyticsData, todayData, creditsData, leavesData, setting] =
-          await Promise.all([
-            getMyAnalytics().catch(() => null),
-            getTodayStatus().catch(() => null),
-            leaveService.getLeaveCredits().catch(() => null),
-            leaveService.getMyLeaves().catch(() => null),
-            getSetting("enable_web_clock_in_out").catch(() => ({ value: "true" })),
-          ]);
+  const adminPending =
+    adminSummaryQuery.isPending ||
+    adminAnalyticsQuery.isPending ||
+    anomalyQuery.isPending ||
+    employmentStatsQuery.isPending ||
+    dueRegQuery.isPending;
 
-        setSummary(analyticsData?.summary || null);
-        setEmployeeTrends(analyticsData?.trends || null);
-        setToday(todayData);
-        setLeaveCredits(creditsData);
-        setRecentLeaves(leavesData?.data?.slice(0, 3) || []);
-        setWebClockEnabled(setting?.value === "true");
-      }
-    } catch (error) {
-      console.error("Dashboard error:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [user, isAdminLevel]);
+  const empPending =
+    myAnalyticsQuery.isPending ||
+    todayQuery.isPending ||
+    creditsQuery.isPending ||
+    leavesQuery.isPending ||
+    clockQuery.isPending;
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const summary = isAdminLevel
+    ? adminSummaryQuery.data
+    : (myAnalyticsQuery.data?.summary ?? null);
+  const employeeTrends = myAnalyticsQuery.data?.trends ?? null;
 
-  // Memoize metrics calculation
   const metrics = useMemo(() => {
     if (!summary) return null;
 
@@ -996,7 +970,15 @@ const Dashboard = () => {
     };
   }, [summary]);
 
-  if (loading) {
+  const refreshEmployee = useCallback(() => {
+    myAnalyticsQuery.refetch();
+    todayQuery.refetch();
+    creditsQuery.refetch();
+    leavesQuery.refetch();
+    clockQuery.refetch();
+  }, []);
+
+  if (isAdminLevel ? adminPending : empPending) {
     return (
       <div className="space-y-6 p-6">
         <div className="flex items-center gap-3">
@@ -1023,26 +1005,26 @@ const Dashboard = () => {
 
   return isAdminLevel ? (
     <AdminDashboardContent
-      summary={summary}
-      adminAnalytics={adminAnalytics}
+      summary={adminSummaryQuery.data}
+      adminAnalytics={adminAnalyticsQuery.data}
       metrics={metrics}
-      anomalySummary={anomalySummary}
-      employmentStats={employmentStats}
-      dueForRegularization={dueForRegularization}
+      anomalySummary={anomalyQuery.data}
+      employmentStats={employmentStatsQuery.data}
+      dueForRegularization={dueRegQuery.data ?? []}
       onNavigate={navigate}
     />
   ) : (
     <EmployeeDashboardContent
       user={user}
       summary={summary}
-      today={today}
-      leaveCredits={leaveCredits}
-      recentLeaves={recentLeaves}
+      today={todayQuery.data}
+      leaveCredits={creditsQuery.data}
+      recentLeaves={leavesQuery.data ?? []}
       employeeTrends={employeeTrends}
       navigate={navigate}
       hasPermission={hasPermission}
-      webClockEnabled={webClockEnabled}
-      onRefresh={fetchData}
+      webClockEnabled={clockQuery.data ?? true}
+      onRefresh={refreshEmployee}
     />
   );
 };

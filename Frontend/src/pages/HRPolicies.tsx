@@ -91,7 +91,7 @@ const emptyForm = {
 };
 
 const HRPolicies = () => {
-  const { user, hasPermission } = useAuth();
+  const { hasPermission } = useAuth();
   const isAdmin = hasPermission("hr_policies.manage");
 
   const [policies, setPolicies] = useState<HrPolicy[]>([]);

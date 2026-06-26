@@ -8,7 +8,6 @@ import {
   getApplicantWorkflowTimeline,
   updateApplicant,
   convertApplicantToEmployee,
-  repairApplicantStageRecords,
   completeWorkflowStage,
   moveToNextWorkflowStage,
   failApplicantWorkflow,
@@ -134,8 +133,6 @@ const ApplicantDetailPage = () => {
   });
   const [converting, setConverting] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [repairing, setRepairing] = useState(false);
-
   const [reqDialog, setReqDialog] = useState(false);
   const [editingReq, setEditingReq] = useState<Requirement | null>(null);
   const [reqForm, setReqForm] = useState({ requirement_name: "", status: "Pending", remarks: "" });
@@ -269,9 +266,9 @@ const ApplicantDetailPage = () => {
       { key: "converted", label: "Employee" },
     ];
 
-    const status = (applicant.status || "").toUpperCase();
+    const status = (applicant?.status || "").toUpperCase();
     const isFailed = ["REJECTED", "WITHDRAWN", "FAIL"].some(s => status.includes(s));
-    const isHired = status === "HIRED" || !!applicant.employee_id;
+    const isHired = status === "HIRED" || !!applicant?.employee_id;
 
     let currentIdx: number;
     if (isHired) {
@@ -307,7 +304,7 @@ const ApplicantDetailPage = () => {
       } else if (s.key === "approval") {
         recordStatuses.push("manual");
       } else if (s.key === "converted") {
-        recordStatuses.push(applicant.employee_id ? "recorded" : "none");
+        recordStatuses.push(applicant?.employee_id ? "recorded" : "none");
       } else {
         recordStatuses.push("none");
       }
@@ -607,32 +604,6 @@ const ApplicantDetailPage = () => {
     } finally {
       setConverting(false);
     }
-  };
-
-  const handleRepairStageRecords = async () => {
-    setDeleteConfirm({
-      open: true, title: "Repair Missing Stage Records",
-      message: "Create missing interview/approval records for completed stages?",
-      onConfirm: async () => {
-        try {
-          setRepairing(true);
-          const result = await repairApplicantStageRecords(Number(id));
-          const created = [];
-          if (result.interviews_created?.length) created.push(`${result.interviews_created.length} interview(s)`);
-          if (result.approval_created) created.push("1 approval");
-          toast.success(created.length > 0
-            ? `Created: ${created.join(", ")}`
-            : "No missing records found — all stages already recorded."
-          );
-          fetchAll();
-        } catch (err: any) {
-          toast.error(err?.response?.data?.message || err.message || "Repair failed");
-        } finally {
-          setRepairing(false);
-        }
-        setDeleteConfirm({ open: false, title: "", message: "", onConfirm: () => {} });
-      },
-    });
   };
 
   const handleOpenScheduleInterview = () => {
@@ -960,8 +931,6 @@ const ApplicantDetailPage = () => {
     return <Loader fullPage />;
   }
   if (!applicant) return null;
-  const stageInfo = getStageInfo();
-  const hasMissingRecords = stageInfo.recordStatuses.some(rs => rs === "manual");
 
   return (
     <div className="space-y-6 p-6">
@@ -1948,7 +1917,7 @@ const ApplicantDetailPage = () => {
                   <SelectValue placeholder="Select branch" />
                 </SelectTrigger>
                 <SelectContent>
-                  {branches.map((b) => (
+                  {branches.map((b: { id: number; name: string; code: string }) => (
                     <SelectItem key={b.id} value={String(b.id)}>{b.name} ({b.code})</SelectItem>
                   ))}
                 </SelectContent>

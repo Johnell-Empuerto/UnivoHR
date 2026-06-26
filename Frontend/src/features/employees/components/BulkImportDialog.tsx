@@ -53,6 +53,7 @@ type ValidationSummary = {
 type ImportHistoryItem = {
   batchId: number;
   originalFilename: string | null;
+  filename?: string;
   totalRows: number;
   validRows: number;
   invalidRows: number;

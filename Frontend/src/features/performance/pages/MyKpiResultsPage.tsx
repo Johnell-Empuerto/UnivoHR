@@ -43,7 +43,7 @@ const statusBadge = (s: string) => {
 };
 
 const MyKpiResultsPage = () => {
-  const { user } = useAuth();
+  useAuth();
   const [evaluations, setEvaluations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEval, setSelectedEval] = useState<any>(null);
@@ -56,7 +56,7 @@ const MyKpiResultsPage = () => {
   const fetchEvaluations = async () => {
     try {
       setLoading(true);
-      const r = await getMyKpiEvaluations("", page, pageSize);
+      const r = await getMyKpiEvaluations("");
       setEvaluations(r.data || (Array.isArray(r) ? r : []));
       setTotal(r.pagination?.total || (Array.isArray(r) ? r.length : 0));
     } catch (error) {

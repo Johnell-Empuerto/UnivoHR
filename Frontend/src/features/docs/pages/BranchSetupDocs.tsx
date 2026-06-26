@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Info, Users, Building2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, Users } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -9,8 +9,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import DocsNavigation from "../components/DocsNavigation";
-
-const BRANCHES_PATH = "/branches";
 
 const BranchSetupDocs = () => (
   <div className="space-y-8">

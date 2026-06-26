@@ -5,7 +5,7 @@ import {
 } from "@/services/employeeOnboardingService";
 import { getEmployeeRequirements, createEmployeeRequirement, updateEmployeeRequirement, deleteEmployeeRequirement } from "@/services/employeeRequirementService";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";

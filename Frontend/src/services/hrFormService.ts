@@ -45,7 +45,13 @@ export const deleteHrFormField = async (fieldId: number) => {
   return response.data;
 };
 
-export const assignHrForm = async (data: { form_id: number; employee_ids: number[]; due_date?: string }) => {
+export const assignHrForm = async (data: {
+  form_id: number;
+  employee_ids?: number[];
+  due_date?: string;
+  assign_all_matching?: boolean;
+  search?: string;
+}) => {
   const response = await api.post(`/hr-forms/${data.form_id}/assign`, data);
   return response.data;
 };

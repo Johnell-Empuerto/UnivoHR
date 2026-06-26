@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -23,8 +23,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import EmptyState from "@/components/shared/EmptyState";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAllLeaveTypesAdmin } from "@/hooks/useLeaveTypes";
 import {
-  getAllLeaveTypesAdmin, createLeaveType, updateLeaveTypeAdmin,
+  createLeaveType, updateLeaveTypeAdmin,
   toggleLeaveTypeEnabled, deleteLeaveType,
 } from "@/services/leaveService";
 
@@ -95,8 +97,14 @@ const emptyForm: LeaveTypeForm = {
 };
 
 const LeaveTypeSettings = () => {
-  const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const {
+    data: leaveTypesData,
+    isPending,
+    isFetching,
+    refetch,
+  } = useAllLeaveTypesAdmin();
+  const leaveTypes: LeaveType[] = leaveTypesData ?? [];
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "enabled" | "disabled">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -104,22 +112,6 @@ const LeaveTypeSettings = () => {
   const [formData, setFormData] = useState<LeaveTypeForm>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [toggling, setToggling] = useState<number | null>(null);
-
-  const fetchTypes = useCallback(async () => {
-    try {
-      setLoading(true);
-      const types = await getAllLeaveTypesAdmin();
-      setLeaveTypes(types);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to load leave types");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchTypes();
-  }, [fetchTypes]);
 
   const filtered = leaveTypes.filter((lt) => {
     if (filter === "enabled" && !lt.is_enabled) return false;
@@ -166,7 +158,11 @@ const LeaveTypeSettings = () => {
     try {
       setToggling(id);
       const updated = await toggleLeaveTypeEnabled(id);
-      setLeaveTypes((prev) => prev.map((lt) => (lt.id === id ? { ...lt, is_enabled: updated.is_enabled } : lt)));
+      queryClient.setQueryData(["leave-types", "all"], (prev: any) =>
+        prev?.map((lt: any) => (lt.id === id ? { ...lt, is_enabled: updated.is_enabled } : lt))
+      );
+      queryClient.invalidateQueries({ queryKey: ["leave-types"] });
+      queryClient.invalidateQueries({ queryKey: ["leave-conversion", "types"] });
       toast.success(`Leave type ${updated.is_enabled ? "enabled" : "disabled"}`);
     } catch (err: any) {
       toast.error(err.message || "Failed to toggle leave type");
@@ -205,11 +201,17 @@ const LeaveTypeSettings = () => {
       };
       if (editing) {
         const updated = await updateLeaveTypeAdmin(editing.id, payload);
-        setLeaveTypes((prev) => prev.map((lt) => (lt.id === editing.id ? updated : lt)));
+        queryClient.setQueryData(["leave-types", "all"], (prev: any) =>
+          prev?.map((lt: any) => (lt.id === editing.id ? updated : lt))
+        );
+        queryClient.invalidateQueries({ queryKey: ["leave-types"] });
+        queryClient.invalidateQueries({ queryKey: ["leave-conversion", "types"] });
         toast.success("Leave type updated");
       } else {
         const created = await createLeaveType(payload);
-        setLeaveTypes((prev) => [...prev, created]);
+        queryClient.setQueryData(["leave-types", "all"], (prev: any) => [...(prev || []), created]);
+        queryClient.invalidateQueries({ queryKey: ["leave-types"] });
+        queryClient.invalidateQueries({ queryKey: ["leave-conversion", "types"] });
         toast.success("Leave type created");
       }
       setDialogOpen(false);
@@ -223,7 +225,11 @@ const LeaveTypeSettings = () => {
   const handleDelete = async (lt: LeaveType) => {
     try {
       await deleteLeaveType(lt.id);
-      setLeaveTypes((prev) => prev.map((t) => (t.id === lt.id ? { ...t, is_enabled: false } : t)));
+      queryClient.setQueryData(["leave-types", "all"], (prev: any) =>
+        prev?.map((t: any) => (t.id === lt.id ? { ...t, is_enabled: false } : t))
+      );
+      queryClient.invalidateQueries({ queryKey: ["leave-types"] });
+      queryClient.invalidateQueries({ queryKey: ["leave-conversion", "types"] });
       toast.success(`Leave type '${lt.code}' disabled`);
     } catch (err: any) {
       toast.error(err.message || "Failed to delete leave type");
@@ -268,8 +274,8 @@ const LeaveTypeSettings = () => {
                 <SelectItem value="disabled">Disabled</SelectItem>
               </SelectContent>
             </Select>
-            <Button onClick={fetchTypes} variant="ghost" disabled={loading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            <Button onClick={() => refetch()} variant="ghost" disabled={isFetching}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
               Refresh
             </Button>
             <Button onClick={openAdd}>
@@ -279,7 +285,7 @@ const LeaveTypeSettings = () => {
           </div>
 
           {/* Table */}
-          {loading ? (
+          {isPending ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>

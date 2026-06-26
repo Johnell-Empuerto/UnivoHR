@@ -1,4 +1,4 @@
-import { CheckCircle2, CalendarDays, Users } from "lucide-react";
+import { CheckCircle2, CalendarDays } from "lucide-react";
 import {
   Card,
   CardContent,

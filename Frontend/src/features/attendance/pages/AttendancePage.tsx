@@ -142,6 +142,7 @@ const AttendancePage = () => {
         let result;
 
         if (!hasPermission("attendance.manage")) {
+          if (!user?.employee_id) return;
           const data = await getAttendanceByEmployee(user.employee_id, formattedDate);
           result = {
             data,

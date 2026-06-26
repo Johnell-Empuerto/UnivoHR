@@ -14,9 +14,7 @@ import {
   Fingerprint,
   BarChart3,
   ClipboardList,
-  GraduationCap,
   HeartHandshake,
-  Camera,
 } from "lucide-react";
 import {
   Card,

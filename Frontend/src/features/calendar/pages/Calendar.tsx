@@ -90,6 +90,7 @@ interface UploadResult {
     totalRows: number;
     inserted: number;
     updated: number;
+    skipped?: number;
     failed: number;
   };
   errors: string[];

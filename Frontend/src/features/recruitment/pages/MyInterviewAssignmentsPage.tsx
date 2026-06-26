@@ -130,7 +130,7 @@ const getRecommendationBadge = (rec: string | null) => {
 
 const MyInterviewAssignmentsPage = () => {
   const navigate = useNavigate();
-  const { hasPermission, user } = useAuth();
+  const { hasPermission } = useAuth();
 
   const [activeTab, setActiveTab] = useState<Tab>("table");
 
