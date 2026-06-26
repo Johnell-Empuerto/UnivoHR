@@ -318,9 +318,132 @@ const updateStatus = async (req, res) => {
   }
 };
 
+// CREATE LEAVE FOR EMPLOYEE — immediately approved on behalf of an employee (permission: leave.create_for_others)
+const createLeaveForEmployee = async (req, res) => {
+  try {
+    const {
+      employee_id,
+      type,
+      from_date,
+      to_date,
+      reason,
+      day_fraction = 1,
+      half_day_type = null,
+    } = req.body;
+
+    if (!employee_id) {
+      return res.status(400).json({ message: "employee_id is required" });
+    }
+
+    // Verify target employee exists
+    const pool = require("../config/db");
+    const empResult = await pool.query(
+      "SELECT id, first_name, last_name, employee_code FROM employees WHERE id = $1",
+      [employee_id],
+    );
+    if (empResult.rows.length === 0) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    // Validate half-day
+    if (day_fraction === 0.5 && !half_day_type) {
+      return res.status(400).json({
+        message: "half_day_type is required for half-day leave",
+        allowed: ["MORNING", "AFTERNOON"],
+      });
+    }
+
+    if (day_fraction === 1 && half_day_type) {
+      return res.status(400).json({
+        message: "half_day_type should be null for full-day leave",
+      });
+    }
+
+    if (
+      half_day_type &&
+      !["MORNING", "AFTERNOON"].includes(half_day_type.toUpperCase())
+    ) {
+      return res.status(400).json({
+        message: "Invalid half_day_type. Must be 'MORNING' or 'AFTERNOON'",
+        allowed: ["MORNING", "AFTERNOON"],
+      });
+    }
+
+    if (day_fraction !== 1 && day_fraction !== 0.5) {
+      return res.status(400).json({
+        message: "Invalid day_fraction. Must be 1 (full day) or 0.5 (half day)",
+      });
+    }
+
+    const fromDate = new Date(from_date);
+    const toDate = new Date(to_date);
+    if (fromDate > toDate) {
+      return res.status(400).json({
+        message: "from_date cannot be after to_date",
+      });
+    }
+
+    // Reuse existing credit validation — checks the TARGET employee's credits
+    const creditCheck = await leaveService.checkAvailableCredits(
+      employee_id,
+      type,
+      from_date,
+      to_date,
+      day_fraction,
+    );
+
+    if (!creditCheck.available) {
+      return res.status(400).json({
+        message: creditCheck.message,
+        remaining: creditCheck.remaining,
+      });
+    }
+
+    // Create leave as PENDING for the target employee
+    const leave = await leaveService.createLeave({
+      type,
+      from_date,
+      to_date,
+      reason: cleanPlainText(reason),
+      employee_id,
+      day_fraction,
+      half_day_type: half_day_type ? half_day_type.toUpperCase() : null,
+    });
+
+    // Immediately approve using the existing approval service
+    // This reuses ALL side effects:
+    //   - status update (APPROVED)
+    //   - attendance marking via attendanceModel.markAsLeave
+    //   - leave credit deduction via leaveCreditModel.useLeave
+    //   - in-app notification to employee (leave_approved rule)
+    //   - email notification to employee
+    await leaveService.updateStatus(leave.id, "APPROVED");
+
+    // Fetch fully formatted result with employee name
+    const result = await leaveService.getLeaveById(leave.id);
+
+    // Audit log
+    audit.auditLog(req, {
+      action: "APPROVE",
+      table_name: "leaves",
+      record_id: result.id,
+      employee_id,
+      old_values: { status: "PENDING" },
+      new_values: { status: "APPROVED", created_by_admin: req.user.id },
+      description: `Leave created and approved on behalf of employee ${employee_id}: ${type} from ${from_date} to ${to_date}`,
+    });
+
+    res.status(201).json(result);
+  } catch (error) {
+    console.error(" Admin create leave error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createLeave,
   getLeaves,
   getMyLeaves,
   updateStatus,
+  createLeaveForEmployee,
 };

@@ -74,6 +74,29 @@ router.get("/approvers", authenticate, canAccessLeaveApprovers, (req, res) => {
   res.json({ message: "Access granted" });
 });
 
+// Joi schema for create leave for employee (extends leaveSchema with employee_id)
+const createLeaveForEmployeeSchema = Joi.object({
+  employee_id: Joi.number().integer().positive().required(),
+
+  type: Joi.string()
+    .pattern(/^[A-Z][A-Z_ -]*[A-Z]$/)
+    .max(20)
+    .required(),
+
+  from_date: Joi.date().required(),
+  to_date: Joi.date().min(Joi.ref("from_date")).required(),
+
+  reason: Joi.string().optional().allow(""),
+
+  day_fraction: Joi.number().valid(0.5, 1).default(1),
+
+  half_day_type: Joi.when("day_fraction", {
+    is: 0.5,
+    then: Joi.string().valid("MORNING", "AFTERNOON").required(),
+    otherwise: Joi.allow(null, ""),
+  }),
+});
+
 // CREATE LEAVE
 router.post(
   "/",
@@ -81,6 +104,15 @@ router.post(
   requirePermission("leave.view"),
   validate(leaveSchema),
   controller.createLeave,
+);
+
+// CREATE LEAVE FOR EMPLOYEE (immediately approved — bypasses pending workflow)
+router.post(
+  "/create-for-employee",
+  authenticate,
+  requirePermission("leave.create_for_others"),
+  validate(createLeaveForEmployeeSchema),
+  controller.createLeaveForEmployee,
 );
 
 // MY LEAVES

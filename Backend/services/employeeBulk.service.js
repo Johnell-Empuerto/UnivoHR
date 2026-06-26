@@ -5,8 +5,12 @@ const fs = require("fs");
 const pool = require("../config/db");
 const branchModel = require("../models/branch.model");
 const leaveCreditModel = require("../models/leaveCredit.model");
+const bcrypt = require("bcrypt");
 const audit = require("../services/audit.service");
 const { getEmployeeCodeSettings } = require("./applicant.service");
+const userModel = require("../models/user.model");
+const permissionModel = require("../models/permission.model");
+const { EMPLOYEE_DEFAULT_PERMISSIONS } = require("../constants/permissions");
 
 const VALID_EMPLOYMENT_STATUSES = ["PROBATIONARY", "REGULAR"];
 const VALID_EMPLOYEE_STATUSES = ["ACTIVE", "RESIGNED", "TERMINATED"];
@@ -74,6 +78,9 @@ const generateTemplate = async () => {
     { header: "Emergency Contact Number", key: "emergency_contact_number", width: 24 },
     { header: "Emergency Contact Address", key: "emergency_contact_address", width: 30 },
     { header: "Emergency Contact Relation", key: "emergency_contact_relation", width: 22 },
+    { header: "Username", key: "username", width: 22 },
+    { header: "Password", key: "password", width: 18 },
+    { header: "Role", key: "role", width: 14 },
   ];
 
   ws.columns = columns.map((c) => ({
@@ -121,6 +128,9 @@ const generateTemplate = async () => {
     emergency_contact_number: "09179876543",
     emergency_contact_address: "456 Mabini St., Makati City",
     emergency_contact_relation: "Mother",
+    username: "",
+    password: "",
+    role: "",
   });
 
   sampleRow.eachCell((cell) => {
@@ -182,11 +192,18 @@ const generateTemplate = async () => {
     ["  - Optional but must be a valid email format if provided."],
     ["  - Must be unique across all employees if provided."],
     [""],
+    ["USER ACCOUNT (optional):"],
+    ["  - Leave Username, Password, and Role blank to create employee only."],
+    ["  - If Username is provided, Password and Role are also required."],
+    ["  - Username must be unique across all users."],
+    ["  - Password must be at least 4 characters."],
+    ["  - Role accepted values: EMPLOYEE (default), ADMIN"],
+    ["  - When account data is provided, BOTH the employee record AND a"],
+    ["    login account will be created during import."],
+    [""],
     ["IMPORTANT NOTES:"],
     ["  - Do NOT rename, reorder, or remove column headers."],
     ["  - Rows with errors will be rejected. Fix errors and re-upload."],
-    ["  - This process ONLY creates employee records."],
-    ["    User login accounts are NOT created during bulk upload."],
     ["  - Uploaded files are deleted immediately after processing."],
   ];
 
@@ -281,6 +298,9 @@ const parseAndValidate = async (filePath, userId) => {
     const emergencyContactNumber = sanitizeCell(row["Emergency Contact Number"]);
     const emergencyContactAddress = sanitizeCell(row["Emergency Contact Address"]);
     const emergencyContactRelation = sanitizeCell(row["Emergency Contact Relation"]);
+    const username = sanitizeCell(row["Username"]);
+    const password = sanitizeCell(row["Password"]);
+    const role = sanitizeCell(row["Role"]);
 
     const resolvedBranch = resolveBranch(branchRaw, branchLookup);
     let branchResolved = branchRaw;
@@ -361,6 +381,28 @@ const parseAndValidate = async (filePath, userId) => {
         errors.push("Basic Salary must be a valid positive number");
         parsedSalary = 0;
       }
+    }
+
+    let accountInfo = null;
+    if (username) {
+      if (!password) {
+        errors.push("Password is required when Username is provided");
+      } else if (password.length < 4) {
+        errors.push("Password must be at least 4 characters");
+      }
+      const normalizedRole = role ? role.toUpperCase() : "EMPLOYEE";
+      if (role && !["ADMIN", "EMPLOYEE"].includes(normalizedRole)) {
+        errors.push(`Invalid Role "${role}". Accepted: ADMIN, EMPLOYEE`);
+      }
+      const normalizedUsername = username.toLowerCase().trim();
+      const dupCheckResult = await pool.query(
+        `SELECT id FROM users WHERE LOWER(username) = LOWER($1) LIMIT 1`,
+        [normalizedUsername]
+      );
+      if (dupCheckResult.rows.length > 0) {
+        errors.push(`Username "${username}" already exists`);
+      }
+      accountInfo = { username: normalizedUsername, password, role: normalizedRole };
     }
 
     if (employeeCode) {
@@ -464,6 +506,7 @@ const parseAndValidate = async (filePath, userId) => {
         emergency_contact_number: emergencyContactNumber || null,
         emergency_contact_address: emergencyContactAddress || null,
         emergency_contact_relation: emergencyContactRelation || null,
+        account: accountInfo,
       };
       validRowsData.push({ rowNumber, employeeCode, email, firstName, lastName, branchName, branchId, errors, normalizedData });
     } else {
@@ -624,6 +667,28 @@ const commitImport = async (batchId, userId, req) => {
 
       await leaveCreditModel.createDefault(employeeId, client);
 
+      if (nd.account && nd.account.username) {
+        const existingUser = await client.query(
+          `SELECT id FROM users WHERE LOWER(username) = LOWER($1) LIMIT 1`,
+          [nd.account.username]
+        );
+        if (existingUser.rows.length > 0) {
+          throw new Error(`Username "${nd.account.username}" already exists (row ${row.row_number})`);
+        }
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(nd.account.password, saltRounds);
+        const userResult = await client.query(
+          `INSERT INTO users (username, password_hash, role, employee_id)
+           VALUES ($1, $2, $3, $4)
+           RETURNING id, username, role, employee_id`,
+          [nd.account.username, hashedPassword, nd.account.role, employeeId]
+        );
+        const newUser = userResult.rows[0];
+        if (newUser && nd.account.role !== "ADMIN") {
+          await permissionModel.setUserPermissions(newUser.id, EMPLOYEE_DEFAULT_PERMISSIONS);
+        }
+      }
+
       await client.query(
         `UPDATE employee_import_rows SET status = 'imported', created_employee_id = $1 WHERE id = $2`,
         [employeeId, row.id]
@@ -634,6 +699,10 @@ const commitImport = async (batchId, userId, req) => {
     client.release();
 
     const importedCount = validRows.length;
+    let accountsCreated = 0;
+    for (const row of validRows) {
+      if (row.normalized_data?.account?.username) accountsCreated++;
+    }
 
     await pool.query(
       `UPDATE employee_import_batches
@@ -674,14 +743,17 @@ const commitImport = async (batchId, userId, req) => {
     }
 
     try {
+      const desc = accountsCreated > 0
+        ? `Bulk import completed: ${importedCount} employees imported with ${accountsCreated} accounts created, ${batch.invalid_rows} invalid rows skipped (batch ${batchId})`
+        : `Bulk import completed: ${importedCount} employees imported, ${batch.invalid_rows} invalid rows skipped (batch ${batchId})`;
       await audit.auditLog(req, {
         action: "BULK_IMPORT",
         table_name: "employees",
         record_id: null,
         employee_id: null,
         branch_id: null,
-        new_values: { batchId, importedCount, invalidRows: batch.invalid_rows },
-        description: `Bulk import completed: ${importedCount} employees imported, ${batch.invalid_rows} invalid rows skipped (batch ${batchId})`,
+        new_values: { batchId, importedCount, accountsCreated, invalidRows: batch.invalid_rows },
+        description: desc,
       });
     } catch (auditErr) {
       console.error("[EmployeeBulk] Audit log error:", auditErr.message);
@@ -689,6 +761,7 @@ const commitImport = async (batchId, userId, req) => {
 
     return {
       importedCount,
+      accountsCreated,
       failedCount: 0,
     };
   } catch (error) {

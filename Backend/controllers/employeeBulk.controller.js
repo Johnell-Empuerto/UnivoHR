@@ -56,11 +56,15 @@ const commitImport = async (req, res) => {
 
     const result = await employeeBulkService.commitImport(batchId, req.user.id, req);
 
+    const msg = result.accountsCreated > 0
+      ? `Imported ${result.importedCount} employees with ${result.accountsCreated} accounts created successfully.`
+      : `Imported ${result.importedCount} employees successfully.`;
     res.json({
       success: true,
-      message: `Imported ${result.importedCount} employees successfully.`,
+      message: msg,
       batchId,
       importedCount: result.importedCount,
+      accountsCreated: result.accountsCreated || 0,
       failedCount: result.failedCount,
     });
   } catch (error) {

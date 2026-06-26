@@ -246,7 +246,7 @@ INSERT INTO system_settings (id, key, value, description) VALUES
   (1, 'employee_code_padding', '3', 'Zero-padding for auto-generated employee codes'),
   (2, 'employee_code_separator', '', 'Separator between prefix and counter'),
   (3, 'employee_code_prefix', 'EMP', 'Prefix for auto-generated employee codes'),
-  (4, 'employee_code_counter', '1', 'Next counter value for auto-generated codes'),
+  (4, 'employee_code_counter', '0', 'Last used counter value; next code = counter + 1'),
   (5, 'employee_code_auto_generate', 'true', 'Enable auto-generation of employee codes'),
   (6, 'enable_web_clock_in_out', 'true', 'Enable web-based clock in/out feature');
 SELECT setval('system_settings_id_seq', 6);
@@ -351,7 +351,7 @@ SELECT 1, unnest(ARRAY[
   'dashboard.view',
   'employees.view', 'employees.create', 'employees.edit', 'employees.delete',
   'attendance.view', 'attendance.view_own', 'attendance.manage', 'attendance.time_requests.approve', 'attendance.clock_in',
-  'leave.view', 'leave.view_own', 'leave.create', 'leave.manage', 'leave.approve', 'leave.credits.view', 'leave.credits.manage', 'leave.conversion.view', 'leave.conversion.manage',
+  'leave.view', 'leave.view_own', 'leave.create', 'leave.create_for_others', 'leave.manage', 'leave.approve', 'leave.credits.view', 'leave.credits.manage', 'leave.conversion.view', 'leave.conversion.manage',
   'overtime.view', 'overtime.view_own', 'overtime.create', 'overtime.manage', 'overtime.approve',
   'manhours.view', 'manhours.view_own', 'manhours.manage', 'manhours.approve',
   'payroll.view', 'payroll.generate', 'payroll.mark_paid', 'payroll.settings', 'payroll.salary.manage', 'payroll.deductions.manage',
