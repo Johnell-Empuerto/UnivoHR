@@ -8,19 +8,14 @@ import {
   CheckSquare,
   Square,
   X,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/Input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
-import { getUsers, type User } from "@/services/userService";
+import type { User } from "@/services/userService";
+import UserPermissionsPickerDialog from "../components/UserPermissionsPickerDialog";
 import {
   getAllPermissions,
   getUserPermissions,
@@ -257,8 +252,7 @@ const PRESETS: { name: string; label: string; keys: string[] }[] = [
 ];
 
 const UserPermissionsPage = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [permissionGroups, setPermissionGroups] = useState<
     Record<string, string[]>
   >({});
@@ -268,18 +262,14 @@ const UserPermissionsPage = () => {
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [permissionSearch, setPermissionSearch] = useState("");
-  const [userSearch, setUserSearch] = useState("");
   const [savedPermissions, setSavedPermissions] = useState<string[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     const init = async () => {
       try {
         setLoading(true);
-        const [usersRes, permsRes] = await Promise.all([
-          getUsers(1, 100),
-          getAllPermissions(),
-        ]);
-        setUsers(usersRes.data);
+        const permsRes = await getAllPermissions();
         setPermissionGroups(permsRes.groups);
         setAllPermissionKeys(permsRes.allPermissions);
       } catch (err: any) {
@@ -292,14 +282,14 @@ const UserPermissionsPage = () => {
   }, []);
 
   useEffect(() => {
-    if (!selectedUserId) {
+    if (!selectedUser) {
       setUserPermissions([]);
       setSavedPermissions([]);
       return;
     }
     const fetchPermissions = async () => {
       try {
-        const res = await getUserPermissions(Number(selectedUserId));
+        const res = await getUserPermissions(selectedUser.id);
         const perms = Array.isArray(res)
           ? res
           : Array.isArray(res.permissions)
@@ -313,24 +303,13 @@ const UserPermissionsPage = () => {
       }
     };
     fetchPermissions();
-  }, [selectedUserId]);
+  }, [selectedUser]);
 
-  const selectedUser = users.find((u) => String(u.id) === selectedUserId);
   const isAdminUser = selectedUser?.role === "ADMIN";
   const current = Array.isArray(userPermissions) ? userPermissions : [];
   const saved = Array.isArray(savedPermissions) ? savedPermissions : [];
   const hasChanges =
     [...current].sort().join(",") !== [...saved].sort().join(",");
-
-  const filteredUsers = useMemo(() => {
-    if (!userSearch) return users;
-    const q = userSearch.toLowerCase();
-    return users.filter(
-      (u) =>
-        `${u.first_name} ${u.last_name}`.toLowerCase().includes(q) ||
-        u.username.toLowerCase().includes(q),
-    );
-  }, [users, userSearch]);
 
   const filteredGroups = useMemo(() => {
     if (!permissionSearch) return permissionGroups;
@@ -381,10 +360,10 @@ const UserPermissionsPage = () => {
   };
 
   const handleSave = async () => {
-    if (!selectedUserId) return;
+    if (!selectedUser) return;
     try {
       setSaving(true);
-      await saveUserPermissionsApi(Number(selectedUserId), userPermissions);
+      await saveUserPermissionsApi(selectedUser.id, userPermissions);
       setSavedPermissions([...userPermissions]);
       toast.success("Permissions saved successfully");
     } catch (err: any) {
@@ -395,10 +374,10 @@ const UserPermissionsPage = () => {
   };
 
   const handleReset = async () => {
-    if (!selectedUserId) return;
+    if (!selectedUser) return;
     try {
       setResetting(true);
-      await resetUserPermissions(Number(selectedUserId));
+      await resetUserPermissions(selectedUser.id);
       setUserPermissions([]);
       setSavedPermissions([]);
       toast.success("Permissions reset to default");
@@ -438,48 +417,55 @@ const UserPermissionsPage = () => {
         <CardHeader>
           <CardTitle>Select User</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search users..."
-              value={userSearch}
-              onChange={(e) => setUserSearch(e.target.value)}
-              className="pl-9 max-w-md"
-            />
-            {userSearch && (
-              <button
-                onClick={() => setUserSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-          <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-            <SelectTrigger className="w-full max-w-md">
-              <SelectValue placeholder="Choose a user to manage permissions" />
-            </SelectTrigger>
-            <SelectContent>
-              {filteredUsers.length === 0 ? (
-                <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                  No users found
+        <CardContent>
+          {selectedUser ? (
+            <div className="flex items-center justify-between max-w-md">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-sm font-semibold text-primary">
+                    {selectedUser.first_name?.[0]}{selectedUser.last_name?.[0]}
+                  </span>
                 </div>
-              ) : (
-                filteredUsers.map((u) => (
-                  <SelectItem key={u.id} value={String(u.id)}>
-                    <span>
-                      {u.first_name} {u.last_name} ({u.username}) - {u.role}
-                    </span>
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
+                <div>
+                  <p className="font-medium">
+                    {selectedUser.first_name} {selectedUser.last_name}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedUser.username} — {selectedUser.role}
+                    {selectedUser.employee_code && (
+                      <> · {selectedUser.employee_code}</>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPickerOpen(true)}
+              >
+                Change
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={() => setPickerOpen(true)}
+              className="w-full max-w-md justify-between"
+            >
+              <span>Choose a user to manage permissions</span>
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </Button>
+          )}
         </CardContent>
       </Card>
 
-      {selectedUserId && (
+      <UserPermissionsPickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        onSelect={setSelectedUser}
+      />
+
+      {selectedUser && (
         <>
           {isAdminUser && (
             <Card className="shadow-sm border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
