@@ -16,7 +16,7 @@ const UsersDocs = () => (
         <CardHeader className="space-y-2">
           <CardTitle className="text-xl">User accounts (Accounts)</CardTitle>
           <CardDescription className="text-base leading-relaxed">
-            The <strong>Accounts</strong> page (User Accounts) lets Administrators
+            The <strong>Accounts</strong> page (User Accounts) lets users with the required permissions
             create login credentials, assign roles, and remove accounts. Each user
             must be linked to one <strong>employee record</strong>. Roles control
             which menus and actions appear across attendance, leave, payroll, and
@@ -29,7 +29,7 @@ const UsersDocs = () => (
           <div className="space-y-3">
             <h3 className="font-semibold text-base">Users overview</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Open <strong>Accounts</strong> from the sidebar (Administrator only).
+              Open <strong>Accounts</strong> from the sidebar (users with the required permission).
               The page lists usernames with linked employee name, code, role,
               department, and account creation date.
             </p>
@@ -56,8 +56,7 @@ const UsersDocs = () => (
                 Accounts, System Settings, and administrator leave tools
               </li>
               <li>
-                <strong>HR Admin</strong> — broad HR access (payroll admin view,
-                employee add/edit, leave credits, settings with HR Admin access)
+                <strong>Administrator</strong> — broader access based on assigned permissions
               </li>
               <li>
                 <strong>HR</strong> — HR operations such as approving requests and
@@ -88,7 +87,7 @@ const UsersDocs = () => (
                 Search by <strong>username</strong> or <strong>employee name</strong>
               </li>
               <li>
-                Filter by role: All, Admin, HR Admin, HR, or Employee
+                Filter by role: All, Admin, or Employee
               </li>
               <li>Clear Filters and Refresh reset the table</li>
               <li>Pagination at the bottom (5, 10, 25, 50 rows per page)</li>
@@ -173,7 +172,7 @@ const UsersDocs = () => (
               </li>
               <li>
                 There is no <strong>Reset password</strong> button on this page —
-                administrators set a new password in Edit User, or the employee may
+                users with the required permissions set a new password in Edit User, or the employee may
                 use the login <strong>forgot password</strong> flow if your company
                 enabled it.
               </li>
@@ -189,8 +188,8 @@ const UsersDocs = () => (
               <h3 className="font-semibold text-sm">User permissions</h3>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Only <strong>Administrator</strong> can open Accounts and perform
-              create, edit, or delete. HR Admin, HR, and Employee roles do not see
+              Only users with the required permission can open Accounts and perform
+              create, edit, or delete. Users without the required permission do not see
               this menu.
             </p>
             <p className="text-sm text-muted-foreground">
@@ -198,25 +197,6 @@ const UsersDocs = () => (
               access. Approver rights for a specific employee are configured under
               System Settings → Approvals, not on the Accounts page.
             </p>
-          </div>
-
-          <Separator />
-
-          {/* Needs confirmation */}
-          <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-purple-700 dark:text-purple-300">
-              Needs confirmation
-            </p>
-            <ul className="space-y-2 text-sm text-purple-900/90 dark:text-purple-300/90 list-disc list-inside ml-1">
-              <li>
-                Whether your organization uses the login forgot-password / OTP reset
-                flow for employees (separate from Accounts).
-              </li>
-              <li>
-                Policy for deleting vs disabling accounts when someone leaves the
-                company.
-              </li>
-            </ul>
           </div>
 
           {/* Important notes */}
@@ -237,7 +217,7 @@ const UsersDocs = () => (
               <li className="flex gap-2">
                 <span className="text-blue-500 shrink-0">•</span>
                 <span>
-                  Give HR Admin or HR roles only to staff who should see company-wide
+                  Assign the appropriate permissions only to staff who should see company-wide
                   HR data.
                 </span>
               </li>
@@ -291,8 +271,8 @@ const UsersDocs = () => (
               <li className="flex gap-2">
                 <span className="text-amber-500 shrink-0">•</span>
                 <span>
-                  <strong>Cannot open Accounts</strong> — Only Administrator role
-                  has access.
+                  <strong>Cannot open Accounts</strong> — Only users with the required permission
+                  have access.
                 </span>
               </li>
               <li className="flex gap-2">

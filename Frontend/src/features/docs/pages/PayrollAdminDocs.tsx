@@ -1,4 +1,4 @@
-import { AlertTriangle, Info, Users } from "lucide-react";
+import { AlertTriangle, Info } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -9,26 +9,9 @@ import {
 import { Separator } from "@/components/ui/separator";
 import DocsNavigation from "../components/DocsNavigation";
 
-const adminAccessRows = [
-  { action: "Open Payroll Management (4 tabs)", admin: "Yes", hrAdmin: "Yes", hr: "No", employee: "No" },
-  { action: "Generate payroll for a cutoff period", admin: "Yes", hrAdmin: "Yes", hr: "No", employee: "No" },
-  { action: "View all employees’ payroll records & summary", admin: "Yes", hrAdmin: "Yes", hr: "No", employee: "No" },
-  { action: "Open full Payroll Details page", admin: "Yes", hrAdmin: "Yes", hr: "No", employee: "No" },
-  { action: "Mark one or all records as Paid", admin: "Yes", hrAdmin: "Yes", hr: "No", employee: "No" },
-  { action: "Delete an unpaid payroll batch", admin: "Yes", hrAdmin: "Yes", hr: "No", employee: "No" },
-  { action: "Employee Salary Settings tab", admin: "Yes", hrAdmin: "Yes", hr: "No", employee: "No" },
-  { action: "Final Pay — Preview & Process", admin: "Yes", hrAdmin: "Yes", hr: "No", employee: "No" },
-  { action: "Final Pay — view pending list & history", admin: "Yes", hrAdmin: "Yes", hr: "Yes", employee: "No" },
-  { action: "Download final pay slip (history)", admin: "Yes", hrAdmin: "Yes", hr: "Yes", employee: "No" },
-];
 
-const employeeAccessRows = [
-  { action: "Open My Payroll page", admin: "Yes", hrAdmin: "Yes", hr: "Yes", employee: "Yes" },
-  { action: "View own salary overview cards", admin: "Yes", hrAdmin: "Yes", hr: "Yes", employee: "Yes" },
-  { action: "View own payroll history by month", admin: "Yes", hrAdmin: "Yes", hr: "Yes", employee: "Yes" },
-  { action: "Salary Breakdown dialog", admin: "Yes", hrAdmin: "Yes", hr: "Yes", employee: "Yes" },
-  { action: "Download own payslip PDF", admin: "Yes", hrAdmin: "Yes", hr: "Yes", employee: "Yes" },
-];
+
+
 
 const PayrollAdminDocs = () => (
   <div className="space-y-8">
@@ -40,9 +23,7 @@ const PayrollAdminDocs = () => (
             UnivoHR payroll covers monthly cutoff runs for active employees,
             per-employee salary and deduction setup, payslip review, marking pay
             as released, and separate final pay for resigned or terminated staff.
-            What you see depends on your role: administrators and HR admins
-            manage payroll; everyone else uses <strong>My Payroll</strong> to
-            view their own payslips.
+             Access to payroll features is determined by the permissions assigned to your user account.
           </CardDescription>
         </CardHeader>
 
@@ -66,77 +47,7 @@ const PayrollAdminDocs = () => (
             </p>
           </div>
 
-          <Separator />
 
-          {/* Access tables */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-sm">Payroll Management access</h3>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Full admin screen with four tabs: Payroll Records, Final Pay,
-              Generate Payroll, Settings.
-            </p>
-            <div className="overflow-x-auto rounded-lg border border-border/60">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/40 text-left">
-                    <th className="px-3 py-2 font-medium">Action</th>
-                    <th className="px-3 py-2 font-medium">Administrator</th>
-                    <th className="px-3 py-2 font-medium">HR Admin</th>
-                    <th className="px-3 py-2 font-medium">HR</th>
-                    <th className="px-3 py-2 font-medium">Employee</th>
-                  </tr>
-                </thead>
-                <tbody className="text-muted-foreground">
-                  {adminAccessRows.map((row) => (
-                    <tr key={row.action} className="border-b last:border-0">
-                      <td className="px-3 py-2 text-foreground">{row.action}</td>
-                      <td className="px-3 py-2">{row.admin}</td>
-                      <td className="px-3 py-2">{row.hrAdmin}</td>
-                      <td className="px-3 py-2">{row.hr}</td>
-                      <td className="px-3 py-2">{row.employee}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="font-semibold text-sm">My Payroll access (personal view)</h3>
-            <p className="text-xs text-muted-foreground">
-              Shown when you open <strong>Payroll</strong> from the menu as HR
-              (non–HR Admin) or Employee.
-            </p>
-            <div className="overflow-x-auto rounded-lg border border-border/60">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/40 text-left">
-                    <th className="px-3 py-2 font-medium">Action</th>
-                    <th className="px-3 py-2 font-medium">Administrator</th>
-                    <th className="px-3 py-2 font-medium">HR Admin</th>
-                    <th className="px-3 py-2 font-medium">HR</th>
-                    <th className="px-3 py-2 font-medium">Employee</th>
-                  </tr>
-                </thead>
-                <tbody className="text-muted-foreground">
-                  {employeeAccessRows.map((row) => (
-                    <tr key={row.action} className="border-b last:border-0">
-                      <td className="px-3 py-2 text-foreground">{row.action}</td>
-                      <td className="px-3 py-2">{row.admin}</td>
-                      <td className="px-3 py-2">{row.hrAdmin}</td>
-                      <td className="px-3 py-2">{row.hr}</td>
-                      <td className="px-3 py-2">{row.employee}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <Separator />
 
           {/* Admin: Records */}
           <div className="space-y-4">
@@ -248,8 +159,8 @@ const PayrollAdminDocs = () => (
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
               This tab is <strong>not</strong> company-wide pay multipliers
-              (those are under <strong>System Settings → Pay Rules</strong> for
-              administrators). Here you set up each employee before generating
+             (those are under <strong>System Settings → Pay Rules</strong> for
+             users with the required permissions). Here you set up each employee before generating
               payroll.
             </p>
             <ol className="space-y-3 list-decimal list-inside text-sm text-muted-foreground">
@@ -299,8 +210,7 @@ const PayrollAdminDocs = () => (
               <li className="leading-relaxed pl-1">
                 Click <strong>Preview</strong> to see a calculation (days
                 worked, salary until last day, unused vacation leave, leave
-                conversion amount, total final pay). Administrator and HR Admin
-                run preview and process.
+                 conversion amount, total final pay). Users with the required permissions can preview and process.
               </li>
               <li className="leading-relaxed pl-1">
                 From the preview, confirm and <strong>Process</strong> final pay
@@ -360,32 +270,7 @@ const PayrollAdminDocs = () => (
             
           </div>
 
-          <Separator />
 
-          {/* Needs confirmation */}
-          <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-purple-700 dark:text-purple-300">
-              Needs confirmation
-            </p>
-            <ul className="space-y-2 text-sm text-purple-900/90 dark:text-purple-300/90">
-              <li>
-                Whether employees automatically receive payslip emails when
-                payroll is marked paid (the system queues emails in the
-                background; there is no separate “send email” button on the
-                payroll screen).
-              </li>
-              <li>
-                Exact labels and fields on the Final Pay preview dialog for
-                your company’s separation policy.
-              </li>
-              <li>
-                Whether HR users who see the Final Pay tab can use{" "}
-                <strong>Preview</strong> successfully, or only view history and
-                download slips (processing is limited to Administrator and HR
-                Admin in the system).
-              </li>
-            </ul>
-          </div>
 
           {/* Important notes */}
           <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
@@ -515,8 +400,8 @@ const PayrollAdminDocs = () => (
               <li className="text-sm text-amber-900/90 dark:text-amber-300/90 flex gap-2">
                 <span className="text-amber-500 shrink-0">•</span>
                 <span>
-                  <strong>I only see My Payroll</strong> — Your role uses the
-                  employee view; contact HR Admin or Administrator for company
+                  <strong>I only see My Payroll</strong> — Your account uses the
+                  employee view; contact users with the required permissions for
                   payroll management.
                 </span>
               </li>

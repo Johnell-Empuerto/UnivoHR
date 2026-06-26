@@ -9,37 +9,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import DocsNavigation from "../components/DocsNavigation";
 
-const accessRows = [
-  {
-    action: "Open System Settings page",
-    admin: "Yes",
-    hrAdmin: "Yes",
-    hr: "Menu visible",
-    note: "Sidebar link shown to HR; saved changes use Administrator / HR Admin access on the server",
-  },
-  {
-    action: "Attendance rules (add, edit, activate)",
-    admin: "Yes",
-    hrAdmin: "Yes",
-    hr: "—",
-    note: "",
-  },
-  {
-    action: "Delete attendance rule",
-    admin: "Yes",
-    hrAdmin: "No",
-    hr: "—",
-    note: "Administrator only",
-  },
-  {
-    action: "Pay Rules, Approvals, SMTP, Notifications, Email Templates, Branding",
-    admin: "Yes",
-    hrAdmin: "Yes",
-    hr: "—",
-    note: "Same as general settings API access",
-  },
-];
-
 const SettingsDocs = () => (
   <div className="space-y-8">
     <section id="settings" className="scroll-mt-24">
@@ -47,7 +16,7 @@ const SettingsDocs = () => (
         <CardHeader className="space-y-2">
           <CardTitle className="text-xl">System Settings</CardTitle>
           <CardDescription className="text-base leading-relaxed">
-            <strong>System Settings</strong> is where administrators configure
+            <strong>System Settings</strong> is where authorized users configure
             company-wide rules for attendance, pay rates, approvals, email, and
             notifications. Changes here affect payroll generation, late handling,
             who can approve requests, and what emails the system sends.
@@ -59,8 +28,8 @@ const SettingsDocs = () => (
           <div className="space-y-3">
             <h3 className="font-semibold text-base">Settings overview</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Open <strong>Settings</strong> from the sidebar (Administrator,
-              HR Admin, and HR see the menu item). The page has seven tabs:
+              Open <strong>Settings</strong> from the sidebar. The page has
+              seven tabs:
             </p>
             <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1 ml-1">
               <li>
@@ -96,45 +65,6 @@ const SettingsDocs = () => (
             </p>
 
             
-          </div>
-
-          <Separator />
-
-          {/* Access */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-sm">Who can use this</h3>
-            </div>
-            <div className="overflow-x-auto rounded-lg border border-border/60">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/40 text-left">
-                    <th className="px-3 py-2 font-medium">Action</th>
-                    <th className="px-3 py-2 font-medium">Administrator</th>
-                    <th className="px-3 py-2 font-medium">HR Admin</th>
-                    <th className="px-3 py-2 font-medium">HR (menu)</th>
-                  </tr>
-                </thead>
-                <tbody className="text-muted-foreground">
-                  {accessRows.map((row) => (
-                    <tr key={row.action} className="border-b last:border-0">
-                      <td className="px-3 py-2">
-                        <span className="text-foreground">{row.action}</span>
-                        {row.note && (
-                          <span className="block text-xs text-muted-foreground mt-0.5">
-                            {row.note}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2">{row.admin}</td>
-                      <td className="px-3 py-2">{row.hrAdmin}</td>
-                      <td className="px-3 py-2">{row.hr}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </div>
 
           <Separator />
@@ -183,8 +113,8 @@ const SettingsDocs = () => (
                 <strong>Edit</strong> updates thresholds and deduction settings.
               </li>
               <li>
-                <strong>Delete</strong> is only for inactive rules and only for
-                Administrators.
+                <strong>Delete</strong> is only available for inactive rules
+                and requires the appropriate permission.
               </li>
             </ul>
             <p className="text-sm text-muted-foreground">
@@ -421,8 +351,8 @@ const SettingsDocs = () => (
             <p className="text-sm text-muted-foreground leading-relaxed">
               Rules for converting unused vacation leave to cash (SIL targets,
               conversion rate, which leave types convert) are <strong>not</strong>{" "}
-              on System Settings. Administrators manage them under{" "}
-              <strong>Leaves</strong> (Administrator leave screen) →{" "}
+              on System Settings. These are managed under{" "}
+                            <strong>Leaves</strong> (leave settings screen)   →{" "}
               <strong>Conversion Settings</strong> tab, with leave types and
               company conversion options.
             </p>
@@ -434,26 +364,7 @@ const SettingsDocs = () => (
 
           <Separator />
 
-          {/* Needs confirmation */}
-          <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-purple-700 dark:text-purple-300">
-              Needs confirmation
-            </p>
-            <ul className="space-y-2 text-sm text-purple-900/90 dark:text-purple-300/90">
-              <li>
-                Whether HR users who see Settings in the menu can successfully
-                save all tabs, or only Administrators and HR Admins.
-              </li>
-              <li>
-                Default scheduled shift start time used when calculating late
-                minutes (implementation uses a fixed reference in payroll logic).
-              </li>
-              <li>
-                Full list of notification keys stored in the database beyond the
-                switches shown on the Notifications tab.
-              </li>
-            </ul>
-          </div>
+
 
           {/* Important notes */}
           <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">

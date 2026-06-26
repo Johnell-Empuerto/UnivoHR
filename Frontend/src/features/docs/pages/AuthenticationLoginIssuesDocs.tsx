@@ -30,7 +30,7 @@ const AuthenticationLoginIssuesDocs = () => (
               <h3 className="font-semibold text-sm">Who should use this</h3>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">System Administrator</Badge>
+              <Badge variant="secondary">Administrator</Badge>
               <Badge variant="secondary">All Employees</Badge>
             </div>
           </div>
@@ -53,11 +53,11 @@ const AuthenticationLoginIssuesDocs = () => (
               <li className="leading-relaxed pl-1">
                 <strong>Account locked:</strong> After multiple failed login
                 attempts, the account locks temporarily. Wait 15 minutes or
-                contact the system administrator to unlock it.
+                contact an Administrator to unlock it.
               </li>
               <li className="leading-relaxed pl-1">
                 <strong>No account exists:</strong> If you have not received
-                login credentials, ask your HR admin to create a user account
+                login credentials, ask a user with the required permissions to create a user account
                 linked to your employee record.
               </li>
               <li className="leading-relaxed pl-1">

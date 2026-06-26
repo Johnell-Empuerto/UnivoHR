@@ -9,59 +9,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import DocsNavigation from "../components/DocsNavigation";
 
-const manHoursAccessRows = [
-  {
-    action: "Open My Man Hours",
-    employee: "Yes",
-    assignedApprover: "Yes",
-    hr: "Yes",
-    hrAdmin: "Yes",
-    admin: "Yes",
-  },
-  {
-    action: "Submit, edit, or delete own report (pending only)",
-    employee: "Yes",
-    assignedApprover: "Yes",
-    hr: "Yes",
-    hrAdmin: "Yes",
-    admin: "Yes",
-    note: "Edit and delete buttons appear only while status is Pending",
-  },
-  {
-    action: "View No Manhour Reports tab (missing dates)",
-    employee: "Yes",
-    assignedApprover: "Yes",
-    hr: "Yes",
-    hrAdmin: "Yes",
-    admin: "Yes",
-  },
-  {
-    action: "Open Approve Man Hours page",
-    employee: "No",
-    assignedApprover: "Yes",
-    hr: "Yes",
-    hrAdmin: "Yes",
-    admin: "Yes",
-    note: "Menu link appears for HR roles and employees assigned as an approver (see Settings → Approvals)",
-  },
-  {
-    action: "Approve or reject employee reports",
-    employee: "No",
-    assignedApprover: "Yes, for assigned employees only",
-    hr: "Yes, all employees",
-    hrAdmin: "Yes, all employees",
-    admin: "Yes, all employees",
-  },
-  {
-    action: "Download reports (CSV, Excel, PDF)",
-    employee: "No",
-    assignedApprover: "No",
-    hr: "Yes",
-    hrAdmin: "Yes",
-    admin: "Yes",
-  },
-];
-
 const ManHoursDocs = () => (
   <div className="space-y-8">
     <section id="man-hours" className="scroll-mt-24">
@@ -91,9 +38,7 @@ const ManHoursDocs = () => (
                 reports
               </li>
               <li>
-                <strong>Approve Man Hours</strong> — visible only to
-                Administrator, HR Admin, HR, and employees assigned as Man Hour
-                approvers
+                <strong>Approve Man Hours</strong> — visible only to users with the required permissions, including employees
               </li>
             </ul>
             <p className="text-sm text-muted-foreground">
@@ -116,54 +61,13 @@ const ManHoursDocs = () => (
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
               UnivoHR uses these account roles: <strong>Employee</strong>,{" "}
-              <strong>HR</strong>, <strong>HR Admin</strong>, and{" "}
-              <strong>Administrator</strong>. There are no separate &quot;Team
+              <strong>Administrator</strong> (permission-based). There are no separate &quot;Team
               Leader&quot; or &quot;Supervisor&quot; roles in the system — a
               team lead is usually an <strong>Employee</strong> who is assigned
               as a Man Hour approver under{" "}
               <strong>Settings → Approvals</strong>.
             </p>
-            <div className="overflow-x-auto rounded-lg border border-border/60">
-              <table className="w-full text-sm min-w-[640px]">
-                <thead>
-                  <tr className="border-b bg-muted/40 text-left">
-                    <th className="px-3 py-2 font-medium">Action</th>
-                    <th className="px-3 py-2 font-medium">Employee</th>
-                    <th className="px-3 py-2 font-medium">
-                      Employee (assigned approver)
-                    </th>
-                    <th className="px-3 py-2 font-medium">HR</th>
-                    <th className="px-3 py-2 font-medium">HR Admin</th>
-                    <th className="px-3 py-2 font-medium">Administrator</th>
-                  </tr>
-                </thead>
-                <tbody className="text-muted-foreground">
-                  {manHoursAccessRows.map((row) => (
-                    <tr key={row.action} className="border-b last:border-0">
-                      <td className="px-3 py-2">
-                        <span className="text-foreground">{row.action}</span>
-                        {row.note && (
-                          <span className="block text-xs text-muted-foreground mt-0.5">
-                            {row.note}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2">{row.employee}</td>
-                      <td className="px-3 py-2">{row.assignedApprover}</td>
-                      <td className="px-3 py-2">{row.hr}</td>
-                      <td className="px-3 py-2">{row.hrAdmin}</td>
-                      <td className="px-3 py-2">{row.admin}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Approvers assigned only for <strong>Man Hour</strong> (or{" "}
-              <strong>All</strong> approval types) see reports for their assigned
-              employees on the approval page. HR and administrators see all
-              employees.
-            </p>
+
           </div>
 
           <Separator />
@@ -414,8 +318,7 @@ const ManHoursDocs = () => (
             <h3 className="font-semibold text-base">Reports &amp; downloads</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
               On the approval page, <strong>Download Report</strong> is available
-              to <strong>Administrator</strong>, <strong>HR Admin</strong>, and{" "}
-              <strong>HR</strong> only (not assigned employee-approvers).
+              to users with the required permissions only (not assigned employee-approvers).
             </p>
             <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-2">
               <li className="leading-relaxed pl-1">
@@ -452,7 +355,7 @@ const ManHoursDocs = () => (
             </div>
             <ul className="list-disc list-inside text-sm text-muted-foreground ml-1 space-y-2">
               <li>
-                When you submit a report, approvers (HR roles and assigned
+                When you submit a report, approvers (users with admin permissions and assigned
                 approvers) may receive an in-app notification titled{" "}
                 <strong>New Man Hour Report</strong>.
               </li>
@@ -574,7 +477,7 @@ const ManHoursDocs = () => (
               <li className="text-sm text-amber-900/90 dark:text-amber-300/90 flex gap-2">
                 <span className="text-amber-500 shrink-0">•</span>
                 <span>
-                  <strong>No Approve Man Hours menu</strong> — Only HR roles and
+                  <strong>No Approve Man Hours menu</strong> — Only users with admin permissions and
                   employees assigned as Man Hour approvers see this link.
                 </span>
               </li>
@@ -589,39 +492,7 @@ const ManHoursDocs = () => (
             </ul>
           </div>
 
-          {/* Needs confirmation */}
-          <div className="p-4 rounded-lg border border-dashed border-muted-foreground/40 space-y-3">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-              <h3 className="font-semibold text-sm">Needs confirmation</h3>
-            </div>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex gap-2">
-                <span className="shrink-0">•</span>
-                <span>
-                  After a report is <strong>Rejected</strong>, the edit button is
-                  hidden in My Man Hours even though only approved reports are
-                  blocked from updates on the server. Confirm with your HR team
-                  how you should correct and resubmit a rejected report.
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="shrink-0">•</span>
-                <span>
-                  The <strong>No Manhour Reports</strong> tab shows Start Date and
-                  End Date fields; confirm with your administrator whether both
-                  dates define the range exactly as you expect.
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="shrink-0">•</span>
-                <span>
-                  Whether your organization uses approved man-hour totals in
-                  payroll, billing, or client reporting outside this screen.
-                </span>
-              </li>
-            </ul>
-          </div>
+
         </CardContent>
       </Card>
     </section>

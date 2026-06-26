@@ -27,7 +27,7 @@ const ProductionChecklistDocs = () => (
               <h3 className="font-semibold text-sm">Who should use this</h3>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">System Administrator</Badge>
+              <Badge variant="secondary">Administrator</Badge>
               <Badge variant="secondary">IT</Badge>
             </div>
           </div>
@@ -89,7 +89,7 @@ const ProductionChecklistDocs = () => (
                 Announce the go-live date to all employees.
               </li>
               <li className="leading-relaxed pl-1">
-                Train HR admins and employees on using the system.
+                Train administrators and employees on using the system.
               </li>
               <li className="leading-relaxed pl-1">
                 Start with attendance capturing for the new period.

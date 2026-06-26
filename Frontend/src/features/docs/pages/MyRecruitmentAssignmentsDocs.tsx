@@ -32,7 +32,7 @@ const MyRecruitmentAssignmentsDocs = () => (
               </h3>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">HR Admin</Badge>
+              <Badge variant="secondary">Administrator</Badge>
               <Badge variant="secondary">Evaluator</Badge>
               <Badge variant="outline">After applicants exist</Badge>
             </div>

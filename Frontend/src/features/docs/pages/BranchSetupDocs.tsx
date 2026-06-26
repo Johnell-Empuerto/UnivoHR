@@ -31,8 +31,8 @@ const BranchSetupDocs = () => (
               <h3 className="font-semibold text-sm">Who should use this</h3>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">System Administrator</Badge>
-              <Badge variant="secondary">HR Admin</Badge>
+              <Badge variant="secondary">Administrator</Badge>
+              <Badge variant="secondary">Administrator — permission</Badge>
               <Badge variant="secondary">Client Admin</Badge>
               <Badge variant="outline">After company branding</Badge>
             </div>
@@ -269,8 +269,7 @@ const BranchSetupDocs = () => (
               <li className="flex gap-2">
                 <span className="text-blue-500 shrink-0">•</span>
                 <span>
-                  <strong>Branch access</strong> controls what HR and admin
-                  users can manage. Configure this after branches and user
+                  <strong>Branch access</strong>                   controls what authorized users can manage. Configure this after branches and user
                   accounts exist.
                 </span>
               </li>

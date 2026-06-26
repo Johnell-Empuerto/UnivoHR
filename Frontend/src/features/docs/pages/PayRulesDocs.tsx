@@ -31,8 +31,7 @@ const PayRulesDocs = () => (
               <h3 className="font-semibold text-sm">Who should use this</h3>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">System Administrator</Badge>
-              <Badge variant="secondary">HR Admin</Badge>
+              <Badge variant="secondary">Administrator</Badge>
               <Badge variant="secondary">Payroll Admin</Badge>
               <Badge variant="outline">After calendar setup</Badge>
             </div>
@@ -297,7 +296,7 @@ const PayRulesDocs = () => (
                 <span>
                   <strong>Pay Rules tab not visible</strong> — Your account
                   may not have the <strong>payroll.settings</strong> permission.
-                  Contact your System Administrator.
+                  Contact an Administrator.
                 </span>
               </li>
               <li className="text-sm text-amber-900/90 dark:text-amber-300/90 flex gap-2">

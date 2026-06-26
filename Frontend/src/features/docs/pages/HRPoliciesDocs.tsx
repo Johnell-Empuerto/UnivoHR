@@ -30,7 +30,7 @@ const HRPoliciesDocs = () => (
               <h3 className="font-semibold text-sm">Who should use this</h3>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">HR Admin</Badge>
+              <Badge variant="secondary">Administrator</Badge>
               <Badge variant="outline">After branch access setup</Badge>
             </div>
           </div>

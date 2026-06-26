@@ -29,8 +29,7 @@ const CompanyBrandingDocs = () => (
               <h3 className="font-semibold text-sm">Who should use this</h3>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">System Administrator</Badge>
-              <Badge variant="secondary">HR Admin</Badge>
+              <Badge variant="secondary">Administrator</Badge>
               <Badge variant="secondary">Client Admin</Badge>
               <Badge variant="outline">After password change</Badge>
             </div>
@@ -314,7 +313,7 @@ const CompanyBrandingDocs = () => (
                 <span>
                   <strong>Permission denied</strong> — Only admins with the
                   Company Branding permission can update these settings. Ask
-                  your system administrator if you cannot see the Branding tab.
+                  an Administrator if you cannot see the Branding tab.
                 </span>
               </li>
             </ul>

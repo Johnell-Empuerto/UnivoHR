@@ -32,8 +32,7 @@ const CalendarHolidaySetupDocs = () => (
               <h3 className="font-semibold text-sm">Who should use this</h3>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">System Administrator</Badge>
-              <Badge variant="secondary">HR Admin</Badge>
+              <Badge variant="secondary">Administrator</Badge>
               <Badge variant="outline">After rest day setup</Badge>
             </div>
           </div>
@@ -312,7 +311,7 @@ const CalendarHolidaySetupDocs = () => (
               <li className="flex gap-2">
                 <span className="text-blue-500 shrink-0">•</span>
                 <span>
-                  <strong>Admin only:</strong> Only users with the
+                  <strong>Users with the required permission:</strong> Only users with the
                   Administrator role can add, edit, or delete calendar days.
                   HR and Employee accounts are view-only.
                 </span>

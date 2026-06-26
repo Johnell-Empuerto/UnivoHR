@@ -30,8 +30,8 @@ const RestDaySettingsDocs = () => (
               <h3 className="font-semibold text-sm">Who should use this</h3>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">System Administrator</Badge>
-              <Badge variant="secondary">HR Admin</Badge>
+              <Badge variant="secondary">Administrator</Badge>
+              <Badge variant="secondary">Administrator — permission</Badge>
               <Badge variant="secondary">Client Admin</Badge>
               <Badge variant="outline">After shift setup</Badge>
             </div>

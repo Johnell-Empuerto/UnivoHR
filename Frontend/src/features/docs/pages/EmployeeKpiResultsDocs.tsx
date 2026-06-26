@@ -32,7 +32,7 @@ const EmployeeKpiResultsDocs = () => (
               </h3>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">HR Admin</Badge>
+              <Badge variant="secondary">Administrator</Badge>
               <Badge variant="outline">After evaluations exist</Badge>
             </div>
           </div>

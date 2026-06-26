@@ -1,4 +1,4 @@
-import { AlertTriangle, Info, Users } from "lucide-react";
+import { AlertTriangle, Info } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -8,52 +8,6 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import DocsNavigation from "../components/DocsNavigation";
-
-const attendanceAccessRows = [
-  {
-    action: "Open Attendance page",
-    employee: "Yes",
-    hr: "Yes",
-    hrAdmin: "Yes",
-    admin: "Yes",
-  },
-  {
-    action: "View Attendance Records tab (daily list)",
-    employee: "Yes",
-    hr: "Yes",
-    hrAdmin: "Yes",
-    admin: "Yes",
-    note: "List shows employee attendance records for the selected date (administrator accounts are excluded from the list)",
-  },
-  {
-    action: "Search and filter by status / date",
-    employee: "Yes",
-    hr: "Yes",
-    hrAdmin: "Yes",
-    admin: "Yes",
-  },
-  {
-    action: "Submit time modification request",
-    employee: "Yes",
-    hr: "No (button hidden)",
-    hrAdmin: "No",
-    admin: "No",
-  },
-  {
-    action: "View Time Requests tab (own requests)",
-    employee: "Yes",
-    hr: "All requests",
-    hrAdmin: "All requests",
-    admin: "All requests",
-  },
-  {
-    action: "Approve or reject time requests",
-    employee: "No",
-    hr: "Yes",
-    hrAdmin: "Yes",
-    admin: "Yes",
-  },
-];
 
 const AttendanceDocs = () => (
   <div className="space-y-8">
@@ -113,18 +67,6 @@ const AttendanceDocs = () => (
               attendance rules configured in System Settings.
             </p>
 
-            
-
-            <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800">
-              <p className="text-xs font-semibold uppercase tracking-wide text-purple-700 dark:text-purple-300 mb-2">
-                Needs confirmation
-              </p>
-              <p className="text-sm text-purple-900/90 dark:text-purple-300/90">
-                Ask your HR administrator exactly how you should clock in and
-                out at your workplace (device, location, or manual process). That
-                step is outside this web screen.
-              </p>
-            </div>
           </div>
 
           <Separator />
@@ -218,7 +160,7 @@ const AttendanceDocs = () => (
             </ol>
 
             <p className="text-sm font-medium text-foreground">
-              HR / HR Admin / Administrator — review requests
+              Users with the required permissions can review requests
             </p>
             <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-2">
               <li className="leading-relaxed pl-1">
@@ -266,66 +208,6 @@ const AttendanceDocs = () => (
           </div>
 
           <Separator />
-
-          {/* Permissions */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-sm">Attendance permissions</h3>
-            </div>
-            <div className="overflow-x-auto rounded-lg border border-border/60">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/40 text-left">
-                    <th className="px-3 py-2 font-medium">Action</th>
-                    <th className="px-3 py-2 font-medium">Employee</th>
-                    <th className="px-3 py-2 font-medium">HR</th>
-                    <th className="px-3 py-2 font-medium">HR Admin</th>
-                    <th className="px-3 py-2 font-medium">Administrator</th>
-                  </tr>
-                </thead>
-                <tbody className="text-muted-foreground">
-                  {attendanceAccessRows.map((row) => (
-                    <tr key={row.action} className="border-b last:border-0">
-                      <td className="px-3 py-2">
-                        <span className="text-foreground">{row.action}</span>
-                        {row.note && (
-                          <span className="block text-xs mt-0.5">{row.note}</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2">{row.employee}</td>
-                      <td className="px-3 py-2">{row.hr}</td>
-                      <td className="px-3 py-2">{row.hrAdmin}</td>
-                      <td className="px-3 py-2">{row.admin}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Needs confirmation */}
-          <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-purple-700 dark:text-purple-300">
-              Needs confirmation
-            </p>
-            <ul className="space-y-2 text-sm text-purple-900/90 dark:text-purple-300/90 list-disc list-inside ml-1">
-              <li>
-                Physical time clock, biometric, or geolocation setup used at your
-                site (not configured in this Attendance screen).
-              </li>
-              <li>
-                Whether employees should see all staff on the daily list or only
-                their own row (the list is built for company-wide viewing by date).
-              </li>
-              <li>
-                Other status values such as half-day that may appear in data but
-                are not in the status filter dropdown.
-              </li>
-            </ul>
-          </div>
 
           {/* Important notes */}
           <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">

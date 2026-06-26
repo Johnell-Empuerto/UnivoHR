@@ -9,42 +9,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import DocsNavigation from "../components/DocsNavigation";
 
-const employeeAccessRows = [
-  {
-    action: "See Employees in sidebar menu",
-    admin: "Yes",
-    hrAdmin: "No",
-    hr: "No",
-    note: "Menu label: Employees",
-  },
-  {
-    action: "Open Employees page and view records",
-    admin: "Yes",
-    hrAdmin: "Yes",
-    hr: "Yes",
-    note: "Page can be opened if you have access; sidebar link is Administrator-only",
-  },
-  {
-    action: "Add employee",
-    admin: "Yes",
-    hrAdmin: "Yes",
-    hr: "No",
-  },
-  {
-    action: "Edit employee",
-    admin: "Yes",
-    hrAdmin: "Yes",
-    hr: "No",
-  },
-  {
-    action: "Delete employee",
-    admin: "No",
-    hrAdmin: "No",
-    hr: "No",
-    note: "Not available in the app",
-  },
-];
-
 const EmployeesDocs = () => (
   <div className="space-y-8">
     <section id="employees" className="scroll-mt-24">
@@ -64,9 +28,9 @@ const EmployeesDocs = () => (
           <div className="space-y-3">
             <h3 className="font-semibold text-base">Employees overview</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Open <strong>Employees</strong> from the sidebar (Administrator menu
-              only). You will see a searchable list with filters, then open a side
-              panel to view or edit a person&apos;s full record.
+              Open <strong>Employees</strong> from the sidebar. You will see a
+              searchable list with filters, then open a side panel to view or edit a
+              person&apos;s full record.
             </p>
             <p className="text-sm text-muted-foreground">
               There is no separate full-page employee profile URL — details open in
@@ -138,10 +102,7 @@ const EmployeesDocs = () => (
           {/* Add */}
           <div className="space-y-4">
             <h3 className="font-semibold text-base">Adding employees</h3>
-            <p className="text-sm text-muted-foreground">
-              Available to <strong>Administrator</strong> and{" "}
-              <strong>HR Admin</strong> (Add Employee button).
-            </p>
+
             <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-2">
               <li className="leading-relaxed pl-1">
                 Click <strong>Add Employee</strong>.
@@ -233,7 +194,12 @@ const EmployeesDocs = () => (
             <h3 className="font-semibold text-base">Reports, imports, and photos</h3>
             <ul className="list-disc list-inside text-sm text-muted-foreground ml-1">
               <li>
-                No export, download, or bulk import on the Employees page.
+                <strong>Bulk Import</strong> available via the <strong>Bulk Upload</strong> button.
+                Supports Excel (.xlsx, .xls) and CSV files with automatic validation, employee code
+                generation, and optional user account creation.
+              </li>
+              <li>
+                No export or download on the Employees page.
               </li>
               <li>
                 No photo upload control in the employee form — the view shows an
@@ -248,63 +214,7 @@ const EmployeesDocs = () => (
 
           <Separator />
 
-          {/* Permissions */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-sm">Employee permissions</h3>
-            </div>
-            <div className="overflow-x-auto rounded-lg border border-border/60">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/40 text-left">
-                    <th className="px-3 py-2 font-medium">Action</th>
-                    <th className="px-3 py-2 font-medium">Administrator</th>
-                    <th className="px-3 py-2 font-medium">HR Admin</th>
-                    <th className="px-3 py-2 font-medium">HR</th>
-                  </tr>
-                </thead>
-                <tbody className="text-muted-foreground">
-                  {employeeAccessRows.map((row) => (
-                    <tr key={row.action} className="border-b last:border-0">
-                      <td className="px-3 py-2">
-                        <span className="text-foreground">{row.action}</span>
-                        {row.note && (
-                          <span className="block text-xs mt-0.5">{row.note}</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2">{row.admin}</td>
-                      <td className="px-3 py-2">{row.hrAdmin}</td>
-                      <td className="px-3 py-2">{row.hr}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
           <Separator />
-
-          {/* Needs confirmation */}
-          <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-purple-700 dark:text-purple-300">
-              Needs confirmation
-            </p>
-            <ul className="space-y-2 text-sm text-purple-900/90 dark:text-purple-300/90 list-disc list-inside ml-1">
-              <li>
-                Whether HR and HR Admin should receive a sidebar link to Employees
-                (today only Administrator sees the menu item).
-              </li>
-              <li>
-                Standard department and position lists if your company uses fixed
-                values instead of free text.
-              </li>
-              <li>
-                Whether profile photos are stored elsewhere or planned for a future
-                update.
-              </li>
-            </ul>
-          </div>
 
           {/* Important notes */}
           <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
@@ -358,8 +268,8 @@ const EmployeesDocs = () => (
               <li className="flex gap-2">
                 <span className="text-amber-500 shrink-0">•</span>
                 <span>
-                  <strong>No Add Employee button</strong> — Only Administrator and
-                  HR Admin can add or edit; HR can view only.
+                  <strong>No Add Employee button</strong> — The user account
+                  does not have the required permission to add employees.
                 </span>
               </li>
               <li className="flex gap-2">

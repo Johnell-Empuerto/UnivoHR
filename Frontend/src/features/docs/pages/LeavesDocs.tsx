@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Info, Users } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -9,58 +9,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import DocsNavigation from "../components/DocsNavigation";
 
-const leaveAccessRows = [
-  {
-    action: "Open Leaves (My Leaves / Manage Leaves)",
-    employee: "Yes",
-    hr: "Yes",
-    hrAdmin: "Yes",
-    admin: "Administrator screen",
-  },
-  {
-    action: "Submit leave request",
-    employee: "Yes",
-    hr: "Yes",
-    hrAdmin: "Yes",
-    admin: "Yes (own account)",
-  },
-  {
-    action: "View My Leaves tab",
-    employee: "Yes",
-    hr: "Yes",
-    hrAdmin: "Yes",
-    admin: "Via Leave Requests tab",
-  },
-  {
-    action: "View All Leaves / approve team requests",
-    employee: "If assigned approver",
-    hr: "Yes",
-    hrAdmin: "Yes",
-    admin: "Yes",
-  },
-  {
-    action: "View Leave Credits (own balance)",
-    employee: "Yes",
-    hr: "Yes",
-    hrAdmin: "Yes",
-    admin: "Yes",
-  },
-  {
-    action: "Edit all employees' leave credits",
-    employee: "No",
-    hr: "No",
-    hrAdmin: "Yes",
-    admin: "Yes",
-  },
-  {
-    action: "Conversion Settings / Conversion History",
-    employee: "No",
-    hr: "No",
-    hrAdmin: "No",
-    admin: "Yes",
-  },
-];
-
 const LeavesDocs = () => (
   <div className="space-y-8">
     <section id="leaves" className="scroll-mt-24">
@@ -69,7 +17,7 @@ const LeavesDocs = () => (
           <CardTitle className="text-xl">Leave management</CardTitle>
           <CardDescription className="text-base leading-relaxed">
             Request time off, track approval status, and view leave balances.
-            HR staff and assigned approvers can review requests. Administrators
+            Users with the required permissions and assigned approvers can review requests. Users with the required permissions
             have an expanded leave area for company-wide requests, credits, and
             leave conversion tools.
           </CardDescription>
@@ -85,14 +33,14 @@ const LeavesDocs = () => (
             </p>
 
             <p className="text-sm font-medium text-foreground">
-              Most users (Employee, HR, HR Admin)
+              Most users (Employee, users with the required permissions)
             </p>
             <ul className="list-disc list-inside text-sm text-muted-foreground ml-1 mb-3">
               <li>
                 <strong>My Leaves</strong> — your requests and submit new leave
               </li>
               <li>
-                <strong>All Leaves</strong> — visible if you are HR, HR Admin, or
+                <strong>All Leaves</strong> — visible if you are a user with the required permissions, or
                 an assigned leave approver
               </li>
               <li>
@@ -101,10 +49,10 @@ const LeavesDocs = () => (
             </ul>
 
             <p className="text-sm font-medium text-foreground">
-              Administrator only
+              Users with the required permissions
             </p>
             <p className="text-sm text-muted-foreground">
-              Administrators see a dedicated screen with tabs:{" "}
+              Users with the required permissions see a dedicated screen with tabs:{" "}
               <strong>Leave Requests</strong>,{" "}
               <strong>Conversion History</strong>,{" "}
               <strong>Conversion Settings</strong>, and{" "}
@@ -226,7 +174,7 @@ const LeavesDocs = () => (
                 leave screen, a dialog asks for a rejection reason (required). On
                 the Manage Leaves <strong>All Leaves</strong> tab, rejection may
                 require a reason at the system level — if reject fails, contact
-                your administrator.
+                a user with the required permissions.
               </li>
               <li className="leading-relaxed pl-1">
                 You <strong>cannot approve your own</strong> leave; another
@@ -234,10 +182,10 @@ const LeavesDocs = () => (
               </li>
             </ol>
             <p className="text-sm text-muted-foreground">
-              Who can approve depends on role and Settings → Approvals (leave
-              approver mappings). Generally HR, HR Admin, and Administrator can
-              approve employee leave; higher roles are needed to approve leave for
-              HR or HR Admin staff. Assigned leave approvers can approve for
+              Who can approve depends on the user's permissions and Settings → Approvals (leave
+              approver mappings). Generally users with the required permissions can
+              approve employee leave; users with elevated permissions are needed to approve leave for
+              other users with elevated permissions. Assigned leave approvers can approve for
               employees mapped to them.
             </p>
 
@@ -259,7 +207,7 @@ const LeavesDocs = () => (
               leave history view.
             </p>
             <p className="text-sm text-muted-foreground">
-              Administrators also have <strong>Conversion History</strong> for
+              Users with the required permissions also have <strong>Conversion History</strong> for
               company leave-to-cash conversion records (separate from everyday
               leave requests).
             </p>
@@ -281,7 +229,7 @@ const LeavesDocs = () => (
               Your <strong>Dashboard</strong> may also summarize leave balances.
             </p>
             <p className="text-sm font-medium text-foreground">
-              HR Admin and Administrator
+              Users with the required permissions
             </p>
             <p className="text-sm text-muted-foreground">
               On Leave Credits, use search and department filter, then{" "}
@@ -299,7 +247,7 @@ const LeavesDocs = () => (
           <div className="space-y-3">
             <h3 className="font-semibold text-base">Leave management (administrator)</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Administrators use the expanded leave area (same sidebar link, different
+              Users with the required permissions can use the expanded leave area (same sidebar link, different
               layout):
             </p>
             <ul className="list-disc list-inside text-sm text-muted-foreground ml-1 space-y-1">
@@ -321,70 +269,8 @@ const LeavesDocs = () => (
             </ul>
             <p className="text-sm text-muted-foreground">
               Conversion settings are documented in System Settings documentation
-              under related leave conversion (administrator-only).
+              under related leave conversion.
             </p>
-          </div>
-
-          <Separator />
-
-          {/* Permissions */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-sm">Leave permissions</h3>
-            </div>
-            <div className="overflow-x-auto rounded-lg border border-border/60">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/40 text-left">
-                    <th className="px-3 py-2 font-medium">Action</th>
-                    <th className="px-3 py-2 font-medium">Employee</th>
-                    <th className="px-3 py-2 font-medium">HR</th>
-                    <th className="px-3 py-2 font-medium">HR Admin</th>
-                    <th className="px-3 py-2 font-medium">Administrator</th>
-                  </tr>
-                </thead>
-                <tbody className="text-muted-foreground">
-                  {leaveAccessRows.map((row) => (
-                    <tr key={row.action} className="border-b last:border-0">
-                      <td className="px-3 py-2 text-foreground">{row.action}</td>
-                      <td className="px-3 py-2">{row.employee}</td>
-                      <td className="px-3 py-2">{row.hr}</td>
-                      <td className="px-3 py-2">{row.hrAdmin}</td>
-                      <td className="px-3 py-2">{row.admin}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Needs confirmation */}
-          <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-purple-700 dark:text-purple-300">
-              Needs confirmation
-            </p>
-            <ul className="space-y-2 text-sm text-purple-900/90 dark:text-purple-300/90 list-disc list-inside ml-1">
-              <li>
-                How employees physically clock in (see Attendance documentation).
-              </li>
-              <li>
-                Whether HR users should use a rejection-reason dialog on Manage
-                Leaves (Administrator screen includes one; Manage Leaves All Leaves
-                tab may behave differently).
-              </li>
-              <li>
-                Administrator leave form includes an employee selector — confirm
-                with IT/HR whether requests can be filed on behalf of another
-                employee in your deployment.
-              </li>
-              <li>
-                Automatic leave accrual schedules (not shown as a user-facing
-                feature in the leave screens reviewed).
-              </li>
-            </ul>
           </div>
 
           {/* Important notes */}
@@ -440,7 +326,7 @@ const LeavesDocs = () => (
                 <span className="text-amber-500 shrink-0">•</span>
                 <span>
                   <strong>Insufficient leave credits</strong> — Check Leave
-                  Credits or ask HR Admin to adjust your balance.
+                  Credits or ask a user with the required permissions to adjust your balance.
                 </span>
               </li>
               <li className="text-sm text-amber-900/90 dark:text-amber-300/90 flex gap-2">
@@ -454,7 +340,7 @@ const LeavesDocs = () => (
                 <span className="text-amber-500 shrink-0">•</span>
                 <span>
                   <strong>Cannot approve your own leave</strong> — Another
-                  approver or HR must process the request.
+                  approver or a user with the required permissions must process the request.
                 </span>
               </li>
               <li className="text-sm text-amber-900/90 dark:text-amber-300/90 flex gap-2">
@@ -483,7 +369,7 @@ const LeavesDocs = () => (
               <li className="text-sm text-amber-900/90 dark:text-amber-300/90 flex gap-2">
                 <span className="text-amber-500 shrink-0">•</span>
                 <span>
-                  <strong>No All Leaves tab</strong> — Only HR roles and assigned
+                  <strong>No All Leaves tab</strong> — Users with the required permissions and assigned
                   leave approvers see it; employees use My Leaves only.
                 </span>
               </li>
@@ -491,7 +377,7 @@ const LeavesDocs = () => (
                 <span className="text-amber-500 shrink-0">•</span>
                 <span>
                   <strong>Balance not updated</strong> — Refresh the page after
-                  approval; contact HR if totals still look wrong.
+                  approval; contact a user with the required permissions if totals still look wrong.
                 </span>
               </li>
             </ul>

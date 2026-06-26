@@ -30,7 +30,7 @@ const BranchAccessDocs = () => (
               <h3 className="font-semibold text-sm">Who should use this</h3>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">System Administrator</Badge>
+              <Badge variant="secondary">Administrator</Badge>
               <Badge variant="outline">After user permissions</Badge>
             </div>
           </div>

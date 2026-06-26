@@ -30,7 +30,7 @@ const SecurityPermissionsDocs = () => (
               <h3 className="font-semibold text-sm">Who should use this</h3>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">System Administrator</Badge>
+              <Badge variant="secondary">Users with appropriate permissions</Badge>
             </div>
           </div>
 
@@ -49,15 +49,15 @@ const SecurityPermissionsDocs = () => (
                 manage what each user can access.
               </li>
               <li className="leading-relaxed pl-1">
-                Permissions are role-based. Common roles: Admin, HR Admin,
-                Payroll Admin, Manager, Employee.
+                Permissions control access to features. Roles are Admin
+                (full access) and Employee (self-service).
               </li>
               <li className="leading-relaxed pl-1">
-                Each role has granular permissions for viewing, creating,
-                editing, and deleting data in each module.
+                Granular permissions control viewing, creating, editing,
+                and deleting data in each module.
               </li>
               <li className="leading-relaxed pl-1">
-                Users inherit the permissions of their role plus any
+                Users inherit permissions from their role plus any
                 individually assigned permissions.
               </li>
             </ul>

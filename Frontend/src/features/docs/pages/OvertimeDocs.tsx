@@ -9,60 +9,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import DocsNavigation from "../components/DocsNavigation";
 
-const overtimeAccessRows = [
-  {
-    action: "Open My Overtime",
-    employee: "Yes",
-    assignedApprover: "Yes",
-    hr: "Yes",
-    hrAdmin: "Yes",
-    admin: "Yes",
-  },
-  {
-    action: "Submit overtime request (Apply Overtime)",
-    employee: "Yes",
-    assignedApprover: "Yes",
-    hr: "Yes",
-    hrAdmin: "Yes",
-    admin: "Yes",
-  },
-  {
-    action: "Edit or cancel a submitted request",
-    employee: "No",
-    assignedApprover: "No",
-    hr: "No",
-    hrAdmin: "No",
-    admin: "No",
-    note: "Not available in the app after submission",
-  },
-  {
-    action: "Open Manage Overtime (approval queue)",
-    employee: "No",
-    assignedApprover: "Yes",
-    hr: "Yes",
-    hrAdmin: "Yes",
-    admin: "Yes",
-    note: "Sidebar label is Manage Overtime; page title is Overtime Requests",
-  },
-  {
-    action: "Approve or reject employee requests",
-    employee: "No",
-    assignedApprover: "Yes, assigned employees only",
-    hr: "Yes, all employees",
-    hrAdmin: "Yes, all employees",
-    admin: "Yes, all employees",
-  },
-  {
-    action: "Download or export overtime reports",
-    employee: "No",
-    assignedApprover: "No",
-    hr: "No",
-    hrAdmin: "No",
-    admin: "No",
-    note: "No export feature on overtime screens",
-  },
-];
-
 const OvertimeDocs = () => (
   <div className="space-y-8">
     <section id="overtime" className="scroll-mt-24">
@@ -93,7 +39,7 @@ const OvertimeDocs = () => (
               </li>
               <li>
                 <strong>Manage Overtime</strong> — review team requests (visible
-                to Administrator, HR Admin, HR, and employees assigned as
+                to users with the required permissions, including employees assigned as
                 overtime approvers)
               </li>
             </ul>
@@ -116,48 +62,12 @@ const OvertimeDocs = () => (
               <h3 className="font-semibold text-sm">Permissions &amp; access</h3>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              UnivoHR uses these account roles: <strong>Employee</strong>,{" "}
-              <strong>HR</strong>, <strong>HR Admin</strong>, and{" "}
-              <strong>Administrator</strong>. Team leads or supervisors are
-              typically <strong>Employees</strong> assigned as approvers under{" "}
+              Access to overtime features is controlled by permissions assigned
+              to your account. Team leads or supervisors are typically employees
+              assigned as approvers under{" "}
               <strong>Settings → Approvals</strong> with approval type{" "}
               <strong>Overtime</strong> (or <strong>All</strong>).
             </p>
-            <div className="overflow-x-auto rounded-lg border border-border/60">
-              <table className="w-full text-sm min-w-[640px]">
-                <thead>
-                  <tr className="border-b bg-muted/40 text-left">
-                    <th className="px-3 py-2 font-medium">Action</th>
-                    <th className="px-3 py-2 font-medium">Employee</th>
-                    <th className="px-3 py-2 font-medium">
-                      Employee (assigned approver)
-                    </th>
-                    <th className="px-3 py-2 font-medium">HR</th>
-                    <th className="px-3 py-2 font-medium">HR Admin</th>
-                    <th className="px-3 py-2 font-medium">Administrator</th>
-                  </tr>
-                </thead>
-                <tbody className="text-muted-foreground">
-                  {overtimeAccessRows.map((row) => (
-                    <tr key={row.action} className="border-b last:border-0">
-                      <td className="px-3 py-2">
-                        <span className="text-foreground">{row.action}</span>
-                        {row.note && (
-                          <span className="block text-xs text-muted-foreground mt-0.5">
-                            {row.note}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2">{row.employee}</td>
-                      <td className="px-3 py-2">{row.assignedApprover}</td>
-                      <td className="px-3 py-2">{row.hr}</td>
-                      <td className="px-3 py-2">{row.hrAdmin}</td>
-                      <td className="px-3 py-2">{row.admin}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </div>
 
           <Separator />
@@ -334,8 +244,8 @@ const OvertimeDocs = () => (
               </li>
             </ol>
             <p className="text-sm text-muted-foreground">
-              Assigned employee-approvers only see requests for employees they are
-              mapped to. HR and administrators see all employees. You cannot
+               Assigned employee-approvers only see requests for employees they are
+               mapped to. Users with the required permissions see all employees. You cannot
               approve or reject your own request.
             </p>
             <p className="text-sm text-muted-foreground">
@@ -355,7 +265,7 @@ const OvertimeDocs = () => (
             </div>
             <ul className="list-disc list-inside text-sm text-muted-foreground ml-1 space-y-2">
               <li>
-                When you submit a request, HR roles and your assigned overtime
+                When you submit a request, users with the required permissions and your assigned overtime
                 approvers may receive an in-app notification titled{" "}
                 <strong>New Overtime Request</strong>.
               </li>
@@ -485,8 +395,7 @@ const OvertimeDocs = () => (
               <li className="text-sm text-amber-900/90 dark:text-amber-300/90 flex gap-2">
                 <span className="text-amber-500 shrink-0">•</span>
                 <span>
-                  <strong>No Manage Overtime menu</strong> — Only HR roles and
-                  users assigned as approvers see this link.
+                  <strong>No Manage Overtime menu</strong> — Users with the required permissions see this link.
                 </span>
               </li>
               <li className="text-sm text-amber-900/90 dark:text-amber-300/90 flex gap-2">
@@ -499,38 +408,7 @@ const OvertimeDocs = () => (
             </ul>
           </div>
 
-          {/* Needs confirmation */}
-          <div className="p-4 rounded-lg border border-dashed border-muted-foreground/40 space-y-3">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-              <h3 className="font-semibold text-sm">Needs confirmation</h3>
-            </div>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex gap-2">
-                <span className="shrink-0">•</span>
-                <span>
-                  Whether approvers assigned with approval type <strong>All</strong>{" "}
-                  (but not Overtime) always appear in the Manage Overtime queue —
-                  the approval list filter uses Overtime-type mappings for
-                  employee-approvers.
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="shrink-0">•</span>
-                <span>
-                  Company rules for overlapping overtime requests on the same date
-                  (the app does not block duplicate dates in the submission form).
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="shrink-0">•</span>
-                <span>
-                  Exact overtime pay rules (multipliers, caps, or holiday rates)
-                  beyond the employee overtime rate used in payroll generation.
-                </span>
-              </li>
-            </ul>
-          </div>
+
         </CardContent>
       </Card>
     </section>

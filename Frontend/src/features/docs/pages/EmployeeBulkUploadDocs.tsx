@@ -71,7 +71,7 @@ const EmployeeBulkUploadDocs = () => {
                 <p className="flex items-start gap-2"><AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" /><span>Branch must already exist in the Branches module before uploading.</span></p>
                 <p className="flex items-start gap-2"><AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" /><span>Employee Code must be unique if manually provided. Duplicate codes in the file or in the system are rejected.</span></p>
                 <p className="flex items-start gap-2"><AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" /><span>If Employee Code auto-generation is enabled in Settings, Employee Code can be left blank.</span></p>
-                <p className="flex items-start gap-2"><AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" /><span>User login accounts are NOT created by employee bulk upload. Accounts must be created separately.</span></p>
+                <p className="flex items-start gap-2"><AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" /><span>User login accounts can be created automatically during import by filling in the Username, Password, and Role columns.</span></p>
                 <p className="flex items-start gap-2"><AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" /><span>Validation happens before import. No employees are inserted until you click Confirm Import.</span></p>
               </div>
             </div>
@@ -114,7 +114,7 @@ const EmployeeBulkUploadDocs = () => {
                 6. Template Columns
               </h3>
               <div className="text-sm text-muted-foreground space-y-2">
-                <p>The template contains 25 columns. Below is a description of each column:</p>
+                <p>The template contains 28 columns. Below is a description of each column:</p>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
                     <p className="font-medium text-foreground">Employee Code</p>
@@ -150,11 +150,11 @@ const EmployeeBulkUploadDocs = () => {
                   </div>
                   <div className="space-y-1">
                     <p className="font-medium text-foreground">Birth Date</p>
-                    <p className="text-xs">YYYY-MM-DD format recommended.</p>
+                    <p className="text-xs">Accepts multiple date formats (see Date Parsing section).</p>
                   </div>
                   <div className="space-y-1">
                     <p className="font-medium text-foreground">Hire Date</p>
-                    <p className="text-xs">Required. Cannot be a future date.</p>
+                    <p className="text-xs">Required. Accepts multiple date formats. Cannot be a future date.</p>
                   </div>
                   <div className="space-y-1">
                     <p className="font-medium text-foreground">Branch</p>
@@ -216,6 +216,18 @@ const EmployeeBulkUploadDocs = () => {
                     <p className="font-medium text-foreground">Emergency Contact Relation</p>
                     <p className="text-xs">Relationship to employee (e.g., Spouse, Parent).</p>
                   </div>
+                  <div className="space-y-1">
+                    <p className="font-medium text-foreground">Username</p>
+                    <p className="text-xs">Login username. Leave blank to skip account creation.</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-medium text-foreground">Password</p>
+                    <p className="text-xs">Required if Username is provided. Minimum 4 characters.</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-medium text-foreground">Role</p>
+                    <p className="text-xs">Accepted: EMPLOYEE (default), ADMIN.</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -234,6 +246,7 @@ const EmployeeBulkUploadDocs = () => {
                 <li><span className="font-medium text-foreground">Hire Date</span></li>
                 <li><span className="font-medium text-foreground">Branch</span></li>
                 <li><span className="font-medium text-foreground">Employee Code</span> — only if auto-generation is disabled in Settings</li>
+                <li><span className="font-medium text-foreground">Password</span> — required if Username is provided</li>
               </ul>
             </div>
 
@@ -257,7 +270,40 @@ const EmployeeBulkUploadDocs = () => {
             <div className="space-y-3">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Info className="h-4 w-4 text-blue-600" />
-                9. Branch Rules
+                9. Enhanced Date Parsing
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                The system now supports multiple date formats for all date fields (Birth Date, Hire Date).
+                You can enter dates in any common format, and they will be automatically converted to
+                YYYY-MM-DD before saving to the database.
+              </p>
+              <p className="text-sm font-medium text-foreground mt-2">Supported formats:</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 text-sm text-muted-foreground">
+                <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">1/15/1999</span>
+                <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">01/15/1999</span>
+                <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">1999-01-15</span>
+                <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">1999/01/15</span>
+                <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">15-Jan-1999</span>
+                <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">15 January 1999</span>
+                <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">Jan 15, 1999</span>
+                <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">January 15, 1999</span>
+                <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">6/1/2025</span>
+                <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">1-Jun-2025</span>
+                <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">June 1, 2025</span>
+                <span className="font-mono text-xs bg-muted px-1 py-0.5 rounded">Excel serial dates</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                Excel date cells, serial numbers, formula-generated dates, and text-formatted dates
+                are all supported. You can mix different formats within the same file.
+              </p>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Info className="h-4 w-4 text-blue-600" />
+                10. Branch Rules
               </h3>
               <ul className="list-disc pl-6 space-y-1 text-sm text-muted-foreground">
                 <li>Branch must match an existing active branch name or branch code exactly.</li>
@@ -272,7 +318,7 @@ const EmployeeBulkUploadDocs = () => {
             <div className="space-y-3">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Upload className="h-4 w-4 text-blue-600" />
-                10. Step 3: Upload and Validate
+                11. Step 3: Upload and Validate
               </h3>
               <ol className="list-decimal pl-6 space-y-1 text-sm text-muted-foreground">
                 <li>Click <span className="font-medium text-foreground">Choose File</span> and select your filled Excel or CSV file</li>
@@ -288,7 +334,7 @@ const EmployeeBulkUploadDocs = () => {
             <div className="space-y-3">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Eye className="h-4 w-4 text-blue-600" />
-                11. Understanding Validation Results
+                12. Understanding Validation Results
               </h3>
               <p className="text-sm text-muted-foreground">After validation, the system shows a summary with:</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
@@ -317,7 +363,7 @@ const EmployeeBulkUploadDocs = () => {
             <div className="space-y-3">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <XCircle className="h-4 w-4 text-red-600" />
-                12. Common Upload Errors
+                13. Common Upload Errors
               </h3>
               <div className="text-sm space-y-1 text-muted-foreground">
                 <p className="font-medium text-foreground mb-1">Field validation errors:</p>
@@ -325,7 +371,8 @@ const EmployeeBulkUploadDocs = () => {
                   <li><span className="font-mono text-xs bg-muted px-1">First Name is required</span> — The First Name cell is empty</li>
                   <li><span className="font-mono text-xs bg-muted px-1">Last Name is required</span> — The Last Name cell is empty</li>
                   <li><span className="font-mono text-xs bg-muted px-1">Hire Date is required</span> — The Hire Date cell is empty</li>
-                  <li><span className="font-mono text-xs bg-muted px-1">Invalid Hire Date format</span> — Date is not recognized. Use YYYY-MM-DD</li>
+                  <li><span className="font-mono text-xs bg-muted px-1">Invalid Hire Date format</span> — Date is not recognized. See supported formats below</li>
+                  <li><span className="font-mono text-xs bg-muted px-1">Invalid Birth Date format</span> — Date is not recognized</li>
                   <li><span className="font-mono text-xs bg-muted px-1">Hire Date cannot be a future date</span> — Date is after today</li>
                 </ul>
                 <p className="font-medium text-foreground mt-3 mb-1">Branch errors:</p>
@@ -348,6 +395,13 @@ const EmployeeBulkUploadDocs = () => {
                   <li><span className="font-mono text-xs bg-muted px-1">Invalid Gender</span> — Use Male, Female, or Other</li>
                   <li><span className="font-mono text-xs bg-muted px-1">Employee Code is required because auto-generation is disabled</span></li>
                 </ul>
+                <p className="font-medium text-foreground mt-3 mb-1">User account validation errors:</p>
+                <ul className="list-disc pl-6 space-y-0.5">
+                  <li><span className="font-mono text-xs bg-muted px-1">Password is required when Username is provided</span></li>
+                  <li><span className="font-mono text-xs bg-muted px-1">Password must be at least 4 characters</span></li>
+                  <li><span className="font-mono text-xs bg-muted px-1">Username "xyz" already exists</span></li>
+                  <li><span className="font-mono text-xs bg-muted px-1">Invalid Role "xyz"</span> — Accepted: ADMIN, EMPLOYEE</li>
+                </ul>
               </div>
             </div>
 
@@ -356,7 +410,7 @@ const EmployeeBulkUploadDocs = () => {
             <div className="space-y-3">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <Download className="h-4 w-4 text-blue-600" />
-                13. Step 4: Download Error Report
+                14. Step 4: Download Error Report
               </h3>
               <ol className="list-decimal pl-6 space-y-1 text-sm text-muted-foreground">
                 <li>If there are invalid rows, click <span className="font-medium text-foreground">Download Error Report</span></li>
@@ -371,7 +425,7 @@ const EmployeeBulkUploadDocs = () => {
             <div className="space-y-3">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
-                14. Step 5: Confirm Import
+                15. Step 5: Confirm Import
               </h3>
               <ol className="list-decimal pl-6 space-y-1 text-sm text-muted-foreground">
                 <li>Review the preview and ensure you are satisfied with the valid rows</li>
@@ -388,7 +442,7 @@ const EmployeeBulkUploadDocs = () => {
             <div className="space-y-3">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <History className="h-4 w-4 text-blue-600" />
-                15. Import History
+                16. Import History
               </h3>
               <p className="text-sm text-muted-foreground">
                 The Bulk Import dialog also includes a <span className="font-medium text-foreground">History</span> tab. This shows past import batches with the following information:
@@ -408,10 +462,10 @@ const EmployeeBulkUploadDocs = () => {
             <div className="space-y-3">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <XCircle className="h-4 w-4 text-red-600" />
-                16. What Bulk Upload Does Not Do
+                17. What Bulk Upload Does Not Do
               </h3>
               <ul className="list-disc pl-6 space-y-1 text-sm text-muted-foreground">
-                <li>Does <span className="font-medium text-foreground">NOT</span> create user login accounts. Each employee must have an account created separately through User Management</li>
+                <li>Does <span className="font-medium text-foreground">NOT</span> require separate account creation. User accounts can be created automatically during import by filling in the Username, Password, and Role columns</li>
                 <li>Does <span className="font-medium text-foreground">NOT</span> change payroll computations or settings</li>
                 <li>Does <span className="font-medium text-foreground">NOT</span> change attendance records or schedules</li>
                 <li>Does <span className="font-medium text-foreground">NOT</span> assign devices, RFID tags, or fingerprint IDs</li>
@@ -424,7 +478,7 @@ const EmployeeBulkUploadDocs = () => {
             <div className="space-y-3">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
-                17. Best Practices
+                18. Best Practices
               </h3>
               <ul className="list-disc pl-6 space-y-1 text-sm text-muted-foreground">
                 <li>Test with <span className="font-medium text-foreground">2-3 rows first</span> to confirm your data format is correct before uploading the full file</li>
@@ -440,7 +494,7 @@ const EmployeeBulkUploadDocs = () => {
             <div className="space-y-3">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-600" />
-                18. Troubleshooting
+                19. Troubleshooting
               </h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm border-collapse">

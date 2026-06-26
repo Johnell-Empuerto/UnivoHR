@@ -18,7 +18,7 @@ const DashboardDocs = () => (
           <CardTitle className="text-xl">Dashboard</CardTitle>
           <CardDescription className="text-base leading-relaxed">
             Your home screen after login. What you see depends on your role:
-            senior administrators get a company-wide overview; most employees and
+            users with admin permissions get a company-wide overview; most employees and
             HR staff see personal attendance, leave balance, and shortcuts to
             common tasks.
           </CardDescription>
@@ -31,8 +31,8 @@ const DashboardDocs = () => (
             </div>
             <div className="flex flex-wrap gap-2">
               <Badge variant="secondary">All signed-in users</Badge>
-              <Badge variant="outline">Admin view: Administrator &amp; HR Admin</Badge>
-              <Badge variant="outline">Personal view: HR &amp; Employee</Badge>
+              <Badge variant="outline">Admin view: users with the required permissions</Badge>
+              <Badge variant="outline">Personal view: users with self-service permissions</Badge>
             </div>
           </div>
 
@@ -44,7 +44,7 @@ const DashboardDocs = () => (
               <h3 className="font-semibold text-sm">Step-by-step guide</h3>
             </div>
             <p className="text-sm font-medium text-foreground mb-2">
-              For most employees and HR users
+              For most employees and users with self-service permissions
             </p>
             <ol className="space-y-2 list-decimal list-inside text-sm text-muted-foreground mb-4">
               <li className="leading-relaxed pl-1">
@@ -69,7 +69,7 @@ const DashboardDocs = () => (
               </li>
             </ol>
             <p className="text-sm font-medium text-foreground mb-2">
-              For Administrator and HR Admin
+              For users with the required permissions
             </p>
             <ol className="space-y-2 list-decimal list-inside text-sm text-muted-foreground">
               <li className="leading-relaxed pl-1">
@@ -117,7 +117,7 @@ const DashboardDocs = () => (
               <li className="text-sm text-blue-800/90 dark:text-blue-300/90 flex gap-2">
                 <span className="text-blue-500 shrink-0">•</span>
                 <span>
-                  HR users (not HR Admin) see the personal dashboard, not the
+                  Users without admin permissions see the personal dashboard, not the
                   company admin overview.
                 </span>
               </li>
