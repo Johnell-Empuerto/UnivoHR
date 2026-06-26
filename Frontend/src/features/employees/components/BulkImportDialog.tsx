@@ -249,7 +249,7 @@ const BulkImportDialog = ({ open, onClose, onImportComplete }: BulkImportDialogP
                         Download Template
                       </Button>
                       <span className="text-sm text-muted-foreground">
-                        (.xlsx format with 25 columns and instructions)
+                        (.xlsx format with 28 columns and instructions)
                       </span>
                     </div>
                   </CardContent>
@@ -420,6 +420,11 @@ const BulkImportDialog = ({ open, onClose, onImportComplete }: BulkImportDialogP
                     <p className="text-sm text-muted-foreground">
                       {summary?.validRows || 0} employees have been imported successfully.
                     </p>
+                    {batchId && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Accounts created if Username/Password/Role columns were provided in the template.
+                      </p>
+                    )}
                     {summary && summary.invalidRows > 0 && (
                       <p className="text-sm text-amber-600 mt-1">
                         <AlertTriangle className="h-3 w-3 inline mr-1" />
