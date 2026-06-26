@@ -28,18 +28,103 @@ const validateEmail = (email) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
+const MONTH_NAMES = {
+  jan: 1, january: 1,
+  feb: 2, february: 2,
+  mar: 3, march: 3,
+  apr: 4, april: 4,
+  may: 5,
+  jun: 6, june: 6,
+  jul: 7, july: 7,
+  aug: 8, august: 8,
+  sep: 9, september: 9,
+  oct: 10, october: 10,
+  nov: 11, november: 11,
+  dec: 12, december: 12,
+};
+
+const isValidDate = (y, m, d) => {
+  if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(d)) return false;
+  if (y < 1900 || y > 2100) return false;
+  if (m < 1 || m > 12) return false;
+  if (d < 1 || d > 31) return false;
+  const daysInMonth = new Date(y, m, 0).getDate();
+  return d <= daysInMonth;
+};
+
+const formatLocalDate = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+
+const parseExcelSerial = (serial) => {
+  if (typeof serial !== "number" || serial < 1 || serial > 200000) return null;
+  const excelEpoch = new Date(1900, 0, 1);
+  const date = new Date(excelEpoch.getTime() + (serial - 2) * 86400000);
+  return formatLocalDate(date);
+};
+
 const validateDate = (dateValue) => {
   try {
-    if (!dateValue) return null;
-    let date;
-    if (typeof dateValue === "number") {
-      const excelEpoch = new Date(1900, 0, 1);
-      date = new Date(excelEpoch.getTime() + (dateValue - 2) * 86400000);
-    } else {
-      date = new Date(dateValue);
+    if (dateValue === undefined || dateValue === null) return null;
+    if (dateValue instanceof Date && !isNaN(dateValue.getTime())) {
+      return formatLocalDate(dateValue);
     }
+
+    if (typeof dateValue === "number") {
+      return parseExcelSerial(dateValue);
+    }
+
+    let str = String(dateValue).trim();
+    if (!str) return null;
+
+    if (/^\d{5,8}$/.test(str) && str.length > 4) {
+      const num = parseInt(str, 10);
+      if (num >= 1 && num <= 200000) return parseExcelSerial(num);
+    }
+
+    let match = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+    if (match) {
+      const y = parseInt(match[1], 10);
+      const m = parseInt(match[2], 10);
+      const d = parseInt(match[3], 10);
+      if (isValidDate(y, m, d)) {
+        return `${String(y).padStart(4, "0")}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      }
+      return null;
+    }
+
+    match = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (match) {
+      const m = parseInt(match[1], 10);
+      const d = parseInt(match[2], 10);
+      const y = parseInt(match[3], 10);
+      if (isValidDate(y, m, d)) {
+        return `${String(y).padStart(4, "0")}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      }
+      return null;
+    }
+
+    const date = new Date(str);
     if (isNaN(date.getTime())) return null;
-    return date.toISOString().split("T")[0];
+
+    const y = date.getFullYear();
+    const m = date.getMonth() + 1;
+    const d = date.getDate();
+
+    const lowerStr = str.toLowerCase();
+    for (const [name, expectedMonth] of Object.entries(MONTH_NAMES)) {
+      if (lowerStr.includes(name)) {
+        if (m !== expectedMonth) return null;
+        break;
+      }
+    }
+
+    if (!isValidDate(y, m, d)) return null;
+
+    return formatLocalDate(date);
   } catch {
     return null;
   }
