@@ -200,8 +200,8 @@ const AdminLeavePage = () => {
         <TabsContent value="requests" className="mt-6">
           <LeaveTable
             data={leaves}
-            isAdmin={true}
             onUpdate={handleUpdate}
+            onCreate={() => fetchLeaves()}
             title="All Leave Requests"
             pagination={pagination}
             onPageChange={handlePageChange}

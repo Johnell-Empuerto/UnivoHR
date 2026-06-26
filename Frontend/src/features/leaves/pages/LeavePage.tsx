@@ -37,7 +37,7 @@ const LeavePage = () => {
   const [loading, setLoading] = useState(true);
 
   const isHR = hasPermission("leave.manage");
-  const canManageCredits = user?.role === "ADMIN";
+  const canManageCredits = hasPermission("leave.credits.manage");
 
   // My Leaves State
   const [myLeaves, setMyLeaves] = useState<Leave[]>([]);
@@ -253,7 +253,6 @@ const LeavePage = () => {
         <TabsContent value="my" className="mt-6">
           <LeaveTable
             data={myLeaves}
-            isAdmin={false}
             onUpdate={handleUpdate}
             onCreate={handleRefresh}
             title="My Leave Requests"
@@ -268,7 +267,6 @@ const LeavePage = () => {
           <TabsContent value="all" className="mt-6">
             <LeaveTable
               data={allLeaves}
-              isAdmin={true}
               onUpdate={handleUpdate}
               title="All Employee Leave Requests"
               pagination={allLeavesPagination}

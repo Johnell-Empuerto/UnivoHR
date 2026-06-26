@@ -52,7 +52,7 @@ type LeaveDrawerProps = {
   leave: Leave | null;
   mode: "view" | "edit" | "create";
   onUpdate: (leave: Leave) => void;
-  isAdmin?: boolean;
+  canFileForOthers?: boolean;
 };
 
 const LeaveDrawer = ({
@@ -61,9 +61,9 @@ const LeaveDrawer = ({
   leave,
   mode,
   onUpdate,
-  isAdmin = false,
+  canFileForOthers = false,
 }: LeaveDrawerProps) => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [formData, setFormData] = useState({
     employee_name: "",
     employee_code: "",
@@ -84,9 +84,9 @@ const LeaveDrawer = ({
   const { data: leaveTypesRaw = [] } = useEnabledLeaveTypes();
   const leaveTypes = leaveTypesRaw.filter((t: any) => t.employee_requestable !== false);
 
-  // Auto-populate employee info when in create mode and user is employee
+  // Auto-populate employee info when in create mode for self
   useEffect(() => {
-    if (mode === "create" && user && user.role !== "ADMIN") {
+    if (mode === "create" && user && !canFileForOthers) {
       setFormData((prev) => ({
         ...prev,
         employee_name:
@@ -97,14 +97,14 @@ const LeaveDrawer = ({
         employee_id: user.employee_id || 0,
       }));
     }
-  }, [mode, user]);
+  }, [mode, user, canFileForOthers]);
 
-  // Load employees for admin selection
+  // Load employees for selection when filing for others
   useEffect(() => {
-    if (isAdmin && mode === "create" && availableEmployees.length === 0) {
+    if (canFileForOthers && mode === "create" && availableEmployees.length === 0) {
       fetchEmployees();
     }
-  }, [isAdmin, mode]);
+  }, [canFileForOthers, mode]);
 
   const fetchEmployees = async () => {
     try {
@@ -120,7 +120,7 @@ const LeaveDrawer = ({
     }
   };
 
-  // Handle employee selection for admin
+  // Handle employee selection for filing for others
   const handleEmployeeSelect = (employeeId: string) => {
     const selected = availableEmployees.find(
       (emp) => emp.id === parseInt(employeeId),
@@ -153,7 +153,7 @@ const LeaveDrawer = ({
         half_day_type: leave.half_day_type || "",
       });
       setIsHalfDay(leave.day_fraction === 0.5);
-    } else if (mode === "create" && user?.role === "ADMIN") {
+    } else if (mode === "create" && canFileForOthers) {
       setFormData({
         employee_name: "",
         employee_code: "",
@@ -189,12 +189,14 @@ const LeaveDrawer = ({
         reason: formData.reason,
         day_fraction: isHalfDay ? 0.5 : 1,
         half_day_type: isHalfDay ? formData.half_day_type : null,
-        ...(isAdmin && formData.employee_id
+        ...(canFileForOthers && formData.employee_id
           ? { employee_id: formData.employee_id }
           : {}),
       };
 
-      const newLeave = await leaveService.createLeave(payload);
+      const newLeave = canFileForOthers && isCreateMode
+        ? await leaveService.createLeaveForEmployee(payload)
+        : await leaveService.createLeave(payload);
       onUpdate(newLeave);
       onClose();
     } catch (error: any) {
@@ -260,23 +262,23 @@ const LeaveDrawer = ({
   const canEdit = () => {
     if (isViewMode) return false;
     if (isCreateMode) return true;
-    return isAdmin;
+    return hasPermission("leave.manage");
   };
 
   // Check if employee fields should be disabled
   const isEmployeeFieldsDisabled = () => {
-    // Always disabled for non-admin in create mode (auto-filled)
-    if (!isAdmin && isCreateMode) return true;
+    // Always disabled when not filing for others in create mode (auto-filled)
+    if (!canFileForOthers && isCreateMode) return true;
     // Disabled in view mode
     if (isViewMode) return true;
-    // Disabled in edit mode for non-admin
-    if (isEditMode && !isAdmin) return true;
+    // Disabled in edit mode when cannot manage
+    if (isEditMode && !hasPermission("leave.manage")) return true;
     return false;
   };
 
   // Get placeholder text for employee name
   const getEmployeeNamePlaceholder = () => {
-    if (user?.role === "EMPLOYEE" && isCreateMode) {
+    if (!canFileForOthers && isCreateMode) {
       return "Auto-filled from your account";
     }
     return "Employee name will be auto-filled";
@@ -284,7 +286,7 @@ const LeaveDrawer = ({
 
   // Get placeholder text for employee code
   const getEmployeeCodePlaceholder = () => {
-    if (user?.role === "EMPLOYEE" && isCreateMode) {
+    if (!canFileForOthers && isCreateMode) {
       return "Auto-filled from your account";
     }
     return "Employee code will be auto-filled";
@@ -311,8 +313,8 @@ const LeaveDrawer = ({
               Employee Information
             </p>
 
-            {/* Only show employee selector for admin in create mode */}
-            {isAdmin && isCreateMode && (
+            {/* Only show employee selector when filing for others in create mode */}
+            {canFileForOthers && isCreateMode && (
               <div className="space-y-2">
                 <Label>Select Employee *</Label>
                 <Select onValueChange={handleEmployeeSelect}>
@@ -350,7 +352,7 @@ const LeaveDrawer = ({
                     : ""
                 }
               />
-              {user?.role === "EMPLOYEE" && isCreateMode && (
+              {!canFileForOthers && isCreateMode && (
                 <p className="text-xs text-green-600 dark:text-green-400">
                   ✓ Auto-filled from your profile
                 </p>
@@ -376,7 +378,7 @@ const LeaveDrawer = ({
                     : ""
                 }
               />
-              {user?.role === "EMPLOYEE" && isCreateMode && (
+              {!canFileForOthers && isCreateMode && (
                 <p className="text-xs text-green-600 dark:text-green-400">
                   ✓ Auto-filled from your profile
                 </p>
@@ -546,7 +548,7 @@ const LeaveDrawer = ({
           </div>
 
           {/* STATUS SECTION */}
-          {isAdmin && (isEditMode || isViewMode) && (
+          {hasPermission("leave.manage") && (isEditMode || isViewMode) && (
             <div className="rounded-xl border p-4 space-y-3 shadow-sm">
               <p className="text-xs font-semibold text-muted-foreground uppercase">
                 Status

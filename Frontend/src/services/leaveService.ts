@@ -15,6 +15,12 @@ export const leaveService = {
     return res.data;
   },
 
+  // CREATE LEAVE FOR EMPLOYEE (immediately approved)
+  createLeaveForEmployee: async (data: any) => {
+    const res = await api.post("/leaves/create-for-employee", data);
+    return res.data;
+  },
+
   // ADMIN - GET ALL LEAVES
   getAllLeaves: async (
     page = 1,

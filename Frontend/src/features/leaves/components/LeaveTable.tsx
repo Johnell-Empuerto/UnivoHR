@@ -35,6 +35,7 @@ import EmptyState from "@/components/shared/EmptyState";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { useEnabledLeaveTypes } from "@/hooks/useLeaveTypes";
 import { getTypeColor, getTypeLabel, normalizeCode } from "../utils/leaveTypeUtils";
+import { useAuth } from "@/app/providers/AuthProvider";
 
 type Leave = {
   id: number;
@@ -63,7 +64,6 @@ type PaginationProps = {
 
 type LeaveTableProps = {
   data: Leave[];
-  isAdmin: boolean;
   onUpdate: (id: number, status: string, rejectionReason?: string) => void;
   onCreate?: () => void;
   title?: string;
@@ -225,7 +225,6 @@ const SearchFilters = ({
 
 const LeaveTable = ({
   data,
-  isAdmin,
   onUpdate,
   onCreate,
   title = "Leave Requests",
@@ -237,6 +236,9 @@ const LeaveTable = ({
   onTypeFilter,
   loading = false,
 }: LeaveTableProps) => {
+  const { hasPermission } = useAuth();
+  const canApprove = hasPermission("leave.approve");
+  const canFileForOthers = hasPermission("leave.create_for_others");
   const [leaves, setLeaves] = useState<Leave[]>(data);
   const [selectedLeave, setSelectedLeave] = useState<Leave | null>(null);
   const [open, setOpen] = useState(false);
@@ -273,8 +275,8 @@ const LeaveTable = ({
         )}
       </CardHeader>
       <CardContent>
-        {/* Search and Filters - Only show for admin */}
-        {isAdmin && (onSearch || onStatusFilter || onTypeFilter) && (
+        {/* Search and Filters */}
+        {(onSearch || onStatusFilter || onTypeFilter) && (
           <SearchFilters
             onSearch={onSearch}
             onStatusFilter={onStatusFilter}
@@ -310,7 +312,7 @@ const LeaveTable = ({
                     <TableHead>End Date</TableHead>
                     <TableHead>Duration</TableHead>
                     <TableHead>Status</TableHead>
-                    {isAdmin && <TableHead>Actions</TableHead>}
+                    {canApprove && <TableHead>Actions</TableHead>}
                     <TableHead>View</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -318,7 +320,7 @@ const LeaveTable = ({
                 <TableBody>
                   {leaves.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={isAdmin ? 8 : 7} className="text-center py-8">
+                      <TableCell colSpan={canApprove ? 8 : 7} className="text-center py-8">
                         <EmptyState message="No leave requests found" />
                       </TableCell>
                     </TableRow>
@@ -370,8 +372,8 @@ const LeaveTable = ({
 
                         <TableCell>{getStatusBadge(leave.status)}</TableCell>
 
-                        {/* Admin Approval Buttons */}
-                        {isAdmin && (
+                        {/* Approval Buttons */}
+                        {canApprove && (
                           <TableCell>
                             <div className="flex items-center gap-2">
                               {leave.status === "PENDING" ? (
@@ -450,7 +452,7 @@ const LeaveTable = ({
             onCreate();
           }
         }}
-        isAdmin={isAdmin}
+        canFileForOthers={canFileForOthers}
       />
     </Card>
   );
