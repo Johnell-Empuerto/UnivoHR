@@ -11,5 +11,6 @@ router.get("/:id", authenticate, requirePermission("branches.manage"), controlle
 router.post("/", authenticate, requirePermission("branches.manage"), controller.create);
 router.put("/:id", authenticate, requirePermission("branches.manage"), controller.update);
 router.patch("/:id/status", authenticate, requirePermission("branches.manage"), controller.setActive);
+router.delete("/:id", authenticate, requirePermission("branches.manage"), controller.remove);
 
 module.exports = router;

@@ -5,6 +5,7 @@ import {
   approveOvertime,
   rejectOvertime,
   getOvertimeDetails,
+  deleteOvertime,
   isApprover as checkIsApprover,
 } from "@/services/overtimeService";
 import ErrorMessage from "@/components/shared/ErrorMessage";
@@ -26,6 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import OvertimeTable from "../components/OvertimeTable";
 import OvertimeDrawer from "../components/OvertimeDrawer";
@@ -74,6 +76,35 @@ const OvertimeRequests = () => {
   const [rejectReason, setRejectReason] = useState("");
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteOvertime(id);
+      toast.success("Overtime request deleted");
+      setDeleteConfirm(null);
+      const res = await getAllOvertime(currentPage, rowsPerPage, search, statusFilter, dateFilter);
+      const enhancedData = res.data.map((request: any) => ({
+        id: request.id,
+        employee_name: request.employee_name,
+        employee_code: request.employee_code,
+        date: request.date,
+        start_time: request.start_time,
+        end_time: request.end_time,
+        total_hours: request.total_hours,
+        reason: request.reason,
+        status: request.status,
+        approver_name: request.approver_name,
+        reject_reason: request.reject_reason,
+        is_assigned_approver: request.is_assigned_approver,
+      }));
+      setData(enhancedData);
+      setTotalPages(res.pagination.totalPages);
+      setTotalRecords(res.pagination.total);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete overtime request");
+    }
+  };
 
   // Check if current user is an approver
   useEffect(() => {
@@ -356,6 +387,7 @@ const OvertimeRequests = () => {
           setRejectingId(id);
           setIsRejectModalOpen(true);
         }}
+        onDelete={(id) => setDeleteConfirm(id)}
         canApprove={canShowApprovalActions()}
         currentPage={currentPage}
         totalPages={totalPages}
@@ -374,6 +406,20 @@ const OvertimeRequests = () => {
         }}
         request={selectedRequest}
       />
+
+      <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Delete Overtime Request</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. Are you sure you want to delete this overtime request?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteConfirm !== null && handleDelete(deleteConfirm)}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isRejectModalOpen} onOpenChange={setIsRejectModalOpen}>
         <DialogContent className="max-w-lg! w-full sm:max-w-lg!">

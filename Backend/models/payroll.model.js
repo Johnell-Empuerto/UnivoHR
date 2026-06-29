@@ -1401,6 +1401,12 @@ const updateDeduction = async (id, data) => {
   return result.rows[0];
 };
 
+// GET DEDUCTION BY ID
+const getDeductionById = async (id) => {
+  const result = await pool.query(`SELECT * FROM employee_deductions WHERE id = $1`, [id]);
+  return result.rows[0];
+};
+
 // DELETE DEDUCTION
 const deleteDeduction = async (id) => {
   await pool.query(`DELETE FROM employee_deductions WHERE id = $1`, [id]);
@@ -1583,6 +1589,7 @@ module.exports = {
   createDeduction,
   updateDeduction,
   deleteDeduction,
+  getDeductionById,
   deletePayrollByCutoff,
   getMyPayroll,
   getMySalaryDetails,

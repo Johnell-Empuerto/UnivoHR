@@ -119,6 +119,44 @@ const assignForm = async (req, res) => {
   }
 };
 
+const editAssignment = async (req, res) => {
+  try {
+    const result = await service.editAssignment(req.params.assignmentId, req.body);
+    audit.auditLog(req, {
+      action: "UPDATE",
+      table_name: "hr_form_assignments",
+      record_id: Number(req.params.assignmentId),
+      new_values: { employee_id: result.employee_id, due_date: result.due_date, status: result.status },
+      description: `HR form assignment updated: ${req.params.assignmentId}`,
+    });
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+const removeAssignment = async (req, res) => {
+  try {
+    await service.removeAssignment(req.params.assignmentId);
+    audit.auditLog(req, {
+      action: "DELETE",
+      table_name: "hr_form_assignments",
+      record_id: Number(req.params.assignmentId),
+      description: `HR form assignment deleted: ${req.params.assignmentId}`,
+    });
+    res.json({ message: "Assignment deleted successfully" });
+  } catch (error) {
+    if (error.code === "ASSIGNMENT_IN_USE") {
+      return res.status(409).json({
+        message: error.message,
+        dependencies: error.dependencies,
+        recommendation: error.recommendation,
+      });
+    }
+    res.status(400).json({ message: error.message });
+  }
+};
+
 const getAllAssignments = async (req, res) => {
   try {
     const { search = "", page = 1, limit = 10 } = req.query;
@@ -207,6 +245,7 @@ const reviewSubmission = async (req, res) => {
 module.exports = {
   getAllForms, getFormById, createForm, updateForm, deleteForm,
   getFields, addField, editField, removeField,
-  assignForm, getAllAssignments, getMyAssignments, getAssignmentById,
+  assignForm, editAssignment, removeAssignment,
+  getAllAssignments, getMyAssignments, getAssignmentById,
   submitForm, getSubmissions, getSubmissionById, reviewSubmission,
 };

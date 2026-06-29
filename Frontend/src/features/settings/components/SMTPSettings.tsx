@@ -55,6 +55,7 @@ const SMTPSettings = () => {
   const [testEmail, setTestEmail] = useState("");
   const [sendingTest, setSendingTest] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
   const [formData, setFormData] = useState<CreateSmtpData>({
     host: "",
@@ -199,16 +200,19 @@ const SMTPSettings = () => {
 
   // Delete settings
   const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete these SMTP settings?"))
-      return;
+    setDeleteConfirm(id);
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirm === null) return;
     try {
-      await deleteSmtpSettings(id);
+      await deleteSmtpSettings(deleteConfirm);
       toast.success("SMTP settings deleted successfully");
+      setDeleteConfirm(null);
       fetchSettings();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to delete SMTP settings:", error);
-      toast.error("Failed to delete SMTP settings");
+      toast.error(error.response?.data?.message || "Failed to delete SMTP settings");
     }
   };
 
@@ -563,6 +567,21 @@ const SMTPSettings = () => {
                 </>
               )}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete SMTP Settings</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete these SMTP settings? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

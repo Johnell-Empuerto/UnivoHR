@@ -1,3 +1,4 @@
+const pool = require("../config/db");
 const deviceModel = require("../models/device.model");
 const rawLogsModel = require("../models/rawLogs.model");
 const mappingModel = require("../models/deviceLogMapping.model");
@@ -96,8 +97,46 @@ const deleteDevice = async (req, res) => {
     if (!device) return res.status(404).json({ message: "Device not found" });
 
     if (device.total_logs > 0) {
-      return res.status(400).json({
+      return res.status(409).json({
+        success: false,
         message: `Cannot delete "${device.name}" — it has ${device.total_logs} raw log(s). Set the device status to "INACTIVE" instead.`,
+        dependencies: [{ entity: "raw_logs", label: "raw logs" }],
+        recommendation: "Set the device status to INACTIVE instead of deleting it.",
+      });
+    }
+
+    const dependencies = [];
+
+    const userCheck = await pool.query(
+      `SELECT COUNT(*) AS cnt FROM employee_device_users WHERE device_id = $1`,
+      [req.params.id],
+    );
+    if (parseInt(userCheck.rows[0].cnt) > 0) {
+      dependencies.push({ entity: "employee_device_users", label: "employee device user mappings" });
+    }
+
+    const attendanceCheck = await pool.query(
+      `SELECT COUNT(*) AS cnt FROM attendance WHERE device_id = $1`,
+      [req.params.id],
+    );
+    if (parseInt(attendanceCheck.rows[0].cnt) > 0) {
+      dependencies.push({ entity: "attendance", label: "attendance records" });
+    }
+
+    const attLogCheck = await pool.query(
+      `SELECT COUNT(*) AS cnt FROM attendance_logs WHERE device_id = $1`,
+      [req.params.id],
+    );
+    if (parseInt(attLogCheck.rows[0].cnt) > 0) {
+      dependencies.push({ entity: "attendance_logs", label: "attendance log records" });
+    }
+
+    if (dependencies.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: `Cannot delete "${device.name}" — it is referenced by existing records. Set the device status to "INACTIVE" instead.`,
+        dependencies,
+        recommendation: "Set the device status to INACTIVE instead of deleting it.",
       });
     }
 

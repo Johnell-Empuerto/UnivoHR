@@ -59,7 +59,6 @@ const remove = async (req, res) => {
   try {
     const oldValues = await audit.fetchOldValues("shift_schedules", req.params.id);
     const data = await shiftService.remove(req.params.id);
-    if (!data) return res.status(404).json({ message: "Shift not found" });
     audit.auditLog(req, {
       action: "DELETE",
       table_name: "shift_schedules",
@@ -69,6 +68,16 @@ const remove = async (req, res) => {
     });
     res.json(data);
   } catch (error) {
+    if (error.statusCode === 404) {
+      return res.status(404).json({ message: error.message });
+    }
+    if (error.statusCode === 409) {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+        dependencies: error.dependencies,
+      });
+    }
     res.status(500).json({ message: error.message });
   }
 };

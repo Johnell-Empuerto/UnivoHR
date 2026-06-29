@@ -93,4 +93,20 @@ const approveCheck = async (req, res, next) => {
 router.put("/:id/approve", authenticate, approveCheck, controller.approveOvertime);
 router.put("/:id/reject", authenticate, approveCheck, controller.rejectOvertime);
 
+router.delete("/:id", authenticate, async (req, res, next) => {
+  const role = req.user.role;
+  if (HR_ACCESS.includes(role)) return next();
+  try {
+    const pool = require("../config/db");
+    const result = await pool.query(
+      `SELECT employee_id, status FROM overtime_requests WHERE id = $1`,
+      [req.params.id],
+    );
+    if (result.rows.length > 0 && result.rows[0].employee_id === req.user.employee_id && result.rows[0].status !== "APPROVED") return next();
+  } catch (error) {
+    console.error("Error checking ownership:", error);
+  }
+  return res.status(403).json({ message: "Forbidden: Insufficient permissions" });
+}, controller.deleteOvertime);
+
 module.exports = router;

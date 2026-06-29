@@ -72,6 +72,7 @@ const ShiftManagement = () => {
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [form, setForm] = useState(defaultForm);
   const [saving, setSaving] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<Shift | null>(null);
 
   const openCreate = () => {
     setEditingShift(null);
@@ -135,14 +136,15 @@ const ShiftManagement = () => {
     }
   };
 
-  const handleDelete = async (shift: Shift) => {
-    if (!confirm(`Delete shift "${shift.name}"?`)) return;
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
     try {
-      await deleteShift(shift.id);
+      await deleteShift(deleteConfirm.id);
       toast.success("Shift deleted");
+      setDeleteConfirm(null);
       queryClient.invalidateQueries({ queryKey: ["shifts"] });
-    } catch {
-      toast.error("Failed to delete shift");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || err.message || "Failed to delete shift");
     }
   };
 
@@ -216,7 +218,7 @@ const ShiftManagement = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleDelete(shift)}
+                      onClick={() => setDeleteConfirm(shift)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -401,6 +403,21 @@ const ShiftManagement = () => {
             <Button onClick={handleSave} disabled={saving}>
               {saving ? "Saving..." : editingShift ? "Update" : "Create"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Shift</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete shift "{deleteConfirm?.name}"? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

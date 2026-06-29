@@ -148,6 +148,8 @@ export default function DeviceIntegration() {
 // ─── DEVICES TAB ─────────────────────────────────────────────
 
 function DevicesTab({ canManage }: { canManage: boolean }) {
+  const { data: branchesData } = useActiveBranches();
+  const branches = branchesData ?? [];
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -156,7 +158,7 @@ function DevicesTab({ canManage }: { canManage: boolean }) {
   const [search, setSearch] = useState("");
   const [showDialog, setShowDialog] = useState(false);
   const [editing, setEditing] = useState<Device | null>(null);
-  const { data: branches = [] } = useActiveBranches();
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [form, setForm] = useState({
     name: "",
     type: "BIOMETRIC",
@@ -251,13 +253,19 @@ function DevicesTab({ canManage }: { canManage: boolean }) {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this device and all associated data?")) return;
+    setDeleteConfirm(id);
+  };
+
+  const handleDeleteDeviceConfirm = async () => {
+    if (deleteConfirm === null) return;
     try {
-      await deleteDevice(id);
+      await deleteDevice(deleteConfirm);
       toast.success("Device deleted");
+      setDeleteConfirm(null);
       fetchDevices();
     } catch {
       toast.error("Failed to delete device");
+      setDeleteConfirm(null);
     }
   };
 
@@ -543,6 +551,21 @@ function DevicesTab({ canManage }: { canManage: boolean }) {
             <Button onClick={handleSave}>
               {editing ? "Update" : "Create"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Device</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete this device and all associated data? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteDeviceConfirm}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -894,9 +917,9 @@ function DeviceUserMappingTab({ canManage }: { canManage: boolean }) {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
-
   const [showDialog, setShowDialog] = useState(false);
   const [editing, setEditing] = useState<EmployeeDeviceUser | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [form, setForm] = useState({
     employee_id: 0,
     device_id: "",
@@ -1035,13 +1058,19 @@ function DeviceUserMappingTab({ canManage }: { canManage: boolean }) {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this device user mapping?")) return;
+    setDeleteConfirm(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirm === null) return;
     try {
-      await deleteEmployeeDeviceUser(id);
+      await deleteEmployeeDeviceUser(deleteConfirm);
       toast.success("Mapping deleted");
+      setDeleteConfirm(null);
       fetchData();
     } catch {
       toast.error("Failed to delete mapping");
+      setDeleteConfirm(null);
     }
   };
 
@@ -1385,15 +1414,31 @@ function DeviceUserMappingTab({ canManage }: { canManage: boolean }) {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEmpDialogOpen(false)}>
+                <Button variant="outline" onClick={() => setEmpDialogOpen(false)}>
               Cancel
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Mapping</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete this device user mapping? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
+
 
 // ─── DEVICE LOG MAPPINGS TAB ─────────────────────────────────
 
@@ -1404,6 +1449,7 @@ function MappingsTab({ canManage }: { canManage: boolean }) {
   const [deviceFilter, setDeviceFilter] = useState("");
   const [showDialog, setShowDialog] = useState(false);
   const [editing, setEditing] = useState<DeviceLogMapping | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [form, setForm] = useState({
     device_id: "",
     field_source: "",
@@ -1532,13 +1578,19 @@ function MappingsTab({ canManage }: { canManage: boolean }) {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this mapping?")) return;
+    setDeleteConfirm(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirm === null) return;
     try {
-      await deleteMapping(id);
+      await deleteMapping(deleteConfirm);
       toast.success("Mapping deleted");
+      setDeleteConfirm(null);
       fetchData();
     } catch {
       toast.error("Failed to delete mapping");
+      setDeleteConfirm(null);
     }
   };
 
@@ -1767,6 +1819,21 @@ function MappingsTab({ canManage }: { canManage: boolean }) {
             <Button onClick={handleSave}>
               {editing ? "Update" : "Create"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Mapping</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete this mapping? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

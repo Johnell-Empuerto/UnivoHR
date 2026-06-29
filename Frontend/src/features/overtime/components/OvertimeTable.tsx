@@ -14,7 +14,7 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +48,7 @@ type OvertimeTableProps = {
   onView?: (request: OvertimeRequest) => void | Promise<void>;
   onApprove?: (id: number) => void | Promise<void>;
   onReject?: (id: number) => void | Promise<void>;
+  onDelete?: (id: number) => void | Promise<void>;
   canApprove?: boolean;
   title?: string;
   currentPage?: number;
@@ -107,6 +108,7 @@ const OvertimeTable = ({
   onView,
   onApprove,
   onReject,
+  onDelete,
   canApprove = false,
   title = "Overtime Requests",
   currentPage = 1,
@@ -193,6 +195,17 @@ const OvertimeTable = ({
                               <XCircle className="h-4 w-4" />
                             </Button>
                           </>
+                        )}
+                        {onDelete && item.status !== "APPROVED" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                            onClick={() => onDelete(item.id)}
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         )}
                       </div>
                     </TableCell>

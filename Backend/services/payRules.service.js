@@ -31,10 +31,25 @@ const updatePayRule = async (id, data) => {
   return rule;
 };
 
+const pool = require("../config/db");
+
 const deletePayRule = async (id) => {
-  const rule = await calendarModel.deletePayRule(id);
-  if (!rule) throw new Error("NOT_FOUND");
-  return rule;
+  const existing = await calendarModel.getPayRuleById(id);
+  if (!existing) throw new Error("NOT_FOUND");
+
+  const usage = await pool.query(
+    `SELECT COUNT(*) AS cnt FROM payroll WHERE status IN ('PAID', 'LOCKED')`,
+  );
+  if (parseInt(usage.rows[0].cnt) > 0) {
+    const err = new Error("Pay rule is in use by existing payroll records");
+    err.statusCode = 409;
+    err.dependencies = [{ entity: "payroll", label: "payroll records" }];
+    err.recommendation = "Deactivate the rule instead of deleting it";
+    throw err;
+  }
+
+  await calendarModel.deletePayRule(id);
+  return existing;
 };
 
 // CALENDAR

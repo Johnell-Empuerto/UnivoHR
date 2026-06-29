@@ -45,6 +45,7 @@ const DevicePage = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showDialog, setShowDialog] = useState(false);
   const [editing, setEditing] = useState<Device | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const { data: branches = [] } = useActiveBranches();
   const [form, setForm] = useState({
     name: "",
@@ -152,13 +153,19 @@ const DevicePage = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Delete this device and all associated data?")) return;
+    setDeleteConfirm(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirm === null) return;
     try {
-      await deleteDevice(id);
+      await deleteDevice(deleteConfirm);
       toast.success("Device deleted");
+      setDeleteConfirm(null);
       fetchDevices();
     } catch {
       toast.error("Failed to delete device");
+      setDeleteConfirm(null);
     }
   };
 
@@ -356,6 +363,21 @@ const DevicePage = () => {
             <Button onClick={handleSave}>
               {editing ? "Update" : "Create"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Device</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete this device and all associated data? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -244,6 +244,20 @@ const rejectOvertime = async (id, approver_id, reason, userRole) => {
   return result;
 };
 
+const removeRequest = async (id) => {
+  const request = await overtimeModel.getOvertimeBasic(id);
+  if (!request) throw new Error("Overtime request not found");
+  if (request.status === "APPROVED") {
+    const error = new Error("Cannot delete an approved overtime request.");
+    error.code = "OVERTIME_IN_USE";
+    error.statusCode = 409;
+    error.dependencies = { payroll: request.is_paid ? 1 : 0 };
+    error.recommendation = "Leave the record as is.";
+    throw error;
+  }
+  await overtimeModel.deleteOvertimeRequest(id);
+};
+
 const getOvertimeHoursForPayroll = async (
   employee_id,
   start_date,
@@ -309,6 +323,7 @@ module.exports = {
   getOvertimeDetails,
   approveOvertime,
   rejectOvertime,
+  removeRequest,
   getOvertimeHoursForPayroll,
   markOvertimeAsPaid,
   getOvertimeSummaryForPayroll,

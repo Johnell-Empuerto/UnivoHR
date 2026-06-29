@@ -40,7 +40,7 @@ const create = async (data) => {
 };
 
 const updatableColumns = new Set([
-  'code', 'name', 'description', 'is_enabled', 'is_paid', 'is_convertible',
+  'name', 'description', 'is_enabled', 'is_paid', 'is_convertible',
   'max_convertible_days', 'requires_balance', 'default_days', 'requires_attachment',
   'requires_approval', 'employee_requestable', 'hr_only', 'include_in_credits',
   'is_unlimited', 'affects_payroll', 'deducts_salary', 'sort_order',
@@ -76,6 +76,14 @@ const toggleEnabled = async (id) => {
   return result.rows[0];
 };
 
+const hardRemove = async (id) => {
+  const result = await pool.query(
+    `DELETE FROM leave_types WHERE id = $1 RETURNING *`,
+    [id],
+  );
+  return result.rows[0];
+};
+
 module.exports = {
   getAll,
   getById,
@@ -83,4 +91,5 @@ module.exports = {
   create,
   update,
   toggleEnabled,
+  hardRemove,
 };

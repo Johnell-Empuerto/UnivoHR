@@ -71,6 +71,7 @@ const ApprovalSettings = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
   const [rowsPerPage] = useState(10);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ApproverMapping | null>(null);
@@ -186,14 +187,18 @@ const ApprovalSettings = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm("Are you sure you want to remove this approver mapping?")) {
-      try {
-        await deleteApprover(id);
-        setData(data.filter((item) => item.id !== id));
-        toast.success("Approver mapping removed successfully");
-      } catch (err: any) {
-        toast.error(err.message || "Failed to remove approver mapping");
-      }
+    setDeleteConfirm(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirm === null) return;
+    try {
+      await deleteApprover(deleteConfirm);
+      setData(data.filter((item) => item.id !== deleteConfirm));
+      setDeleteConfirm(null);
+      toast.success("Approver mapping removed successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove approver mapping");
     }
   };
 
@@ -477,6 +482,21 @@ const ApprovalSettings = () => {
         activeOnly={true}
         requireUserAccount={false}
       />
+
+      <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Remove Approver Mapping</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to remove this approver mapping? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>Remove</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <EmployeePickerDialog
         open={approverPickerOpen}

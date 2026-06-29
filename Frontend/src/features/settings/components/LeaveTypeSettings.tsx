@@ -112,6 +112,7 @@ const LeaveTypeSettings = () => {
   const [formData, setFormData] = useState<LeaveTypeForm>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [toggling, setToggling] = useState<number | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<LeaveType | null>(null);
 
   const filtered = leaveTypes.filter((lt) => {
     if (filter === "enabled" && !lt.is_enabled) return false;
@@ -223,16 +224,22 @@ const LeaveTypeSettings = () => {
   };
 
   const handleDelete = async (lt: LeaveType) => {
+    setDeleteConfirm(lt);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirm) return;
     try {
-      await deleteLeaveType(lt.id);
+      await deleteLeaveType(deleteConfirm.id);
       queryClient.setQueryData(["leave-types", "all"], (prev: any) =>
-        prev?.map((t: any) => (t.id === lt.id ? { ...t, is_enabled: false } : t))
+        prev?.filter((t: any) => t.id !== deleteConfirm.id)
       );
       queryClient.invalidateQueries({ queryKey: ["leave-types"] });
       queryClient.invalidateQueries({ queryKey: ["leave-conversion", "types"] });
-      toast.success(`Leave type '${lt.code}' disabled`);
+      toast.success(`Leave type '${deleteConfirm.code}' deleted`);
+      setDeleteConfirm(null);
     } catch (err: any) {
-      toast.error(err.message || "Failed to delete leave type");
+      toast.error(err.response?.data?.message || err.message || "Failed to delete leave type");
     }
   };
 
@@ -366,8 +373,7 @@ const LeaveTypeSettings = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDelete(lt)}
-                            disabled={!lt.is_enabled}
-                            title="Disable (soft delete)"
+                            title="Delete permanently"
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -581,6 +587,21 @@ const LeaveTypeSettings = () => {
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {editing ? "Save Changes" : "Create Leave Type"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Leave Type</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to permanently delete "{deleteConfirm?.name}" ({deleteConfirm?.code})? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

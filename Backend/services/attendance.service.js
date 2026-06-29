@@ -1,3 +1,4 @@
+const pool = require("../config/db");
 const attendanceModel = require("../models/attendance.model");
 const rulesModel = require("../models/attendance.model");
 const shiftService = require("./shift.service");
@@ -181,6 +182,21 @@ const setActiveRule = async (id) => {
 };
 
 const deleteRule = async (id) => {
+  const ruleCheck = await pool.query(
+    `SELECT id, is_active FROM attendance_rules WHERE id = $1`,
+    [id],
+  );
+  if (ruleCheck.rows.length === 0) {
+    const err = new Error("Attendance rule not found");
+    err.statusCode = 404;
+    throw err;
+  }
+  if (ruleCheck.rows[0].is_active) {
+    const err = new Error("Cannot delete an active attendance rule. Deactivate it first before deletion.");
+    err.statusCode = 409;
+    err.dependencies = [{ entity: "attendance_rules", label: "active attendance rule" }];
+    throw err;
+  }
   return await rulesModel.deleteRule(id);
 };
 

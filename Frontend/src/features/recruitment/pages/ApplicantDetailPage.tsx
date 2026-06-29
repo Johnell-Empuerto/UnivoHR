@@ -571,10 +571,14 @@ const ApplicantDetailPage = () => {
     }
     const uncompleted = requirements.filter((r) => r.status !== "Completed");
     if (requirements.length > 0 && uncompleted.length > 0) {
-      const proceed = confirm(
-        "Some requirements are not yet completed. Continue converting this applicant?",
-      );
-      if (!proceed) return;
+      setDeleteConfirm({
+        open: true, title: "Uncompleted Requirements", message: "Some requirements are not yet completed. Continue converting this applicant?",
+        onConfirm: () => {
+          setDeleteConfirm({ open: false, title: "", message: "", onConfirm: () => {} });
+          setConvertDialog(true);
+        },
+      });
+      return;
     }
     setConvertDialog(true);
   };

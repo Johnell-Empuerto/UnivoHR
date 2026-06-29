@@ -89,7 +89,7 @@ const isTemplateInUse = async (templateId) => {
 
 const getTemplateByName = async (name, excludeId) => {
   const result = await pool.query(
-    `SELECT id FROM kpi_templates WHERE name = $1 AND ($2 IS NULL OR id != $2) LIMIT 1`,
+    `SELECT id FROM kpi_templates WHERE name = $1 AND ($2::int IS NULL OR id != $2::int) LIMIT 1`,
     [name, excludeId || null],
   );
   return result.rows[0];

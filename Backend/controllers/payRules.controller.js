@@ -106,6 +106,14 @@ const deletePayRule = async (req, res) => {
       return res.status(404).json({ error: "Pay rule not found" });
     }
 
+    if (error.statusCode === 409) {
+      return res.status(409).json({
+        error: error.message,
+        dependencies: error.dependencies,
+        recommendation: error.recommendation,
+      });
+    }
+
     res.status(500).json({ error: "Failed to delete pay rule" });
   }
 };

@@ -5,6 +5,7 @@ import {
   createBranch,
   updateBranch,
   setBranchActive,
+  deleteBranch,
 } from "@/services/branchService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +26,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import Loader from "@/components/shared/Loader";
@@ -37,6 +48,7 @@ import {
   Power,
   PowerOff,
   Globe,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -88,6 +100,7 @@ const BranchesPage = () => {
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Branch | null>(null);
 
   useEffect(() => {
     fetchBranches();
@@ -155,6 +168,27 @@ const BranchesPage = () => {
       toast.error(err.message || "Operation failed");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteClick = (branch: Branch) => {
+    setDeleteTarget(branch);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setDeleteTarget(null);
+
+    try {
+      await deleteBranch(target.id);
+      toast.success("Branch deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["branches"] });
+      fetchBranches();
+    } catch (err: any) {
+      const message =
+        err.response?.data?.message || err.message || "Failed to delete branch";
+      toast.error(message);
     }
   };
 
@@ -262,6 +296,14 @@ const BranchesPage = () => {
                             ) : (
                               <Power className="h-4 w-4 text-green-500" />
                             )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            title="Delete"
+                            onClick={() => handleDeleteClick(branch)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
                       </TableCell>
@@ -372,6 +414,27 @@ const BranchesPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Branch</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{deleteTarget?.name}</strong>?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

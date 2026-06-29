@@ -362,6 +362,26 @@ const getUserIdsByEmployeeIds = async (employeeIds) => {
   return result.rows;
 };
 
+const updateAssignment = async (id, data) => {
+  const result = await pool.query(
+    `UPDATE hr_form_assignments SET employee_id=$1, due_date=$2 WHERE id=$3 RETURNING *`,
+    [data.employee_id, data.due_date || null, id],
+  );
+  return result.rows[0];
+};
+
+const deleteAssignment = async (id) => {
+  await pool.query(`DELETE FROM hr_form_assignments WHERE id=$1`, [id]);
+};
+
+const hasSubmission = async (assignmentId) => {
+  const result = await pool.query(
+    `SELECT COUNT(*) FROM hr_form_submissions WHERE assignment_id=$1`,
+    [assignmentId],
+  );
+  return parseInt(result.rows[0].count) > 0;
+};
+
 const getActiveHRUserIds = async () => {
   const result = await pool.query(
     `SELECT id FROM users WHERE role = 'ADMIN' OR EXISTS (SELECT 1 FROM user_permissions up WHERE up.user_id = users.id AND up.permission_key = 'employees.manage' AND up.is_allowed = true)`,
@@ -373,7 +393,8 @@ module.exports = {
   init,
   getAllForms, getFormById, createForm, updateForm, deleteForm, hasAssignments,
   getFieldsByFormId, createField, updateField, deleteField, hasFieldAnswers,
-  createAssignment, bulkCreateAssignments, bulkAssignAllMatching,
+  createAssignment, updateAssignment, deleteAssignment, hasSubmission,
+  bulkCreateAssignments, bulkAssignAllMatching,
   getAllAssignments, getMyAssignments, getAssignmentById,
   updateAssignmentStatus,
   createSubmission, upsertAnswer, getAnswersByAssignmentId,

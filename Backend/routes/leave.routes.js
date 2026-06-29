@@ -324,7 +324,7 @@ router.patch(
   requirePermission("leave.manage"),
   leaveTypeController.toggleEnabled,
 );
-// Soft delete (disable)
+// Hard delete (with dependency guard)
 router.delete(
   "/leave-types/:id",
   authenticate,

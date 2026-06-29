@@ -67,6 +67,7 @@ const OnboardingPage = () => {
   const [reqDialog, setReqDialog] = useState(false);
   const [reqForm, setReqForm] = useState({ requirement_name: "", description: "" });
   const [saving, setSaving] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
   useEffect(() => {
     fetchOnboardings();
@@ -152,10 +153,15 @@ const OnboardingPage = () => {
   };
 
   const handleDeleteReq = async (reqId: number) => {
-    if (!confirm("Delete this requirement?")) return;
+    setDeleteConfirm(reqId);
+  };
+
+  const handleDeleteReqConfirm = async () => {
+    if (deleteConfirm === null) return;
     try {
-      await deleteEmployeeRequirement(reqId);
+      await deleteEmployeeRequirement(deleteConfirm);
       toast.success("Requirement deleted");
+      setDeleteConfirm(null);
       if (selectedOnboarding) {
         const reqs = await getEmployeeRequirements(selectedOnboarding.id);
         setRequirements(reqs);
@@ -345,6 +351,21 @@ const OnboardingPage = () => {
             <Button onClick={handleAddRequirement} disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Add
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Requirement</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete this requirement? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteReqConfirm}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

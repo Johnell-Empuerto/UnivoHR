@@ -69,6 +69,16 @@ const deleteSmtpSettings = async (req, res) => {
     });
     res.json({ message: "SMTP settings deleted successfully" });
   } catch (error) {
+    if (error.statusCode === 404) {
+      return res.status(404).json({ message: error.message });
+    }
+    if (error.statusCode === 409) {
+      return res.status(409).json({
+        success: false,
+        message: error.message,
+        dependencies: error.dependencies,
+      });
+    }
     res.status(500).json({ message: error.message });
   }
 };

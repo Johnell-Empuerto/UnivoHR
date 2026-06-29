@@ -86,6 +86,12 @@ const setActive = async (id, is_active) => {
   return await branchModel.setActive(id, is_active);
 };
 
+const remove = async (id) => {
+  const branch = await branchModel.removeIfUnused(id);
+  if (!branch) throw new Error("Branch not found");
+  return branch;
+};
+
 module.exports = {
   getAll,
   getActive,
@@ -93,4 +99,5 @@ module.exports = {
   create,
   update,
   setActive,
+  remove,
 };

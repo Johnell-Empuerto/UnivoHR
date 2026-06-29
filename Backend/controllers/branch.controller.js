@@ -96,6 +96,40 @@ const setActive = async (req, res) => {
   }
 };
 
+const remove = async (req, res) => {
+  try {
+    const oldValues = await audit.fetchOldValues("branches", req.params.id);
+    const branch = await branchService.remove(req.params.id);
+    audit.auditLog(req, {
+      action: "DELETE",
+      table_name: "branches",
+      record_id: branch.id,
+      branch_id: branch.id,
+      old_values: oldValues ? { code: oldValues.code, name: oldValues.name, address: oldValues.address, city: oldValues.city, province: oldValues.province, phone: oldValues.phone, timezone: oldValues.timezone, is_active: oldValues.is_active } : null,
+      description: `Branch deleted: ${branch.name} (${branch.code})`,
+    });
+    res.json({ message: "Branch deleted successfully", branch });
+  } catch (error) {
+    if (error.code === "BRANCH_IN_USE") {
+      const dependencies = {};
+      if (error.usage && Array.isArray(error.usage)) {
+        error.usage.forEach((item) => {
+          dependencies[item.label] = item.count;
+        });
+      }
+      return res.status(409).json({
+        message: error.message,
+        dependencies,
+        recommendation: "Deactivate the branch instead.",
+      });
+    }
+    if (error.message === "Branch not found") {
+      return res.status(404).json({ message: error.message });
+    }
+    res.status(400).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getAll,
   getActive,
@@ -103,4 +137,5 @@ module.exports = {
   create,
   update,
   setActive,
+  remove,
 };

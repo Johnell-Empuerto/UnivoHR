@@ -229,6 +229,16 @@ const deleteDeduction = async (req, res) => {
     });
     res.json({ message: "Deleted" });
   } catch (err) {
+    if (err.statusCode === 409) {
+      return res.status(409).json({
+        error: err.message,
+        dependencies: err.dependencies,
+        recommendation: err.recommendation,
+      });
+    }
+    if (err.message === "Deduction not found") {
+      return res.status(404).json({ message: err.message });
+    }
     res.status(500).json({ message: err.message });
   }
 };
@@ -360,6 +370,13 @@ const deletePayrollByCutoff = async (req, res) => {
 
     res.json(data);
   } catch (err) {
+    if (err.statusCode === 409) {
+      return res.status(409).json({
+        error: err.message,
+        dependencies: err.dependencies,
+        recommendation: err.recommendation,
+      });
+    }
     res.status(500).json({ message: err.message });
   }
 };

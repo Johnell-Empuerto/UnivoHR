@@ -1,5 +1,20 @@
 const pool = require("../config/db");
 
+const BRANCH_USAGE_CHECKS = [
+  { table: "employees", column: "branch_id", label: "employees" },
+  { table: "attendance", column: "branch_id", label: "attendance records" },
+  { table: "calendar_days", column: "branch_id", label: "calendar days" },
+  { table: "devices", column: "branch_id", label: "devices" },
+  { table: "branch_rest_days", column: "branch_id", label: "branch rest days" },
+  { table: "user_branch_access", column: "branch_id", label: "user branch access" },
+  { table: "payroll", column: "branch_id", label: "payroll records" },
+  { table: "job_positions", column: "branch_id", label: "job positions" },
+  { table: "recruitment_workflows", column: "branch_id", label: "recruitment workflows" },
+  { table: "anomaly_logs", column: "branch_id", label: "anomaly logs" },
+  { table: "forecast_logs", column: "branch_id", label: "forecast logs" },
+  { table: "employee_import_rows", column: "branch_id", label: "employee import rows" },
+];
+
 const getAll = async () => {
   const result = await pool.query(
     `SELECT * FROM branches ORDER BY is_active DESC, name ASC`,
@@ -65,6 +80,92 @@ const countEmployees = async (branch_id) => {
   return result.rows[0].count;
 };
 
+const hasColumn = async (db, table, column) => {
+  const result = await db.query(
+    `SELECT EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = $1
+        AND column_name = $2
+    ) AS exists`,
+    [table, column],
+  );
+  return result.rows[0].exists;
+};
+
+const getUsageCounts = async (branch_id, db = pool) => {
+  const usage = [];
+
+  for (const check of BRANCH_USAGE_CHECKS) {
+    const exists = await hasColumn(db, check.table, check.column);
+    if (!exists) {
+      usage.push({ table: check.table, label: check.label, count: 0 });
+      continue;
+    }
+
+    const result = await db.query(
+      `SELECT COUNT(*)::int AS count
+       FROM ${check.table}
+       WHERE ${check.column} = $1 ${check.extraWhere || ""}`,
+      [branch_id],
+    );
+
+    usage.push({
+      table: check.table,
+      label: check.label,
+      count: result.rows[0].count,
+    });
+  }
+
+  return usage;
+};
+
+const removeIfUnused = async (id) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const branchResult = await client.query(
+      `SELECT * FROM branches WHERE id = $1 FOR UPDATE`,
+      [id],
+    );
+    const branch = branchResult.rows[0];
+
+    if (!branch) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+
+    const usage = await getUsageCounts(id, client);
+    const inUse = usage.filter((item) => item.count > 0);
+
+    if (inUse.length > 0) {
+      const error = new Error(
+        "Branch cannot be deleted because it contains historical business records.",
+      );
+      error.code = "BRANCH_IN_USE";
+      error.statusCode = 409;
+      error.usage = inUse;
+      throw error;
+    }
+
+    const result = await client.query(
+      `DELETE FROM branches WHERE id = $1 RETURNING *`,
+      [id],
+    );
+
+    await client.query("COMMIT");
+    return result.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   getAll,
   getActive,
@@ -74,4 +175,6 @@ module.exports = {
   update,
   setActive,
   countEmployees,
+  getUsageCounts,
+  removeIfUnused,
 };

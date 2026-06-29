@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { leaveService } from "@/services/leaveService";
 import { useEnabledLeaveTypes } from "@/hooks/useLeaveTypes";
@@ -177,7 +178,7 @@ const LeaveDrawer = ({
       setIsSubmitting(true);
 
       if (!formData.type || formData.type === "_none") {
-        alert("Please select a leave type");
+        toast.error("Please select a leave type");
         setIsSubmitting(false);
         return;
       }
@@ -201,9 +202,7 @@ const LeaveDrawer = ({
       onClose();
     } catch (error: any) {
       console.error("Create leave error:", error);
-      if (error.response?.data?.message) {
-        alert(error.response.data.message);
-      }
+      toast.error(error.response?.data?.message || "Failed to create leave request");
     } finally {
       setIsSubmitting(false);
     }

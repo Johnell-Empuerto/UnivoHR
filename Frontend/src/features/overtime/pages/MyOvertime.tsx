@@ -4,6 +4,7 @@ import {
   getMyOvertime,
   createOvertime,
   getOvertimeDetails,
+  deleteOvertime,
 } from "@/services/overtimeService";
 import ErrorMessage from "@/components/shared/ErrorMessage";
 import Loader from "@/components/shared/Loader";
@@ -24,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import OvertimeForm from "../components/OvertimeForm";
 import OvertimeTable from "../components/OvertimeTable";
@@ -137,6 +139,23 @@ const MyOvertime = () => {
     }
   };
 
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteOvertime(id);
+      toast.success("Overtime request deleted");
+      setDeleteConfirm(null);
+      setCurrentPage(1);
+      const res = await getMyOvertime(1, rowsPerPage, search, statusFilter);
+      setData(res.data);
+      setTotalPages(res.pagination.totalPages);
+      setTotalRecords(res.pagination.total);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete overtime request");
+    }
+  };
+
   // Handle view drawer
   const handleView = async (request: OvertimeRequest) => {
     try {
@@ -222,10 +241,11 @@ const MyOvertime = () => {
       {/* Loading Indicator */}
       {loading && <Loader message="Loading overtime requests..." />}
 
-      {/* Overtime Table with onView handler */}
+      {/* Overtime Table with onView and onDelete handlers */}
       <OvertimeTable
         data={data}
         onView={handleView}
+        onDelete={(id) => setDeleteConfirm(id)}
         currentPage={currentPage}
         totalPages={totalPages}
         totalRecords={totalRecords}
@@ -248,6 +268,21 @@ const MyOvertime = () => {
             onSubmit={handleCreateOvertime}
             isLoading={submitting}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Delete Overtime Request</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. Are you sure you want to delete this overtime request?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteConfirm !== null && handleDelete(deleteConfirm)}>Delete</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

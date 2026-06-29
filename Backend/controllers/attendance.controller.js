@@ -196,6 +196,16 @@ const deleteRule = async (req, res) => {
     });
     res.json(data);
   } catch (err) {
+    if (err.statusCode === 404) {
+      return res.status(404).json({ message: err.message });
+    }
+    if (err.statusCode === 409) {
+      return res.status(409).json({
+        success: false,
+        message: err.message,
+        dependencies: err.dependencies,
+      });
+    }
     res.status(500).json({ message: err.message });
   }
 };

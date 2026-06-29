@@ -7,7 +7,7 @@ const initSocket = (server) => {
 
   const allowedOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
-    : ["http://localhost:5173", "http://192.168.0.102:5173"];
+    : ["http://localhost:5173", "http://192.168.0.110:5173"];
 
   io = new Server(server, {
     cors: {

@@ -38,6 +38,13 @@ import {
   getAllDayLabels,
 } from "@/services/restDayService";
 import type { EmployeeRestDay, BranchRestDay } from "@/services/restDayService";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers/AuthProvider";
 
@@ -183,6 +190,8 @@ const EmployeeDrawer = ({
     item: any;
   }>({ open: false, mode: "create", item: null });
   const [editingFamily, setEditingFamily] = useState<any>({});
+
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: "family" | "education" | "experience"; id: number } | null>(null);
 
   const [educationOpen, setEducationOpen] = useState(false);
   const [educationData, setEducationData] = useState<any[]>([]);
@@ -414,13 +423,19 @@ const EmployeeDrawer = ({
 
   const handleDeleteFamily = async (id: number) => {
     if (!employee?.id) return;
-    if (!confirm("Delete this family member?")) return;
+    setDeleteConfirm({ type: "family", id });
+  };
+
+  const handleDeleteFamilyConfirm = async () => {
+    if (!deleteConfirm || deleteConfirm.type !== "family" || !employee?.id) return;
     try {
-      await deleteEmployeeFamily(employee.id, id);
+      await deleteEmployeeFamily(employee.id, deleteConfirm.id);
       toast.success("Family member deleted");
+      setDeleteConfirm(null);
       loadFamily();
     } catch (err: any) {
       toast.error(err.message);
+      setDeleteConfirm(null);
     }
   };
 
@@ -456,13 +471,19 @@ const EmployeeDrawer = ({
 
   const handleDeleteEducation = async (id: number) => {
     if (!employee?.id) return;
-    if (!confirm("Delete this education record?")) return;
+    setDeleteConfirm({ type: "education", id });
+  };
+
+  const handleDeleteEducationConfirm = async () => {
+    if (!deleteConfirm || deleteConfirm.type !== "education" || !employee?.id) return;
     try {
-      await deleteEmployeeEducation(employee.id, id);
+      await deleteEmployeeEducation(employee.id, deleteConfirm.id);
       toast.success("Education record deleted");
+      setDeleteConfirm(null);
       loadEducation();
     } catch (err: any) {
       toast.error(err.message);
+      setDeleteConfirm(null);
     }
   };
 
@@ -498,13 +519,19 @@ const EmployeeDrawer = ({
 
   const handleDeleteExperience = async (id: number) => {
     if (!employee?.id) return;
-    if (!confirm("Delete this work experience?")) return;
+    setDeleteConfirm({ type: "experience", id });
+  };
+
+  const handleDeleteExperienceConfirm = async () => {
+    if (!deleteConfirm || deleteConfirm.type !== "experience" || !employee?.id) return;
     try {
-      await deleteEmployeeExperience(employee.id, id);
+      await deleteEmployeeExperience(employee.id, deleteConfirm.id);
       toast.success("Work experience deleted");
+      setDeleteConfirm(null);
       loadExperience();
     } catch (err: any) {
       toast.error(err.message);
+      setDeleteConfirm(null);
     }
   };
 
@@ -2936,6 +2963,45 @@ const EmployeeDrawer = ({
             </button>
           </div>
         ) : null}
+
+        <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                Delete{" "}
+                {deleteConfirm?.type === "family"
+                  ? "Family Member"
+                  : deleteConfirm?.type === "education"
+                    ? "Education Record"
+                    : "Work Experience"}
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete this{" "}
+              {deleteConfirm?.type === "family"
+                ? "family member"
+                : deleteConfirm?.type === "education"
+                  ? "education record"
+                  : "work experience"}
+              ? This action cannot be undone.
+            </p>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+              <Button
+                variant="destructive"
+                onClick={
+                  deleteConfirm?.type === "family"
+                    ? handleDeleteFamilyConfirm
+                    : deleteConfirm?.type === "education"
+                      ? handleDeleteEducationConfirm
+                      : handleDeleteExperienceConfirm
+                }
+              >
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DrawerContent>
     </Drawer>
   );

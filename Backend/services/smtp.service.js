@@ -31,6 +31,13 @@ const deleteSmtpSettings = async (id) => {
   const existing = await smtpModel.getSmtpSettingsById(id);
   if (!existing) throw new Error("SMTP settings not found");
 
+  if (existing.is_active) {
+    const err = new Error("Cannot delete active SMTP configuration. Set another configuration as active first.");
+    err.statusCode = 409;
+    err.dependencies = [{ entity: "smtp_settings", label: "active SMTP configuration" }];
+    throw err;
+  }
+
   return await smtpModel.deleteSmtpSettings(id);
 };
 

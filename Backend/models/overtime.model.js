@@ -293,18 +293,12 @@ const getOvertimeDetails = async (id, currentUserId = null) => {
 // GET OVERTIME BASIC (LIGHTWEIGHT - NO JOINS)
 
 const getOvertimeBasic = async (id) => {
-  const result = await pool.query(
-    `SELECT id, employee_id, status, is_paid, hours
-     FROM overtime_requests
-     WHERE id = $1`,
-    [id],
-  );
-
-  if (result.rows.length === 0) {
-    throw new Error("Overtime request not found");
-  }
-
+  const result = await pool.query(`SELECT * FROM overtime_requests WHERE id = $1`, [id]);
   return result.rows[0];
+};
+
+const deleteOvertimeRequest = async (id) => {
+  await pool.query(`DELETE FROM overtime_requests WHERE id = $1`, [id]);
 };
 
 // ==========================================
@@ -764,6 +758,7 @@ module.exports = {
   getAllOvertime,
   getOvertimeDetails,
   getOvertimeBasic,
+  deleteOvertimeRequest,
   approveOvertime,
   rejectOvertime,
   canApprove,

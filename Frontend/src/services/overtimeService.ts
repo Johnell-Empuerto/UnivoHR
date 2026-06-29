@@ -58,6 +58,11 @@ export const approveOvertime = async (
 };
 
 // REJECT OVERTIME REQUEST
+export const deleteOvertime = async (id: number) => {
+  const response = await api.delete(`/overtime/${id}`);
+  return response.data;
+};
+
 export const rejectOvertime = async (id: number, data: { reason: string }) => {
   const response = await api.put(`/overtime/${id}/reject`, data);
   return response.data;

@@ -35,7 +35,7 @@ const update = async (req, res) => {
 
 const remove = async (req, res) => {
   try {
-    const row = await employeeRestDayService.remove(req.params.employeeId);
+    const row = await employeeRestDayService.remove(req.params.id);
     if (!row) return res.status(404).json({ message: "Rest day not found" });
     res.json({ message: "Rest day removed", data: row });
   } catch (error) {

@@ -71,6 +71,16 @@ export const getHrAssignmentById = async (assignmentId: number) => {
   return response.data;
 };
 
+export const updateHrAssignment = async (assignmentId: number, data: { employee_id: number; due_date?: string }) => {
+  const response = await api.put(`/hr-forms/assignments/${assignmentId}`, data);
+  return response.data;
+};
+
+export const deleteHrAssignment = async (assignmentId: number) => {
+  const response = await api.delete(`/hr-forms/assignments/${assignmentId}`);
+  return response.data;
+};
+
 export const submitHrForm = async (assignmentId: number, data: any) => {
   const response = await api.post(`/hr-forms/assignments/${assignmentId}/submit`, data);
   return response.data;

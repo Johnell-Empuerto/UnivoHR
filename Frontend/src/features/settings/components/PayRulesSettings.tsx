@@ -42,6 +42,7 @@ const PayRulesSettings = () => {
   const [loading, setLoading] = useState(false);
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<PayRule | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [ruleForm, setRuleForm] = useState({
     day_type: "REGULAR",
     multiplier: 1.0,
@@ -116,12 +117,16 @@ const PayRulesSettings = () => {
 
   // Delete Pay Rule
   const handleDeleteRule = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this pay rule?")) return;
+    setDeleteConfirm(id);
+  };
 
+  const handleDeleteRuleConfirm = async () => {
+    if (deleteConfirm === null) return;
     try {
       setLoading(true);
-      await deletePayRule(id);
+      await deletePayRule(deleteConfirm);
       toast.success("Pay rule deleted successfully");
+      setDeleteConfirm(null);
       fetchPayRules();
     } catch (err) {
       console.error(err);
@@ -129,6 +134,10 @@ const PayRulesSettings = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeleteRuleCancel = () => {
+    setDeleteConfirm(null);
   };
 
   // Edit Pay Rule
@@ -271,6 +280,21 @@ const PayRulesSettings = () => {
             <Button onClick={handleSaveRule} disabled={loading}>
               {loading ? "Saving..." : "Save"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteConfirm !== null} onOpenChange={handleDeleteRuleCancel}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Pay Rule</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete this pay rule? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleDeleteRuleCancel}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteRuleConfirm}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

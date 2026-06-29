@@ -1,3 +1,4 @@
+const pool = require("../config/db");
 const leaveTypeModel = require("../models/leaveType.model");
 const audit = require("../services/audit.service");
 
@@ -84,16 +85,54 @@ const remove = async (req, res) => {
   try {
     const existing = await leaveTypeModel.getById(req.params.id);
     if (!existing) return res.status(404).json({ message: "Leave type not found" });
-    if (existing.is_enabled) {
-      await leaveTypeModel.update(req.params.id, { is_enabled: false });
+
+    const dependencies = [];
+
+    const balanceCheck = await pool.query(
+      `SELECT COUNT(*) AS cnt FROM employee_leave_balances WHERE leave_type_id = $1`,
+      [req.params.id],
+    );
+    if (parseInt(balanceCheck.rows[0].cnt) > 0) {
+      dependencies.push({ entity: "employee_leave_balances", label: "employee leave balances" });
     }
+
+    const leaveCheck = await pool.query(
+      `SELECT COUNT(*) AS cnt FROM leaves WHERE type = $1`,
+      [existing.code],
+    );
+    if (parseInt(leaveCheck.rows[0].cnt) > 0) {
+      dependencies.push({ entity: "leaves", label: "leave requests" });
+    }
+
+    const conversionCheck = await pool.query(
+      `SELECT COUNT(*) AS cnt FROM leave_conversions WHERE leave_type = $1`,
+      [existing.code],
+    );
+    if (parseInt(conversionCheck.rows[0].cnt) > 0) {
+      dependencies.push({ entity: "leave_conversions", label: "leave conversions" });
+    }
+
+    if (dependencies.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: `Cannot delete "${existing.name}" — it has been used by existing records. Disable it instead if you no longer want it available.`,
+        dependencies,
+      });
+    }
+
+    await leaveTypeModel.hardRemove(req.params.id);
     audit.auditLog(req, {
       action: "DELETE",
       table_name: "leave_types",
       record_id: existing.id,
-      description: `Leave type '${existing.code}' soft-deleted (disabled)`,
+      old_values: {
+        code: existing.code,
+        name: existing.name,
+        is_enabled: existing.is_enabled,
+      },
+      description: `Leave type '${existing.code}' permanently deleted`,
     });
-    res.json({ message: "Leave type disabled" });
+    res.json({ message: `Leave type "${existing.name}" permanently deleted` });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -75,7 +75,25 @@ const createDeduction = (data) => payrollModel.createDeduction(data);
 
 const updateDeduction = (id, data) => payrollModel.updateDeduction(id, data);
 
-const deleteDeduction = (id) => payrollModel.deleteDeduction(id);
+const deleteDeduction = async (id) => {
+  const deduction = await payrollModel.getDeductionById(id);
+  if (!deduction) throw new Error("Deduction not found");
+
+  const payrollCheck = await pool.query(
+    `SELECT COUNT(*) AS cnt FROM payroll
+     WHERE employee_id = $1 AND status IN ('PAID', 'LOCKED')`,
+    [deduction.employee_id],
+  );
+  if (parseInt(payrollCheck.rows[0].cnt) > 0) {
+    const err = new Error("Cannot delete deduction: this employee has finalized payroll records that include this deduction. Deactivate the deduction instead.");
+    err.statusCode = 409;
+    err.dependencies = [{ entity: "payroll", label: "finalized payroll records" }];
+    err.recommendation = "Set the deduction as inactive instead of deleting it";
+    throw err;
+  }
+
+  return await payrollModel.deleteDeduction(id);
+};
 
 // MARK AS PAID - OPTIMIZED (single query for employee)
 const markAsPaid = async (id, userId = null) => {
@@ -243,8 +261,26 @@ const getQueueStatus = async () => {
   return await queueService.getQueueStats();
 };
 
-const deletePayrollByCutoff = (cutoff_start, cutoff_end, pay_date) =>
-  payrollModel.deletePayrollByCutoff(cutoff_start, cutoff_end, pay_date);
+const deletePayrollByCutoff = async (cutoff_start, cutoff_end, pay_date) => {
+  const versionCheck = await pool.query(
+    `SELECT pv.id FROM payroll_versions pv
+     JOIN payroll p ON p.id = pv.payroll_id
+     WHERE p.cutoff_start::date = $1::date
+       AND p.cutoff_end::date = $2::date
+       AND p.pay_date::date = $3::date
+       AND p.status NOT IN ('PAID', 'LOCKED', 'VOID')
+     LIMIT 1`,
+    [cutoff_start, cutoff_end, pay_date],
+  );
+  if (versionCheck.rows.length > 0) {
+    const err = new Error("Cannot delete payroll: version snapshots exist. Void the payroll instead.");
+    err.statusCode = 409;
+    err.dependencies = [{ entity: "payroll_versions", label: "payroll version snapshots" }];
+    err.recommendation = "Void the payroll instead of deleting it";
+    throw err;
+  }
+  return await payrollModel.deletePayrollByCutoff(cutoff_start, cutoff_end, pay_date);
+};
 
 const getMyPayroll = async (employee_id, cutoff_start, cutoff_end) => {
   return await payrollModel.getMyPayroll(employee_id, cutoff_start, cutoff_end);

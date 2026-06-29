@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { getHrForms } from "@/services/hrFormService";
-import { assignHrForm, getAllHrAssignments } from "@/services/hrFormService";
+import { assignHrForm, getAllHrAssignments, updateHrAssignment, deleteHrAssignment } from "@/services/hrFormService";
 import { employees as fetchEmployees } from "@/services/employeeService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ClipboardList, ChevronLeft, ChevronRight, Loader2, Plus, Search, X } from "lucide-react";
+import { ClipboardList, ChevronLeft, ChevronRight, Loader2, Plus, Search, X, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import Loader from "@/components/shared/Loader";
 import { TablePagination } from "@/components/shared/TablePagination";
@@ -42,6 +42,14 @@ const HrFormAssignmentsPage = () => {
   const [assignForm, setAssignForm] = useState({ form_id: "", due_date: "" });
   const [assignAllMatching, setAssignAllMatching] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const [editDialog, setEditDialog] = useState(false);
+  const [editTarget, setEditTarget] = useState<any>(null);
+  const [editEmployeeId, setEditEmployeeId] = useState("");
+  const [editDueDate, setEditDueDate] = useState("");
+
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
 
   const [empData, setEmpData] = useState<any[]>([]);
   const [empTotal, setEmpTotal] = useState(0);
@@ -115,6 +123,40 @@ const HrFormAssignmentsPage = () => {
     finally { setSaving(false); }
   };
 
+  const handleOpenEdit = (a: any) => {
+    setEditTarget(a);
+    setEditEmployeeId(String(a.employee_id));
+    setEditDueDate(a.due_date || "");
+    setEditDialog(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editEmployeeId) { toast.error("Select an employee"); return; }
+    try {
+      await updateHrAssignment(editTarget.id, { employee_id: Number(editEmployeeId), due_date: editDueDate || undefined });
+      toast.success("Assignment updated");
+      setEditDialog(false);
+      setEditTarget(null);
+      fetchAssignments();
+    } catch (err: any) { toast.error(err.message || "Update failed"); }
+  };
+
+  const handleOpenDelete = (a: any) => {
+    setDeleteTarget(a);
+    setDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteHrAssignment(deleteTarget.id);
+      toast.success("Assignment deleted");
+      setDeleteDialog(false);
+      setDeleteTarget(null);
+      fetchAssignments();
+    } catch (err: any) { toast.error(err.message || "Delete failed"); }
+  };
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-3">
@@ -147,6 +189,7 @@ const HrFormAssignmentsPage = () => {
                     <TableHead>Due Date</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Submitted</TableHead>
+                    <TableHead className="w-24">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -159,6 +202,20 @@ const HrFormAssignmentsPage = () => {
                       <TableCell className="text-sm">{a.due_date ? formatDateShort(a.due_date) : "-"}</TableCell>
                       <TableCell>{statusBadge(a.status)}</TableCell>
                       <TableCell>{a.submitted_at ? formatDateShort(a.submitted_at) : "-"}</TableCell>
+                      <TableCell>
+                        {a.status === "Pending" ? (
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => handleOpenEdit(a)} className="p-1.5 rounded-md hover:bg-muted transition-colors" title="Edit">
+                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                            </button>
+                            <button onClick={() => handleOpenDelete(a)} className="p-1.5 rounded-md hover:bg-destructive/10 transition-colors" title="Delete">
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -329,6 +386,47 @@ const HrFormAssignmentsPage = () => {
               {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               {assignAllMatching ? `Assign to all ${empTotal} matching` : `Assign to ${selectedIds.size} employee(s)`}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editDialog} onOpenChange={(open) => { if (!open) { setEditDialog(false); setEditTarget(null); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Edit Assignment</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            {editTarget && (
+              <div className="text-sm text-muted-foreground">
+                Re-assigning: <strong>{editTarget.employee_name}</strong> &mdash; {editTarget.form_title}
+              </div>
+            )}
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">New Employee ID <span className="text-red-500">*</span></p>
+              <Input type="number" value={editEmployeeId} onChange={(e) => setEditEmployeeId(e.target.value)} placeholder="Enter employee ID" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Due Date</p>
+              <Input type="date" value={editDueDate} onChange={(e) => setEditDueDate(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditDialog(false); setEditTarget(null); }}>Cancel</Button>
+            <Button onClick={handleSaveEdit}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteDialog} onOpenChange={(open) => { if (!open) { setDeleteDialog(false); setDeleteTarget(null); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Delete Assignment</DialogTitle></DialogHeader>
+          {deleteTarget && (
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete the assignment for <strong>{deleteTarget.employee_name}</strong> &mdash; {deleteTarget.form_title}?
+              <br /><br />This action cannot be undone.
+            </p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDeleteDialog(false); setDeleteTarget(null); }}>Cancel</Button>
+            <Button variant="destructive" onClick={handleConfirmDelete}>Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

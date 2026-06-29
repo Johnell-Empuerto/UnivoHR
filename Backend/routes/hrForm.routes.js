@@ -7,6 +7,8 @@ const authenticate = require("../middleware/auth.middleware");
 router.get("/my-assignments", authenticate, controller.getMyAssignments);
 router.get("/assignments/all", authenticate, requirePermission("forms.view"), controller.getAllAssignments);
 router.get("/assignments/:assignmentId", authenticate, controller.getAssignmentById);
+router.put("/assignments/:assignmentId", authenticate, requirePermission("forms.builder.manage"), controller.editAssignment);
+router.delete("/assignments/:assignmentId", authenticate, requirePermission("forms.builder.manage"), controller.removeAssignment);
 router.post("/assignments/:assignmentId/submit", authenticate, controller.submitForm);
 router.get("/submissions/all", authenticate, requirePermission("forms.view"), controller.getSubmissions);
 router.get("/submissions/:submissionId", authenticate, requirePermission("forms.submissions.view"), controller.getSubmissionById);

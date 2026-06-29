@@ -1,0 +1,28 @@
+-- ============================================
+-- UNIVOHR – Drop FK on audit_logs.branch_id
+-- Date: 2026-06-28
+-- WHY: The FK fk_audit_logs_branch with ON DELETE SET NULL
+--      causes a cascade UPDATE on audit_logs when a branch
+--      is deleted. audit_logs has an immutable trigger
+--      (trg_audit_immutable) that blocks ALL UPDATE/DELETE
+--      operations, so the cascade aborts the transaction.
+--
+--      The branch_id column in audit_logs is a denormalized
+--      convenience field populated at INSERT time by the
+--      application. It is NOT used in any WHERE clause,
+--      report, analytics, dashboard, or business logic.
+--      The audit trail is fully preserved via the JSONB
+--      snapshots (old_values, new_values) and the
+--      table_name/record_id composite identifier.
+--
+--      Dropping this FK has zero impact on:
+--      - Audit log data (all rows remain intact)
+--      - Application code (branch_id still populated)
+--      - Frontend (branch_id is not displayed or filtered)
+--      - Reports, analytics, or dashboards
+--
+--      Reversible: run migration 006_branch_fk_enforcement.sql
+--      to re-create the FK if needed.
+-- ============================================
+
+ALTER TABLE audit_logs DROP CONSTRAINT IF EXISTS fk_audit_logs_branch;

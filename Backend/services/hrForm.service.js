@@ -132,6 +132,29 @@ const getAllAssignments = async (search, page, limit) => {
   return await model.getAllAssignments(search, page, limit);
 };
 
+const editAssignment = async (id, data) => {
+  const assignment = await model.getAssignmentById(id);
+  if (!assignment) throw new Error("Assignment not found");
+  if (assignment.status !== "Pending") throw new Error("Cannot edit a submitted or reviewed assignment");
+  return await model.updateAssignment(id, { employee_id: data.employee_id, due_date: data.due_date });
+};
+
+const removeAssignment = async (id) => {
+  const assignment = await model.getAssignmentById(id);
+  if (!assignment) throw new Error("Assignment not found");
+  if (assignment.status !== "Pending") {
+    const submitted = await model.hasSubmission(id);
+    const deps = {};
+    if (submitted) deps["submissions"] = 1;
+    const error = new Error("Cannot delete assignment because it has been submitted.");
+    error.code = "ASSIGNMENT_IN_USE";
+    error.dependencies = deps;
+    error.recommendation = "Leave the assignment as is.";
+    throw error;
+  }
+  await model.deleteAssignment(id);
+};
+
 const getMyAssignments = async (employeeId, page = 1, limit = 10) => {
   return await model.getMyAssignments(employeeId, page, limit);
 };
@@ -220,5 +243,6 @@ module.exports = {
   getAllForms, getFormById, createForm, updateForm, deleteForm,
   getFields, addField, editField, removeField,
   assignForm, getAllAssignments, getMyAssignments, getAssignmentById,
+  editAssignment, removeAssignment,
   submitForm, getSubmissions, getSubmissionById, reviewSubmission,
 };

@@ -87,6 +87,7 @@ const LeaveApprovers = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ApproverMapping | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
   // Search states for dropdowns
   const [employeeSearch, setEmployeeSearch] = useState("");
@@ -222,16 +223,18 @@ const LeaveApprovers = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (
-      confirm("Are you sure you want to remove this leave approver mapping?")
-    ) {
-      try {
-        await deleteLeaveApprover(id);
-        setData(data.filter((item) => item.id !== id));
-        toast.success("Leave approver mapping removed successfully");
-      } catch (err: any) {
-        toast.error(err.message || "Failed to remove leave approver mapping");
-      }
+    setDeleteConfirm(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirm === null) return;
+    try {
+      await deleteLeaveApprover(deleteConfirm);
+      setData(data.filter((item) => item.id !== deleteConfirm));
+      setDeleteConfirm(null);
+      toast.success("Leave approver mapping removed successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove leave approver mapping");
     }
   };
 
@@ -525,6 +528,21 @@ const LeaveApprovers = () => {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Remove Leave Approver</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to remove this leave approver mapping? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>Remove</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

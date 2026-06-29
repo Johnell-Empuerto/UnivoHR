@@ -29,3 +29,8 @@ export const setBranchActive = async (id: number, is_active: boolean) => {
   const response = await api.patch(`/branches/${id}/status`, { is_active });
   return response.data;
 };
+
+export const deleteBranch = async (id: number) => {
+  const response = await api.delete(`/branches/${id}`);
+  return response.data;
+};

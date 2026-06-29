@@ -249,6 +249,28 @@ const rejectOvertime = async (req, res) => {
   }
 };
 
+const deleteOvertime = async (req, res) => {
+  try {
+    await overtimeService.removeRequest(req.params.id);
+    audit.auditLog(req, {
+      action: "DELETE",
+      table_name: "overtime_requests",
+      record_id: Number(req.params.id),
+      description: `Overtime request deleted: ${req.params.id}`,
+    });
+    res.json({ message: "Overtime request deleted successfully" });
+  } catch (error) {
+    if (error.code === "OVERTIME_IN_USE") {
+      return res.status(409).json({
+        message: error.message,
+        dependencies: error.dependencies,
+        recommendation: error.recommendation,
+      });
+    }
+    res.status(400).json({ message: error.message });
+  }
+};
+
 // ==========================================
 // APPROVER MAPPINGS CONTROLLERS
 // ==========================================
@@ -351,6 +373,7 @@ module.exports = {
   getOvertimeDetails,
   approveOvertime,
   rejectOvertime,
+  deleteOvertime,
   getApprovers,
   createApprover,
   updateApprover,
