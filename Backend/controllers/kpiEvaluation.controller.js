@@ -41,7 +41,7 @@ const getById = async (req, res) => {
   }
 };
 
-const getMyEvaluations = async (req, res) => {
+const getMyEvaluations = async (req, res, next) => {
   try {
     const employeeId = req.user?.employee_id;
     if (!employeeId) return res.status(400).json({ message: "Employee ID not found" });
@@ -49,11 +49,11 @@ const getMyEvaluations = async (req, res) => {
     const result = await service.getMyEvaluations(employeeId, status, Number(page), Number(limit));
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getMyAssignments = async (req, res) => {
+const getMyAssignments = async (req, res, next) => {
   try {
     const evaluatorId = req.user?.employee_id;
     if (!evaluatorId) return res.status(400).json({ message: "Employee ID not found" });
@@ -61,17 +61,17 @@ const getMyAssignments = async (req, res) => {
     const result = await service.getMyAssignments(evaluatorId, status, Number(page), Number(limit));
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getHrView = async (req, res) => {
+const getHrView = async (req, res, next) => {
   try {
     const { search = "", status = "", page = 1, limit = 10 } = req.query;
     const result = await service.getHrView(search, status, Number(page), Number(limit));
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -140,25 +140,25 @@ const hrReject = async (req, res) => {
   }
 };
 
-const getHistory = async (req, res) => {
+const getHistory = async (req, res, next) => {
   try {
     const { employee_id, page = 1, limit = 10, search = "" } = req.query;
     const eid = employee_id || req.user?.employee_id;
     const result = await service.getHistory(eid, Number(page), Number(limit), search);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getPendingCount = async (req, res) => {
+const getPendingCount = async (req, res, next) => {
   try {
     const evaluatorId = req.user?.employee_id;
     if (!evaluatorId) return res.status(400).json({ message: "Employee ID not found" });
     const count = await service.getPendingCount(evaluatorId);
     res.json({ count });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

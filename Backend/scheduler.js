@@ -10,6 +10,7 @@
 const cron = require('node-cron');
 const leaveConversionService = require('./services/leaveConversion.service');
 const pool = require('./config/db');
+const logger = require('./utils/logger');
 
 // Track if job is already running to prevent duplicate execution
 let isProcessing = false;
@@ -19,7 +20,7 @@ let isProcessing = false;
  */
 const executeYearEndConversion = async () => {
   if (isProcessing) {
-    console.log('[Scheduler] Year-end conversion already in progress, skipping...');
+    logger.info('[Scheduler] Year-end conversion already in progress, skipping...');
     return;
   }
 
@@ -28,11 +29,11 @@ const executeYearEndConversion = async () => {
     const currentYear = new Date().getFullYear();
     const previousYear = currentYear - 1;
 
-    console.log('========================================');
-    console.log('[Scheduler] Starting year-end leave conversion');
-    console.log(`[Scheduler] Processing year: ${previousYear}`);
-    console.log(`[Scheduler] Timestamp: ${new Date().toISOString()}`);
-    console.log('========================================');
+    logger.info('========================================');
+    logger.info('[Scheduler] Starting year-end leave conversion');
+    logger.info(`[Scheduler] Processing year: ${previousYear}`);
+    logger.info(`[Scheduler] Timestamp: ${new Date().toISOString()}`);
+    logger.info('========================================');
 
     // Execute the year-end conversion
     const result = await leaveConversionService.processYearEndLeaveConversion(
@@ -40,10 +41,10 @@ const executeYearEndConversion = async () => {
       null // processed_by = null (system-triggered)
     );
 
-    console.log('========================================');
-    console.log('[Scheduler] Year-end conversion completed');
-    console.log('========================================');
-    console.log(JSON.stringify(result, null, 2));
+    logger.info('========================================');
+    logger.info('[Scheduler] Year-end conversion completed');
+    logger.info('========================================');
+    logger.info(JSON.stringify(result, null, 2));
 
     // Log to database for audit trail
     if (result.success) {
@@ -67,13 +68,13 @@ const executeYearEndConversion = async () => {
             JSON.stringify(result.results),
           ]
         );
-        console.log('[Scheduler] Conversion logged to database');
+        logger.info('[Scheduler] Conversion logged to database');
       } catch (logErr) {
-        console.error('[Scheduler] Failed to log to database:', logErr.message);
+        logger.error({ err: logErr }, '[Scheduler] Failed to log to database');
       }
     }
   } catch (err) {
-    console.error('[Scheduler] Year-end conversion failed:', err.message);
+    logger.error({ err }, '[Scheduler] Year-end conversion failed');
 
     // Log failure to database
     try {
@@ -97,7 +98,7 @@ const executeYearEndConversion = async () => {
         ]
       );
     } catch (logErr) {
-      console.error('[Scheduler] Failed to log failure:', logErr.message);
+      logger.error({ err: logErr }, '[Scheduler] Failed to log failure');
     }
   } finally {
     isProcessing = false;
@@ -111,30 +112,30 @@ const scheduleJobs = () => {
   // Year-end conversion: December 31 at 23:59
   // Cron format: minute hour day-of-month month day-of-week
   const yearEndJob = cron.schedule('59 23 31 12 *', () => {
-    console.log('[Scheduler] Triggering year-end leave conversion...');
+    logger.info('[Scheduler] Triggering year-end leave conversion...');
     executeYearEndConversion();
   }, {
     scheduled: true,
     timezone: 'Asia/Manila', // Philippines timezone
   });
 
-  console.log('[Scheduler] Year-end conversion job scheduled for Dec 31 at 23:59');
+  logger.info('[Scheduler] Year-end conversion job scheduled for Dec 31 at 23:59');
 
   // Optional: Monthly health check on the 1st of every month at 8:00 AM
   const healthCheckJob = cron.schedule('0 8 1 * *', async () => {
-    console.log('[Scheduler] Running monthly health check...');
+    logger.info('[Scheduler] Running monthly health check...');
     try {
       const stats = await leaveConversionService.getConversionStatistics();
-      console.log('[Scheduler] Health check passed:', stats);
+      logger.info({ stats }, '[Scheduler] Health check passed');
     } catch (err) {
-      console.error('[Scheduler] Health check failed:', err.message);
+      logger.error({ err }, '[Scheduler] Health check failed');
     }
   }, {
     scheduled: true,
     timezone: 'Asia/Manila',
   });
 
-  console.log('[Scheduler] Monthly health check scheduled for 1st of each month at 8:00 AM');
+  logger.info('[Scheduler] Monthly health check scheduled for 1st of each month at 8:00 AM');
 
   return { yearEndJob, healthCheckJob };
 };
@@ -143,9 +144,9 @@ const scheduleJobs = () => {
  * Start the scheduler
  */
 const startScheduler = () => {
-  console.log('[Scheduler] Starting Leave Conversion Scheduler...');
+  logger.info('[Scheduler] Starting Leave Conversion Scheduler...');
   const jobs = scheduleJobs();
-  console.log('[Scheduler] Scheduler started successfully');
+  logger.info('[Scheduler] Scheduler started successfully');
   return jobs;
 };
 
@@ -153,7 +154,7 @@ const startScheduler = () => {
  * Stop the scheduler
  */
 const stopScheduler = () => {
-  console.log('[Scheduler] Stopping scheduler...');
+  logger.info('[Scheduler] Stopping scheduler...');
   // Jobs will be stopped by process termination
 };
 
@@ -167,29 +168,29 @@ module.exports = {
 
 // If run directly (not imported), start the scheduler
 if (require.main === module) {
-  console.log('[Scheduler] Running as standalone process');
+  logger.info('[Scheduler] Running as standalone process');
 
   // Connect to database
   pool.connect()
     .then(() => {
-      console.log('[Scheduler] PostgreSQL connected');
+      logger.info('[Scheduler] PostgreSQL connected');
       startScheduler();
     })
     .catch((err) => {
-      console.error('[Scheduler] Database connection failed:', err.message);
+      logger.error({ err }, '[Scheduler] Database connection failed');
       process.exit(1);
     });
 
   // Graceful shutdown
   process.on('SIGTERM', () => {
-    console.log('[Scheduler] SIGTERM received, shutting down...');
+    logger.info('[Scheduler] SIGTERM received, shutting down...');
     stopScheduler();
     pool.end();
     process.exit(0);
   });
 
   process.on('SIGINT', () => {
-    console.log('[Scheduler] SIGINT received, shutting down...');
+    logger.info('[Scheduler] SIGINT received, shutting down...');
     stopScheduler();
     pool.end();
     process.exit(0);

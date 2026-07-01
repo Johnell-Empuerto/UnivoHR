@@ -17,7 +17,7 @@ export interface Anomaly {
   resolved_at: string | null;
   reviewed_by: number | null;
   resolved_by: number | null;
-  metadata: any;
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   first_name: string;
@@ -36,6 +36,14 @@ export interface AnomalySummary {
   high_severity_count: number;
   today_detected_count: number;
   resolved_count: number;
+}
+
+export interface ScanResult {
+  results: {
+    total_detected: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
 }
 
 export interface AnomaliesResponse {
@@ -82,12 +90,12 @@ export const updateAnomalyStatus = async (
   return response.data;
 };
 
-export const runDailyScan = async (): Promise<any> => {
+export const runDailyScan = async (): Promise<ScanResult> => {
   const response = await api.post("/anomalies/scan/daily");
   return response.data;
 };
 
-export const runWeeklyScan = async (): Promise<any> => {
+export const runWeeklyScan = async (): Promise<ScanResult> => {
   const response = await api.post("/anomalies/scan/weekly");
   return response.data;
 };

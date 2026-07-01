@@ -5,8 +5,9 @@ const { getUserBranchIds } = require("../utils/branchAccess");
 const branchModel = require("../models/branch.model");
 const fs = require("fs");
 const path = require("path");
+const logger = require("../utils/logger");
 
-const bulkUpload = async (req, res) => {
+const bulkUpload = async (req, res, next) => {
   try {
     const { data, overwrite } = req.body;
 
@@ -64,14 +65,13 @@ const bulkUpload = async (req, res) => {
       errors: results.errors,
     });
   } catch (error) {
-    res.status(500).json({
-      message: error.message || "Failed to process bulk upload",
-    });
+    logger.error({ err: error, correlationId: req.correlationId });
+    next(error);
   }
 };
 
 // Download template
-const downloadTemplate = async (req, res) => {
+const downloadTemplate = async (req, res, next) => {
   try {
     const templateData = [
       {
@@ -163,8 +163,8 @@ const downloadTemplate = async (req, res) => {
     );
     res.send(buffer);
   } catch (error) {
-    console.error("Template download error:", error);
-    res.status(500).json({ message: "Failed to generate template" });
+    logger.error({ err: error, correlationId: req.correlationId }, "Template download error");
+    next(error);
   }
 };
 

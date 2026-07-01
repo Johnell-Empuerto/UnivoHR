@@ -5,7 +5,7 @@ export const getApplicantDocuments = async (applicantId: number) => {
   return response.data;
 };
 
-export const uploadApplicantDocument = async (applicantId: number, data: any) => {
+export const uploadApplicantDocument = async (applicantId: number, data: Record<string, unknown>) => {
   const response = await api.post(`/applicant-documents/${applicantId}`, data);
   return response.data;
 };

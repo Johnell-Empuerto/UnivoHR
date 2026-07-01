@@ -1,5 +1,6 @@
 const Queue = require("bull");
 const pool = require("../config/db");
+const logger = require("../utils/logger");
 
 // Create payslip email queue (NO PROCESSING HERE - moved to worker.js)
 const payslipQueue = new Queue("payslip-emails", {
@@ -31,9 +32,7 @@ const addPayslipToQueue = async (payroll, employee) => {
     },
   );
 
-  console.log(
-    ` Added payslip for ${employee.email} to queue (Job ID: ${job.id})`,
-  );
+  logger.info({ jobId: job.id, email: employee.email }, `Added payslip to queue`);
   return job;
 };
 
@@ -52,7 +51,7 @@ const addBulkPayslipsToQueue = async (payrolls) => {
 
   const jobs = await payslipQueue.addBulk(bulkData);
 
-  console.log(`📬 Added ${jobs.length} payslips to queue via addBulk`);
+  logger.info({ count: jobs.length }, `Added payslips to queue via addBulk`);
   return jobs;
 };
 
@@ -104,7 +103,7 @@ const hrFormQueue = new Queue("hr-form-assignments", {
 
 const addBulkAssignmentJob = async (formId, employeeIds, userId, dueDate) => {
   const job = await hrFormQueue.add("bulk-assign", { formId, employeeIds, userId, dueDate });
-  console.log(`[Queue] Added bulk assignment for form ${formId} to ${employeeIds.length} employees (Job ID: ${job.id})`);
+  logger.info({ jobId: job.id, formId, employeeCount: employeeIds.length }, `[Queue] Added bulk assignment`);
   return job;
 };
 

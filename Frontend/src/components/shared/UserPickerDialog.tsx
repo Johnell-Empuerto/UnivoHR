@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
 import {
@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Search, X, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
-import { getAssignableUsers } from "@/services/applicantService";
+import { useAssignableUsers } from "@/hooks/useAssignableUsers";
 
 interface AssignableUser {
   user_id: number;
@@ -51,32 +51,21 @@ const UserPickerDialog = ({
   title = "Select User",
 }: UserPickerDialogProps) => {
   const [search, setSearch] = useState("");
-  const [data, setData] = useState<AssignableUser[]>([]);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-
-  const fetchUsers = useCallback(async (p: number, s: string) => {
-    setLoading(true);
-    try {
-      const res = await getAssignableUsers(p, ITEMS_PER_PAGE, s);
-      setData(res.data || []);
-      setTotal(res.pagination?.total || 0);
-    } catch {
-      setData([]);
-      setTotal(0);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   useEffect(() => {
     if (!open) return;
     const timer = setTimeout(() => {
-      fetchUsers(page, search);
+      setDebouncedSearch(search);
     }, search ? 300 : 0);
     return () => clearTimeout(timer);
-  }, [open, page, search, fetchUsers]);
+  }, [open, search]);
+
+  const query = useAssignableUsers(page, ITEMS_PER_PAGE, debouncedSearch, open);
+  const data = query.data?.data ?? [];
+  const total = query.data?.pagination?.total ?? 0;
+  const loading = query.isFetching;
 
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE) || 1;
 

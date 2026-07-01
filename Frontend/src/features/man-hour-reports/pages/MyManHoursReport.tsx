@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useMyManHoursReport } from "@/hooks/useMyManHoursReport";
 import TimeEntryForm from "../components/TimeEntryForm";
 import {
-  getMyManHourReports,
   createManHourReport,
   updateManHourReport,
   deleteManHourReport,
@@ -80,17 +81,23 @@ function generateDetailsFromShift(shift: Shift | null): Array<{ time_from: strin
 
 const MyManHoursReport = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalRecords, setTotalRecords] = useState(0);
 
-  const [data, setData] = useState<ManHourReport[]>([]);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const { data: queryData, isFetching } = useMyManHoursReport(
+    currentPage, rowsPerPage, search, statusFilter,
+  );
+
+  const data = queryData?.data ?? [];
+  const totalPages = queryData?.pagination?.totalPages ?? 1;
+  const totalRecords = queryData?.pagination?.total ?? 0;
 
   // Form state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -123,24 +130,6 @@ const MyManHoursReport = () => {
     }, 800);
     return () => clearTimeout(delayDebounce);
   }, [searchInput]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const res = await getMyManHourReports(currentPage, rowsPerPage, search, statusFilter);
-
-        setData(res.data);
-        setTotalPages(res.pagination.totalPages);
-        setTotalRecords(res.pagination.total);
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch man hour reports");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [currentPage, rowsPerPage, search, statusFilter]);
 
   // Fetch employee shift for the selected work date
   useEffect(() => {
@@ -207,7 +196,6 @@ const MyManHoursReport = () => {
 
   const handleEdit = async (report: ManHourReport) => {
     try {
-      // Fetch full details including time entries
       const fullReport = await getManHourReportDetails(report.id);
 
       setFormData({
@@ -242,12 +230,7 @@ const MyManHoursReport = () => {
       toast.success("Man hour report deleted");
       setIsDeleteDialogOpen(false);
       setDeleteId(null);
-
-      // Refresh data
-      const res = await getMyManHourReports(currentPage, rowsPerPage, search);
-      setData(res.data);
-      setTotalPages(res.pagination.totalPages);
-      setTotalRecords(res.pagination.total);
+      queryClient.invalidateQueries({ queryKey: ["my-man-hour-reports"] });
     } catch (err: any) {
       toast.error(err.message || "Failed to delete report");
     } finally {
@@ -268,7 +251,6 @@ const MyManHoursReport = () => {
       return;
     }
 
-    // Validate each entry
     for (const detail of formData.details) {
       if (!detail.time_from || !detail.time_to || !detail.activity) {
         toast.error("Please fill in all time entry fields");
@@ -312,11 +294,7 @@ const MyManHoursReport = () => {
         remarks: "",
       });
 
-      // Refresh data
-      const res = await getMyManHourReports(currentPage, rowsPerPage, search);
-      setData(res.data);
-      setTotalPages(res.pagination.totalPages);
-      setTotalRecords(res.pagination.total);
+      queryClient.invalidateQueries({ queryKey: ["my-man-hour-reports"] });
     } catch (err: any) {
       const message =
         err?.response?.data?.message || err.message || "Failed to save report";
@@ -349,7 +327,6 @@ const MyManHoursReport = () => {
     setEntriesDirty(false);
   };
 
-  // Dummy handlers for table (not used for employee view)
   const handleApprove = () => {};
   const handleReject = () => {};
 
@@ -359,7 +336,6 @@ const MyManHoursReport = () => {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -388,7 +364,6 @@ const MyManHoursReport = () => {
         </TabsList>
 
         <TabsContent value="reports" className="space-y-4">
-          {/* Filters Card */}
           <Card className="shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-4">
@@ -426,10 +401,8 @@ const MyManHoursReport = () => {
             </CardContent>
           </Card>
 
-          {/* Loading Indicator */}
-          {loading && <Loader message="Loading man hour reports..." />}
+          {isFetching && data.length === 0 && <Loader message="Loading man hour reports..." />}
 
-          {/* Man Hour Reports Table */}
           <ManHourReportTable
             data={data}
             onView={handleView}
@@ -454,7 +427,6 @@ const MyManHoursReport = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Add/Edit Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={(open) => {
         if (!open) {
           setShiftInfo(null);
@@ -532,7 +504,6 @@ const MyManHoursReport = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="max-w-lg! w-full sm:max-w-lg!">
           <DialogHeader>
@@ -563,7 +534,6 @@ const MyManHoursReport = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Details Drawer */}
       <ManHourReportDrawer
         open={isDrawerOpen}
         onClose={() => {

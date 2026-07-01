@@ -1,13 +1,13 @@
 const service = require("../services/hrForm.service");
 const audit = require("../services/audit.service");
 
-const getAllForms = async (req, res) => {
+const getAllForms = async (req, res, next) => {
   try {
     const { search = "", page = 1, limit = 10 } = req.query;
     const result = await service.getAllForms(search, Number(page), Number(limit));
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -67,12 +67,12 @@ const deleteForm = async (req, res) => {
   }
 };
 
-const getFields = async (req, res) => {
+const getFields = async (req, res, next) => {
   try {
     const result = await service.getFields(req.params.formId);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -157,17 +157,17 @@ const removeAssignment = async (req, res) => {
   }
 };
 
-const getAllAssignments = async (req, res) => {
+const getAllAssignments = async (req, res, next) => {
   try {
     const { search = "", page = 1, limit = 10 } = req.query;
     const result = await service.getAllAssignments(search, Number(page), Number(limit));
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getMyAssignments = async (req, res) => {
+const getMyAssignments = async (req, res, next) => {
   try {
     const employeeId = req.user?.employee_id;
     if (!employeeId) return res.status(400).json({ message: "Employee ID not found" });
@@ -175,7 +175,7 @@ const getMyAssignments = async (req, res) => {
     const result = await service.getMyAssignments(employeeId, Number(page), Number(limit));
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -207,13 +207,13 @@ const submitForm = async (req, res) => {
   }
 };
 
-const getSubmissions = async (req, res) => {
+const getSubmissions = async (req, res, next) => {
   try {
     const { search = "", page = 1, limit = 10 } = req.query;
     const result = await service.getSubmissions(search, Number(page), Number(limit));
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

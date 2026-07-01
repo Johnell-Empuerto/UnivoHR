@@ -1,13 +1,13 @@
 const employeeOnboardingService = require("../services/employeeOnboarding.service");
 const audit = require("../services/audit.service");
 
-const getAll = async (req, res) => {
+const getAll = async (req, res, next) => {
   try {
     const { page, limit, search, status } = req.query;
     const result = await employeeOnboardingService.getAll(page, limit, search, status);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

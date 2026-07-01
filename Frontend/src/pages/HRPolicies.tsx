@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  getHrPolicies,
-  getHrPoliciesPaginated,
   createHrPolicy,
   updateHrPolicy,
   deleteHrPolicy,
   setHrPolicyStatus,
 } from "@/services/hrPolicyService";
+import { useAdminHrPolicies, useAllHrPolicies } from "@/hooks/useHrPolicies";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -91,14 +91,12 @@ const emptyForm = {
 };
 
 const HRPolicies = () => {
+  const queryClient = useQueryClient();
   const { hasPermission } = useAuth();
   const isAdmin = hasPermission("hr_policies.manage");
 
-  const [policies, setPolicies] = useState<HrPolicy[]>([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState("10");
-  const [total, setTotal] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -113,52 +111,19 @@ const HRPolicies = () => {
   const [nonAdminPage, setNonAdminPage] = useState(1);
   const nonAdminPageSize = 10;
 
-  useEffect(() => {
-    if (isAdmin) {
-      fetchPaginatedPolicies();
-    } else {
-      fetchAllPolicies();
-    }
-  }, [isAdmin, page, pageSize, search, categoryFilter, statusFilter]);
+  const adminQuery = useAdminHrPolicies(
+    page,
+    Number(pageSize),
+    search,
+    categoryFilter === "_all" ? "" : categoryFilter,
+    statusFilter,
+    isAdmin,
+  );
+  const allQuery = useAllHrPolicies(!isAdmin);
 
-  const fetchAllPolicies = async () => {
-    try {
-      setLoading(true);
-      const data = await getHrPolicies();
-      setPolicies(data);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to load policies");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchPaginatedPolicies = async () => {
-    try {
-      setLoading(true);
-      const result = await getHrPoliciesPaginated(
-        page,
-        Number(pageSize),
-        search,
-        categoryFilter === "_all" ? "" : categoryFilter,
-        statusFilter,
-      );
-      setPolicies(result.data);
-      setTotal(result.pagination.total);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to load policies");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const refreshAdminPolicies = () => {
-    if (page === 1) {
-      fetchPaginatedPolicies();
-    } else {
-      setPage(1);
-    }
-  };
+  const policies = (isAdmin ? adminQuery.data?.data : allQuery.data) ?? [];
+  const total = isAdmin ? (adminQuery.data?.pagination?.total ?? 0) : (allQuery.data ?? []).length;
+  const loading = isAdmin ? adminQuery.isFetching : allQuery.isFetching;
 
   const handleOpenCreate = () => {
     setEditId(null);
@@ -215,13 +180,9 @@ const HRPolicies = () => {
         toast.success("Policy created");
       }
       setDialogOpen(false);
-      if (isAdmin) {
-        refreshAdminPolicies();
-      } else {
-        fetchAllPolicies();
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Operation failed");
+      queryClient.invalidateQueries({ queryKey: ["hr-policies"] });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Operation failed");
     } finally {
       setSaving(false);
     }
@@ -231,13 +192,9 @@ const HRPolicies = () => {
     try {
       await setHrPolicyStatus(policy.id, !policy.is_active);
       toast.success(policy.is_active ? "Policy deactivated" : "Policy activated");
-      if (isAdmin) {
-        fetchPaginatedPolicies();
-      } else {
-        fetchAllPolicies();
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update policy status");
+      queryClient.invalidateQueries({ queryKey: ["hr-policies"] });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to update policy status");
     }
   };
 
@@ -254,13 +211,9 @@ const HRPolicies = () => {
       toast.success("Policy deleted");
       setDeleteDialogOpen(false);
       setDeleteTarget(null);
-      if (isAdmin) {
-        refreshAdminPolicies();
-      } else {
-        fetchAllPolicies();
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to delete policy");
+      queryClient.invalidateQueries({ queryKey: ["hr-policies"] });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete policy");
     } finally {
       setSaving(false);
     }

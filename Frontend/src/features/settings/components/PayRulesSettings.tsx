@@ -3,11 +3,11 @@
 
 import { useEffect, useState } from "react";
 import {
-  getPayRules,
   createPayRule,
   updatePayRule,
   deletePayRule,
 } from "@/services/payRuleService";
+import { usePayRules } from "@/hooks/usePayRules";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -38,7 +38,8 @@ interface PayRule {
 }
 
 const PayRulesSettings = () => {
-  const [payRules, setPayRules] = useState<PayRule[]>([]);
+  const { data: payRulesData, error, refetch } = usePayRules();
+  const payRules: PayRule[] = payRulesData ?? [];
   const [loading, setLoading] = useState(false);
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<PayRule | null>(null);
@@ -61,20 +62,12 @@ const PayRulesSettings = () => {
     return option ? option.label : value;
   };
 
-  // Load Pay Rules
-  const fetchPayRules = async () => {
-    try {
-      const data = await getPayRules();
-      setPayRules(data);
-    } catch (err) {
-      console.error(err);
+  useEffect(() => {
+    if (error) {
+      console.error(error);
       toast.error("Failed to load pay rules");
     }
-  };
-
-  useEffect(() => {
-    fetchPayRules();
-  }, []);
+  }, [error]);
 
   // Handle Rule Form Input
   const handleRuleChange = (
@@ -103,7 +96,7 @@ const PayRulesSettings = () => {
         await createPayRule(ruleForm);
         toast.success("Pay rule created successfully");
       }
-      fetchPayRules();
+      refetch();
       setRuleDialogOpen(false);
       setEditingRule(null);
       setRuleForm({ day_type: "REGULAR", multiplier: 1.0 });
@@ -127,7 +120,7 @@ const PayRulesSettings = () => {
       await deletePayRule(deleteConfirm);
       toast.success("Pay rule deleted successfully");
       setDeleteConfirm(null);
-      fetchPayRules();
+      refetch();
     } catch (err) {
       console.error(err);
       toast.error("Failed to delete pay rule");

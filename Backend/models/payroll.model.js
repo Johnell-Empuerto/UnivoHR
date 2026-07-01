@@ -13,6 +13,7 @@ const {
   createEmptyBreakdown,
   accumulateBreakdown,
 } = require("../utils/payrollFormula.helper");
+const logger = require("../utils/logger");
 
 // ============================================
 // GENERATE PAYROLL (FULLY OPTIMIZED - NO N+1 QUERIES + TRANSACTIONS)
@@ -827,51 +828,15 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
       const net_salary = calcNetSalary(basic_pay, total_deductions, leave_conversion_cash, overtime_pay, night_differential_pay);
 
       if (net_salary === 0 && monthly_salary > 0 && attendanceMap.size > 0) {
-        console.warn("[PAYROLL] ZERO NET SALARY despite salary+attendance", {
-          employee_id: emp.id,
-          monthly_salary,
-          daily_rate,
-          total_work_units_raw,
-          basic_pay,
-          deductions: total_deductions,
-        });
+        logger.warn({ employee_id: emp.id, monthly_salary, daily_rate, total_work_units_raw, basic_pay, deductions: total_deductions }, "[PAYROLL] ZERO NET SALARY despite salary+attendance");
       }
 
       const absent_days = calcAbsentDays(working_days_in_cutoff, total_work_units_raw);
       const absentDeductionAmount = absent_days * daily_rate;
 
-      console.log("[PAYROLL] DEBUG:", {
-        employee_id: emp.id,
-        employee_code: emp.employee_code,
-        salary_type: salary.salary_type || "N/A",
-        monthly_salary,
-        working_days_per_month,
-        daily_rate,
-        total_work_units_raw,
-        total_work_units_with_multiplier,
-        basic_pay,
-        overtime_pay,
-        night_differential_hours,
-        night_differential_pay,
-        late_deduction,
-        government_deduction,
-        total_deductions,
-        leave_conversion_cash,
-        net_salary,
-        attendanceMap_sample_keys: [...attendanceMap.keys()].slice(0, 3),
-        allDates_sample: allDates.slice(0, 3),
-      });
+      logger.info({ employee_id: emp.id, employee_code: emp.employee_code, salary_type: salary.salary_type || "N/A", monthly_salary, working_days_per_month, daily_rate, total_work_units_raw, total_work_units_with_multiplier, basic_pay, overtime_pay, night_differential_hours, night_differential_pay, late_deduction, government_deduction, total_deductions, leave_conversion_cash, net_salary, attendanceMap_sample_keys: [...attendanceMap.keys()].slice(0, 3), allDates_sample: allDates.slice(0, 3) }, "[PAYROLL] DEBUG:");
 
-      console.log("[PAYROLL] Processed:", {
-        employee_id: emp.id,
-        employee_code: emp.employee_code,
-        cutoff_start,
-        cutoff_end,
-        attendance_records_count: attendanceMap.size,
-        working_days_in_cutoff,
-        paid_leave_days,
-        unpaid_leave_days,
-      });
+      logger.info({ employee_id: emp.id, employee_code: emp.employee_code, cutoff_start, cutoff_end, attendance_records_count: attendanceMap.size, working_days_in_cutoff, paid_leave_days, unpaid_leave_days }, "[PAYROLL] Processed:");
 
       // Skip employees with LOCKED payroll for this cutoff
       const existingLocked = await client.query(
@@ -984,11 +949,7 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
           is_paid: true,
         };
 
-        console.log("[Payroll/Overtime] Marking overtime as paid", {
-          employee_id: emp.id,
-          overtime_update: overtimeUpdatePayload,
-          status_before_update: "APPROVED",
-        });
+        logger.info({ employee_id: emp.id, overtime_update: overtimeUpdatePayload, status_before_update: "APPROVED" }, "[Payroll/Overtime] Marking overtime as paid");
 
         await client.query(
           `UPDATE overtime_requests 
@@ -1009,7 +970,8 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
     // COMMIT THE TRANSACTION
     await client.query("COMMIT");
 
-    console.log(
+    logger.info(
+      { processedCount },
       `Payroll generated successfully for ${processedCount} employees`,
     );
 
@@ -1023,7 +985,7 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
     };
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("Payroll generation failed:", error);
+    logger.error({ err: error }, "Payroll generation failed:");
     throw new Error(`Payroll generation failed: ${error.message}`);
   } finally {
     client.release();
@@ -1241,7 +1203,7 @@ const getPayrollDetails = async (id) => {
           ? JSON.parse(payroll.rule_snapshot)
           : payroll.rule_snapshot;
     } catch (err) {
-      console.error("Invalid rule_snapshot JSON:", err);
+      logger.error({ err }, "Invalid rule_snapshot JSON:");
       payroll.rule_snapshot = null;
     }
   }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { getHrForms } from "@/services/hrFormService";
-import { assignHrForm, getAllHrAssignments, updateHrAssignment, deleteHrAssignment } from "@/services/hrFormService";
+import { assignHrForm, updateHrAssignment, deleteHrAssignment } from "@/services/hrFormService";
+import { useHrFormAssignments } from "@/hooks/useHrFormAssignments";
 import { employees as fetchEmployees } from "@/services/employeeService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -27,14 +28,13 @@ const statusBadge = (s: string) => {
 };
 
 const HrFormAssignmentsPage = () => {
-  const [assignments, setAssignments] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState("10");
   const [search, setSearch] = useState("");
 
-
+  const { data: assignmentResponse, isFetching, refetch } = useHrFormAssignments(page, Number(pageSize), search);
+  const assignments = assignmentResponse?.data ?? [];
+  const total = assignmentResponse?.pagination?.total ?? 0;
 
   const [assignDialog, setAssignDialog] = useState(false);
   const [forms, setForms] = useState<any[]>([]);
@@ -57,14 +57,6 @@ const HrFormAssignmentsPage = () => {
   const [empSearch, setEmpSearch] = useState("");
   const [empLoading, setEmpLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => { fetchAssignments(); }, [page, pageSize, search]);
-
-  const fetchAssignments = async () => {
-    try { setLoading(true); const r = await getAllHrAssignments(page, Number(pageSize), search); setAssignments(r.data); setTotal(r.pagination.total); }
-    catch { toast.error("Failed to load assignments"); setAssignments([]); }
-    finally { setLoading(false); }
-  };
 
   const handleOpenAssign = async () => {
     try {
@@ -118,7 +110,7 @@ const HrFormAssignmentsPage = () => {
         }
       }
       setAssignDialog(false);
-      fetchAssignments();
+      refetch();
     } catch (err: any) { toast.error(err.message || "Assignment failed"); }
     finally { setSaving(false); }
   };
@@ -137,7 +129,7 @@ const HrFormAssignmentsPage = () => {
       toast.success("Assignment updated");
       setEditDialog(false);
       setEditTarget(null);
-      fetchAssignments();
+      refetch();
     } catch (err: any) { toast.error(err.message || "Update failed"); }
   };
 
@@ -153,7 +145,7 @@ const HrFormAssignmentsPage = () => {
       toast.success("Assignment deleted");
       setDeleteDialog(false);
       setDeleteTarget(null);
-      fetchAssignments();
+      refetch();
     } catch (err: any) { toast.error(err.message || "Delete failed"); }
   };
 
@@ -173,7 +165,7 @@ const HrFormAssignmentsPage = () => {
           <Button onClick={handleOpenAssign} className="flex items-center gap-2"><Plus className="h-4 w-4" /> Assign Form</Button>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isFetching ? (
             <Loader message="Loading assignments..." />
           ) : assignments.length === 0 ? (
             <EmptyState message="No assignments found" description="Assign a form to an employee to get started." action={{ label: "Assign Form", onClick: handleOpenAssign }} />

@@ -2,16 +2,16 @@ const branchService = require("../services/branch.service");
 const { getUserBranchIds } = require("../utils/branchAccess");
 const audit = require("../services/audit.service");
 
-const getAll = async (req, res) => {
+const getAll = async (req, res, next) => {
   try {
     const branches = await branchService.getAll();
     res.json(branches);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getActive = async (req, res) => {
+const getActive = async (req, res, next) => {
   try {
     let branches = await branchService.getActive();
 
@@ -27,7 +27,7 @@ const getActive = async (req, res) => {
 
     res.json(branches);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

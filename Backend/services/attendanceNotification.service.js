@@ -4,6 +4,7 @@ const smtpService = require("./smtp.service");
 const notificationDispatch = require("./notificationDispatch.service");
 const notificationRuleService = require("./notificationRule.service");
 const emailTemplateService = require("./emailTemplate.service");
+const logger = require("../utils/logger");
 
 // Helper to format date
 const formatDate = (dateStr) => {
@@ -21,7 +22,7 @@ const sendLateNoticeEmail = async (employeeId, lateCount, dates) => {
     const allowed = await notificationDispatch.canSendEmail("late_notice");
 
     if (!allowed) {
-      console.log("Late email notice is disabled via notification_rules");
+      logger.info("Late email notice is disabled via notification_rules");
       return;
     }
 
@@ -34,7 +35,7 @@ const sendLateNoticeEmail = async (employeeId, lateCount, dates) => {
 
     const employee = employeeResult.rows[0];
     if (!employee || !employee.email) {
-      console.log(`No email found for employee ${employeeId}`);
+      logger.info(`No email found for employee ${employeeId}`);
       return;
     }
 
@@ -51,7 +52,7 @@ const sendLateNoticeEmail = async (employeeId, lateCount, dates) => {
     );
 
     await smtpService.sendEmail(employee.email, subject, html);
-    console.log(
+    logger.info(
       `Late notice email sent to ${employee.email} for ${lateCount} late occurrences`,
     );
 
@@ -62,7 +63,7 @@ const sendLateNoticeEmail = async (employeeId, lateCount, dates) => {
       [employeeId, "LATE_NOTICE"],
     );
   } catch (error) {
-    console.error("Failed to send late notice email:", error.message);
+    logger.error({ err: error }, "Failed to send late notice email");
 
     // Log failure
     await pool.query(
@@ -79,7 +80,7 @@ const sendAbsentWithoutLeaveEmail = async (employeeId, absentDate) => {
     const allowed = await notificationDispatch.canSendEmail("absent_no_leave");
 
     if (!allowed) {
-      console.log("Absent without leave email is disabled via notification_rules");
+      logger.info("Absent without leave email is disabled via notification_rules");
       return;
     }
 
@@ -92,7 +93,7 @@ const sendAbsentWithoutLeaveEmail = async (employeeId, absentDate) => {
 
     const employee = employeeResult.rows[0];
     if (!employee || !employee.email) {
-      console.log(`No email found for employee ${employeeId}`);
+      logger.info(`No email found for employee ${employeeId}`);
       return;
     }
 
@@ -108,7 +109,7 @@ const sendAbsentWithoutLeaveEmail = async (employeeId, absentDate) => {
     );
 
     await smtpService.sendEmail(employee.email, subject, html);
-    console.log(
+    logger.info(
       `Absent without leave email sent to ${employee.email} for ${formatDate(absentDate)}`,
     );
 
@@ -119,7 +120,7 @@ const sendAbsentWithoutLeaveEmail = async (employeeId, absentDate) => {
       [employeeId, "ABSENT_WITHOUT_LEAVE"],
     );
   } catch (error) {
-    console.error("Failed to send absent without leave email:", error.message);
+    logger.error({ err: error }, "Failed to send absent without leave email");
 
     // Log failure
     await pool.query(
@@ -137,7 +138,7 @@ const checkAndSendLateNotices = async (threshold = 3) => {
 
     const isEnabled = rule?.is_enabled ?? true;
     if (!isEnabled) {
-      console.log("[LateNotice] Disabled via notification_rules, skipping");
+      logger.info("[LateNotice] Disabled via notification_rules, skipping");
       return { success: true, skipped: true };
     }
 
@@ -145,7 +146,7 @@ const checkAndSendLateNotices = async (threshold = 3) => {
     const thresholdCount = Number(rule?.threshold_count ?? threshold);
     const thresholdDays = Number(rule?.threshold_days ?? 7);
 
-    console.log(`[LateNotice] threshold_count=${thresholdCount}, threshold_days=${thresholdDays}, email=${emailEnabled}`);
+    logger.info(`[LateNotice] threshold_count=${thresholdCount}, threshold_days=${thresholdDays}, email=${emailEnabled}`);
 
     // Get employees who were late thresholdCount+ times in the past thresholdDays days
     const lateEmployees = await pool.query(
@@ -190,7 +191,7 @@ const checkAndSendLateNotices = async (threshold = 3) => {
 
     return { success: true, notified: lateEmployees.rows.length };
   } catch (error) {
-    console.error("Error checking late notices:", error.message);
+    logger.error({ err: error }, "Error checking late notices");
     return { success: false, error: error.message };
   }
 };
@@ -202,17 +203,17 @@ const checkAndSendAbsentWithoutLeaveNotices = async () => {
 
     const isEnabled = rule?.is_enabled ?? true;
     if (!isEnabled) {
-      console.log("[AbsentNoLeave] Disabled via notification_rules, skipping");
+      logger.info("[AbsentNoLeave] Disabled via notification_rules, skipping");
       return { success: true, skipped: true };
     }
 
     const emailEnabled = rule?.email_enabled ?? false;
     if (!emailEnabled) {
-      console.log("[AbsentNoLeave] Email disabled via notification_rules, skipping");
+      logger.info("[AbsentNoLeave] Email disabled via notification_rules, skipping");
       return { success: true, skipped: true };
     }
 
-    console.log("Checking for absent without leave...");
+    logger.info("Checking for absent without leave...");
 
     // Get employees who are absent today without approved leave
     const absentEmployees = await pool.query(
@@ -259,7 +260,7 @@ const checkAndSendAbsentWithoutLeaveNotices = async () => {
 
     return { success: true, notified: absentEmployees.rows.length };
   } catch (error) {
-    console.error("Error checking absent without leave:", error.message);
+    logger.error({ err: error }, "Error checking absent without leave");
     return { success: false, error: error.message };
   }
 };

@@ -10,12 +10,12 @@ export const getApplicantById = async (id: number) => {
   return response.data;
 };
 
-export const createApplicant = async (data: any) => {
+export const createApplicant = async (data: Record<string, unknown>) => {
   const response = await api.post("/applicants", data);
   return response.data;
 };
 
-export const updateApplicant = async (id: number, data: any) => {
+export const updateApplicant = async (id: number, data: Record<string, unknown>) => {
   const response = await api.put(`/applicants/${id}`, data);
   return response.data;
 };
@@ -25,7 +25,7 @@ export const deleteApplicant = async (id: number) => {
   return response.data;
 };
 
-export const convertApplicantToEmployee = async (id: number, data: any) => {
+export const convertApplicantToEmployee = async (id: number, data: Record<string, unknown>) => {
   const response = await api.post(`/applicants/${id}/convert`, data);
   return response.data;
 };
@@ -40,12 +40,12 @@ export const getApplicantWorkflowTimeline = async (id: number) => {
   return response.data;
 };
 
-export const updateWorkflowStage = async (stageRecordId: number, data: any) => {
+export const updateWorkflowStage = async (stageRecordId: number, data: Record<string, unknown>) => {
   const response = await api.put(`/applicants/workflow-stages/${stageRecordId}`, data);
   return response.data;
 };
 
-export const completeWorkflowStage = async (stageRecordId: number, data: any) => {
+export const completeWorkflowStage = async (stageRecordId: number, data: Record<string, unknown>) => {
   const response = await api.post(`/applicants/workflow-stages/${stageRecordId}/complete`, data);
   return response.data;
 };

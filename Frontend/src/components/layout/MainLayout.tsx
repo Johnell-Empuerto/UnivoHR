@@ -1,6 +1,7 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
+import ErrorBoundary from "@/components/shared/ErrorBoundary";
 
 const MainLayout = ({
   collapsed,
@@ -9,6 +10,7 @@ const MainLayout = ({
   collapsed: boolean;
   setCollapsed: (val: boolean) => void;
 }) => {
+  const location = useLocation();
   return (
     <div className="flex h-dvh overflow-hidden">
       {/* SIDEBAR */}
@@ -27,7 +29,9 @@ const MainLayout = ({
 
         {/* SCROLLABLE CONTENT */}
         <main className="flex-1 overflow-y-auto bg-background min-h-0">
-          <Outlet />
+          <ErrorBoundary name="page" resetKeys={[location.pathname]}>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

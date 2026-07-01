@@ -3,23 +3,24 @@ const historyLeaveService = require("../services/historyLeave.service");
 const leaveTypeModel = require("../models/leaveType.model");
 const audit = require("../services/audit.service");
 const pool = require("../config/db");
+const logger = require("../utils/logger");
 
 // ==========================================
 // EXISTING FUNCTIONS (Leave Types & Settings)
 // ==========================================
 
 // GET LEAVE TYPES
-const getLeaveTypes = async (req, res) => {
+const getLeaveTypes = async (req, res, next) => {
   try {
     const data = await service.getLeaveTypes?.() || await leaveTypeModel.getAll();
     res.json(data);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 // UPDATE LEAVE TYPE
-const updateLeaveType = async (req, res) => {
+const updateLeaveType = async (req, res, next) => {
   try {
     const data = await service.updateLeaveType?.(req.params.id, req.body) || await leaveTypeModel.update(req.params.id, req.body);
     audit.auditLog(req, {
@@ -31,12 +32,12 @@ const updateLeaveType = async (req, res) => {
     });
     res.json(data);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 // GET SETTINGS
-const getSettings = async (req, res) => {
+const getSettings = async (req, res, next) => {
   try {
     const result = await pool.query(`
       SELECT enforce_sil, sil_min_days, conversion_rate
@@ -45,12 +46,12 @@ const getSettings = async (req, res) => {
     `);
     res.json(result.rows[0] || {});
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 // UPDATE SETTINGS
-const updateSettings = async (req, res) => {
+const updateSettings = async (req, res, next) => {
   try {
     const { enforce_sil, sil_min_days, conversion_rate } = req.body;
     const result = await pool.query(
@@ -73,12 +74,12 @@ const updateSettings = async (req, res) => {
     });
     res.json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 // SAVE ALL (Transaction)
-const saveAll = async (req, res) => {
+const saveAll = async (req, res, next) => {
   const client = await pool.connect();
 
   try {
@@ -126,7 +127,7 @@ const saveAll = async (req, res) => {
     res.json({ message: "Saved successfully" });
   } catch (err) {
     await client.query("ROLLBACK");
-    res.status(500).json({ message: err.message });
+    next(err);
   } finally {
     client.release();
   }
@@ -137,7 +138,7 @@ const saveAll = async (req, res) => {
 // ==========================================
 
 // TRIGGER YEAR-END CONVERSION (Manual trigger via API)
-const triggerYearEndConversion = async (req, res) => {
+const triggerYearEndConversion = async (req, res, next) => {
   try {
     const { year, processed_by } = req.body;
 
@@ -154,9 +155,7 @@ const triggerYearEndConversion = async (req, res) => {
       });
     }
 
-    console.log(
-      `[API] Triggering year-end conversion for ${year} by user ${req.user?.id || processed_by || "SYSTEM"}`
-    );
+    logger.info({ correlationId: req.correlationId }, `[API] Triggering year-end conversion for ${year} by user ${req.user?.id || processed_by || "SYSTEM"}`);
 
     const result = await service.processYearEndLeaveConversion(
       year,
@@ -175,16 +174,13 @@ const triggerYearEndConversion = async (req, res) => {
       res.status(400).json(result);
     }
   } catch (err) {
-    console.error("[Trigger Year-End] Error:", err.message);
-    res.status(500).json({
-      message: "Failed to trigger year-end conversion",
-      error: err.message,
-    });
+    logger.error({ err, correlationId: req.correlationId }, "[Trigger Year-End] Error");
+    next(err);
   }
 };
 
 // PROCESS RESIGNATION CONVERSION
-const processResignationConversion = async (req, res) => {
+const processResignationConversion = async (req, res, next) => {
   try {
     const { employee_id } = req.params;
     const { year, reason } = req.body;
@@ -198,9 +194,7 @@ const processResignationConversion = async (req, res) => {
     const conversionYear = year || new Date().getFullYear();
     const conversionReason = reason || "RESIGNATION";
 
-    console.log(
-      `[API] Processing resignation conversion for employee ${employee_id}`
-    );
+    logger.info({ correlationId: req.correlationId }, `[API] Processing resignation conversion for employee ${employee_id}`);
 
     const result = await service.processEmployeeLeaveConversion(
       employee_id,
@@ -221,16 +215,13 @@ const processResignationConversion = async (req, res) => {
       res.status(400).json(result);
     }
   } catch (err) {
-    console.error("[Resignation Conversion] Error:", err.message);
-    res.status(500).json({
-      message: "Failed to process resignation conversion",
-      error: err.message,
-    });
+    logger.error({ err, correlationId: req.correlationId }, "[Resignation Conversion] Error");
+    next(err);
   }
 };
 
 // GET CONVERSION AMOUNT FOR PAYROLL
-const getPayrollAmount = async (req, res) => {
+const getPayrollAmount = async (req, res, next) => {
   try {
     const { employee_id } = req.params;
     const { year } = req.query;
@@ -252,16 +243,13 @@ const getPayrollAmount = async (req, res) => {
 
     res.status(200).json(result);
   } catch (err) {
-    console.error("[Payroll Amount] Error:", err.message);
-    res.status(500).json({
-      message: "Failed to get payroll amount",
-      error: err.message,
-    });
+    logger.error({ err, correlationId: req.correlationId }, "[Payroll Amount] Error");
+    next(err);
   }
 };
 
 // GET EMPLOYEE CONVERSION HISTORY
-const getConversionHistory = async (req, res) => {
+const getConversionHistory = async (req, res, next) => {
   try {
     const { employee_id } = req.params;
 
@@ -275,16 +263,13 @@ const getConversionHistory = async (req, res) => {
 
     res.status(200).json(result);
   } catch (err) {
-    console.error("[Conversion History] Error:", err.message);
-    res.status(500).json({
-      message: "Failed to get conversion history",
-      error: err.message,
-    });
+    logger.error({ err, correlationId: req.correlationId }, "[Conversion History] Error");
+    next(err);
   }
 };
 
 // GET CONVERSIONS BY YEAR
-const getConversionsByYear = async (req, res) => {
+const getConversionsByYear = async (req, res, next) => {
   try {
     const { year } = req.params;
 
@@ -298,16 +283,13 @@ const getConversionsByYear = async (req, res) => {
 
     res.status(200).json(result);
   } catch (err) {
-    console.error("[Get By Year] Error:", err.message);
-    res.status(500).json({
-      message: "Failed to get conversions",
-      error: err.message,
-    });
+    logger.error({ err, correlationId: req.correlationId }, "[Get By Year] Error");
+    next(err);
   }
 };
 
 // GET CONVERSION STATISTICS
-const getConversionStats = async (req, res) => {
+const getConversionStats = async (req, res, next) => {
   try {
     const { year } = req.query;
 
@@ -317,16 +299,13 @@ const getConversionStats = async (req, res) => {
 
     res.status(200).json(result);
   } catch (err) {
-    console.error("[Statistics] Error:", err.message);
-    res.status(500).json({
-      message: "Failed to get statistics",
-      error: err.message,
-    });
+    logger.error({ err, correlationId: req.correlationId }, "[Statistics] Error");
+    next(err);
   }
 };
 
 // DELETE CONVERSION (Admin only)
-const deleteConversion = async (req, res) => {
+const deleteConversion = async (req, res, next) => {
   try {
     const { employee_id, year, leave_type } = req.params;
 
@@ -355,11 +334,8 @@ const deleteConversion = async (req, res) => {
       res.status(404).json(result);
     }
   } catch (err) {
-    console.error("[Delete Conversion] Error:", err.message);
-    res.status(500).json({
-      message: "Failed to delete conversion",
-      error: err.message,
-    });
+    logger.error({ err, correlationId: req.correlationId }, "[Delete Conversion] Error");
+    next(err);
   }
 };
 
@@ -367,7 +343,7 @@ const deleteConversion = async (req, res) => {
 // HISTORY LEAVE ENDPOINTS (existing functionality)
 // ==========================================
 
-const getHistoryLeave = async (req, res) => {
+const getHistoryLeave = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -377,44 +353,44 @@ const getHistoryLeave = async (req, res) => {
     const result = await historyLeaveService.getAll(page, limit, search, year);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-const getHistoryLeaveSummary = async (req, res) => {
+const getHistoryLeaveSummary = async (req, res, next) => {
   try {
     const result = await historyLeaveService.getSummary();
     res.json(result);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-const getHistoryLeaveYearlySummary = async (req, res) => {
+const getHistoryLeaveYearlySummary = async (req, res, next) => {
   try {
     const result = await historyLeaveService.getYearlySummary();
     res.json(result);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-const getHistoryLeaveAvailableYears = async (req, res) => {
+const getHistoryLeaveAvailableYears = async (req, res, next) => {
   try {
     const result = await historyLeaveService.getAvailableYears();
     res.json(result);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-const getHistoryLeaveEmployeeSummary = async (req, res) => {
+const getHistoryLeaveEmployeeSummary = async (req, res, next) => {
   try {
     const { employee_id } = req.params;
     const result = await historyLeaveService.getEmployeeSummary(employee_id);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 

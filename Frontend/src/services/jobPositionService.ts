@@ -15,12 +15,12 @@ export const getJobPositionById = async (id: number) => {
   return response.data;
 };
 
-export const createJobPosition = async (data: any) => {
+export const createJobPosition = async (data: Record<string, unknown>) => {
   const response = await api.post("/job-positions", data);
   return response.data;
 };
 
-export const updateJobPosition = async (id: number, data: any) => {
+export const updateJobPosition = async (id: number, data: Record<string, unknown>) => {
   const response = await api.put(`/job-positions/${id}`, data);
   return response.data;
 };

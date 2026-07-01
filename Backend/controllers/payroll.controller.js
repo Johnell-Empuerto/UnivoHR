@@ -6,6 +6,7 @@ const notificationService = require("../services/notification.service");
 const audit = require("../services/audit.service");
 const { getUserBranchIds } = require("../utils/branchAccess");
 const { ROLES } = require("../constants/roles");
+const logger = require("../utils/logger");
 
 const formatPayrollDate = (d) => {
   if (!d) return "";
@@ -19,7 +20,7 @@ const notifyHR = (title, message, referenceId) => {
     const promises = userIds.map(uid =>
       notificationService.notify({ user_id: uid, type: "PAYROLL", title, message, reference_id: referenceId })
     );
-    Promise.all(promises).catch(err => console.error("[PAYROLL] HR notify error:", err));
+    Promise.all(promises).catch(err => logger.error({ err }, "[PAYROLL] HR notify error"));
   });
 };
 
@@ -30,12 +31,12 @@ const notifyPayrollEmployees = (employeeIds, title, message) => {
     const promises = users.map(u =>
       notificationService.notify({ user_id: u.id, type: "PAYROLL", title, message, reference_id: null })
     );
-    Promise.all(promises).catch(err => console.error("[PAYROLL] bulk notify error:", err));
+    Promise.all(promises).catch(err => logger.error({ err }, "[PAYROLL] bulk notify error"));
   });
 };
 
 // Generate Payroll (with branch access)
-const generatePayroll = async (req, res) => {
+const generatePayroll = async (req, res, next) => {
   try {
     const { cutoff_start, cutoff_end, pay_date } = req.body;
     const branch_id = req.body.branch_id || null;
@@ -67,12 +68,12 @@ const generatePayroll = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Get Payroll (with branch access)
-const getPayroll = async (req, res) => {
+const getPayroll = async (req, res, next) => {
   try {
     const {
       cutoff_start,
@@ -93,12 +94,12 @@ const getPayroll = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Get Summary (with branch access)
-const getPayrollSummary = async (req, res) => {
+const getPayrollSummary = async (req, res, next) => {
   try {
     const { cutoff_start, cutoff_end } = req.query;
 
@@ -110,12 +111,12 @@ const getPayrollSummary = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Employee Salary (with branch access)
-const getEmployeeSalary = async (req, res) => {
+const getEmployeeSalary = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, search = "" } = req.query;
 
@@ -131,11 +132,11 @@ const getEmployeeSalary = async (req, res) => {
 
     res.json(data);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-const updateEmployeeSalary = async (req, res) => {
+const updateEmployeeSalary = async (req, res, next) => {
   try {
     const id = req.params.id;
     const oldValues = await audit.fetchOldValues("employee_salary", id);
@@ -151,12 +152,12 @@ const updateEmployeeSalary = async (req, res) => {
     });
     res.json(data);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 // Deductions (with branch access)
-const getDeductions = async (req, res) => {
+const getDeductions = async (req, res, next) => {
   try {
     const { employee_id } = req.params;
 
@@ -175,11 +176,11 @@ const getDeductions = async (req, res) => {
     const data = await payrollService.getDeductions(employee_id);
     res.json(data);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-const createDeduction = async (req, res) => {
+const createDeduction = async (req, res, next) => {
   try {
     const data = await payrollService.createDeduction(req.body);
     audit.auditLog(req, {
@@ -192,11 +193,11 @@ const createDeduction = async (req, res) => {
     });
     res.json(data);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-const updateDeduction = async (req, res) => {
+const updateDeduction = async (req, res, next) => {
   try {
     const oldValues = await audit.fetchOldValues("employee_deductions", req.params.id);
     const data = await payrollService.updateDeduction(req.params.id, req.body);
@@ -211,11 +212,11 @@ const updateDeduction = async (req, res) => {
     });
     res.json(data);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-const deleteDeduction = async (req, res) => {
+const deleteDeduction = async (req, res, next) => {
   try {
     const oldValues = await audit.fetchOldValues("employee_deductions", req.params.id);
     await payrollService.deleteDeduction(req.params.id);
@@ -239,22 +240,22 @@ const deleteDeduction = async (req, res) => {
     if (err.message === "Deduction not found") {
       return res.status(404).json({ message: err.message });
     }
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 // Mark One Paid
-const getQueueStatus = async (req, res) => {
+const getQueueStatus = async (req, res, next) => {
   try {
     const stats = await payrollService.getQueueStatus();
     res.json(stats);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Update markAsPaid (with branch access)
-const markAsPaid = async (req, res) => {
+const markAsPaid = async (req, res, next) => {
   try {
     const { id } = req.params;
     const payrollId = Number(id);
@@ -273,17 +274,10 @@ const markAsPaid = async (req, res) => {
     // Update DB and queue email (async)
     const data = await payrollService.markAsPaid(payrollId, req.user.id);
 
-    console.log("[Payroll/Pay] markAsPaid result", {
-      payroll_id: payrollId,
-      rows_updated: data ? 1 : 0,
-      employee_id: data?.employee_id ?? null,
-      status: data?.status ?? null,
-    });
+    logger.info({ correlationId: req.correlationId, payroll_id: payrollId, rows_updated: data ? 1 : 0, employee_id: data?.employee_id ?? null, status: data?.status ?? null }, "[Payroll/Pay] markAsPaid result");
 
     if (!data) {
-      console.log("[Payroll/Pay] No payroll row matched id — lookup failed", {
-        payroll_id: payrollId,
-      });
+      logger.info({ correlationId: req.correlationId, payroll_id: payrollId }, "[Payroll/Pay] No payroll row matched id — lookup failed");
       return res.status(404).json({ message: "Payroll not found or not eligible for payment. Only UNPAID payroll can be marked as paid." });
     }
 
@@ -312,7 +306,7 @@ const markAsPaid = async (req, res) => {
       data,
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
@@ -324,7 +318,7 @@ const VALIDATION_ERRORS = [
   "Payroll is voided and cannot be marked as paid.",
 ];
 
-const markAllAsPaid = async (req, res) => {
+const markAllAsPaid = async (req, res, next) => {
   try {
     const { cutoff_start, cutoff_end } = req.body;
 
@@ -346,13 +340,15 @@ const markAllAsPaid = async (req, res) => {
       data,
     });
   } catch (err) {
-    const status = VALIDATION_ERRORS.includes(err.message) ? 400 : 500;
-    res.status(status).json({ message: err.message });
+    if (VALIDATION_ERRORS.includes(err.message)) {
+      return res.status(400).json({ message: err.message });
+    }
+    next(err);
   }
 };
 
 // Delete Payroll by Cutoff
-const deletePayrollByCutoff = async (req, res) => {
+const deletePayrollByCutoff = async (req, res, next) => {
   try {
     const { cutoff_start, cutoff_end, pay_date } = req.body;
 
@@ -377,12 +373,12 @@ const deletePayrollByCutoff = async (req, res) => {
         recommendation: err.recommendation,
       });
     }
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 // Get My Payroll
-const getMyPayroll = async (req, res) => {
+const getMyPayroll = async (req, res, next) => {
   try {
     const { cutoff_start, cutoff_end } = req.query;
     const employee_id = req.user.employee_id;
@@ -395,23 +391,23 @@ const getMyPayroll = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Get My Salary Details
-const getMySalaryDetails = async (req, res) => {
+const getMySalaryDetails = async (req, res, next) => {
   try {
     const employee_id = req.user.employee_id;
     const data = await payrollService.getMySalaryDetails(employee_id);
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Download Payslip (with branch access)
-const downloadPayslip = async (req, res) => {
+const downloadPayslip = async (req, res, next) => {
   try {
     const payrollId = Number(req.params.id);
     if (!Number.isInteger(payrollId) || payrollId <= 0) {
@@ -453,11 +449,11 @@ const downloadPayslip = async (req, res) => {
       company,
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-const lockPayroll = async (req, res) => {
+const lockPayroll = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -477,11 +473,11 @@ const lockPayroll = async (req, res) => {
     notifyHR("Payroll Locked", `Payroll for ${dateRange} has been locked.`, id);
     res.json({ message: "Payroll locked successfully", data });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-const unlockPayroll = async (req, res) => {
+const unlockPayroll = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -501,11 +497,11 @@ const unlockPayroll = async (req, res) => {
     notifyHR("Payroll Unlocked", `Payroll for ${dateRange} has been unlocked for modification.`, id);
     res.json({ message: "Payroll unlocked successfully", data });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-const voidPayroll = async (req, res) => {
+const voidPayroll = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -525,11 +521,11 @@ const voidPayroll = async (req, res) => {
     notifyHR("Payroll Voided", `Payroll for ${dateRange} has been voided.`, id);
     res.json({ message: "Payroll voided successfully", data });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-const getPayrollById = async (req, res) => {
+const getPayrollById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -545,12 +541,12 @@ const getPayrollById = async (req, res) => {
 
     res.json(data);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 // Get My Benefits
-const getMyBenefits = async (req, res) => {
+const getMyBenefits = async (req, res, next) => {
   try {
     const employee_id = req.user.employee_id;
     if (!employee_id) {
@@ -559,7 +555,7 @@ const getMyBenefits = async (req, res) => {
     const data = await payrollService.getMyBenefits(employee_id);
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

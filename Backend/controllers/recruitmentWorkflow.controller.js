@@ -1,13 +1,13 @@
 const workflowService = require("../services/recruitmentWorkflow.service");
 const audit = require("../services/audit.service");
 
-const getAll = async (req, res) => {
+const getAll = async (req, res, next) => {
   try {
     const { page, limit, search, is_active, branch_id, job_position_id } = req.query;
     const result = await workflowService.getAll({ page, limit, search, is_active, branch_id, job_position_id });
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const logger = require("../utils/logger");
 
 const EMPLOYEE_DEFAULT_PERMISSIONS = [
   "dashboard.view",
@@ -15,7 +16,7 @@ const EMPLOYEE_DEFAULT_PERMISSIONS = [
 ];
 
 async function analyze() {
-  console.log("=== Employee Default Permissions Analysis ===\n");
+  logger.info("=== Employee Default Permissions Analysis ===\n");
 
   // Find all EMPLOYEE users
   const usersResult = await pool.query(
@@ -28,7 +29,7 @@ async function analyze() {
   );
 
   const employeeUsers = usersResult.rows;
-  console.log(`Total EMPLOYEE users: ${employeeUsers.length}\n`);
+  logger.info(`Total EMPLOYEE users: ${employeeUsers.length}\n`);
 
   let totalMissingCount = 0;
   let affectedUsers = 0;
@@ -72,31 +73,31 @@ async function analyze() {
   }
 
   // Print summary
-  console.log("=== Summary ===");
-  console.log(`Total EMPLOYEE users:            ${employeeUsers.length}`);
-  console.log(`Users with zero permissions:     ${usersWithZeroPerms}`);
-  console.log(`Affected users (missing perms):  ${affectedUsers}`);
-  console.log(`Total missing permissions:       ${totalMissingCount}`);
-  console.log(`Estimated permissions to add:    ${totalMissingCount}`);
-  console.log("");
+  logger.info("=== Summary ===");
+  logger.info(`Total EMPLOYEE users:            ${employeeUsers.length}`);
+  logger.info(`Users with zero permissions:     ${usersWithZeroPerms}`);
+  logger.info(`Affected users (missing perms):  ${affectedUsers}`);
+  logger.info(`Total missing permissions:       ${totalMissingCount}`);
+  logger.info(`Estimated permissions to add:    ${totalMissingCount}`);
+  logger.info("");
 
   // Print detailed report
-  console.log("=== Affected Users Detail ===\n");
+  logger.info("=== Affected Users Detail ===\n");
   for (const r of userReports) {
-    console.log(
+    logger.info(
       `User #${r.id} | ${r.username} (${r.name}) | ${r.employeeCode}`
     );
-    console.log(`  Current permissions: ${r.currentCount}`);
-    console.log(`  Missing: ${r.missingCount} permissions`);
-    console.log(`  Missing keys: ${r.missingPerms.join(", ")}`);
-    console.log("");
+    logger.info(`  Current permissions: ${r.currentCount}`);
+    logger.info(`  Missing: ${r.missingCount} permissions`);
+    logger.info(`  Missing keys: ${r.missingPerms.join(", ")}`);
+    logger.info("");
   }
 
   if (affectedUsers === 0) {
-    console.log("No affected users found. All EMPLOYEE users have complete Employee Default permissions.\n");
+    logger.info("No affected users found. All EMPLOYEE users have complete Employee Default permissions.\n");
   }
 
-  console.log("=== End of Analysis ===");
+  logger.info("=== End of Analysis ===");
 
   // Return data for script generation
   return { employeeUsers, userReports, totalMissingCount, affectedUsers, usersWithZeroPerms };
@@ -105,6 +106,6 @@ async function analyze() {
 analyze()
   .then(() => process.exit(0))
   .catch((err) => {
-    console.error("Analysis failed:", err);
+    logger.error({ err }, "Analysis failed:");
     process.exit(1);
   });

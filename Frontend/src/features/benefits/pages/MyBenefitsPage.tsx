@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import EmptyState from "@/components/shared/EmptyState";
@@ -11,9 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getMyBenefits } from "@/services/payrollService";
+import { useMyBenefits } from "@/hooks/useMyBenefits";
 import { useAuth } from "@/app/providers/AuthProvider";
-import { toast } from "sonner";
 import {
   HeartHandshake,
   BadgeInfo,
@@ -81,25 +79,8 @@ const formatCurrency = (value: number) => {
 };
 
 const MyBenefitsPage = () => {
-  const [benefits, setBenefits] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   useAuth();
-
-  useEffect(() => {
-    const fetchBenefits = async () => {
-      try {
-        setLoading(true);
-        const data = await getMyBenefits();
-        setBenefits(data);
-      } catch (error) {
-        console.error("Failed to load benefits:", error);
-        toast.error("Failed to load your benefits. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchBenefits();
-  }, []);
+  const { data: benefits, isLoading } = useMyBenefits();
 
   const govIds = benefits?.government_ids || {};
   const deductions = benefits?.deductions || [];
@@ -122,7 +103,7 @@ const MyBenefitsPage = () => {
         </div>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <Loader message="Loading benefits..." />
       ) : (
         <>

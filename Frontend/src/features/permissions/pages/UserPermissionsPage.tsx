@@ -17,11 +17,11 @@ import { toast } from "sonner";
 import type { User } from "@/services/userService";
 import UserPermissionsPickerDialog from "../components/UserPermissionsPickerDialog";
 import {
-  getAllPermissions,
-  getUserPermissions,
   setUserPermissions as saveUserPermissionsApi,
   resetUserPermissions,
 } from "@/services/permissionService";
+import { useAllPermissions } from "@/hooks/useAllPermissions";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 
 const PERMISSION_LABELS: Record<string, string> = {
   "dashboard.view": "View Dashboard",
@@ -253,33 +253,24 @@ const PRESETS: { name: string; label: string; keys: string[] }[] = [
 
 const UserPermissionsPage = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [permissionGroups, setPermissionGroups] = useState<
-    Record<string, string[]>
-  >({});
-  const [allPermissionKeys, setAllPermissionKeys] = useState<string[]>([]);
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [permissionSearch, setPermissionSearch] = useState("");
   const [savedPermissions, setSavedPermissions] = useState<string[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
 
+  const { data: permData, isLoading: loading, error: permError } = useAllPermissions();
+  const { data: userPermsData } = useUserPermissions(selectedUser?.id);
+
+  const permissionGroups = permData?.groups ?? {};
+  const allPermissionKeys = permData?.allPermissions ?? [];
+
   useEffect(() => {
-    const init = async () => {
-      try {
-        setLoading(true);
-        const permsRes = await getAllPermissions();
-        setPermissionGroups(permsRes.groups);
-        setAllPermissionKeys(permsRes.allPermissions);
-      } catch (err: any) {
-        toast.error(err.message || "Failed to load data");
-      } finally {
-        setLoading(false);
-      }
-    };
-    init();
-  }, []);
+    if (permError) {
+      toast.error((permError as any).message || "Failed to load data");
+    }
+  }, [permError]);
 
   useEffect(() => {
     if (!selectedUser) {
@@ -287,23 +278,17 @@ const UserPermissionsPage = () => {
       setSavedPermissions([]);
       return;
     }
-    const fetchPermissions = async () => {
-      try {
-        const res = await getUserPermissions(selectedUser.id);
-        const perms = Array.isArray(res)
-          ? res
-          : Array.isArray(res.permissions)
-            ? res.permissions
-            : [];
-        setUserPermissions(perms);
-        setSavedPermissions(perms);
-      } catch {
-        setUserPermissions([]);
-        setSavedPermissions([]);
-      }
-    };
-    fetchPermissions();
-  }, [selectedUser]);
+    if (userPermsData !== undefined) {
+      const res = userPermsData as any;
+      const perms = Array.isArray(res)
+        ? res
+        : Array.isArray(res.permissions)
+          ? res.permissions
+          : [];
+      setUserPermissions(perms);
+      setSavedPermissions(perms);
+    }
+  }, [selectedUser, userPermsData]);
 
   const isAdminUser = selectedUser?.role === "ADMIN";
   const current = Array.isArray(userPermissions) ? userPermissions : [];

@@ -5,12 +5,12 @@ export const getApplicantInterviews = async (applicantId: number) => {
   return response.data;
 };
 
-export const createApplicantInterview = async (applicantId: number, data: any) => {
+export const createApplicantInterview = async (applicantId: number, data: Record<string, unknown>) => {
   const response = await api.post(`/applicant-interviews/${applicantId}`, data);
   return response.data;
 };
 
-export const updateApplicantInterview = async (id: number, data: any) => {
+export const updateApplicantInterview = async (id: number, data: Record<string, unknown>) => {
   const response = await api.put(`/applicant-interviews/${id}`, data);
   return response.data;
 };

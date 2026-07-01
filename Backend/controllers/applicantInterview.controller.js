@@ -1,30 +1,30 @@
 const applicantInterviewService = require("../services/applicantInterview.service");
 const audit = require("../services/audit.service");
 
-const getByApplicantId = async (req, res) => {
+const getByApplicantId = async (req, res, next) => {
   try {
     const interviews = await applicantInterviewService.getByApplicantId(req.params.applicantId);
     res.json(interviews);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getMyInterviews = async (req, res) => {
+const getMyInterviews = async (req, res, next) => {
   try {
     const interviews = await applicantInterviewService.getMyInterviews(req.user.id);
     res.json(interviews);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getPossibleInterviewers = async (req, res) => {
+const getPossibleInterviewers = async (req, res, next) => {
   try {
     const interviewers = await applicantInterviewService.getPossibleInterviewers();
     res.json(interviewers);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

@@ -3,23 +3,23 @@ const audit = require("../services/audit.service");
 const { getUserBranchIds } = require("../utils/branchAccess");
 
 // GET ALL (no branch filter — all users see all events)
-const getCalendar = async (req, res) => {
+const getCalendar = async (req, res, next) => {
   try {
     const { start, end } = req.query;
     const data = await calendarService.getCalendar(start, end);
     res.json(data);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 // GET ONE BY DATE (no branch filter — all users see all events)
-const getByDate = async (req, res) => {
+const getByDate = async (req, res, next) => {
   try {
     const data = await calendarService.getByDate(req.params.date);
     res.json(data);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
@@ -96,7 +96,7 @@ const update = async (req, res) => {
 };
 
 // DELETE (with branch validation)
-const remove = async (req, res) => {
+const remove = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -121,7 +121,7 @@ const remove = async (req, res) => {
     });
     res.json(data);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 

@@ -1,7 +1,7 @@
-// features/payroll/pages/PayrollDetails.tsx
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { getPayrollById, downloadPayslip } from "@/services/payrollService";
+import { useState } from "react";
+import { usePayrollById } from "@/hooks/usePayrollById";
+import { downloadPayslip } from "@/services/payrollService";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Loader2, Wallet } from "lucide-react";
 import SalaryBreakdown from "../components/SalaryBreakdown";
@@ -11,7 +11,6 @@ import { formatDate } from "@/utils/formatDate";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
 
-// Helper to format employee name from structured fields
 const formatEmployeeName = (record: any) => {
   if (record.first_name && record.last_name) {
     return `${record.first_name} ${record.middle_name || ""} ${record.last_name}${record.suffix ? `, ${record.suffix}` : ""}`.trim();
@@ -24,35 +23,13 @@ const PayrollDetails = () => {
   const navigate = useNavigate();
 
   const [downloading, setDownloading] = useState(false);
-  const [record, setRecord] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!id) {
-        setError("No payroll ID provided");
-        setLoading(false);
-        return;
-      }
+  const { data: record, isFetching, error } = usePayrollById(id);
 
-      try {
-        setLoading(true);
-        const data = await getPayrollById(id);
-        setRecord(data);
-        setError(null);
-      } catch (err: any) {
-        console.error("Failed to fetch payroll:", err);
-        setError(err.message || "Failed to load payroll details");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [id]);
+  const loading = isFetching && !record;
 
   const handleExport = async () => {
+    if (!record) return;
     try {
       setDownloading(true);
 
@@ -70,8 +47,7 @@ const PayrollDetails = () => {
       window.URL.revokeObjectURL(url);
 
       toast.success("Payslip downloaded successfully");
-    } catch (error) {
-      console.error("Download error:", error);
+    } catch {
       toast.error("Failed to download payslip");
     } finally {
       setDownloading(false);
@@ -112,7 +88,7 @@ const PayrollDetails = () => {
           </div>
         </div>
         <EmptyState
-          message={error || "No payroll record found"}
+          message={(error as any)?.message || "No payroll record found"}
           action={{ label: "Back to Payroll", onClick: () => navigate("/payroll") }}
         />
       </div>
@@ -121,7 +97,6 @@ const PayrollDetails = () => {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header - Matching consistent theme with back button */}
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
@@ -165,7 +140,6 @@ const PayrollDetails = () => {
         </div>
       </div>
 
-      {/* Employee Info Card */}
       <Card className="border-border/50 shadow-sm">
         <CardHeader>
           <CardTitle className="text-lg font-semibold">
@@ -208,7 +182,7 @@ const PayrollDetails = () => {
               <p className="text-sm text-muted-foreground">Branch</p>
               <p className="font-medium">
                 {record.branch_name || (
-                  <span className="text-muted-foreground">—</span>
+                  <span className="text-muted-foreground">&mdash;</span>
                 )}
               </p>
             </div>
@@ -216,7 +190,6 @@ const PayrollDetails = () => {
         </CardContent>
       </Card>
 
-      {/* Salary Breakdown */}
       <SalaryBreakdown record={record} />
     </div>
   );

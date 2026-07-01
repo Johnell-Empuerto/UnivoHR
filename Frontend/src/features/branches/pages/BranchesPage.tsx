@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  getBranches,
   createBranch,
   updateBranch,
   setBranchActive,
   deleteBranch,
 } from "@/services/branchService";
+import { useAllBranches } from "@/hooks/useBranches";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -94,29 +94,15 @@ const emptyForm = {
 
 const BranchesPage = () => {
   const queryClient = useQueryClient();
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Branch | null>(null);
 
-  useEffect(() => {
-    fetchBranches();
-  }, []);
-
-  const fetchBranches = async () => {
-    try {
-      setLoading(true);
-      const data = await getBranches();
-      setBranches(data);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to load branches");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const query = useAllBranches();
+  const branches = query.data ?? [];
+  const loading = query.isFetching;
 
   const handleOpenCreate = () => {
     setEditId(null);
@@ -163,7 +149,6 @@ const BranchesPage = () => {
       }
       setDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ["branches"] });
-      fetchBranches();
     } catch (err: any) {
       toast.error(err.message || "Operation failed");
     } finally {
@@ -184,7 +169,6 @@ const BranchesPage = () => {
       await deleteBranch(target.id);
       toast.success("Branch deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["branches"] });
-      fetchBranches();
     } catch (err: any) {
       const message =
         err.response?.data?.message || err.message || "Failed to delete branch";
@@ -195,8 +179,8 @@ const BranchesPage = () => {
   const handleToggleActive = async (branch: Branch) => {
     try {
       const updated = await setBranchActive(branch.id, !branch.is_active);
-      setBranches((prev) =>
-        prev.map((b) => (b.id === branch.id ? updated : b)),
+      queryClient.setQueryData(["branches"], (old: any) =>
+        Array.isArray(old) ? old.map((b: any) => (b.id === branch.id ? updated : b)) : old,
       );
       queryClient.invalidateQueries({ queryKey: ["branches"] });
       toast.success(

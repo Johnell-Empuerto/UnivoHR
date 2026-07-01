@@ -5,12 +5,12 @@ export const getEmployeeRequirements = async (onboardingId: number) => {
   return response.data;
 };
 
-export const createEmployeeRequirement = async (onboardingId: number, data: any) => {
+export const createEmployeeRequirement = async (onboardingId: number, data: Record<string, unknown>) => {
   const response = await api.post(`/employee-requirements/${onboardingId}`, data);
   return response.data;
 };
 
-export const updateEmployeeRequirement = async (id: number, data: any) => {
+export const updateEmployeeRequirement = async (id: number, data: Record<string, unknown>) => {
   const response = await api.put(`/employee-requirements/${id}`, data);
   return response.data;
 };

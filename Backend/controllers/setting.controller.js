@@ -3,28 +3,28 @@ const audit = require("../services/audit.service");
 const { hasPermission } = require("../services/permission.service");
 
 // Get all settings
-const getAllSettings = async (req, res) => {
+const getAllSettings = async (req, res, next) => {
   try {
     const settings = await settingService.getAllSettings();
     res.json(settings);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Get single setting
-const getSetting = async (req, res) => {
+const getSetting = async (req, res, next) => {
   try {
     const { key } = req.params;
     const value = await settingService.getSetting(key);
     res.json({ key, value });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Update setting
-const updateSetting = async (req, res) => {
+const updateSetting = async (req, res, next) => {
   try {
     const { key } = req.params;
     const { value } = req.body;
@@ -46,12 +46,12 @@ const updateSetting = async (req, res) => {
     });
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Get next employee code (preview)
-const getNextEmployeeCode = async (req, res) => {
+const getNextEmployeeCode = async (req, res, next) => {
   try {
     const pool = require("../config/db");
     const { getEmployeeCodeSettings } = require("../services/applicant.service");
@@ -92,12 +92,12 @@ const getNextEmployeeCode = async (req, res) => {
       format: `${prefix}${separator}${'#'.repeat(padding)}`,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Toggle boolean setting
-const toggleSetting = async (req, res) => {
+const toggleSetting = async (req, res, next) => {
   try {
     const { key } = req.params;
     const result = await settingService.toggleSetting(key);
@@ -110,7 +110,7 @@ const toggleSetting = async (req, res) => {
     });
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

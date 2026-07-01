@@ -11,7 +11,7 @@ export interface ForecastLog {
   period_type: string;
   method: string;
   actual_value: number | null;
-  metadata: any;
+  metadata: Record<string, unknown>;
   created_at: string;
 }
 
@@ -25,7 +25,7 @@ export interface ForecastHistoryResponse {
   };
 }
 
-export const generateForecasts = async (branch_id?: number): Promise<any> => {
+export const generateForecasts = async (branch_id?: number): Promise<Record<string, unknown>> => {
   const response = await api.post("/forecast/generate", { branch_id });
   return response.data;
 };
@@ -53,7 +53,7 @@ export const getForecastAccuracy = async (params?: {
   metric_name?: string;
   branch_id?: string;
   period_type?: string;
-}): Promise<any[]> => {
+}): Promise<Record<string, unknown>[]> => {
   const response = await api.get("/forecast/accuracy", { params });
   return response.data;
 };

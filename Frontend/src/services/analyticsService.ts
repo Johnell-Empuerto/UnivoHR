@@ -44,7 +44,7 @@ export const getAnomalyTrend = async (days: number = 30): Promise<AnomalyTrendPo
   return response.data;
 };
 
-export const getForecastSummary = async (): Promise<any[]> => {
+export const getForecastSummary = async (): Promise<Record<string, unknown>[]> => {
   const response = await api.get("/analytics/forecast-summary");
   return response.data;
 };

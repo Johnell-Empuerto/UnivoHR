@@ -21,7 +21,7 @@ export const getMyOvertime = async (
 };
 
 // CREATE OVERTIME REQUEST
-export const createOvertime = async (data: any) => {
+export const createOvertime = async (data: Record<string, unknown>) => {
   const response = await api.post("/overtime", data);
   return response.data;
 };

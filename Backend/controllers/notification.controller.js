@@ -1,11 +1,10 @@
 const notificationService = require("../services/notification.service");
 
-const getMyNotifications = async (req, res) => {
+const getMyNotifications = async (req, res, next) => {
   try {
     const user_id = req.user.id;
     const { page = 1, limit = 20 } = req.query;
 
-    // Ensure limit is reasonable (max 100)
     const safeLimit = Math.min(parseInt(limit) || 20, 100);
     const safePage = Math.max(parseInt(page) || 1, 1);
 
@@ -16,11 +15,11 @@ const getMyNotifications = async (req, res) => {
     );
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const markAsRead = async (req, res) => {
+const markAsRead = async (req, res, next) => {
   try {
     const { id } = req.params;
     const user_id = req.user.id;
@@ -28,32 +27,30 @@ const markAsRead = async (req, res) => {
     const notification = await notificationService.markAsRead(id, user_id);
     res.json({ success: true, notification });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const markAllAsRead = async (req, res) => {
+const markAllAsRead = async (req, res, next) => {
   try {
     const user_id = req.user.id;
 
     const notifications = await notificationService.markAllAsRead(user_id);
     res.json({ success: true, count: notifications.length });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-//  FIXED: Use service instead of direct model access
-const getUnreadCount = async (req, res) => {
+const getUnreadCount = async (req, res, next) => {
   try {
     const user_id = req.user.id;
 
-    // Call service method (which handles Redis + DB)
     const unreadCount = await notificationService.getUnreadCount(user_id);
 
     res.json({ unreadCount });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

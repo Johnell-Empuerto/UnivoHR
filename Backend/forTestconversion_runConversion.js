@@ -1,4 +1,5 @@
 require("dotenv").config();
+const logger = require("./utils/logger");
 
 const {
   processYearEndLeaveConversion,
@@ -6,14 +7,14 @@ const {
 
 (async () => {
   try {
-    console.log(" Running Year-End Conversion...");
+    logger.info(" Running Year-End Conversion...");
 
     await processYearEndLeaveConversion(2025);
 
-    console.log(" Conversion completed successfully");
+    logger.info(" Conversion completed successfully");
     process.exit(0);
   } catch (error) {
-    console.error(" Error:", error);
+    logger.error({ err: error }, " Error:");
     process.exit(1);
   }
 })();

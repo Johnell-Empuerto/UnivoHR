@@ -1,5 +1,6 @@
 const { Pool } = require("pg");
 const db = require("./env");
+const logger = require("../utils/logger");
 
 const poolConfig = {
   user: db.DB_USER,
@@ -22,7 +23,7 @@ if (db.NODE_ENV === "production") {
 const pool = new Pool(poolConfig);
 
 pool.on("error", (err) => {
-  console.error("[DB] Unexpected pool error:", err.message);
+  logger.error({ err }, "[DB] Unexpected pool error:");
 });
 
 module.exports = pool;

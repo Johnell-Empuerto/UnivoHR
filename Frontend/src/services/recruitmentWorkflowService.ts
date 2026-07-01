@@ -19,12 +19,12 @@ export const getRecruitmentWorkflow = async (id: number, includeStages = true) =
   return response.data;
 };
 
-export const createRecruitmentWorkflow = async (data: any) => {
+export const createRecruitmentWorkflow = async (data: Record<string, unknown>) => {
   const response = await api.post("/recruitment-workflows", data);
   return response.data;
 };
 
-export const updateRecruitmentWorkflow = async (id: number, data: any) => {
+export const updateRecruitmentWorkflow = async (id: number, data: Record<string, unknown>) => {
   const response = await api.put(`/recruitment-workflows/${id}`, data);
   return response.data;
 };
@@ -39,12 +39,12 @@ export const getWorkflowStages = async (workflowId: number) => {
   return response.data;
 };
 
-export const createWorkflowStage = async (workflowId: number, data: any) => {
+export const createWorkflowStage = async (workflowId: number, data: Record<string, unknown>) => {
   const response = await api.post(`/recruitment-workflows/${workflowId}/stages`, data);
   return response.data;
 };
 
-export const updateWorkflowStage = async (stageId: number, data: any) => {
+export const updateWorkflowStage = async (stageId: number, data: Record<string, unknown>) => {
   const response = await api.put(`/recruitment-workflows/stages/${stageId}`, data);
   return response.data;
 };

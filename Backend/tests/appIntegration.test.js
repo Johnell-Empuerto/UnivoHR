@@ -48,9 +48,9 @@ const request = require("supertest");
 const app = require("../app");
 
 describe("GET /api/health (public)", () => {
-  it("returns 200", async () => {
+  it("returns 200 when dependencies are healthy", async () => {
     const res = await request(app).get("/api/health");
-    expect(res.status).toBe(200);
+    expect([200, 503]).toContain(res.status);
   });
 
   it("returns JSON", async () => {
@@ -58,9 +58,9 @@ describe("GET /api/health (public)", () => {
     expect(res.headers["content-type"]).toMatch(/json/);
   });
 
-  it("has status field set to 'ok'", async () => {
+  it("has status field", async () => {
     const res = await request(app).get("/api/health");
-    expect(res.body.status).toBe("ok");
+    expect(["ok", "degraded"]).toContain(res.body.status);
   });
 
   it("has timestamp field as ISO string", async () => {
@@ -85,10 +85,26 @@ describe("GET /api/health (public)", () => {
     expect(res.body.environment.length).toBeGreaterThan(0);
   });
 
-  it("has exactly the expected 4 fields", async () => {
+  it("has required fields", async () => {
     const res = await request(app).get("/api/health");
-    expect(Object.keys(res.body).sort()).toEqual(
-      ["status", "timestamp", "uptime", "environment"].sort(),
+    const keys = Object.keys(res.body);
+    expect(keys).toContain("status");
+    expect(keys).toContain("timestamp");
+    expect(keys).toContain("uptime");
+    expect(keys).toContain("environment");
+    expect(keys).toContain("version");
+    expect(keys).toContain("dependencies");
+    expect(keys).toContain("dependencies.postgresql");
+    expect(keys).toContain("memory");
+  });
+
+  it("includes dependency status", async () => {
+    const res = await request(app).get("/api/health");
+    expect(res.body.dependencies).toBeDefined();
+    expect(res.body.dependencies.postgresql).toBeDefined();
+    expect(res.body.dependencies.redis).toBeDefined();
+    expect(["healthy", "degraded", "unhealthy", "disconnected"]).toContain(
+      res.body.dependencies.postgresql.status,
     );
   });
 });

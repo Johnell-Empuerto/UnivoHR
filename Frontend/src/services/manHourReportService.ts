@@ -160,6 +160,7 @@ export const downloadManHourReports = async (params: DownloadReportParams) => {
       format: params.format,
     },
     responseType: "blob",
+    timeout: 60000,
   });
   return response.data;
 };

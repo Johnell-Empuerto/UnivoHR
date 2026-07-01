@@ -1,4 +1,5 @@
 const { hasPermission } = require("../services/permission.service");
+const logger = require("../utils/logger");
 
 const requirePermission = (...permissionKeys) => {
   return async (req, res, next) => {
@@ -23,7 +24,7 @@ const requirePermission = (...permissionKeys) => {
 
       next();
     } catch (error) {
-      console.error("Permission check error:", error);
+      logger.error({ err: error, correlationId: req.correlationId }, "Permission check error:");
       return res.status(500).json({ message: "Error checking permissions" });
     }
   };

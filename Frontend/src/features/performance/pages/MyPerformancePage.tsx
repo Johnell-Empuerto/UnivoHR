@@ -1,10 +1,8 @@
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Loader from "@/components/shared/Loader";
 import { useAuth } from "@/app/providers/AuthProvider";
-import { getMyPerformanceSummary } from "@/services/kpiService";
-import { toast } from "sonner";
+import { useMyPerformanceSummary } from "@/hooks/useMyPerformanceSummary";
 import {
   LineChart,
   Target,
@@ -45,25 +43,8 @@ const getReadinessBadge = (readiness: string) => {
 };
 
 const MyPerformancePage = () => {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   useAuth();
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const summary = await getMyPerformanceSummary();
-        setData(summary);
-      } catch (error) {
-        console.error("Failed to load performance summary:", error);
-        toast.error("Failed to load performance summary");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const { data, isLoading } = useMyPerformanceSummary();
 
   return (
     <div className="p-6 space-y-6">
@@ -81,7 +62,7 @@ const MyPerformancePage = () => {
         </div>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <Loader message="Loading performance data..." />
       ) : (
         <>

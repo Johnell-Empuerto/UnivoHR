@@ -16,8 +16,9 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import { getProfile, type Profile as ServiceProfile } from "@/services/profileService";
+import { type Profile as ServiceProfile } from "@/services/profileService";
 import { changePassword } from "@/services/authService";
+import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
@@ -37,8 +38,8 @@ const SPECIAL_CHARS = "!@#$%^&*(),.?\":{}|<>_-~`[]\\;/'" as const;
 const hasSpecialChar = (s: string) => [...s].some((ch) => SPECIAL_CHARS.includes(ch));
 
 const ProfilePage = () => {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: profileData, isLoading, error } = useProfile();
+  const profile = profileData as Profile | null;
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -48,20 +49,10 @@ const ProfilePage = () => {
   const [changing, setChanging] = useState(false);
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-      const data = await getProfile();
-      setProfile(data);
-    } catch (error: any) {
-      toast.error("Failed to load profile: " + error.message);
-    } finally {
-      setLoading(false);
+    if (error) {
+      toast.error("Failed to load profile: " + (error as Error).message);
     }
-  };
+  }, [error]);
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
@@ -102,7 +93,7 @@ const ProfilePage = () => {
     );
   };
 
-  if (loading) {
+  if (isLoading) {
     return <Loader fullPage />;
   }
 

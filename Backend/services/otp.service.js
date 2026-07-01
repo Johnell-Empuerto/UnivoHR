@@ -1,6 +1,7 @@
 const smtpService = require("./smtp.service");
 const redisClient = require("../config/redis");
 const notificationDispatch = require("./notificationDispatch.service");
+const logger = require("../utils/logger");
 const {
   buildStandaloneTransactionalEmail,
   buildLoginOtpBody,
@@ -129,8 +130,8 @@ const deletePasswordResetOTP = async (userId) => {
 
 // Send password reset email
 const sendPasswordResetEmail = async (email, otp, userName) => {
-  console.log("[PWD RESET] Preparing to send reset email to:", email.replace(/(.{2}).+@/, "$1***@"));
-  console.log("[PWD RESET] User name:", userName);
+  logger.info({ maskedEmail: email.replace(/(.{2}).+@/, "$1***@") }, "[PWD RESET] Preparing to send reset email");
+  logger.info({ userName }, "[PWD RESET] User name");
 
   const subject = "Password Reset Verification - UnivoHR";
 
@@ -142,17 +143,14 @@ const sendPasswordResetEmail = async (email, otp, userName) => {
   });
 
   try {
-    console.log("[PWD RESET] HTML length:", html.length);
-    console.log("[PWD RESET] Calling smtpService.sendEmail...");
+    logger.info({ htmlLength: html.length }, "[PWD RESET] HTML length");
+    logger.info("[PWD RESET] Calling smtpService.sendEmail...");
     const result = await smtpService.sendEmail(email, subject, html);
-    console.log(
-      "[PWD RESET] Password reset email sent successfully, messageId:",
-      result.messageId,
-    );
+    logger.info({ messageId: result.messageId }, "[PWD RESET] Password reset email sent successfully");
     return result;
   } catch (err) {
-    console.error("[PWD RESET] Failed to send reset email:", err.message);
-    console.error("[PWD RESET] Full error:", err);
+    logger.error({ err }, "[PWD RESET] Failed to send reset email");
+    logger.error({ err }, "[PWD RESET] Full error");
     throw new Error(`Failed to send password reset email: ${err.message}`);
   }
 };
@@ -242,7 +240,7 @@ const getMaskedEmail = async (userId) => {
 const sendOTPEmail = async (email, otp, userName) => {
   const allowed = await notificationDispatch.canSendEmail("login_otp");
   if (!allowed) {
-    console.warn(
+    logger.warn(
       "[OTP] login_otp email is DISABLED in notification_rules. " +
       "Login OTP will still be sent to avoid breaking login flow. " +
       "Enable login_otp.email_enabled in Settings to suppress this warning.",
@@ -259,16 +257,13 @@ const sendOTPEmail = async (email, otp, userName) => {
   });
 
   try {
-    console.log("[OTP] Calling smtpService.sendEmail...");
+    logger.info("[OTP] Calling smtpService.sendEmail...");
     const result = await smtpService.sendEmail(email, subject, html);
-    console.log(
-      "[OTP] OTP email sent successfully, messageId:",
-      result.messageId,
-    );
+    logger.info({ messageId: result.messageId }, "[OTP] OTP email sent successfully");
     return result;
   } catch (err) {
-    console.error("[OTP] Failed to send OTP email:", err.message);
-    console.error("[OTP] Full error:", err);
+    logger.error({ err }, "[OTP] Failed to send OTP email");
+    logger.error({ err }, "[OTP] Full error");
     throw new Error(`Failed to send OTP email: ${err.message}`);
   }
 };

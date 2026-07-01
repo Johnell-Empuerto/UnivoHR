@@ -9,7 +9,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { leaveService } from "@/services/leaveService";
+import { useLeaveCredits } from "@/hooks/useLeaveCredits";
+import { useMyLeaveTransactions } from "@/hooks/useMyLeaveTransactions";
 import { Loader2, CalendarDays, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import EmptyState from "@/components/shared/EmptyState";
@@ -59,32 +60,20 @@ interface LeaveTransaction {
 }
 
 const CreditLeaveTable = () => {
-  const [credits, setCredits] = useState<LeaveCredits | null>(null);
-  const [transactions, setTransactions] = useState<LeaveTransaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: creditsData, isLoading: creditsLoading, error: creditsError } = useLeaveCredits();
+  const { data: txData, isLoading: txLoading, error: txError } = useMyLeaveTransactions();
   const [error, setError] = useState<string | null>(null);
 
+  const credits: LeaveCredits | null = creditsData ?? null;
+  const transactions: LeaveTransaction[] = txData?.data ?? [];
+  const loading = creditsLoading || txLoading;
+
   useEffect(() => {
-    fetchCreditsAndHistory();
-  }, []);
-
-  const fetchCreditsAndHistory = async () => {
-    try {
-      setLoading(true);
-      // Get credits
-      const creditsData = await leaveService.getLeaveCredits();
-      setCredits(creditsData);
-
-      // Get leave history
-      const leavesData = await leaveService.getMyLeaves();
-      setTransactions(leavesData.data || []);
-    } catch (err) {
-      console.error("Error fetching credits:", err);
+    if (creditsError || txError) {
+      console.error("Error fetching leave data:", creditsError || txError);
       setError("Failed to load leave credits");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [creditsError, txError]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {

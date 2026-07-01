@@ -12,7 +12,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Globe, Info } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { updateSetting } from "@/services/settingsService";
 import { useSetting } from "@/hooks/useSettings";
 
@@ -31,7 +31,6 @@ const CompanyTimezoneSettings = () => {
   const queryClient = useQueryClient();
   const { data: settingResult, isLoading } = useSetting("company_timezone");
   const [timezone, setTimezone] = useState<string>("");
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (settingResult && !timezone) {
@@ -39,20 +38,23 @@ const CompanyTimezoneSettings = () => {
     }
   }, [settingResult, timezone]);
 
-  const handleChange = async (value: string) => {
+  const updateTimezoneMutation = useMutation({
+    mutationFn: (value: string) => updateSetting("company_timezone", value),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+    },
+  });
+
+  const handleChange = (value: string) => {
     const previous = timezone;
     setTimezone(value);
-    setSaving(true);
-    try {
-      await updateSetting("company_timezone", value);
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
-      toast.success(`Company timezone updated to ${value}`);
-    } catch (error: any) {
-      setTimezone(previous);
-      toast.error(error?.response?.data?.message || "Failed to update timezone");
-    } finally {
-      setSaving(false);
-    }
+    updateTimezoneMutation.mutate(value, {
+      onSuccess: () => toast.success(`Company timezone updated to ${value}`),
+      onError: (error: any) => {
+        setTimezone(previous);
+        toast.error(error?.response?.data?.message || "Failed to update timezone");
+      },
+    });
   };
 
   return (
@@ -85,7 +87,7 @@ const CompanyTimezoneSettings = () => {
                 <SelectTrigger
                   id="company-timezone"
                   className="w-full sm:w-72"
-                  disabled={saving}
+                  disabled={updateTimezoneMutation.isPending}
                 >
                   <SelectValue />
                 </SelectTrigger>
@@ -97,7 +99,7 @@ const CompanyTimezoneSettings = () => {
                   ))}
                 </SelectContent>
               </Select>
-              {saving && (
+              {updateTimezoneMutation.isPending && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   Saving...

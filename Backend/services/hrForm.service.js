@@ -2,6 +2,7 @@ const model = require("../models/hrForm.model");
 const queueService = require("./queue.service");
 const notificationService = require("./notification.service");
 const { cleanPlainText } = require("../utils/inputSanitizer");
+const logger = require("../utils/logger");
 
 const BULK_THRESHOLD = 50;
 
@@ -19,7 +20,7 @@ const notifyAssignedEmployees = (form, createdEmployeeIds, assignedByUserId) => 
         meta: { form_id: form.id, form_title: form.title },
       }));
     return Promise.all(promises);
-  }).catch(err => console.error("[HR Form] Failed to send assignment notifications:", err));
+  }).catch(err => logger.error({ err }, "[HR Form] Failed to send assignment notifications"));
 };
 
 const notifyHRFormSubmitted = (form, employeeName, submitterUserId) => {
@@ -35,7 +36,7 @@ const notifyHRFormSubmitted = (form, employeeName, submitterUserId) => {
         meta: { form_id: form.id, form_title: form.title },
       }));
     return Promise.all(promises);
-  }).catch(err => console.error("[HR Form] Failed to send submission notifications:", err));
+  }).catch(err => logger.error({ err }, "[HR Form] Failed to send submission notifications"));
 };
 
 const getAllForms = async (search, page, limit) => {
@@ -232,9 +233,9 @@ const reviewSubmission = async (submissionId, userId, data) => {
         message: `Your submission for ${submission.form_title || "form"} has been reviewed.${data.remarks ? ` Remarks: ${data.remarks}` : ""}`,
         reference_id: submission.form_id,
         meta: { form_id: submission.form_id, form_title: submission.form_title },
-      }).catch(err => console.error("[HR Form] Failed to send review notification:", err));
+      }).catch(err => logger.error({ err }, "[HR Form] Failed to send review notification"));
     }
-  }).catch(err => console.error("[HR Form] Failed to lookup user for review notification:", err));
+  }).catch(err => logger.error({ err }, "[HR Form] Failed to lookup user for review notification"));
 
   return result;
 };

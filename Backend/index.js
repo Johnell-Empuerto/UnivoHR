@@ -5,6 +5,7 @@ const http = require("http");
 const server = http.createServer(app);
 server.timeout = Number(process.env.SERVER_TIMEOUT) || 120000;
 
+const logger = require("./utils/logger");
 const { initSocket } = require("./config/socket");
 
 initSocket(server);
@@ -20,23 +21,32 @@ scheduler.startScheduler();
 const startDeviceProcessingWorker =
   require("./workers/deviceProcessing.worker").startWorker;
 startDeviceProcessingWorker().catch((err) => {
-  console.error("[DeviceWorker] Failed to start worker:", err.message);
+  logger.error({ err }, "[DeviceWorker] Failed to start worker");
 });
 
 // Graceful shutdown - clean up queues
 const shutdown = async (signal) => {
-  console.log(`${signal} received, closing queues...`);
+  logger.info(`${signal} received, closing queues...`);
   await Promise.allSettled([
     queueService.payslipQueue.close(),
     queueService.hrFormQueue.close(),
     deviceProcessingQueue.deviceProcessingQueue.close(),
   ]);
-  console.log("All queues closed. Exiting.");
+  logger.info("All queues closed. Exiting.");
   process.exit(0);
 };
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("SIGINT", () => shutdown("SIGINT"));
+
+process.on("unhandledRejection", (reason) => {
+  logger.error({ reason }, "UNHANDLED REJECTION");
+});
+
+process.on("uncaughtException", (err) => {
+  logger.error({ err }, "UNCAUGHT EXCEPTION");
+  process.exit(1);
+});
 
 // =====================
 // DB CONNECTION
@@ -44,12 +54,12 @@ process.on("SIGINT", () => shutdown("SIGINT"));
 pool
   .connect()
   .then(async () => {
-    console.log("PostgreSQL Connected");
+    logger.info("PostgreSQL Connected");
     try {
       await require("./models/hrForm.model").init();
-      console.log("HR Forms tables initialized");
+      logger.info("HR Forms tables initialized");
     } catch (err) {
-      console.error("HR Forms init error:", err.message);
+      logger.error({ err }, "HR Forms init error");
     }
     try {
       const permissionModel = require("./models/permission.model");
@@ -62,18 +72,18 @@ pool
           await permissionModel.getUserPermissions(adminId);
         if (existingPermissions.length === 0) {
           await permissionModel.seedAdminPermissions(adminId);
-          console.log("Admin permissions seeded successfully");
+          logger.info("Admin permissions seeded successfully");
         }
       }
     } catch (err) {
-      console.error("Admin permissions seed error:", err.message);
+      logger.error({ err }, "Admin permissions seed error");
     }
   })
-  .catch((err) => console.error("DB Error:", err));
+  .catch((err) => logger.error({ err }, "DB Error"));
 
 // =====================
 // START SERVER
 // =====================
 server.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+  logger.info(`Server running on http://localhost:${port}`);
 });

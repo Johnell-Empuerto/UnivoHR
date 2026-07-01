@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const notificationService = require("./notification.service");
+const logger = require("../utils/logger");
 
 const getUserByEmployeeId = async (employeeId) => {
   if (!employeeId) return null;
@@ -14,7 +15,7 @@ const notifyEmployee = async (employeeId, payload) => {
   if (!employeeId) return null;
   const user = await getUserByEmployeeId(employeeId);
   if (!user) {
-    console.warn(`[notifyEmployee] No user found for employee_id ${employeeId}`);
+    logger.warn(`[notifyEmployee] No user found for employee_id ${employeeId}`);
     return null;
   }
   return notificationService.notify({ ...payload, user_id: user.id });

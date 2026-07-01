@@ -7,7 +7,7 @@ export type Notification = {
   title: string;
   message: string;
   reference_id: number | null;
-  meta: any;
+  meta: Record<string, unknown>;
   is_read: boolean;
   created_at: string;
 };

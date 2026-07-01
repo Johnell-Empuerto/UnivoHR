@@ -3,31 +3,32 @@ const userModel = require("../models/user.model");
 const { ALL_PERMISSIONS, PERMISSION_GROUPS, EMPLOYEE_DEFAULT_PERMISSIONS } = require("../constants/permissions");
 const { ROLES } = require("../constants/roles");
 const audit = require("../services/audit.service");
+const logger = require("../utils/logger");
 
-const getAllPermissions = async (req, res) => {
+const getAllPermissions = async (req, res, next) => {
   try {
     res.json({
       allPermissions: ALL_PERMISSIONS,
       groups: PERMISSION_GROUPS,
     });
   } catch (error) {
-    console.error("Error fetching permissions:", error);
-    res.status(500).json({ message: "Failed to fetch permissions" });
+    logger.error({ err: error, correlationId: req.correlationId }, "Error fetching permissions");
+    next(error);
   }
 };
 
-const getUserPermissions = async (req, res) => {
+const getUserPermissions = async (req, res, next) => {
   try {
     const { id } = req.params;
     const permissions = await permissionModel.getUserPermissions(id);
     res.json({ userId: Number(id), permissions });
   } catch (error) {
-    console.error("Error fetching user permissions:", error);
-    res.status(500).json({ message: "Failed to fetch user permissions" });
+    logger.error({ err: error, correlationId: req.correlationId }, "Error fetching user permissions");
+    next(error);
   }
 };
 
-const setUserPermissions = async (req, res) => {
+const setUserPermissions = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { permissions } = req.body;
@@ -48,12 +49,12 @@ const setUserPermissions = async (req, res) => {
     });
     res.json({ message: "Permissions updated successfully" });
   } catch (error) {
-    console.error("Error setting user permissions:", error);
-    res.status(500).json({ message: "Failed to update permissions" });
+    logger.error({ err: error, correlationId: req.correlationId }, "Error setting user permissions");
+    next(error);
   }
 };
 
-const resetUserPermissions = async (req, res) => {
+const resetUserPermissions = async (req, res, next) => {
   try {
     const { id } = req.params;
     const user = await userModel.getUserById(id);
@@ -88,8 +89,8 @@ const resetUserPermissions = async (req, res) => {
     });
     res.json({ message: "Permissions reset" });
   } catch (error) {
-    console.error("Error resetting user permissions:", error);
-    res.status(500).json({ message: "Failed to reset permissions" });
+    logger.error({ err: error, correlationId: req.correlationId }, "Error resetting user permissions");
+    next(error);
   }
 };
 

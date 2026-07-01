@@ -5,10 +5,11 @@ const notificationDispatch = require("./notificationDispatch.service");
 const pool = require("../config/db");
 const emailTemplateService = require("./emailTemplate.service");
 const { cleanPlainText } = require("../utils/inputSanitizer");
+const logger = require("../utils/logger");
 
 // Helper function to format date
 const formatDate = (dateStr) => {
-  console.log("Formatting date:", dateStr);
+  logger.info({ dateStr }, "Formatting date");
   if (!dateStr) return "N/A";
   try {
     const date = new Date(dateStr);
@@ -17,10 +18,10 @@ const formatDate = (dateStr) => {
       month: "long",
       day: "numeric",
     });
-    console.log("Formatted date:", formatted);
+    logger.info({ formatted }, "Formatted date");
     return formatted;
   } catch (error) {
-    console.error("Date formatting error:", error);
+    logger.error({ err: error }, "Date formatting error");
     return "N/A";
   }
 };
@@ -45,7 +46,7 @@ const sendOvertimeEmailNotification = async (
     const allowed = await notificationDispatch.canSendEmail(ruleKey);
 
     if (!allowed) {
-      console.log(`Email notification for ${ruleKey} is disabled`);
+      logger.info(`Email notification for ${ruleKey} is disabled`);
       return;
     }
 
@@ -58,7 +59,7 @@ const sendOvertimeEmailNotification = async (
 
     const employee = employeeResult.rows[0];
     if (!employee || !employee.email) {
-      console.log(`No email found for employee ${overtime.employee_id}`);
+      logger.info(`No email found for employee ${overtime.employee_id}`);
       return;
     }
 
@@ -77,7 +78,7 @@ const sendOvertimeEmailNotification = async (
       rejection_reason: rejectionReason || "",
     };
 
-    console.log("Overtime email data:", data); // Debug log
+    logger.info({ data }, "Overtime email data");
 
     const { subject, html } = await emailTemplateService.renderEmail(
       templateType,
@@ -85,11 +86,11 @@ const sendOvertimeEmailNotification = async (
     );
 
     await smtpService.sendEmail(employee.email, subject, html);
-    console.log(
+    logger.info(
       `Overtime ${status} email sent to ${employee.email} using template`,
     );
   } catch (error) {
-    console.error(`Failed to send overtime ${status} email:`, error.message);
+    logger.error({ err: error }, `Failed to send overtime ${status} email`);
   }
 };
 
@@ -180,7 +181,7 @@ const approveOvertime = async (id, approver_id, comment, userRole) => {
   try {
     await sendOvertimeEmailNotification(request, "APPROVED");
   } catch (emailError) {
-    console.error("Email notification failed:", emailError);
+    logger.error({ err: emailError }, "Email notification failed");
   }
 
   notificationDispatch.sendInAppIfEnabled("overtime_approved", () =>
@@ -191,7 +192,7 @@ const approveOvertime = async (id, approver_id, comment, userRole) => {
       reference_id: id,
       meta: { overtime_id: id, status: "APPROVED" },
     }),
-  ).catch(err => console.error("[overtime] In-app notification error:", err.message));
+  ).catch(err => logger.error({ err }, "[overtime] In-app notification error"));
 
   return result;
 };
@@ -228,7 +229,7 @@ const rejectOvertime = async (id, approver_id, reason, userRole) => {
   try {
     await sendOvertimeEmailNotification(request, "REJECTED", reason);
   } catch (emailError) {
-    console.error("Email notification failed:", emailError);
+    logger.error({ err: emailError }, "Email notification failed");
   }
 
   notificationDispatch.sendInAppIfEnabled("overtime_rejected", () =>
@@ -239,7 +240,7 @@ const rejectOvertime = async (id, approver_id, reason, userRole) => {
       reference_id: id,
       meta: { overtime_id: id, status: "REJECTED", rejection_reason: reason },
     }),
-  ).catch(err => console.error("[overtime] In-app notification error:", err.message));
+  ).catch(err => logger.error({ err }, "[overtime] In-app notification error"));
 
   return result;
 };

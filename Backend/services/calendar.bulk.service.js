@@ -3,6 +3,7 @@ const branchModel = require("../models/branch.model");
 const XLSX = require("xlsx");
 const path = require("path");
 const fs = require("fs");
+const logger = require("../utils/logger");
 
 const MONTH_NAMES_CAL = {
   jan: 1, january: 1,
@@ -162,26 +163,26 @@ class CalendarBulkService {
 
   resolveBranch(branchValue, branchLookup) {
     const trimmed = branchValue?.toString().trim();
-    console.log("[BulkUpload] Branch Value:", JSON.stringify(branchValue));
-    console.log("[BulkUpload] Trimmed:", JSON.stringify(trimmed));
+    logger.info({ branchValue: JSON.stringify(branchValue) }, "[BulkUpload] Branch Value");
+    logger.info({ trimmed: JSON.stringify(trimmed) }, "[BulkUpload] Trimmed");
     if (!trimmed) {
-      console.log("[BulkUpload] Empty branch → GLOBAL");
+      logger.info("[BulkUpload] Empty branch → GLOBAL");
       return { branch_id: null };
     }
 
     const key = trimmed.toLowerCase();
-    console.log("[BulkUpload] Resolved Key:", key);
+    logger.info({ key }, "[BulkUpload] Resolved Key");
     const match = branchLookup[key];
-    console.log("[BulkUpload] Match:", match);
+    logger.info({ match }, "[BulkUpload] Match");
     if (!match) {
-      console.log("[BulkUpload] Branch not found → ERROR");
+      logger.info("[BulkUpload] Branch not found → ERROR");
       return { error: `Branch "${trimmed}" does not exist in system.` };
     }
     if (!match.is_active) {
-      console.log("[BulkUpload] Branch inactive → ERROR");
+      logger.info("[BulkUpload] Branch inactive → ERROR");
       return { error: `Branch "${trimmed}" is inactive.` };
     }
-    console.log("[BulkUpload] Branch resolved → id:", match.id);
+    logger.info({ branchId: match.id }, "[BulkUpload] Branch resolved");
     return { branch_id: match.id };
   }
 

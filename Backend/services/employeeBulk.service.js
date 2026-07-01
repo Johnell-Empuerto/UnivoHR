@@ -11,6 +11,7 @@ const { getEmployeeCodeSettings } = require("./applicant.service");
 const userModel = require("../models/user.model");
 const permissionModel = require("../models/permission.model");
 const { EMPLOYEE_DEFAULT_PERMISSIONS } = require("../constants/permissions");
+const logger = require("../utils/logger");
 
 const VALID_EMPLOYMENT_STATUSES = ["PROBATIONARY", "REGULAR"];
 const VALID_EMPLOYEE_STATUSES = ["ACTIVE", "RESIGNED", "TERMINATED"];
@@ -878,7 +879,7 @@ const commitImport = async (batchId, userId, req) => {
         }
       }
     } catch (counterErr) {
-      console.error("[EmployeeBulk] Failed to update code counter:", counterErr.message);
+      logger.error({ err: counterErr }, "[EmployeeBulk] Failed to update code counter");
     }
 
     try {
@@ -895,7 +896,7 @@ const commitImport = async (batchId, userId, req) => {
         description: desc,
       });
     } catch (auditErr) {
-      console.error("[EmployeeBulk] Audit log error:", auditErr.message);
+      logger.error({ err: auditErr }, "[EmployeeBulk] Audit log error");
     }
 
     return {

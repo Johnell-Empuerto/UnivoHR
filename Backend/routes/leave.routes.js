@@ -10,6 +10,7 @@ const requirePermission = require("../middleware/permission.middleware");
 const validate = require("../middleware/validate.middleware");
 
 const { ROLES } = require("../constants/roles");
+const logger = require("../utils/logger");
 
 // Joi schema for leave validation
 const Joi = require("joi");
@@ -60,7 +61,7 @@ const canAccessLeaveApprovers = async (req, res, next) => {
     );
     if (result.rows[0].is_leave_approver) return next();
   } catch (error) {
-    console.error("Error checking leave approver status:", error);
+    logger.error({ err: error }, "Error checking leave approver status:");
   }
 
   return res.status(403).json({
@@ -144,7 +145,7 @@ router.get(
       );
       if (result.rows[0].is_leave_approver) return next();
     } catch (error) {
-      console.error("Error checking leave approver status:", error);
+      logger.error({ err: error }, "Error checking leave approver status:");
     }
 
     return res.status(403).json({
@@ -186,7 +187,7 @@ router.put(
       );
       if (approverResult.rows.length > 0) return next();
     } catch (error) {
-      console.error("Error checking leave approver status:", error);
+      logger.error({ err: error }, "Error checking leave approver status:");
     }
 
     return res.status(403).json({

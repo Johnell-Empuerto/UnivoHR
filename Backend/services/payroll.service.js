@@ -3,6 +3,7 @@ const queueService = require("./queue.service");
 const notificationHelper = require("./notificationHelper.service");
 const notificationDispatch = require("./notificationDispatch.service");
 const pool = require("../config/db");
+const logger = require("../utils/logger");
 
 const getEmployeesWithPayrollForCutoff = async (cutoff_start, cutoff_end) => {
   const result = await pool.query(
@@ -41,7 +42,7 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id) =>
         message: "Your payroll for the selected cutoff has been generated and is ready for review.",
         reference_id: null,
         meta: { cutoff_start, cutoff_end, branch_id },
-      }).catch(err => console.error("[payroll] Notification error:", err.message));
+      }).catch(err => logger.error({ err }, "[payroll] Notification error"));
     }
   }
 
@@ -97,10 +98,7 @@ const deleteDeduction = async (id) => {
 
 // MARK AS PAID - OPTIMIZED (single query for employee)
 const markAsPaid = async (id, userId = null) => {
-  console.log("[Payroll/Pay] UPDATE payroll SET status=PAID", {
-    payroll_id: id,
-    user_id: userId,
-  });
+  logger.info({ payroll_id: id, user_id: userId }, "[Payroll/Pay] UPDATE payroll SET status=PAID");
 
   const result = await pool.query(
     `
@@ -112,10 +110,7 @@ const markAsPaid = async (id, userId = null) => {
     [id, userId],
   );
 
-  console.log("[Payroll/Pay] UPDATE result", {
-    payroll_id: id,
-    row_count: result.rowCount,
-  });
+  logger.info({ payroll_id: id, row_count: result.rowCount }, "[Payroll/Pay] UPDATE result");
 
   const payroll = result.rows[0];
   if (payroll) {
@@ -132,7 +127,7 @@ const markAsPaid = async (id, userId = null) => {
       if (emailAllowed) {
         await queueService.addPayslipToQueue(payroll, employee);
       } else {
-        console.log("[payroll] Payslip email disabled for payroll_marked_paid, skipping queue");
+        logger.info("[payroll] Payslip email disabled for payroll_marked_paid, skipping queue");
       }
     }
 
@@ -144,7 +139,7 @@ const markAsPaid = async (id, userId = null) => {
         reference_id: payroll.id,
         meta: { payroll_id: payroll.id, cutoff_start: payroll.cutoff_start, cutoff_end: payroll.cutoff_end },
       }),
-    ).catch(err => console.error("[payroll] Employee notification error:", err.message));
+    ).catch(err => logger.error({ err }, "[payroll] Employee notification error"));
   }
 
   return payroll;
@@ -232,9 +227,9 @@ const markAllAsPaid = async (cutoff_start, cutoff_end, userId = null) => {
   const emailAllowed = await notificationDispatch.canSendEmail("payroll_marked_paid");
   if (payrollsWithEmployees.length > 0 && emailAllowed) {
     await queueService.addBulkPayslipsToQueue(payrollsWithEmployees);
-    console.log(`[payroll] ${payrollsWithEmployees.length} payslip(s) queued`);
+    logger.info(`[payroll] ${payrollsWithEmployees.length} payslip(s) queued`);
   } else if (payrollsWithEmployees.length > 0) {
-    console.log("[payroll] Bulk payslip email disabled for payroll_marked_paid, skipping queue");
+    logger.info("[payroll] Bulk payslip email disabled for payroll_marked_paid, skipping queue");
   }
 
   for (const p of result.rows) {
@@ -246,7 +241,7 @@ const markAllAsPaid = async (cutoff_start, cutoff_end, userId = null) => {
         reference_id: p.id,
         meta: { payroll_id: p.id, cutoff_start: p.cutoff_start, cutoff_end: p.cutoff_end },
       }),
-    ).catch(err => console.error("[payroll] Bulk employee notification error:", err.message));
+    ).catch(err => logger.error({ err }, "[payroll] Bulk employee notification error"));
   }
 
   return {

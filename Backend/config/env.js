@@ -1,5 +1,6 @@
 const path = require("path");
 require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") });
+const logger = require("../utils/logger");
 
 const requiredEnv = [
   "JWT_SECRET",
@@ -12,7 +13,7 @@ const requiredEnv = [
 
 for (const key of requiredEnv) {
   if (!process.env[key]) {
-    console.error(`Missing required environment variable: ${key}`);
+    logger.error(`Missing required environment variable: ${key}`);
     process.exit(1);
   }
 }
@@ -21,7 +22,7 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 
 // In production, require DEVICE_API_KEY
 if (NODE_ENV === "production" && !process.env.DEVICE_API_KEY) {
-  console.error("[SECURITY] FATAL: DEVICE_API_KEY must be set in production");
+  logger.error("[SECURITY] FATAL: DEVICE_API_KEY must be set in production");
   process.exit(1);
 }
 

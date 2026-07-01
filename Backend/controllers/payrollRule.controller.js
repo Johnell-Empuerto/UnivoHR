@@ -1,21 +1,21 @@
 const payrollRuleService = require("../services/payrollRule.service");
 
-const getAll = async (req, res) => {
+const getAll = async (req, res, next) => {
   try {
     const rows = await payrollRuleService.getAll();
     res.json(rows);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getByKey = async (req, res) => {
+const getByKey = async (req, res, next) => {
   try {
     const row = await payrollRuleService.getByKey(req.params.key);
     if (!row) return res.status(404).json({ message: "Payroll rule not found" });
     res.json(row);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

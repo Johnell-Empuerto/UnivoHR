@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const logger = require("../utils/logger");
 
 const ALLOWED_TABLES = new Set([
   "users", "employees", "attendance", "leaves", "overtime_requests",
@@ -69,7 +70,7 @@ const auditLog = async (req, {
       ],
     );
   } catch (err) {
-    console.error("[Audit] Failed to log:", err.message);
+    logger.error({ err }, "[Audit] Failed to log");
   }
 };
 
@@ -83,7 +84,7 @@ const fetchOldValues = async (tableName, recordId) => {
     );
     return result.rows[0]?.data || null;
   } catch (err) {
-    console.error(`[Audit] Failed to fetch old values from ${tableName}:`, err.message);
+    logger.error({ err }, `[Audit] Failed to fetch old values from ${tableName}`);
     return null;
   }
 };

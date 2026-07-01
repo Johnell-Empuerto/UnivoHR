@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useActiveBranches } from "@/hooks/useBranches";
+import { useBranchRestDays } from "@/hooks/useBranchRestDays";
 import {
-  getAllBranchRestDays,
   createBranchRestDay,
   deleteBranchRestDay,
   getDayLabel,
@@ -32,27 +33,17 @@ import { Sun, Trash2, Plus } from "lucide-react";
 
 const BranchRestDays = () => {
   const { data: branches = [] } = useActiveBranches();
-  const [branchRestDays, setBranchRestDays] = useState<BranchRestDay[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data: branchRestDays = [], isLoading, error } = useBranchRestDays();
+  const queryClient = useQueryClient();
   const [branchFilter, setBranchFilter] = useState("");
   const [selectedBranchId, setSelectedBranchId] = useState("");
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState("");
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const r = await getAllBranchRestDays();
-      setBranchRestDays(r);
-    } catch {
-      toast.error("Failed to load branch rest days");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (error) {
+      toast.error("Failed to load branch rest days");
+    }
+  }, [error]);
 
   const filtered = branchFilter && branchFilter !== "all"
     ? branchRestDays.filter((r) => r.branch_id === parseInt(branchFilter))
@@ -78,7 +69,7 @@ const BranchRestDays = () => {
 
     try {
       const created = await createBranchRestDay(branchId, { day_of_week: dow });
-      setBranchRestDays((prev) => [...prev, created]);
+      queryClient.setQueryData<BranchRestDay[]>(["rest-days", "branch"], (old) => [...(old ?? []), created]);
       setSelectedBranchId("");
       setSelectedDayOfWeek("");
       toast.success("Branch rest day added");
@@ -90,7 +81,7 @@ const BranchRestDays = () => {
   const handleRemove = async (id: number) => {
     try {
       await deleteBranchRestDay(id);
-      setBranchRestDays((prev) => prev.filter((r) => r.id !== id));
+      queryClient.setQueryData<BranchRestDay[]>(["rest-days", "branch"], (old) => (old ?? []).filter((r) => r.id !== id));
       toast.success("Branch rest day removed");
     } catch {
       toast.error("Failed to remove");
@@ -157,7 +148,7 @@ const BranchRestDays = () => {
           </Select>
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <p className="text-sm text-muted-foreground">Loading...</p>
         ) : filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground italic">

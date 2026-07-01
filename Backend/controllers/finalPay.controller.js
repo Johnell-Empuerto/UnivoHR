@@ -3,9 +3,10 @@ const finalPayService = require("../services/finalPay.service");
 const audit = require("../services/audit.service");
 const { getUserBranchIds } = require("../utils/branchAccess");
 const { ROLES } = require("../constants/roles");
+const logger = require("../utils/logger");
 
 // Get employees eligible for final pay
-const getEmployeesForFinalPay = async (req, res) => {
+const getEmployeesForFinalPay = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, search = "" } = req.query;
 
@@ -30,12 +31,12 @@ const getEmployeesForFinalPay = async (req, res) => {
       pagination: result.pagination,
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 // Calculate final pay (preview) — with branch access
-const calculateFinalPay = async (req, res) => {
+const calculateFinalPay = async (req, res, next) => {
   try {
     const { employeeId } = req.params;
 
@@ -55,12 +56,12 @@ const calculateFinalPay = async (req, res) => {
     const result = await finalPayService.calculateFinalPay(employeeId);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 // Process final pay — with branch access
-const processFinalPay = async (req, res) => {
+const processFinalPay = async (req, res, next) => {
   try {
     const { employeeId } = req.params;
 
@@ -89,12 +90,12 @@ const processFinalPay = async (req, res) => {
     });
     res.json(result);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 // Get final pay history — with branch access
-const getFinalPayHistory = async (req, res) => {
+const getFinalPayHistory = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, search = "" } = req.query;
 
@@ -115,12 +116,12 @@ const getFinalPayHistory = async (req, res) => {
     );
     res.json(result);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 // Get final pay by ID — with branch access
-const getFinalPayById = async (req, res) => {
+const getFinalPayById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const result = await finalPayService.getFinalPayById(id);
@@ -137,12 +138,12 @@ const getFinalPayById = async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 // Download final pay slip — with branch access
-const downloadFinalPaySlip = async (req, res) => {
+const downloadFinalPaySlip = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -160,8 +161,8 @@ const downloadFinalPaySlip = async (req, res) => {
 
     await finalPayService.downloadFinalPaySlip(id, res);
   } catch (err) {
-    console.error("Download error:", err.message);
-    res.status(500).json({ message: err.message });
+    logger.error({ err, correlationId: req.correlationId }, "Download error");
+    next(err);
   }
 };
 

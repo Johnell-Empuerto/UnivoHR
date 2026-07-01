@@ -1,12 +1,12 @@
 const employeeRequirementService = require("../services/employeeRequirement.service");
 const audit = require("../services/audit.service");
 
-const getByOnboardingId = async (req, res) => {
+const getByOnboardingId = async (req, res, next) => {
   try {
     const requirements = await employeeRequirementService.getByOnboardingId(req.params.onboardingId);
     res.json(requirements);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

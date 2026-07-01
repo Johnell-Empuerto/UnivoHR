@@ -2,7 +2,7 @@ const profileService = require("../services/profile.service");
 const audit = require("../services/audit.service");
 
 // Get current user's profile
-const getProfile = async (req, res) => {
+const getProfile = async (req, res, next) => {
   try {
     const employeeId = req.user.employee_id;
 
@@ -16,12 +16,12 @@ const getProfile = async (req, res) => {
     if (error.message === "Profile not found") {
       return res.status(404).json({ message: error.message });
     }
-    res.status(500).json({ message: "Server error", error: error.message });
+    next(error);
   }
 };
 
 // Update user's own profile (limited fields for self-service)
-const updateProfile = async (req, res) => {
+const updateProfile = async (req, res, next) => {
   try {
     const employeeId = req.user.employee_id;
 
@@ -60,7 +60,7 @@ const updateProfile = async (req, res) => {
       profile: updated,
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    next(error);
   }
 };
 

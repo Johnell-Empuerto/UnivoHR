@@ -2,6 +2,7 @@ const model = require("../models/kpiEvaluation.model");
 const templateModel = require("../models/kpiTemplate.model");
 const employeeModel = require("../models/employee.model");
 const notificationService = require("./notification.service");
+const logger = require("../utils/logger");
 
 const VALID_STATUSES = ["Draft", "In Progress", "Submitted", "Completed", "Approved"];
 const VALID_RECOMMENDATIONS = ["Regularize", "Extend Probation", "Training", "Warning", "Terminate"];
@@ -11,7 +12,7 @@ const notifyParty = (userIds, type, title, message, referenceId, meta) => {
   const promises = userIds.map(id => notificationService.notify({
     user_id: id, type, title, message, reference_id: referenceId, meta,
   }));
-  Promise.all(promises).catch(err => console.error("[KPI] Notification error:", err));
+  Promise.all(promises).catch(err => logger.error({ err }, "[KPI] Notification error"));
 };
 
 const assign = async (data) => {
@@ -42,7 +43,7 @@ const assign = async (data) => {
         { evaluation_id: evaluation.id, employee_id: data.employee_id, evaluator_id: data.evaluator_id, template_id: data.template_id, period },
       );
     }
-  }).catch(err => console.error("[KPI] Failed to send assign notifications:", err));
+  }).catch(err => logger.error({ err }, "[KPI] Failed to send assign notifications"));
 
   return evaluation;
 };
@@ -124,7 +125,7 @@ const submit = async (evaluationId, evaluatorId, data) => {
       evaluationId,
       { evaluation_id: evaluationId, employee_id: evalData.employee_id, evaluator_id: evalData.evaluator_id, final_score: finalScore },
     );
-  }).catch(err => console.error("[KPI] Failed to send submit notification:", err));
+  }).catch(err => logger.error({ err }, "[KPI] Failed to send submit notification"));
 
   return updated;
 };
@@ -148,7 +149,7 @@ const saveSelfEvaluation = async (evaluationId, employeeId, data) => {
       evaluationId,
       { evaluation_id: evaluationId, employee_id: employeeId, evaluator_id: evalData.evaluator_id },
     );
-  }).catch(err => console.error("[KPI] Failed to send self-evaluation notification:", err));
+  }).catch(err => logger.error({ err }, "[KPI] Failed to send self-evaluation notification"));
 
   return updated;
 };
@@ -189,7 +190,7 @@ const hrApprove = async (evaluationId, data) => {
       evaluationId,
       { evaluation_id: evaluationId, employee_id: evalData.employee_id, evaluator_id: evalData.evaluator_id, status: "Approved" },
     );
-  }).catch(err => console.error("[KPI] Failed to send approval notification:", err));
+  }).catch(err => logger.error({ err }, "[KPI] Failed to send approval notification"));
 
   return updated;
 };
@@ -214,7 +215,7 @@ const hrReject = async (evaluationId, data) => {
       evaluationId,
       { evaluation_id: evaluationId, employee_id: evalData.employee_id, evaluator_id: evalData.evaluator_id, status: "Completed" },
     );
-  }).catch(err => console.error("[KPI] Failed to send rejection notification:", err));
+  }).catch(err => logger.error({ err }, "[KPI] Failed to send rejection notification"));
 
   return updated;
 };
@@ -260,7 +261,7 @@ const bulkAssign = async (data, createdBy) => {
         null,
         { evaluator_id: data.evaluator_id, template_id: data.template_id, period },
       );
-    }).catch(err => console.error("[KPI] Failed to send bulk assign notifications:", err));
+    }).catch(err => logger.error({ err }, "[KPI] Failed to send bulk assign notifications"));
   }
 
   return result;

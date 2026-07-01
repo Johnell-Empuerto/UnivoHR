@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const logger = require("../utils/logger");
 
 // ============================================
 // MOVING AVERAGE FORECASTING
@@ -357,7 +358,7 @@ const runAllForecasts = async () => {
   try { results.absenteeism = await forecastAbsenteeism(); }
   catch (err) { results.errors.push(`Absenteeism: ${err.message}`); }
 
-  console.log(`[Forecast] All forecasts generated. Attendance:${results.attendance.length} Payroll:${results.payroll.length} OT:${results.overtime.length} Abs:${results.absenteeism.length}`);
+  logger.info(`[Forecast] All forecasts generated. Attendance:${results.attendance.length} Payroll:${results.payroll.length} OT:${results.overtime.length} Abs:${results.absenteeism.length}`);
   return results;
 };
 
@@ -373,7 +374,7 @@ const forecastByBranch = async () => {
       const abs = await forecastAbsenteeism({ branch_id: branch.id });
       results.push({ branch_id: branch.id, branch_name: branch.name, attendance: att.length, payroll: pay.length, overtime: ot.length, absenteeism: abs.length });
     } catch (err) {
-      console.error(`[Forecast] Branch ${branch.name} failed:`, err.message);
+      logger.error({ err }, `[Forecast] Branch ${branch.name} failed`);
     }
   }
   return results;

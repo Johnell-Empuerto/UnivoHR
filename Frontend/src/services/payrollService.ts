@@ -82,7 +82,7 @@ export const getEmployeeSalary = async (
 
   return res.data;
 };
-export const updateEmployeeSalary = async (id: number, data: any) => {
+export const updateEmployeeSalary = async (id: number, data: Record<string, unknown>) => {
   const res = await api.put(`/payroll/salary/${id}`, data);
   return res.data;
 };
@@ -92,12 +92,12 @@ export const getDeductions = async (employeeId: number) => {
   return res.data;
 };
 
-export const createDeduction = async (data: any) => {
+export const createDeduction = async (data: Record<string, unknown>) => {
   const res = await api.post(`/payroll/deductions`, data);
   return res.data;
 };
 
-export const updateDeduction = async (id: number, data: any) => {
+export const updateDeduction = async (id: number, data: Record<string, unknown>) => {
   const res = await api.put(`/payroll/deductions/${id}`, data);
   return res.data;
 };
@@ -144,6 +144,7 @@ export const getMySalaryDetails = async () => {
 export const downloadPayslip = async (id: number) => {
   const response = await api.get(`/payroll/${id}/payslip`, {
     responseType: "blob",
+    timeout: 60000,
   });
 
   return response.data;

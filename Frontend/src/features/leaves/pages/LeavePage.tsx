@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useMyLeavesPaginated } from "@/hooks/useMyLeavesPaginated";
+import { useAdminLeaves } from "@/hooks/useAdminLeaves";
+import { useIsOvertimeApprover } from "@/hooks/useOvertimeRequests";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LeaveTable from "../components/LeaveTable";
@@ -10,19 +14,6 @@ import { leaveService } from "@/services/leaveService";
 import { toast } from "sonner";
 import { CalendarDays } from "lucide-react";
 import Loader from "@/components/shared/Loader";
-import { isApprover as checkIsApprover } from "@/services/overtimeService";
-
-type Leave = {
-  id: number;
-  employee_name: string;
-  employee_code?: string;
-  employee_id?: number;
-  type: string;
-  from_date?: string;
-  to_date?: string;
-  reason?: string;
-  status: string;
-};
 
 type PaginationData = {
   page: number;
@@ -33,24 +24,19 @@ type PaginationData = {
 
 const LeavePage = () => {
   const { user, hasPermission } = useAuth();
-  const [isLeaveApprover, setIsLeaveApprover] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   const isHR = hasPermission("leave.manage");
+  const { data: isLeaveApprover = false } = useIsOvertimeApprover();
   const canManageCredits = hasPermission("leave.credits.manage");
 
-  // My Leaves State
-  const [myLeaves, setMyLeaves] = useState<Leave[]>([]);
   const [myLeavesPagination, setMyLeavesPagination] = useState<PaginationData>({
     page: 1,
     limit: 10,
     total: 0,
     totalPages: 1,
   });
-  const [myLeavesLoading, setMyLeavesLoading] = useState(false);
 
-  // All Leaves State (for admin/approvers)
-  const [allLeaves, setAllLeaves] = useState<Leave[]>([]);
   const [allLeavesPagination, setAllLeavesPagination] =
     useState<PaginationData>({
       page: 1,
@@ -58,101 +44,32 @@ const LeavePage = () => {
       total: 0,
       totalPages: 1,
     });
-  const [allLeavesLoading, setAllLeavesLoading] = useState(false);
 
-  // Filter states for all leaves
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
 
-  const fetchMyLeaves = async (page: number, limit: number) => {
-    if (!user) return;
+  const { data: myLeavesQuery, isFetching: myLeavesFetching } = useMyLeavesPaginated(
+    myLeavesPagination.page, myLeavesPagination.limit,
+  );
+  const { data: allLeavesQuery, isFetching: allLeavesFetching } = useAdminLeaves(
+    allLeavesPagination.page, allLeavesPagination.limit, search, statusFilter, typeFilter,
+  );
 
-    try {
-      setMyLeavesLoading(true);
-      const response = await leaveService.getMyLeaves(page, limit);
-      setMyLeaves(response.data);
-      setMyLeavesPagination(response.pagination);
-    } catch (error) {
-      console.error("Failed to fetch my leaves:", error);
-    } finally {
-      setMyLeavesLoading(false);
-    }
-  };
-
-  const fetchAllLeaves = async (
-    page: number,
-    limit: number,
-    searchTerm: string,
-    status: string,
-    type: string,
-  ) => {
-    if (!(isHR || isLeaveApprover)) return;
-
-    try {
-      setAllLeavesLoading(true);
-      const response = await leaveService.getAllLeaves(
-        page,
-        limit,
-        searchTerm,
-        status,
-        type,
-      );
-      setAllLeaves(response.data);
-      setAllLeavesPagination(response.pagination);
-    } catch (error) {
-      console.error("Failed to fetch all leaves:", error);
-    } finally {
-      setAllLeavesLoading(false);
-    }
-  };
+  const myLeaves = myLeavesQuery?.data ?? [];
+  const allLeaves = allLeavesQuery?.data ?? [];
 
   useEffect(() => {
-    const checkApproverStatus = async () => {
-      if (user?.id) {
-        try {
-          const result = await checkIsApprover();
-          setIsLeaveApprover(result.isApprover);
-        } catch (error) {
-          setIsLeaveApprover(false);
-        }
-      }
-    };
-    checkApproverStatus();
-  }, [user]);
-
-  // Fetch my leaves when component mounts or pagination changes
-  useEffect(() => {
-    fetchMyLeaves(myLeavesPagination.page, myLeavesPagination.limit);
-  }, [user, myLeavesPagination.page, myLeavesPagination.limit]);
-
-  // Fetch all leaves when filters or pagination change
-  useEffect(() => {
-    if (isHR || isLeaveApprover) {
-      fetchAllLeaves(
-        allLeavesPagination.page,
-        allLeavesPagination.limit,
-        search,
-        statusFilter,
-        typeFilter,
-      );
+    if (myLeavesQuery?.pagination) {
+      setMyLeavesPagination(myLeavesQuery.pagination);
     }
-  }, [
-    isHR,
-    isLeaveApprover,
-    allLeavesPagination.page,
-    allLeavesPagination.limit,
-    search,
-    statusFilter,
-    typeFilter,
-  ]);
+  }, [myLeavesQuery]);
 
-  // Initial loading state
   useEffect(() => {
-    if (user) {
-      setLoading(false);
+    if (allLeavesQuery?.pagination) {
+      setAllLeavesPagination(allLeavesQuery.pagination);
     }
-  }, [user]);
+  }, [allLeavesQuery]);
 
   const handleUpdate = async (
     id: number,
@@ -163,17 +80,8 @@ const LeavePage = () => {
       await leaveService.updateLeaveStatus(id, status, rejectionReason);
       toast.success(`Leave ${status.toLowerCase()} successfully`);
 
-      // Refresh both lists
-      fetchMyLeaves(myLeavesPagination.page, myLeavesPagination.limit);
-      if (isHR || isLeaveApprover) {
-        fetchAllLeaves(
-          allLeavesPagination.page,
-          allLeavesPagination.limit,
-          search,
-          statusFilter,
-          typeFilter,
-        );
-      }
+      queryClient.invalidateQueries({ queryKey: ["my-leaves"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-leaves"] });
     } catch (error: any) {
       const message = error?.response?.data?.message || "Something went wrong";
       if (message.includes("cannot approve your own leave")) {
@@ -185,16 +93,8 @@ const LeavePage = () => {
   };
 
   const handleRefresh = () => {
-    fetchMyLeaves(myLeavesPagination.page, myLeavesPagination.limit);
-    if (isHR || isLeaveApprover) {
-      fetchAllLeaves(
-        allLeavesPagination.page,
-        allLeavesPagination.limit,
-        search,
-        statusFilter,
-        typeFilter,
-      );
-    }
+    queryClient.invalidateQueries({ queryKey: ["my-leaves"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-leaves"] });
   };
 
   const handleMyLeavesPageChange = (page: number) => {
@@ -217,13 +117,12 @@ const LeavePage = () => {
     return isHR || isLeaveApprover;
   };
 
-  if (loading) {
+  if (!user) {
     return <Loader message="Loading..." fullPage />;
   }
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
           <CalendarDays className="h-5 w-5 text-primary" />
@@ -240,7 +139,6 @@ const LeavePage = () => {
         </div>
       </div>
 
-      {/* Tabs */}
       <Tabs defaultValue="my" className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2 sm:grid-cols-3">
           <TabsTrigger value="my">My Leaves</TabsTrigger>
@@ -259,7 +157,7 @@ const LeavePage = () => {
             pagination={myLeavesPagination}
             onPageChange={handleMyLeavesPageChange}
             onLimitChange={handleMyLeavesLimitChange}
-            loading={myLeavesLoading}
+            loading={myLeavesFetching && myLeaves.length === 0}
           />
         </TabsContent>
 
@@ -275,7 +173,7 @@ const LeavePage = () => {
               onSearch={setSearch}
               onStatusFilter={setStatusFilter}
               onTypeFilter={setTypeFilter}
-              loading={allLeavesLoading}
+              loading={allLeavesFetching && allLeaves.length === 0}
             />
           </TabsContent>
         )}

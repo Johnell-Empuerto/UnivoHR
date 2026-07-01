@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getMyHrAssignments } from "@/services/hrFormService";
+import { useMyHrAssignments } from "@/hooks/useMyHrAssignments";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,6 @@ import { ClipboardList, Eye } from "lucide-react";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
 import { formatDateShort } from "@/utils/formatDate";
-import { toast } from "sonner";
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
@@ -24,28 +23,11 @@ const statusBadge = (s: string) => {
 
 const MyFormsPage = () => {
   const navigate = useNavigate();
-  const [assignments, setAssignments] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
-  const [total, setTotal] = useState(0);
-
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        setLoading(true);
-        const r = await getMyHrAssignments(page, pageSize);
-        setAssignments(r.data || []);
-        setTotal(r.pagination?.total || 0);
-      } catch {
-        toast.error("Failed to load forms");
-        setAssignments([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
-  }, [page, pageSize]);
+  const { data, isLoading } = useMyHrAssignments(page, pageSize);
+  const assignments = data?.data || [];
+  const total = data?.pagination?.total || 0;
 
   return (
     <div className="space-y-6 p-6">
@@ -55,7 +37,7 @@ const MyFormsPage = () => {
       </div>
       <Card className="shadow-sm">
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <Loader message="Loading forms..." />
           ) : assignments.length === 0 ? (
             <EmptyState message="No forms assigned" description="No forms have been assigned to you yet." />

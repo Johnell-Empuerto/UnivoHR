@@ -4,6 +4,7 @@ const controller = require("../controllers/man_hour_report.controller");
 const authenticate = require("../middleware/auth.middleware");
 const requirePermission = require("../middleware/permission.middleware");
 const { ROLES } = require("../constants/roles");
+const logger = require("../utils/logger");
 
 const HR_ACCESS = [ROLES.ADMIN];
 const ALL = [ROLES.ADMIN, ROLES.EMPLOYEE];
@@ -30,7 +31,7 @@ router.get("/:id", authenticate, async (req, res, next) => {
       );
       if (result.rows.length > 0 && result.rows[0].employee_id === req.user.employee_id) return next();
     } catch (error) {
-      console.error("Error checking ownership:", error);
+      logger.error({ err: error }, "Error checking ownership:");
     }
   }
 
@@ -41,9 +42,9 @@ router.get("/:id", authenticate, async (req, res, next) => {
       [req.user.id],
     );
     if (result.rows[0].is_approver) return next();
-  } catch (error) {
-    console.error("Error checking approver status:", error);
-  }
+    } catch (error) {
+      logger.error({ err: error }, "Error checking approver status:");
+    }
 
   return res.status(403).json({ message: "Forbidden", required: HR_ACCESS, yourRole: role });
 }, controller.getManHourReportDetails);
@@ -60,8 +61,8 @@ router.get("/", authenticate, async (req, res, next) => {
     );
     if (result.rows[0].is_approver) return next();
   } catch (error) {
-    console.error("Error checking approver status:", error);
-  }
+    logger.error({ err: error }, "Error checking approver status:");
+    }
 
   return res.status(403).json({ message: "Forbidden", required: HR_ACCESS, yourRole: role });
 }, controller.getAllManHourReports);
@@ -76,7 +77,7 @@ const approveCheck = async (req, res, next) => {
       [req.user.id],
     );
     if (result.rows[0].is_approver) return next();
-  } catch (error) { console.error("Error checking approver status:", error); }
+  } catch (error) { logger.error({ err: error }, "Error checking approver status:"); }
   return res.status(403).json({ message: "Forbidden", required: HR_ACCESS, yourRole: role });
 };
 

@@ -11,7 +11,7 @@ const formatDateForMeta = (dateString) => {
 
 // EMPLOYEE CONTROLLERS
 
-const createOvertime = async (req, res) => {
+const createOvertime = async (req, res, next) => {
   try {
     const employee_id = req.user.employee_id;
     const employeeName =
@@ -72,11 +72,11 @@ const createOvertime = async (req, res) => {
 
     res.json({ message: "Overtime request submitted successfully", data });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getMyOvertime = async (req, res) => {
+const getMyOvertime = async (req, res, next) => {
   try {
     const employee_id = req.user.employee_id;
     const { page = 1, limit = 10, search = "", status = "" } = req.query;
@@ -91,7 +91,7 @@ const getMyOvertime = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -99,7 +99,7 @@ const getMyOvertime = async (req, res) => {
 // ADMIN/HR CONTROLLERS
 // ==========================================
 
-const getAllOvertime = async (req, res) => {
+const getAllOvertime = async (req, res, next) => {
   try {
     let user_id = req.user?.id;
     const userRole = req.user?.role;
@@ -131,11 +131,11 @@ const getAllOvertime = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getOvertimeDetails = async (req, res) => {
+const getOvertimeDetails = async (req, res, next) => {
   try {
     const { id } = req.params;
     let user_id = req.user?.id;
@@ -150,11 +150,11 @@ const getOvertimeDetails = async (req, res) => {
     const data = await overtimeService.getOvertimeDetails(id, user_id);
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const approveOvertime = async (req, res) => {
+const approveOvertime = async (req, res, next) => {
   try {
     const { id } = req.params;
     const approver_id = req.user.id;
@@ -195,11 +195,11 @@ const approveOvertime = async (req, res) => {
 
     res.json({ message: "Overtime request approved", data });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const rejectOvertime = async (req, res) => {
+const rejectOvertime = async (req, res, next) => {
   try {
     const { id } = req.params;
     const approver_id = req.user.id;
@@ -245,11 +245,11 @@ const rejectOvertime = async (req, res) => {
 
     res.json({ message: "Overtime request rejected", data });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const deleteOvertime = async (req, res) => {
+const deleteOvertime = async (req, res, next) => {
   try {
     await overtimeService.removeRequest(req.params.id);
     audit.auditLog(req, {
@@ -275,18 +275,18 @@ const deleteOvertime = async (req, res) => {
 // APPROVER MAPPINGS CONTROLLERS
 // ==========================================
 
-const getApprovers = async (req, res) => {
+const getApprovers = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, search = "", type = "" } = req.query;
 
     const data = await overtimeService.getApprovers(page, limit, search, type);
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const createApprover = async (req, res) => {
+const createApprover = async (req, res, next) => {
   try {
     const data = await overtimeService.createApprover(req.body);
     audit.auditLog(req, {
@@ -298,11 +298,11 @@ const createApprover = async (req, res) => {
     });
     res.json({ message: "Approver mapping created", data });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const updateApprover = async (req, res) => {
+const updateApprover = async (req, res, next) => {
   try {
     const { id } = req.params;
     const data = await overtimeService.updateApprover(id, req.body);
@@ -315,11 +315,11 @@ const updateApprover = async (req, res) => {
     });
     res.json({ message: "Approver mapping updated", data });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const deleteApprover = async (req, res) => {
+const deleteApprover = async (req, res, next) => {
   try {
     const { id } = req.params;
     await overtimeService.deleteApprover(id);
@@ -331,30 +331,30 @@ const deleteApprover = async (req, res) => {
     });
     res.json({ message: "Approver mapping deleted" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getEmployeesForDropdown = async (req, res) => {
+const getEmployeesForDropdown = async (req, res, next) => {
   try {
     const result = await overtimeService.getEmployeesForDropdown();
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const isApprover = async (req, res) => {
+const isApprover = async (req, res, next) => {
   try {
     const user_id = req.user.id;
     const result = await overtimeService.isApprover(user_id);
     res.json({ isApprover: result });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const searchEmployeesPaginated = async (req, res) => {
+const searchEmployeesPaginated = async (req, res, next) => {
   try {
     const { page = 1, limit = 20, search = "", status = "ACTIVE", hasUser } = req.query;
     const result = await overtimeService.searchEmployeesPaginated(
@@ -362,7 +362,7 @@ const searchEmployeesPaginated = async (req, res) => {
     );
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

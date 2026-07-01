@@ -15,12 +15,12 @@ export const getBranchById = async (id: number) => {
   return response.data;
 };
 
-export const createBranch = async (data: any) => {
+export const createBranch = async (data: Record<string, unknown>) => {
   const response = await api.post("/branches", data);
   return response.data;
 };
 
-export const updateBranch = async (id: number, data: any) => {
+export const updateBranch = async (id: number, data: Record<string, unknown>) => {
   const response = await api.put(`/branches/${id}`, data);
   return response.data;
 };

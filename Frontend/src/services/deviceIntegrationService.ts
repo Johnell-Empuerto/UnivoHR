@@ -146,12 +146,13 @@ export const getRawLogs = async (params?: {
 
 // ─── IMPORT ─────────────────────────────────────────────────
 
-export const importLogs = async (file: File, deviceId?: number): Promise<any> => {
+export const importLogs = async (file: File, deviceId?: number): Promise<Record<string, unknown>> => {
   const formData = new FormData();
   formData.append("file", file);
   if (deviceId) formData.append("device_id", String(deviceId));
   const response = await api.post("/device-integration/import", formData, {
     headers: { "Content-Type": "multipart/form-data" },
+    timeout: 120000,
   });
   return response.data;
 };
@@ -218,7 +219,7 @@ export const getRawLogById = async (id: number): Promise<RawLog> => {
 
 // ─── GENERIC PUSH ───────────────────────────────────────────
 
-export const pushDeviceLog = async (deviceId: number, payload: Record<string, any>): Promise<any> => {
+export const pushDeviceLog = async (deviceId: number, payload: Record<string, unknown>): Promise<Record<string, unknown>> => {
   const response = await api.post(`/device-integration/push/${deviceId}`, payload);
   return response.data;
 };

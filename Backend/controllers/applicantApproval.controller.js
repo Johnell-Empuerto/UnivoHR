@@ -1,12 +1,12 @@
 const applicantApprovalService = require("../services/applicantApproval.service");
 const audit = require("../services/audit.service");
 
-const getByApplicantId = async (req, res) => {
+const getByApplicantId = async (req, res, next) => {
   try {
     const approvals = await applicantApprovalService.getByApplicantId(req.params.applicantId);
     res.json(approvals);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

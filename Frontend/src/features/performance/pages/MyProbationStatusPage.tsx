@@ -1,11 +1,8 @@
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Loader from "@/components/shared/Loader";
 import { useAuth } from "@/app/providers/AuthProvider";
-import {
-  getMyProbationInfo,
-} from "@/services/kpiService";
+import { useMyProbationInfo } from "@/hooks/useMyProbationInfo";
 import {
   UserCheck,
   CalendarDays,
@@ -48,24 +45,8 @@ const getReadinessBadge = (readiness: string) => {
 };
 
 const MyProbationStatusPage = () => {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   useAuth();
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const info = await getMyProbationInfo();
-        setData(info);
-      } catch (error) {
-        console.error("Failed to load probation info:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const { data, isLoading } = useMyProbationInfo();
 
   const formatDate = (d: string) => {
     if (!d) return "—";
@@ -92,7 +73,7 @@ const MyProbationStatusPage = () => {
         </div>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <Loader message="Loading probation information..." />
       ) : data ? (
         <>

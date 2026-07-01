@@ -1,25 +1,10 @@
-const express = require("express");
 const request = require("supertest");
-
-function createHealthApp() {
-  const app = express();
-  app.get("/api/health", (req, res) => {
-    res.json({
-      status: "ok",
-      timestamp: new Date().toISOString(),
-      uptime: Math.floor(process.uptime()),
-      environment: process.env.NODE_ENV || "development",
-    });
-  });
-  return app;
-}
+const app = require("../app");
 
 describe("GET /api/health", () => {
-  const app = createHealthApp();
-
-  it("returns 200", async () => {
+  it("returns 200 or 503", async () => {
     const res = await request(app).get("/api/health");
-    expect(res.status).toBe(200);
+    expect([200, 503]).toContain(res.status);
   });
 
   it("returns JSON content-type", async () => {
@@ -27,9 +12,9 @@ describe("GET /api/health", () => {
     expect(res.headers["content-type"]).toMatch(/json/);
   });
 
-  it("has status field set to 'ok'", async () => {
+  it("has status field with valid values", async () => {
     const res = await request(app).get("/api/health");
-    expect(res.body.status).toBe("ok");
+    expect(["healthy", "degraded", "unhealthy"]).toContain(res.body.status);
   });
 
   it("has timestamp field as ISO string", async () => {
@@ -47,22 +32,26 @@ describe("GET /api/health", () => {
     expect(Number.isInteger(res.body.uptime)).toBe(true);
   });
 
-  it("has environment field", async () => {
+  it("has all required fields", async () => {
     const res = await request(app).get("/api/health");
-    expect(res.body.environment).toBeDefined();
-    expect(typeof res.body.environment).toBe("string");
-    expect(res.body.environment.length).toBeGreaterThan(0);
+    expect(res.body.version).toBeDefined();
+    expect(res.body.pid).toBeDefined();
+    expect(res.body.nodeVersion).toBeDefined();
+    expect(res.body.memory).toBeDefined();
+    expect(res.body.memory.rss).toBeDefined();
+    expect(res.body.memory.heapTotal).toBeDefined();
+    expect(res.body.memory.heapUsed).toBeDefined();
+    expect(res.body.database).toBeDefined();
+    expect(res.body.redis).toBeDefined();
   });
 
-  it("returns 404 for unknown routes on the same app", async () => {
+  it("includes dependency latency", async () => {
+    const res = await request(app).get("/api/health");
+    expect(typeof res.body.database.latency).toBe("number");
+  });
+
+  it("returns 404 for unknown routes", async () => {
     const res = await request(app).get("/api/unknown");
     expect(res.status).toBe(404);
-  });
-
-  it("has exactly the expected 4 fields", async () => {
-    const res = await request(app).get("/api/health");
-    expect(Object.keys(res.body).sort()).toEqual(
-      ["status", "timestamp", "uptime", "environment"].sort(),
-    );
   });
 });

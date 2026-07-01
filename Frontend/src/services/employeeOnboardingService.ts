@@ -10,12 +10,12 @@ export const getEmployeeOnboardingById = async (id: number) => {
   return response.data;
 };
 
-export const createEmployeeOnboarding = async (data: any) => {
+export const createEmployeeOnboarding = async (data: Record<string, unknown>) => {
   const response = await api.post("/employee-onboarding", data);
   return response.data;
 };
 
-export const updateEmployeeOnboarding = async (id: number, data: any) => {
+export const updateEmployeeOnboarding = async (id: number, data: Record<string, unknown>) => {
   const response = await api.put(`/employee-onboarding/${id}`, data);
   return response.data;
 };

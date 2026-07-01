@@ -1,20 +1,20 @@
 const branchRestDayService = require("../services/branchRestDay.service");
 
-const getAll = async (req, res) => {
+const getAll = async (req, res, next) => {
   try {
     const rows = await branchRestDayService.getAll();
     res.json(rows);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getByBranch = async (req, res) => {
+const getByBranch = async (req, res, next) => {
   try {
     const rows = await branchRestDayService.getByBranchId(req.params.branchId);
     res.json(rows);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -30,13 +30,13 @@ const create = async (req, res) => {
   }
 };
 
-const remove = async (req, res) => {
+const remove = async (req, res, next) => {
   try {
     const row = await branchRestDayService.remove(req.params.id);
     if (!row) return res.status(404).json({ message: "Branch rest day not found" });
     res.json({ message: "Branch rest day removed", data: row });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

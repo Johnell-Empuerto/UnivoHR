@@ -6,6 +6,7 @@ const smtpService = require("./smtp.service");
 const notificationHelper = require("./notificationHelper.service");
 const notificationDispatch = require("./notificationDispatch.service");
 const emailTemplateService = require("./emailTemplate.service");
+const logger = require("../utils/logger");
 
 // Helper function to calculate days (UPDATED to support half-day)
 const calculateDays = (from, to, dayFraction = 1) => {
@@ -46,7 +47,7 @@ const sendLeaveEmailNotification = async (
     const allowed = await notificationDispatch.canSendEmail(ruleKey);
 
     if (!allowed) {
-      console.log(`Email notification for ${ruleKey} is disabled`);
+      logger.info(`Email notification for ${ruleKey} is disabled`);
       return;
     }
 
@@ -59,7 +60,7 @@ const sendLeaveEmailNotification = async (
 
     const employee = employeeResult.rows[0];
     if (!employee || !employee.email) {
-      console.log(`No email found for employee ${leave.employee_id}`);
+      logger.info(`No email found for employee ${leave.employee_id}`);
       return;
     }
 
@@ -81,11 +82,9 @@ const sendLeaveEmailNotification = async (
     );
 
     await smtpService.sendEmail(employee.email, subject, html);
-    console.log(
-      `Leave ${status} email sent to ${employee.email} using template`,
-    );
+    logger.info(`Leave ${status} email sent to ${employee.email} using template`);
   } catch (error) {
-    console.error(`Failed to send leave ${status} email:`, error.message);
+    logger.error({ error }, `Failed to send leave ${status} email`);
   }
 };
 

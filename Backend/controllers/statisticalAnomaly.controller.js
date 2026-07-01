@@ -1,22 +1,20 @@
 const statAnomalyService = require("../services/statisticalAnomaly.service");
 
-const runDailyScan = async (req, res) => {
+const runDailyScan = async (req, res, next) => {
   try {
     const results = await statAnomalyService.runDailyStatisticalScan();
     res.json({ message: "Daily statistical anomaly scan completed", results });
   } catch (error) {
-    console.error("[StatAnomalyController] daily scan error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const runWeeklyScan = async (req, res) => {
+const runWeeklyScan = async (req, res, next) => {
   try {
     const results = await statAnomalyService.runWeeklyStatisticalScan();
     res.json({ message: "Weekly statistical anomaly scan completed", results });
   } catch (error) {
-    console.error("[StatAnomalyController] weekly scan error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

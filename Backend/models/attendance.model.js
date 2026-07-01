@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const { getLocalDate } = require("../utils/date");
+const logger = require("../utils/logger");
 
 // Helper function to generate date range
 const generateDateRange = (from, to) => {
@@ -65,7 +66,7 @@ const getOpenAttendanceRecord = async (employeeId) => {
 
 // CHECK IN
 const checkIn = async (employeeId, timestamp, status, shiftId = null, shiftDate = null, source = 'BIOMETRIC', branchId = null, timezoneUsed = null, deviceId = null) => {
-  console.log("CHECK-IN:", { employeeId, timestamp, status, shiftId, shiftDate, source, branchId, timezoneUsed, deviceId });
+  logger.info({ employeeId, timestamp, status, shiftId, shiftDate, source, branchId, timezoneUsed, deviceId }, "CHECK-IN:");
 
   const localDate = getLocalDate(timestamp, timezoneUsed);
 
@@ -799,7 +800,7 @@ const applyTimeModification = async (attendanceId, checkIn, checkOut) => {
   const fullCheckIn = toLocal(checkIn);
   const fullCheckOut = toLocal(checkOut);
 
-  console.log("LOCAL VALUES:", { fullCheckIn, fullCheckOut });
+  logger.info({ fullCheckIn, fullCheckOut }, "LOCAL VALUES:");
 
   // Resolve timezone for UTC conversion
   const tz =

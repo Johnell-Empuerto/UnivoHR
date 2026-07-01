@@ -5,12 +5,12 @@ export const getApplicantRequirements = async (applicantId: number) => {
   return response.data;
 };
 
-export const createApplicantRequirement = async (applicantId: number, data: any) => {
+export const createApplicantRequirement = async (applicantId: number, data: Record<string, unknown>) => {
   const response = await api.post(`/applicants/${applicantId}/requirements`, data);
   return response.data;
 };
 
-export const updateApplicantRequirement = async (applicantId: number, requirementId: number, data: any) => {
+export const updateApplicantRequirement = async (applicantId: number, requirementId: number, data: Record<string, unknown>) => {
   const response = await api.patch(`/applicants/${applicantId}/requirements/${requirementId}`, data);
   return response.data;
 };

@@ -1,12 +1,12 @@
 const applicantDocumentService = require("../services/applicantDocument.service");
 const audit = require("../services/audit.service");
 
-const getByApplicantId = async (req, res) => {
+const getByApplicantId = async (req, res, next) => {
   try {
     const documents = await applicantDocumentService.getByApplicantId(req.params.applicantId);
     res.json(documents);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

@@ -1,26 +1,26 @@
 const rotationService = require("../services/rotation.service");
 const audit = require("../services/audit.service");
 
-const getGroups = async (req, res) => {
+const getGroups = async (req, res, next) => {
   try {
     const data = await rotationService.getGroups();
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getGroupById = async (req, res) => {
+const getGroupById = async (req, res, next) => {
   try {
     const data = await rotationService.getGroupById(req.params.id);
     if (!data) return res.status(404).json({ message: "Rotation group not found" });
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const createGroup = async (req, res) => {
+const createGroup = async (req, res, next) => {
   try {
     const data = await rotationService.createGroup(req.body);
     audit.auditLog(req, {
@@ -32,11 +32,11 @@ const createGroup = async (req, res) => {
     });
     res.status(201).json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const updateGroup = async (req, res) => {
+const updateGroup = async (req, res, next) => {
   try {
     const oldValues = await audit.fetchOldValues("rotation_groups", req.params.id);
     const data = await rotationService.updateGroup(req.params.id, req.body);
@@ -51,11 +51,11 @@ const updateGroup = async (req, res) => {
     });
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const deleteGroup = async (req, res) => {
+const deleteGroup = async (req, res, next) => {
   try {
     const oldValues = await audit.fetchOldValues("rotation_groups", req.params.id);
     const data = await rotationService.deleteGroup(req.params.id);
@@ -69,20 +69,20 @@ const deleteGroup = async (req, res) => {
     });
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getGroupMembers = async (req, res) => {
+const getGroupMembers = async (req, res, next) => {
   try {
     const data = await rotationService.getGroupMembers(req.params.id);
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const addGroupMembers = async (req, res) => {
+const addGroupMembers = async (req, res, next) => {
   try {
     const { employee_ids, effective_date } = req.body;
     if (!employee_ids || !Array.isArray(employee_ids) || employee_ids.length === 0) {
@@ -102,20 +102,20 @@ const addGroupMembers = async (req, res) => {
     });
     res.status(201).json({ success: true, count: employee_ids.length, assignments: results });
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getEmployeeAssignments = async (req, res) => {
+const getEmployeeAssignments = async (req, res, next) => {
   try {
     const data = await rotationService.getEmployeeAssignments(req.params.employeeId);
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const removeGroupMember = async (req, res) => {
+const removeGroupMember = async (req, res, next) => {
   try {
     const { effective_date } = req.body;
     const effDate = effective_date || new Date().toISOString().split("T")[0];
@@ -129,11 +129,11 @@ const removeGroupMember = async (req, res) => {
     });
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const updateEmployeeAssignment = async (req, res) => {
+const updateEmployeeAssignment = async (req, res, next) => {
   try {
     const { employeeId, id } = req.params;
     const oldValues = await audit.fetchOldValues("employee_rotation_group_assignments", id);
@@ -149,30 +149,30 @@ const updateEmployeeAssignment = async (req, res) => {
     });
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getPatterns = async (req, res) => {
+const getPatterns = async (req, res, next) => {
   try {
     const data = await rotationService.getPatterns();
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getPatternById = async (req, res) => {
+const getPatternById = async (req, res, next) => {
   try {
     const data = await rotationService.getPatternById(req.params.id);
     if (!data) return res.status(404).json({ message: "Rotation pattern not found" });
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const createPattern = async (req, res) => {
+const createPattern = async (req, res, next) => {
   try {
     const data = await rotationService.createPattern(req.body);
     audit.auditLog(req, {
@@ -184,11 +184,11 @@ const createPattern = async (req, res) => {
     });
     res.status(201).json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const updatePattern = async (req, res) => {
+const updatePattern = async (req, res, next) => {
   try {
     const oldValues = await audit.fetchOldValues("rotation_patterns", req.params.id);
     const data = await rotationService.updatePattern(req.params.id, req.body);
@@ -203,11 +203,11 @@ const updatePattern = async (req, res) => {
     });
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const deletePattern = async (req, res) => {
+const deletePattern = async (req, res, next) => {
   try {
     const oldValues = await audit.fetchOldValues("rotation_patterns", req.params.id);
     const data = await rotationService.deletePattern(req.params.id);
@@ -221,20 +221,20 @@ const deletePattern = async (req, res) => {
     });
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getAssignments = async (req, res) => {
+const getAssignments = async (req, res, next) => {
   try {
     const data = await rotationService.getAssignments();
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const createAssignment = async (req, res) => {
+const createAssignment = async (req, res, next) => {
   try {
     const { group_id, pattern_id, effective_date, end_date } = req.body;
     if (!group_id || !pattern_id || !effective_date) {
@@ -250,11 +250,11 @@ const createAssignment = async (req, res) => {
     });
     res.status(201).json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const updateAssignment = async (req, res) => {
+const updateAssignment = async (req, res, next) => {
   try {
     const oldValues = await audit.fetchOldValues("rotation_group_assignments", req.params.id);
     const data = await rotationService.updateAssignment(req.params.id, req.body);
@@ -269,11 +269,11 @@ const updateAssignment = async (req, res) => {
     });
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const deleteAssignment = async (req, res) => {
+const deleteAssignment = async (req, res, next) => {
   try {
     const data = await rotationService.deleteAssignment(req.params.id);
     if (!data) return res.status(404).json({ message: "Assignment not found" });
@@ -285,17 +285,17 @@ const deleteAssignment = async (req, res) => {
     });
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 
-const resolveEmployeeShift = async (req, res) => {
+const resolveEmployeeShift = async (req, res, next) => {
   try {
     const { employeeId, date } = req.params;
     const data = await rotationService.resolveEmployeeShift(employeeId, date);
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ message: error.message });
+    next(error);
   }
 };
 

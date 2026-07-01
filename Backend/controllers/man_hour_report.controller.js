@@ -9,8 +9,9 @@ const path = require("path");
 const { Parser } = require("json2csv");
 const ExcelJS = require("exceljs");
 const { generateManhourPDF } = require("../utils/manhourGenerator");
+const logger = require("../utils/logger");
 
-const downloadManHourReports = async (req, res) => {
+const downloadManHourReports = async (req, res, next) => {
   try {
     const {
       start_date,
@@ -69,8 +70,7 @@ const downloadManHourReports = async (req, res) => {
         await exportToCSV(res, exportData);
     }
   } catch (error) {
-    console.error("Download error:", error);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -301,7 +301,7 @@ const exportToPDF = async (res, exportData) => {
   try {
     await generateManhourPDF(res, exportData);
   } catch (error) {
-    console.error("PDF Generation Error:", error);
+    logger.error({ err: error }, "PDF Generation Error");
     throw new Error(`PDF generation failed: ${error.message}`);
   }
 };
@@ -431,7 +431,7 @@ const formatDateForMeta = (dateString) => {
 // ==========================================
 // EMPLOYEE CONTROLLERS
 // ==========================================
-const createManHourReport = async (req, res) => {
+const createManHourReport = async (req, res, next) => {
   try {
     const employee_id = req.user.employee_id;
     const employeeName =
@@ -503,11 +503,11 @@ const createManHourReport = async (req, res) => {
     });
     res.json({ message: "Man hour report submitted successfully", data });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getMyManHourReports = async (req, res) => {
+const getMyManHourReports = async (req, res, next) => {
   try {
     const employee_id = req.user.employee_id;
     const { page = 1, limit = 10, search = "", status = "" } = req.query;
@@ -522,11 +522,11 @@ const getMyManHourReports = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const updateManHourReport = async (req, res) => {
+const updateManHourReport = async (req, res, next) => {
   try {
     const { id } = req.params;
     const employee_id = req.user.employee_id;
@@ -548,11 +548,11 @@ const updateManHourReport = async (req, res) => {
 
     res.json({ message: "Man hour report updated successfully", data });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const deleteManHourReport = async (req, res) => {
+const deleteManHourReport = async (req, res, next) => {
   try {
     const { id } = req.params;
     const employee_id = req.user.employee_id;
@@ -570,7 +570,7 @@ const deleteManHourReport = async (req, res) => {
 
     res.json({ message: "Man hour report deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -578,7 +578,7 @@ const deleteManHourReport = async (req, res) => {
 // ADMIN/HR CONTROLLERS
 // ==========================================
 
-const getAllManHourReports = async (req, res) => {
+const getAllManHourReports = async (req, res, next) => {
   try {
     let user_id = req.user?.id;
     const userRole = req.user?.role;
@@ -603,11 +603,11 @@ const getAllManHourReports = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getManHourReportDetails = async (req, res) => {
+const getManHourReportDetails = async (req, res, next) => {
   try {
     const { id } = req.params;
     let user_id = req.user?.id;
@@ -625,11 +625,11 @@ const getManHourReportDetails = async (req, res) => {
     );
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const approveManHourReport = async (req, res) => {
+const approveManHourReport = async (req, res, next) => {
   try {
     const { id } = req.params;
     const approver_id = req.user.id;
@@ -656,11 +656,11 @@ const approveManHourReport = async (req, res) => {
     });
     res.json({ message: "Man hour report approved", data });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const rejectManHourReport = async (req, res) => {
+const rejectManHourReport = async (req, res, next) => {
   try {
     const { id } = req.params;
     const approver_id = req.user.id;
@@ -691,7 +691,7 @@ const rejectManHourReport = async (req, res) => {
     });
     res.json({ message: "Man hour report rejected", data });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -699,7 +699,7 @@ const rejectManHourReport = async (req, res) => {
 // SUMMARY/REPORTING CONTROLLERS
 // ==========================================
 
-const getManHourSummary = async (req, res) => {
+const getManHourSummary = async (req, res, next) => {
   try {
     const { start_date, end_date, employee_id } = req.query;
 
@@ -717,7 +717,7 @@ const getManHourSummary = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -725,17 +725,17 @@ const getManHourSummary = async (req, res) => {
 // APPROVER CHECK
 // ==========================================
 
-const isApprover = async (req, res) => {
+const isApprover = async (req, res, next) => {
   try {
     const user_id = req.user.id;
     const result = await manHourReportService.isApprover(user_id);
     res.json({ isApprover: result });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getMissingManHourDates = async (req, res) => {
+const getMissingManHourDates = async (req, res, next) => {
   try {
     const employee_id = req.user.employee_id;
     const { start_date, end_date } = req.query;
@@ -754,7 +754,7 @@ const getMissingManHourDates = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

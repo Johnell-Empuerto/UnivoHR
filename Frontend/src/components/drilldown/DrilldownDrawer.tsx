@@ -28,9 +28,9 @@ import {
   getDrillDownBranches,
   exportDrillDown,
 } from "@/services/drilldownService";
-import type { DrillDownParams } from "@/services/drilldownService";
+import type { DrillDownParams, DrillDownResponse } from "@/services/drilldownService";
 
-const FETCHERS: Record<string, (params?: DrillDownParams) => Promise<any>> = {
+const FETCHERS: Record<string, (params?: DrillDownParams) => Promise<DrillDownResponse>> = {
   attendance: getDrillDownAttendance,
   payroll: getDrillDownPayroll,
   overtime: getDrillDownOvertime,
@@ -99,7 +99,7 @@ interface DrilldownDrawerProps {
 }
 
 const DrilldownDrawer = ({ open, onClose, module, title, defaultParams }: DrilldownDrawerProps) => {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<Record<string, unknown>[]>([]);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -143,33 +143,34 @@ const DrilldownDrawer = ({ open, onClose, module, title, defaultParams }: Drilld
     }
   };
 
-  const formatValue = (row: any, key: string) => {
+  const formatValue = (row: Record<string, unknown>, key: string): React.ReactNode => {
     const v = row[key];
     if (v === null || v === undefined) return "—";
     if (key === "net_salary") return `₱${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
     if (key === "hours") return `${Number(v).toFixed(1)}h`;
     if (key === "check_in_time" || key === "check_out_time") {
+      const tz = row.timezone_used as string | undefined;
       return (
         <div className="flex items-center gap-1">
-          <span>{formatTimeLocal(v, row.timezone_used)}</span>
-          {row.timezone_used && (
+          <span>{formatTimeLocal(v as string, tz)}</span>
+          {tz && (
             <Badge variant="outline" className="text-[10px] h-4 px-1 leading-none">
-              {getTimezoneAbbr(row.timezone_used)}
+              {getTimezoneAbbr(tz)}
             </Badge>
           )}
         </div>
       );
     }
     if (key === "detected_at") {
-      return new Date(v).toLocaleString();
+      return new Date(v as string).toLocaleString();
     }
     if ((key === "date" || key === "from_date" || key === "to_date" || key === "cutoff_start" || key === "cutoff_end") && v) {
-      return formatDateLocal(v);
+      return formatDateLocal(v as string);
     }
     return String(v);
   };
 
-  const severityColor = (s: string) => {
+  const severityColor = (s: unknown): string => {
     if (s === "HIGH") return "text-red-600 font-medium";
     if (s === "MEDIUM") return "text-yellow-600 font-medium";
     return "text-muted-foreground";
@@ -217,7 +218,7 @@ const DrilldownDrawer = ({ open, onClose, module, title, defaultParams }: Drilld
               </TableHeader>
               <TableBody>
                 {data.map((row, i) => (
-                  <TableRow key={row.id || i}>
+                  <TableRow key={(row.id as number | undefined) || i}>
                     {columns.map((col) => (
                       <TableCell key={col.key} className={col.key === "severity" ? severityColor(row[col.key]) : ""}>
                         {formatValue(row, col.key)}

@@ -5,12 +5,12 @@ export const getEmployeeFamily = async (employeeId: number) => {
   return response.data;
 };
 
-export const createEmployeeFamily = async (employeeId: number, data: any) => {
+export const createEmployeeFamily = async (employeeId: number, data: Record<string, unknown>) => {
   const response = await api.post(`/employees/${employeeId}/family`, data);
   return response.data;
 };
 
-export const updateEmployeeFamily = async (employeeId: number, id: number, data: any) => {
+export const updateEmployeeFamily = async (employeeId: number, id: number, data: Record<string, unknown>) => {
   const response = await api.put(`/employees/${employeeId}/family/${id}`, data);
   return response.data;
 };
@@ -25,12 +25,12 @@ export const getEmployeeEducation = async (employeeId: number) => {
   return response.data;
 };
 
-export const createEmployeeEducation = async (employeeId: number, data: any) => {
+export const createEmployeeEducation = async (employeeId: number, data: Record<string, unknown>) => {
   const response = await api.post(`/employees/${employeeId}/education`, data);
   return response.data;
 };
 
-export const updateEmployeeEducation = async (employeeId: number, id: number, data: any) => {
+export const updateEmployeeEducation = async (employeeId: number, id: number, data: Record<string, unknown>) => {
   const response = await api.put(`/employees/${employeeId}/education/${id}`, data);
   return response.data;
 };
@@ -45,12 +45,12 @@ export const getEmployeeExperience = async (employeeId: number) => {
   return response.data;
 };
 
-export const createEmployeeExperience = async (employeeId: number, data: any) => {
+export const createEmployeeExperience = async (employeeId: number, data: Record<string, unknown>) => {
   const response = await api.post(`/employees/${employeeId}/experience`, data);
   return response.data;
 };
 
-export const updateEmployeeExperience = async (employeeId: number, id: number, data: any) => {
+export const updateEmployeeExperience = async (employeeId: number, id: number, data: Record<string, unknown>) => {
   const response = await api.put(`/employees/${employeeId}/experience/${id}`, data);
   return response.data;
 };

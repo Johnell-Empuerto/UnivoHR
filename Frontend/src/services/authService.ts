@@ -3,7 +3,7 @@ import api from "./api";
 export interface LoginResponse {
   token?: string;
   refreshToken?: string;
-  user?: any;
+  user?: Record<string, unknown>;
   requires_2fa: boolean;
   user_id?: number;
   masked_email?: string;
@@ -13,7 +13,7 @@ export interface LoginResponse {
 export interface VerifyOTPResponse {
   token: string;
   refreshToken: string;
-  user: any;
+  user: Record<string, unknown>;
   requires_2fa: boolean;
 }
 

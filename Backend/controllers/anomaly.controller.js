@@ -2,8 +2,9 @@ const anomalyService = require("../services/anomaly.service");
 const anomalyModel = require("../models/anomaly.model");
 const { getUserBranchIds } = require("../utils/branchAccess");
 const auditService = require("../services/audit.service");
+const logger = require("../utils/logger");
 
-const getAnomalies = async (req, res) => {
+const getAnomalies = async (req, res, next) => {
   try {
     const {
       page,
@@ -42,12 +43,12 @@ const getAnomalies = async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error("[AnomalyController] getAnomalies error:", error.message);
-    res.status(500).json({ message: error.message });
+    logger.error({ err: error, correlationId: req.correlationId }, "[AnomalyController] getAnomalies error");
+    next(error);
   }
 };
 
-const getAnomalySummary = async (req, res) => {
+const getAnomalySummary = async (req, res, next) => {
   try {
     let allowedBranchIds = null;
     if (req.user.role !== "ADMIN") {
@@ -65,12 +66,12 @@ const getAnomalySummary = async (req, res) => {
     const summary = await anomalyModel.getAnomalySummary({ allowedBranchIds });
     res.json(summary);
   } catch (error) {
-    console.error("[AnomalyController] getAnomalySummary error:", error.message);
-    res.status(500).json({ message: error.message });
+    logger.error({ err: error, correlationId: req.correlationId }, "[AnomalyController] getAnomalySummary error");
+    next(error);
   }
 };
 
-const getAnomalyById = async (req, res) => {
+const getAnomalyById = async (req, res, next) => {
   try {
     const anomaly = await anomalyModel.getAnomalyById(req.params.id);
     if (!anomaly) {
@@ -78,12 +79,12 @@ const getAnomalyById = async (req, res) => {
     }
     res.json(anomaly);
   } catch (error) {
-    console.error("[AnomalyController] getAnomalyById error:", error.message);
-    res.status(500).json({ message: error.message });
+    logger.error({ err: error, correlationId: req.correlationId }, "[AnomalyController] getAnomalyById error");
+    next(error);
   }
 };
 
-const updateAnomalyStatus = async (req, res) => {
+const updateAnomalyStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -116,28 +117,28 @@ const updateAnomalyStatus = async (req, res) => {
 
     res.json(updated);
   } catch (error) {
-    console.error("[AnomalyController] updateAnomalyStatus error:", error.message);
-    res.status(500).json({ message: error.message });
+    logger.error({ err: error, correlationId: req.correlationId }, "[AnomalyController] updateAnomalyStatus error");
+    next(error);
   }
 };
 
-const runDailyScan = async (req, res) => {
+const runDailyScan = async (req, res, next) => {
   try {
     const results = await anomalyService.runDailyAnomalyScan(req);
     res.json({ message: "Daily anomaly scan completed", results });
   } catch (error) {
-    console.error("[AnomalyController] runDailyScan error:", error.message);
-    res.status(500).json({ message: error.message });
+    logger.error({ err: error, correlationId: req.correlationId }, "[AnomalyController] runDailyScan error");
+    next(error);
   }
 };
 
-const runWeeklyScan = async (req, res) => {
+const runWeeklyScan = async (req, res, next) => {
   try {
     const results = await anomalyService.runWeeklyAnomalyScan(req);
     res.json({ message: "Weekly anomaly scan completed", results });
   } catch (error) {
-    console.error("[AnomalyController] runWeeklyScan error:", error.message);
-    res.status(500).json({ message: error.message });
+    logger.error({ err: error, correlationId: req.correlationId }, "[AnomalyController] runWeeklyScan error");
+    next(error);
   }
 };
 

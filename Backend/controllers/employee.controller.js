@@ -1,7 +1,7 @@
 const employeeService = require("../services/employee.service");
 const audit = require("../services/audit.service");
 
-const createEmployee = async (req, res) => {
+const createEmployee = async (req, res, next) => {
   try {
     const created = await employeeService.createEmployee(req.body);
     const employee = await employeeService.getEmployeeById(created.id);
@@ -27,11 +27,11 @@ const createEmployee = async (req, res) => {
     });
     res.status(201).json(employee);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getEmployees = async (req, res) => {
+const getEmployees = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, search = "", status = "", department = "", position = "" } = req.query;
 
@@ -47,20 +47,20 @@ const getEmployees = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getFilterOptions = async (req, res) => {
+const getFilterOptions = async (req, res, next) => {
   try {
     const options = await employeeService.getFilterOptions();
     res.json(options);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const updateEmployee = async (req, res) => {
+const updateEmployee = async (req, res, next) => {
   try {
     const { id } = req.params;
     const oldValues = await audit.fetchOldValues("employees", id);
@@ -105,16 +105,16 @@ const updateEmployee = async (req, res) => {
     });
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getDueForRegularization = async (req, res) => {
+const getDueForRegularization = async (req, res, next) => {
   try {
     const employees = await employeeService.getProbationaryEmployeesDueForRegularization(req.allowedBranchIds);
     res.json(employees);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -148,16 +148,16 @@ const approveRegularization = async (req, res) => {
   }
 };
 
-const getEmploymentStats = async (req, res) => {
+const getEmploymentStats = async (req, res, next) => {
   try {
     const stats = await employeeService.getEmploymentStats(req.allowedBranchIds);
     res.json(stats);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getEmployeeById = async (req, res) => {
+const getEmployeeById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const employee = await employeeService.getEmployeeById(id);
@@ -166,11 +166,11 @@ const getEmployeeById = async (req, res) => {
     }
     res.json(employee);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const deleteEmployee = async (req, res) => {
+const deleteEmployee = async (req, res, next) => {
   try {
     const { id } = req.params;
     const employee = await employeeService.getEmployeeById(id);
@@ -196,17 +196,17 @@ const deleteEmployee = async (req, res) => {
 
     res.json({ message: "Employee deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const searchEmployees = async (req, res) => {
+const searchEmployees = async (req, res, next) => {
   try {
     const { page = 1, limit = 20, search, employee_code, employee_name } = req.query;
     const result = await employeeService.searchEmployees({ page, limit, search, employee_code, employee_name });
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

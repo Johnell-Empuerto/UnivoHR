@@ -2,26 +2,26 @@ const pool = require("../config/db");
 const leaveTypeModel = require("../models/leaveType.model");
 const audit = require("../services/audit.service");
 
-const getAll = async (req, res) => {
+const getAll = async (req, res, next) => {
   try {
     const types = await leaveTypeModel.getAll();
     res.json(types);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getById = async (req, res) => {
+const getById = async (req, res, next) => {
   try {
     const type = await leaveTypeModel.getById(req.params.id);
     if (!type) return res.status(404).json({ message: "Leave type not found" });
     res.json(type);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const create = async (req, res) => {
+const create = async (req, res, next) => {
   try {
     const existing = await leaveTypeModel.getByCode(req.body.code);
     if (existing) {
@@ -37,11 +37,11 @@ const create = async (req, res) => {
     });
     res.status(201).json(type);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const update = async (req, res) => {
+const update = async (req, res, next) => {
   try {
     const existing = await leaveTypeModel.getById(req.params.id);
     if (!existing) return res.status(404).json({ message: "Leave type not found" });
@@ -59,11 +59,11 @@ const update = async (req, res) => {
     });
     res.json(type);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const toggleEnabled = async (req, res) => {
+const toggleEnabled = async (req, res, next) => {
   try {
     const existing = await leaveTypeModel.getById(req.params.id);
     if (!existing) return res.status(404).json({ message: "Leave type not found" });
@@ -77,11 +77,11 @@ const toggleEnabled = async (req, res) => {
     });
     res.json(type);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const remove = async (req, res) => {
+const remove = async (req, res, next) => {
   try {
     const existing = await leaveTypeModel.getById(req.params.id);
     if (!existing) return res.status(404).json({ message: "Leave type not found" });
@@ -134,7 +134,7 @@ const remove = async (req, res) => {
     });
     res.json({ message: `Leave type "${existing.name}" permanently deleted` });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

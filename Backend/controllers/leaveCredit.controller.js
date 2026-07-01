@@ -1,7 +1,7 @@
 const leaveCreditService = require("../services/leaveCredit.service");
 const audit = require("../services/audit.service");
 
-const getMyCredits = async (req, res) => {
+const getMyCredits = async (req, res, next) => {
   try {
     const employeeId = req.user.employee_id;
 
@@ -9,11 +9,11 @@ const getMyCredits = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getAllCredits = async (req, res) => {
+const getAllCredits = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, search = "", department = "" } = req.query;
 
@@ -26,11 +26,11 @@ const getAllCredits = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getEmployeeCredits = async (req, res) => {
+const getEmployeeCredits = async (req, res, next) => {
   try {
     const { employeeId } = req.params;
 
@@ -38,11 +38,11 @@ const getEmployeeCredits = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const updateCredits = async (req, res) => {
+const updateCredits = async (req, res, next) => {
   try {
     const { employeeId } = req.params;
 
@@ -62,7 +62,7 @@ const updateCredits = async (req, res) => {
       data,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

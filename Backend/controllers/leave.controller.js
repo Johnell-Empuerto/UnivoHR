@@ -2,6 +2,7 @@ const leaveService = require("../services/leave.service");
 const audit = require("../services/audit.service");
 const { ROLES } = require("../constants/roles");
 const { cleanPlainText } = require("../utils/inputSanitizer");
+const logger = require("../utils/logger");
 
 // Helper function to format leave type display name
 const getLeaveTypeDisplay = (type) => {
@@ -16,7 +17,7 @@ const getLeaveTypeDisplay = (type) => {
 };
 
 // CREATE LEAVE with credit validation and half-day support - OPTIMIZED
-const createLeave = async (req, res) => {
+const createLeave = async (req, res, next) => {
   try {
     const employeeId = req.user.employee_id;
     const employeeName =
@@ -151,7 +152,7 @@ const createLeave = async (req, res) => {
     // 🚀 OPTIMIZATION 2: Don't wait for notifications (fire and forget)
     // This makes the response INSTANT for the user
     Promise.all(notificationPromises).catch((error) => {
-      console.error(" Failed to send some notifications:", error);
+      logger.error({ err: error, correlationId: req.correlationId }, "Failed to send some notifications");
     });
 
     // 🚀 OPTIMIZATION 3: Send response IMMEDIATELY (don't wait for notifications)
@@ -175,13 +176,13 @@ const createLeave = async (req, res) => {
 
     res.status(201).json(leave);
   } catch (error) {
-    console.error(" Create leave error:", error);
-    res.status(500).json({ message: error.message });
+    logger.error({ err: error, correlationId: req.correlationId }, "Create leave error");
+    next(error);
   }
 };
 
 // GET ALL (ADMIN) with pagination
-const getLeaves = async (req, res) => {
+const getLeaves = async (req, res, next) => {
   try {
     const {
       page = 1,
@@ -201,12 +202,12 @@ const getLeaves = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // GET MY LEAVES with pagination
-const getMyLeaves = async (req, res) => {
+const getMyLeaves = async (req, res, next) => {
   try {
     const employeeId = req.user.employee_id;
     const { page = 1, limit = 10, status = "" } = req.query;
@@ -219,12 +220,12 @@ const getMyLeaves = async (req, res) => {
     );
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // UPDATE STATUS - Already fast, but we can also optimize notifications here
-const updateStatus = async (req, res) => {
+const updateStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
     const { rejection_reason } = req.body;
@@ -233,7 +234,7 @@ const updateStatus = async (req, res) => {
     const userEmployeeId = req.user.employee_id;
     const leaveId = req.params.id;
 
-    console.log(`📝 Updating leave ${leaveId} to status: ${status}`);
+    logger.info({ correlationId: req.correlationId }, `📝 Updating leave ${leaveId} to status: ${status}`);
 
     if (!["APPROVED", "REJECTED"].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
@@ -254,9 +255,7 @@ const updateStatus = async (req, res) => {
 
     // PREVENT DUPLICATE: Check if already approved/rejected
     if (existing.status !== "PENDING") {
-      console.log(
-        `Leave ${leaveId} already has status: ${existing.status}, skipping duplicate update`,
-      );
+      logger.info({ correlationId: req.correlationId }, `Leave ${leaveId} already has status: ${existing.status}, skipping duplicate update`);
       return res.status(400).json({
         message: `Leave request is already ${existing.status.toLowerCase()}. Cannot change status again.`,
         leave: existing,
@@ -310,16 +309,16 @@ const updateStatus = async (req, res) => {
       description: `Leave ${leaveId} ${status.toLowerCase()}${rejection_reason ? `: ${rejection_reason}` : ""}`,
     });
 
-    console.log(`Leave ${leaveId} updated to ${status}`);
+    logger.info({ correlationId: req.correlationId }, `Leave ${leaveId} updated to ${status}`);
     res.json(result);
   } catch (error) {
-    console.error("Error updating leave status:", error);
-    res.status(500).json({ message: error.message });
+    logger.error({ err: error, correlationId: req.correlationId }, "Error updating leave status");
+    next(error);
   }
 };
 
 // CREATE LEAVE FOR EMPLOYEE — immediately approved on behalf of an employee (permission: leave.create_for_others)
-const createLeaveForEmployee = async (req, res) => {
+const createLeaveForEmployee = async (req, res, next) => {
   try {
     const {
       employee_id,
@@ -435,8 +434,8 @@ const createLeaveForEmployee = async (req, res) => {
 
     res.status(201).json(result);
   } catch (error) {
-    console.error(" Admin create leave error:", error);
-    res.status(500).json({ message: error.message });
+    logger.error({ err: error, correlationId: req.correlationId }, "Admin create leave error");
+    next(error);
   }
 };
 

@@ -1,4 +1,5 @@
 const Queue = require("bull");
+const logger = require("../utils/logger");
 
 const deviceProcessingQueue = new Queue("device-processing", {
   redis: {
@@ -66,7 +67,7 @@ const safeAddLog = async (rawLogId, fallbackFn) => {
   try {
     await deviceProcessingQueue.add("process-log", { rawLogId });
   } catch (err) {
-    console.warn(`[Queue] Redis unavailable, using fallback for raw_log ${rawLogId}: ${err.message}`);
+    logger.warn({ err }, `[Queue] Redis unavailable, using fallback for raw_log ${rawLogId}`);
     if (typeof fallbackFn === "function") {
       await fallbackFn(rawLogId);
     }
@@ -83,7 +84,7 @@ const safeAddBatch = async (rawLogIds, fallbackFn) => {
         { delay: fallbackIds.length * 100 },
       );
     } catch (err) {
-      console.warn(`[Queue] Redis unavailable, using fallback for raw_log ${id}: ${err.message}`);
+      logger.warn({ err }, `[Queue] Redis unavailable, using fallback for raw_log ${id}`);
       fallbackIds.push(id);
     }
   }

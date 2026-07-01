@@ -1,8 +1,6 @@
-import { useState, useEffect } from "react";
-import {
-  getMyKpiEvaluations,
-  getKpiEvaluationById,
-} from "@/services/kpiService";
+import { useState } from "react";
+import { useMyKpiEvaluations } from "@/hooks/useMyKpiEvaluations";
+import { useKpiEvaluationDetail } from "@/hooks/useKpiEvaluationDetail";
 import { Button } from "@/components/ui/button";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +23,6 @@ import {
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
 import { useAuth } from "@/app/providers/AuthProvider";
-import { toast } from "sonner";
 import {
   ClipboardList,
   Eye,
@@ -44,45 +41,22 @@ const statusBadge = (s: string) => {
 
 const MyKpiResultsPage = () => {
   useAuth();
-  const [evaluations, setEvaluations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedEval, setSelectedEval] = useState<any>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const [selectedEvalId, setSelectedEvalId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [total, setTotal] = useState(0);
 
-  const fetchEvaluations = async () => {
-    try {
-      setLoading(true);
-      const r = await getMyKpiEvaluations("");
-      setEvaluations(r.data || (Array.isArray(r) ? r : []));
-      setTotal(r.pagination?.total || (Array.isArray(r) ? r.length : 0));
-    } catch (error) {
-      console.error("Failed to load evaluations:", error);
-      toast.error("Failed to load evaluations");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data, isLoading } = useMyKpiEvaluations("");
+  const { data: selectedEval, isLoading: detailLoading } = useKpiEvaluationDetail(
+    detailOpen ? selectedEvalId : null,
+  );
 
-  useEffect(() => {
-    fetchEvaluations();
-  }, [page, pageSize]);
+  const evaluations = data?.data || (Array.isArray(data) ? data : []);
+  const total = data?.pagination?.total || (Array.isArray(data) ? data.length : 0);
 
-  const handleViewDetail = async (id: number) => {
-    try {
-      setDetailLoading(true);
-      setDetailOpen(true);
-      const data = await getKpiEvaluationById(id);
-      setSelectedEval(data);
-    } catch (error) {
-      console.error("Failed to load evaluation detail:", error);
-      toast.error("Failed to load evaluation detail");
-    } finally {
-      setDetailLoading(false);
-    }
+  const handleViewDetail = (id: number) => {
+    setSelectedEvalId(id);
+    setDetailOpen(true);
   };
 
   const formatDate = (d: string) => {
@@ -110,7 +84,7 @@ const MyKpiResultsPage = () => {
         </div>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <Loader message="Loading KPI results..." />
       ) : evaluations.length === 0 ? (
         <EmptyState message="No KPI evaluations found" />
@@ -177,7 +151,7 @@ const MyKpiResultsPage = () => {
         </Card>
       )}
 
-      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+      <Dialog open={detailOpen} onOpenChange={(open) => { setDetailOpen(open); if (!open) setSelectedEvalId(null); }}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Evaluation Details</DialogTitle>

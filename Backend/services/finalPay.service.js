@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 const leaveConversionService = require("./leaveConversion.service");
 const leaveBalanceService = require("./leaveBalance.service");
+const logger = require("../utils/logger");
 
 // ============================================
 // SHARED UTILITY - Calculate Work Units
@@ -330,8 +331,8 @@ const calculateFinalPay = async (employeeId) => {
 
     const lastWorkingDate = formatDateOnly(lastWorkingDateRaw);
 
-    console.log(`[Final Pay] Raw date: ${lastWorkingDateRaw}`);
-    console.log(`[Final Pay] Formatted date: ${lastWorkingDate}`);
+    logger.info(`[Final Pay] Raw date: ${lastWorkingDateRaw}`);
+    logger.info(`[Final Pay] Formatted date: ${lastWorkingDate}`);
 
     // Calculate daily rate
     const dailyRate =
@@ -346,8 +347,8 @@ const calculateFinalPay = async (employeeId) => {
     );
     const startDate = formatDateOnly(startOfMonth);
 
-    console.log(`[Final Pay] Start date: ${startDate}`);
-    console.log(`[Final Pay] End date: ${lastWorkingDate}`);
+    logger.info(`[Final Pay] Start date: ${startDate}`);
+    logger.info(`[Final Pay] End date: ${lastWorkingDate}`);
 
     //  USE SHARED FUNCTION for work units
     const workUnitsResult = await calculateWorkUnits(
@@ -367,19 +368,19 @@ const calculateFinalPay = async (employeeId) => {
         ? total_work_units
         : total_work_units.toFixed(1);
 
-    console.log(`[Final Pay] Employee ${employeeId}:`);
-    console.log(`  - Last Working Date: ${lastWorkingDate}`);
-    console.log(
+    logger.info(`[Final Pay] Employee ${employeeId}:`);
+    logger.info(`  - Last Working Date: ${lastWorkingDate}`);
+    logger.info(
       `  - Work Units: ${total_work_units} (${displayWorkUnits} days equivalent)`,
     );
-    console.log(`  - Present: ${breakdown.present_days}`);
-    console.log(`  - Late: ${breakdown.late_days}`);
-    console.log(`  - Half Days: ${breakdown.half_days}`);
-    console.log(`  - Leave Days: ${breakdown.leave_days}`);
-    console.log(`  - Absent: ${breakdown.absent_days}`);
-    console.log(`  - Holiday Worked: ${breakdown.holiday_worked}`);
-    console.log(`  - Daily Rate: ${dailyRate}`);
-    console.log(`  - Salary: ${salaryUntilLastDay}`);
+    logger.info(`  - Present: ${breakdown.present_days}`);
+    logger.info(`  - Late: ${breakdown.late_days}`);
+    logger.info(`  - Half Days: ${breakdown.half_days}`);
+    logger.info(`  - Leave Days: ${breakdown.leave_days}`);
+    logger.info(`  - Absent: ${breakdown.absent_days}`);
+    logger.info(`  - Holiday Worked: ${breakdown.holiday_worked}`);
+    logger.info(`  - Daily Rate: ${dailyRate}`);
+    logger.info(`  - Salary: ${salaryUntilLastDay}`);
 
     // Calculate dynamic leave conversion amount from all convertible types
     const payrollYear = new Date().getFullYear();
@@ -391,11 +392,11 @@ const calculateFinalPay = async (employeeId) => {
 
     const leaveConversionAmount = conversionResult.totalAmount;
 
-    console.log(
+    logger.info(
       `[Final Pay] Dynamic leave conversion: ₱${leaveConversionAmount} across ${conversionResult.details.length} convertible type(s)`,
     );
     for (const d of conversionResult.details) {
-      console.log(
+      logger.info(
         `  - ${d.name} (${d.code}): ${d.convertible_days} days × ${dailyRate} = ₱${d.amount}`,
       );
     }
@@ -408,9 +409,7 @@ const calculateFinalPay = async (employeeId) => {
         emp.status === "RESIGNED" ? "RESIGNATION" : "TERMINATION",
       );
     } catch (convError) {
-      console.warn(
-        `[Final Pay] Conversion record creation failed (non-critical): ${convError.message}`,
-      );
+      logger.warn({ err: convError }, "[Final Pay] Conversion record creation failed (non-critical)");
     }
 
     // Calculate total final pay

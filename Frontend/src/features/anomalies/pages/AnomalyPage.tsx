@@ -1,11 +1,11 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAnomalies, useAnomalySummary } from "@/hooks/useAnomalies";
 import {
-  getAnomalies,
-  getAnomalySummary,
   updateAnomalyStatus,
   runDailyScan,
 } from "@/services/anomalyService";
-import type { Anomaly, AnomalySummary as AnomalySummaryType } from "@/services/anomalyService";
+import type { Anomaly } from "@/services/anomalyService";
 import { formatDateShort } from "@/utils/formatDate";
 import {
   Table,
@@ -85,58 +85,36 @@ const ANOMALY_TYPE_LABELS: Record<string, string> = {
 
 const AnomalyPage = () => {
   const { user } = useAuth();
-  const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
-  const [summary, setSummary] = useState<AnomalySummaryType | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [scanning, setScanning] = useState(false);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalRecords, setTotalRecords] = useState(0);
   const rowsPerPage = 10;
 
-  // Filters
   const [statusFilter, setStatusFilter] = useState("");
   const [severityFilter, setSeverityFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [moduleFilter, setModuleFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Detail drawer
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const isAdminLevel = user?.role === "ADMIN";
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const normalizeFilter = (v: string) => (!v || v === "all" ? undefined : v);
-      const [anomalyData, summaryData] = await Promise.all([
-        getAnomalies({
-          page,
-          limit: rowsPerPage,
-          status: normalizeFilter(statusFilter),
-          severity: normalizeFilter(severityFilter),
-          anomaly_type: normalizeFilter(typeFilter),
-          source_module: normalizeFilter(moduleFilter),
-          employee_id: searchTerm || undefined,
-        }),
-        getAnomalySummary(),
-      ]);
-      setAnomalies(anomalyData.data);
-      setTotalPages(anomalyData.pagination.totalPages);
-      setTotalRecords(anomalyData.pagination.total);
-      setSummary(summaryData);
-    } catch {
-      toast.error("Failed to load anomalies");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, statusFilter, severityFilter, typeFilter, moduleFilter, searchTerm]);
+  const { data: anomaliesData, isFetching } = useAnomalies(
+    page, rowsPerPage, statusFilter, severityFilter, typeFilter, moduleFilter, searchTerm,
+  );
+  const { data: summary } = useAnomalySummary();
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const anomalies = anomaliesData?.data ?? [];
+  const totalPages = anomaliesData?.pagination?.totalPages ?? 1;
+  const totalRecords = anomaliesData?.pagination?.total ?? 0;
+  const loading = isFetching && anomalies.length === 0;
+
+  const refetchAll = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["anomalies"] });
+    queryClient.invalidateQueries({ queryKey: ["anomaly-summary"] });
+  }, [queryClient]);
 
   const handleRunScan = async () => {
     if (!isAdminLevel) return;
@@ -144,7 +122,7 @@ const AnomalyPage = () => {
     try {
       const result = await runDailyScan();
       toast.success(`Scan complete: ${result.results.total_detected} anomalies detected`);
-      fetchData();
+      refetchAll();
     } catch {
       toast.error("Scan failed");
     } finally {
@@ -156,7 +134,7 @@ const AnomalyPage = () => {
     try {
       await updateAnomalyStatus(id, status);
       toast.success(`Anomaly #${id} marked as ${status.toLowerCase()}`);
-      fetchData();
+      refetchAll();
     } catch {
       toast.error("Failed to update status");
     }
@@ -167,11 +145,8 @@ const AnomalyPage = () => {
     setDrawerOpen(true);
   };
 
-
-
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -321,7 +296,7 @@ const AnomalyPage = () => {
                 className="pl-9"
               />
             </div>
-            <Button variant="ghost" onClick={() => { fetchData(); }} className="flex items-center gap-2">
+            <Button variant="ghost" onClick={() => refetchAll()} className="flex items-center gap-2">
               <RefreshCw className="h-4 w-4" /> Refresh
             </Button>
           </div>
@@ -355,7 +330,7 @@ const AnomalyPage = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  anomalies.map((a) => {
+                  anomalies.map((a: Anomaly) => {
                     const SevBadge = severityConfig[a.severity];
                     const StaBadge = statusConfig[a.status];
                     return (
@@ -437,12 +412,11 @@ const AnomalyPage = () => {
         </CardContent>
       </Card>
 
-      {/* Detail Drawer */}
       <AnomalyDetailDrawer
         anomalyId={selectedId}
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
-        onStatusUpdate={fetchData}
+        onStatusUpdate={() => refetchAll()}
       />
     </div>
   );

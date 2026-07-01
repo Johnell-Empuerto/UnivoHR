@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const logger = require("../utils/logger");
 
 let io;
 
@@ -34,7 +35,7 @@ const initSocket = (server) => {
       }
     } else {
       // Backward-compatible: allow without token (log warning)
-      console.warn(`[Socket] Unauthenticated connection: ${socket.id}`);
+      logger.warn({ socketId: socket.id }, `[Socket] Unauthenticated connection: ${socket.id}`);
       socket.user = null;
       next();
     }
@@ -42,28 +43,22 @@ const initSocket = (server) => {
 
   io.on("connection", (socket) => {
     const userId = socket.user?.id;
-    console.log(
-      "Client connected:",
-      socket.id,
-      userId ? `(user ${userId})` : "(unauthenticated)",
-    );
+    logger.info({ socketId: socket.id, userId }, `Client connected: ${socket.id} ${userId ? `(user ${userId})` : "(unauthenticated)"}`);
 
     socket.on("join", (targetUserId) => {
       if (targetUserId) {
         // Authenticated users can only join their own room
         if (socket.user && Number(targetUserId) === Number(socket.user.id)) {
           socket.join(`user_${targetUserId}`);
-          console.log(`User ${targetUserId} joined room user_${targetUserId}`);
+          logger.info({ targetUserId, room: `user_${targetUserId}` }, `User ${targetUserId} joined room user_${targetUserId}`);
         } else if (!socket.user) {
-          console.warn(
-            `[Socket] Unauthenticated user attempted to join room ${targetUserId}`,
-          );
+          logger.warn({ targetUserId }, `[Socket] Unauthenticated user attempted to join room ${targetUserId}`);
         }
       }
     });
 
     socket.on("disconnect", () => {
-      console.log("Client disconnected:", socket.id);
+      logger.info({ socketId: socket.id }, "Client disconnected:");
     });
   });
 

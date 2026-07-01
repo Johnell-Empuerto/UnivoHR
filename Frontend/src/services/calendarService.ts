@@ -2,7 +2,7 @@ import api from "./api";
 
 //  GET ALL (with optional range and branch filter)
 export const getCalendar = async (start?: string, end?: string, branch_id?: string) => {
-  const params: any = {};
+  const params: Record<string, string> = {};
   if (start) params.start = start;
   if (end) params.end = end;
   if (branch_id) params.branch_id = branch_id;
@@ -18,13 +18,13 @@ export const getCalendarByDate = async (date: string) => {
 };
 
 //  CREATE
-export const createCalendarDay = async (data: any) => {
+export const createCalendarDay = async (data: Record<string, unknown>) => {
   const res = await api.post("/calendar", data);
   return res.data;
 };
 
 //  UPDATE
-export const updateCalendarDay = async (id: number, data: any) => {
+export const updateCalendarDay = async (id: number, data: Record<string, unknown>) => {
   const res = await api.put(`/calendar/${id}`, data);
   return res.data;
 };
@@ -37,7 +37,7 @@ export const deleteCalendarDay = async (id: number) => {
 
 //  BULK UPLOAD
 export const bulkUploadCalendar = async (
-  data: any[],
+  data: Record<string, unknown>[],
   overwrite: boolean = true,
 ) => {
   const res = await api.post("/calendar/bulk", {

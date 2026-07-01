@@ -1,11 +1,11 @@
 const service = require("../services/employeeWorkExperience.service");
 
-const getByEmployeeId = async (req, res) => {
+const getByEmployeeId = async (req, res, next) => {
   try {
     const result = await service.getByEmployeeId(req.params.employeeId);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

@@ -1,13 +1,13 @@
 const service = require("../services/kpiTemplate.service");
 const audit = require("../services/audit.service");
 
-const getAll = async (req, res) => {
+const getAll = async (req, res, next) => {
   try {
     const { search = "", page = 1, limit = 10 } = req.query;
     const result = await service.getAll(search, Number(page), Number(limit));
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -83,12 +83,12 @@ const remove = async (req, res) => {
   }
 };
 
-const getItems = async (req, res) => {
+const getItems = async (req, res, next) => {
   try {
     const items = await service.getItems(req.params.templateId);
     res.json(items);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -139,12 +139,12 @@ const removeItem = async (req, res) => {
   }
 };
 
-const getActiveTemplates = async (req, res) => {
+const getActiveTemplates = async (req, res, next) => {
   try {
     const templates = await service.getActiveTemplates();
     res.json(templates);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

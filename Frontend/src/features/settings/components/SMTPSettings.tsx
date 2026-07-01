@@ -35,7 +35,6 @@ import {
   EyeOff,
 } from "lucide-react";
 import {
-  getAllSmtpSettings,
   createSmtpSettings,
   updateSmtpSettings,
   deleteSmtpSettings,
@@ -44,10 +43,10 @@ import {
   type CreateSmtpData,
   type UpdateSmtpData,
 } from "@/services/stmpService";
+import { useSMTPSettings } from "@/hooks/useSMTPSettings";
 
 const SMTPSettings = () => {
-  const [settings, setSettings] = useState<SmtpSettings[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: settings = [], isFetching, error, refetch } = useSMTPSettings();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<SmtpSettings | null>(null);
   const [testDialogOpen, setTestDialogOpen] = useState(false);
@@ -68,23 +67,12 @@ const SMTPSettings = () => {
     is_active: false,
   });
 
-  // Fetch all SMTP settings
-  const fetchSettings = async () => {
-    try {
-      setLoading(true);
-      const data = await getAllSmtpSettings();
-      setSettings(data);
-    } catch (error) {
+  useEffect(() => {
+    if (error) {
       console.error("Failed to fetch SMTP settings:", error);
       toast.error("Failed to load SMTP settings");
-    } finally {
-      setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchSettings();
-  }, []);
+  }, [error]);
 
   // Handle form input changes
   const handleChange = (
@@ -189,7 +177,7 @@ const SMTPSettings = () => {
         toast.success("SMTP settings created successfully");
       }
       setDialogOpen(false);
-      fetchSettings();
+      refetch();
     } catch (error: any) {
       console.error("Failed to save SMTP settings:", error);
       toast.error(
@@ -209,7 +197,7 @@ const SMTPSettings = () => {
       await deleteSmtpSettings(deleteConfirm);
       toast.success("SMTP settings deleted successfully");
       setDeleteConfirm(null);
-      fetchSettings();
+      refetch();
     } catch (error: any) {
       console.error("Failed to delete SMTP settings:", error);
       toast.error(error.response?.data?.message || "Failed to delete SMTP settings");
@@ -267,7 +255,7 @@ const SMTPSettings = () => {
       </CardHeader>
 
       <CardContent>
-        {loading ? (
+        {isFetching ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>

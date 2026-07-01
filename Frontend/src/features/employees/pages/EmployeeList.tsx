@@ -1,4 +1,5 @@
-import { employees as employeesAPI } from "@/services/employeeService";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEmployeeList } from "@/hooks/useEmployeeList";
 import { useActiveBranches } from "@/hooks/useBranches";
 import { useEffect, useState } from "react";
 import EmployeeTable from "../components/EmployeeTable";
@@ -54,6 +55,7 @@ type Employee = {
 
 const EmployeeList = () => {
   const { user, hasPermission } = useAuth();
+  const queryClient = useQueryClient();
 
   const canCreate = user?.role === "ADMIN";
   const canEdit = user?.role === "ADMIN";
@@ -61,8 +63,6 @@ const EmployeeList = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalRecords, setTotalRecords] = useState(0);
 
   const [data, setData] = useState<Employee[]>([]);
   const [searchInput, setSearchInput] = useState("");
@@ -73,6 +73,27 @@ const EmployeeList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const { data: queryData, isFetching } = useEmployeeList(
+    currentPage, rowsPerPage, search, statusFilter, branchFilter,
+  );
+
+  const totalPages = queryData?.pagination?.totalPages ?? 1;
+  const totalRecords = queryData?.pagination?.total ?? 0;
+
+  // Sync data from query
+  useEffect(() => {
+    if (queryData?.data) {
+      setData(queryData.data);
+      setLoading(false);
+    }
+  }, [queryData]);
+
+  useEffect(() => {
+    if (isFetching && data.length > 0) {
+      setLoading(true);
+    }
+  }, [isFetching, data.length]);
+
   // Debounce search
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
@@ -82,32 +103,6 @@ const EmployeeList = () => {
 
     return () => clearTimeout(delayDebounce);
   }, [searchInput]);
-
-  // Fetch data with server-side pagination
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const res = await employeesAPI(
-          currentPage,
-          rowsPerPage,
-          search,
-          statusFilter,
-          branchFilter,
-        );
-
-        setData(res.data);
-        setTotalPages(res.pagination.totalPages);
-        setTotalRecords(res.pagination.total);
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch employees");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [currentPage, rowsPerPage, search, statusFilter, branchFilter]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value);
@@ -137,6 +132,7 @@ const EmployeeList = () => {
     setSearch("");
     setStatusFilter("");
     setBranchFilter("");
+    queryClient.invalidateQueries({ queryKey: ["employees"] });
   };
 
   const handleUpdate = (updated: Employee) => {
@@ -148,8 +144,6 @@ const EmployeeList = () => {
   const handleCreate = (newEmp: Employee) => {
     if (currentPage === 1) {
       setData((prev) => [newEmp, ...prev]);
-      setTotalRecords((prev) => prev + 1);
-      setTotalPages(Math.ceil((totalRecords + 1) / rowsPerPage));
     } else {
       setCurrentPage(1);
     }
@@ -159,7 +153,6 @@ const EmployeeList = () => {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
           <Users className="h-5 w-5 text-primary" />
@@ -176,11 +169,9 @@ const EmployeeList = () => {
         </div>
       </div>
 
-      {/* Filters Card */}
       <Card className="shadow-sm">
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-4">
-            {/* Search Input with Icon */}
             <div className="relative flex-1 min-w-50">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -191,7 +182,6 @@ const EmployeeList = () => {
               />
             </div>
 
-            {/* Status Filter */}
             <Select
               value={statusFilter || "all"}
               onValueChange={handleStatusChange}
@@ -207,7 +197,6 @@ const EmployeeList = () => {
               </SelectContent>
             </Select>
 
-            {/* Branch Filter */}
             <Select
               value={branchFilter || "all"}
               onValueChange={handleBranchChange}
@@ -228,7 +217,6 @@ const EmployeeList = () => {
               </SelectContent>
             </Select>
 
-            {/* Clear Filters Button */}
             {(searchInput || statusFilter || branchFilter) && (
               <Button variant="ghost" onClick={handleClearFilters}>
                 Clear Filters
@@ -243,10 +231,8 @@ const EmployeeList = () => {
         </CardContent>
       </Card>
 
-      {/* Loading Indicator */}
       {loading && <Loader message="Loading employees..." />}
 
-      {/* Employee Table */}
       <EmployeeTable
         data={data}
         onUpdate={handleUpdate}

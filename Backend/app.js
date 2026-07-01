@@ -37,14 +37,8 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // =====================
 // HEALTH CHECK (public)
 // =====================
-app.get("/api/health", (req, res) => {
-  res.json({
-    status: "ok",
-    timestamp: new Date().toISOString(),
-    uptime: Math.floor(process.uptime()),
-    environment: process.env.NODE_ENV || "development",
-  });
-});
+const healthController = require("./controllers/health.controller");
+app.get("/api/health", healthController.getHealth);
 
 // Routes
 const authRoutes = require("./routes/auth.routes");

@@ -6,7 +6,7 @@ const audit = require("../services/audit.service");
 const timezoneResolver = require("../utils/timezone");
 
 // Create attendance (check-in / check-out logic)
-const createAttendance = async (req, res) => {
+const createAttendance = async (req, res, next) => {
   try {
     const result = await attendanceService.createAttendance(req.body);
 
@@ -31,13 +31,12 @@ const createAttendance = async (req, res) => {
 
     res.status(201).json(result);
   } catch (error) {
-    console.error(" ERROR:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Get all attendance
-const getAttendance = async (req, res) => {
+const getAttendance = async (req, res, next) => {
   try {
     const {
       page = 1,
@@ -60,33 +59,33 @@ const getAttendance = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Get attendance by employee
-const getByEmployee = async (req, res) => {
+const getByEmployee = async (req, res, next) => {
   try {
     const { date = "" } = req.query;
     const data = await attendanceService.getByEmployee(req.params.id, date);
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // GET RULES
-const getRules = async (req, res) => {
+const getRules = async (req, res, next) => {
   try {
     const data = await rulesService.getRules();
     res.json(data);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 // UPDATE RULES
-const updateRules = async (req, res) => {
+const updateRules = async (req, res, next) => {
   try {
     const oldRules = await rulesService.getRules();
     const data = await rulesService.updateRules(req.body);
@@ -116,22 +115,22 @@ const updateRules = async (req, res) => {
     });
     res.json(data);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 // GET ALL RULES
-const getAllRules = async (req, res) => {
+const getAllRules = async (req, res, next) => {
   try {
     const data = await rulesService.getAllRules();
     res.json(data);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 //  CREATE
-const createRule = async (req, res) => {
+const createRule = async (req, res, next) => {
   try {
     const data = await rulesService.createRule(req.body);
     audit.auditLog(req, {
@@ -151,12 +150,12 @@ const createRule = async (req, res) => {
     });
     res.json(data);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 //  ACTIVATE
-const setActiveRule = async (req, res) => {
+const setActiveRule = async (req, res, next) => {
   try {
     const data = await rulesService.setActiveRule(req.params.id);
     audit.auditLog(req, {
@@ -168,12 +167,12 @@ const setActiveRule = async (req, res) => {
     });
     res.json(data);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 //  DELETE
-const deleteRule = async (req, res) => {
+const deleteRule = async (req, res, next) => {
   try {
     const oldValues = await audit.fetchOldValues(
       "attendance_rules",
@@ -196,21 +195,12 @@ const deleteRule = async (req, res) => {
     });
     res.json(data);
   } catch (err) {
-    if (err.statusCode === 404) {
-      return res.status(404).json({ message: err.message });
-    }
-    if (err.statusCode === 409) {
-      return res.status(409).json({
-        success: false,
-        message: err.message,
-        dependencies: err.dependencies,
-      });
-    }
-    res.status(500).json({ message: err.message });
+    if (err.dependencies) err.details = { dependencies: err.dependencies };
+    next(err);
   }
 };
 
-const updateRule = async (req, res) => {
+const updateRule = async (req, res, next) => {
   try {
     const oldValues = await audit.fetchOldValues(
       "attendance_rules",
@@ -245,14 +235,14 @@ const updateRule = async (req, res) => {
     });
     res.json(data);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
 // TIME MODIFICATION REQUESTS
 
 // CREATE TIME MODIFICATION REQUEST
-const createTimeModificationRequest = async (req, res) => {
+const createTimeModificationRequest = async (req, res, next) => {
   try {
     const employeeId = req.user.employee_id;
     const userId = req.user.id;
@@ -357,12 +347,12 @@ const createTimeModificationRequest = async (req, res) => {
 
     res.status(201).json(request);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // GET ALL TIME MODIFICATION REQUESTS (Admin/HR view)
-const getTimeModificationRequests = async (req, res) => {
+const getTimeModificationRequests = async (req, res, next) => {
   try {
     const { page = 1, limit = 10 } = req.query;
 
@@ -370,24 +360,24 @@ const getTimeModificationRequests = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // GET MY TIME MODIFICATION REQUESTS
-const getMyTimeModificationRequests = async (req, res) => {
+const getMyTimeModificationRequests = async (req, res, next) => {
   try {
     const employeeId = req.user.employee_id;
     const data =
       await attendanceModel.getMyTimeModificationRequests(employeeId);
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // UPDATE TIME MODIFICATION REQUEST STATUS (Approve/Reject)
-const updateTimeModificationStatus = async (req, res) => {
+const updateTimeModificationStatus = async (req, res, next) => {
   try {
     const { status, rejection_reason } = req.body;
     const { id } = req.params;
@@ -497,12 +487,12 @@ const updateTimeModificationStatus = async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // WEB CLOCK IN — employee self-service
-const webClockIn = async (req, res) => {
+const webClockIn = async (req, res, next) => {
   try {
     const isEnabled = await settingService.getBoolSetting(
       "enable_web_clock_in_out",
@@ -537,16 +527,12 @@ const webClockIn = async (req, res) => {
 
     res.status(201).json(result);
   } catch (error) {
-    if (error.status) {
-      return res.status(error.status).json({ message: error.message });
-    }
-    console.error("Web clock-in error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // WEB CLOCK OUT — employee self-service
-const webClockOut = async (req, res) => {
+const webClockOut = async (req, res, next) => {
   try {
     const isEnabled = await settingService.getBoolSetting(
       "enable_web_clock_in_out",
@@ -585,11 +571,7 @@ const webClockOut = async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    if (error.status) {
-      return res.status(error.status).json({ message: error.message });
-    }
-    console.error("Web clock-out error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

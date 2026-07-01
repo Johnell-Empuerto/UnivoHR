@@ -1,6 +1,7 @@
 const model = require("../models/notification.model");
 const { getIO } = require("../config/socket");
 const redisClient = require("../config/redis");
+const logger = require("../utils/logger");
 
 const CACHE_TTL = 3600; // 1 hour
 
@@ -45,7 +46,7 @@ const notify = async ({
       io.to(`user_${user_id}`).emit("unread_count", unreadCount);
     }
   } catch (err) {
-    console.error("Socket notification failed:", err.message);
+    logger.error({ err }, "Socket notification failed");
   }
 
   return notification;

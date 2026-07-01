@@ -2,7 +2,7 @@ const applicantService = require("../services/applicant.service");
 const applicantWorkflowService = require("../services/applicantWorkflow.service");
 const audit = require("../services/audit.service");
 
-const getAll = async (req, res) => {
+const getAll = async (req, res, next) => {
   try {
     let { page, limit, search, status, job_position_id } = req.query;
 
@@ -25,7 +25,7 @@ const getAll = async (req, res) => {
     const result = await applicantService.getAll(page, limit, search, status, job_position_id);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -120,12 +120,12 @@ const repairStageRecords = async (req, res) => {
   }
 };
 
-const getWorkflowTimeline = async (req, res) => {
+const getWorkflowTimeline = async (req, res, next) => {
   try {
     const timeline = await applicantWorkflowService.getApplicantWorkflowTimeline(req.params.id);
     res.json(timeline);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -253,14 +253,14 @@ const skipWorkflowStage = async (req, res) => {
   }
 };
 
-const getStageApproval = async (req, res) => {
+const getStageApproval = async (req, res, next) => {
   try {
     const { stageRecordId } = req.params;
     const result = await applicantWorkflowService.getStageApproval(stageRecordId);
     if (!result) return res.json(null);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -334,45 +334,45 @@ const assignApproval = async (req, res) => {
   }
 };
 
-const getMyApprovalAssignments = async (req, res) => {
+const getMyApprovalAssignments = async (req, res, next) => {
   try {
     const userId = req.user?.id;
     const employeeId = req.user?.employee_id;
     const result = await applicantWorkflowService.getMyApprovalAssignments(userId, employeeId);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getMyWorkflowStageAssignments = async (req, res) => {
+const getMyWorkflowStageAssignments = async (req, res, next) => {
   try {
     const userId = req.user?.id;
     const employeeId = req.user?.employee_id;
     const result = await applicantWorkflowService.getMyWorkflowStageAssignments(userId, employeeId);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getPossibleApprovers = async (req, res) => {
+const getPossibleApprovers = async (req, res, next) => {
   try {
     const result = await applicantWorkflowService.getPossibleApprovers();
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getAssignableUsers = async (req, res) => {
+const getAssignableUsers = async (req, res, next) => {
   try {
     const { page = 1, limit = 20, search = "" } = req.query;
     const safeLimit = Math.min(Number(limit) || 20, 50);
     const result = await applicantWorkflowService.getAssignableUsers(Number(page), safeLimit, search);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

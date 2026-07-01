@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const { isTokenBlacklisted } = require("../services/tokenBlacklist.service");
+const logger = require("../utils/logger");
 
 const authenticate = async (req, res, next) => {
   try {
@@ -38,7 +39,7 @@ const authenticate = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error("Auth error:", error.message);
+    logger.error({ err: error, correlationId: req.correlationId }, "Auth error:");
 
     if (error.name === "JsonWebTokenError") {
       return res.status(401).json({

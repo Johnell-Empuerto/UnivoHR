@@ -1,5 +1,6 @@
 const puppeteer = require("puppeteer");
 const manhourTemplate = require("./manhourTemplate");
+const logger = require("../utils/logger");
 
 const generateManhourPDF = async (res, exportData) => {
   let browser = null;
@@ -62,7 +63,7 @@ const generateManhourPDF = async (res, exportData) => {
 
     res.send(pdf);
   } catch (error) {
-    console.error("PDF Generation Error:", error);
+    logger.error({ err: error }, "PDF Generation Error:");
     if (browser) await browser.close();
     throw new Error(`Failed to generate PDF: ${error.message}`);
   }

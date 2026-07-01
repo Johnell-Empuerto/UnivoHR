@@ -1,5 +1,10 @@
+const getErrorProperty = (error: unknown): { response?: { data?: { message?: string }; status?: number }; message?: string } => {
+  if (typeof error === "object" && error !== null) return error as { response?: { data?: { message?: string }; status?: number }; message?: string };
+  return {};
+};
+
 export const getFriendlyErrorMessage = (error: unknown): string => {
-  const err = error as any;
+  const err = getErrorProperty(error);
 
   if (!err) return "An unexpected error occurred.";
 
@@ -43,7 +48,7 @@ export const getFriendlyErrorMessage = (error: unknown): string => {
   if (status === 403) return "You do not have permission to perform this action.";
   if (status === 404) return "The requested record was not found.";
   if (status === 409) return "This record conflicts with an existing entry.";
-  if (status >= 500) return "Server error. Please try again later or contact support.";
+  if (status && status >= 500) return "Server error. Please try again later or contact support.";
 
   if (message) return message;
 

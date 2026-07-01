@@ -16,7 +16,7 @@ export interface ReportParams {
 }
 
 export interface ReportResponse {
-  data: any[];
+  data: Record<string, unknown>[];
   pagination: {
     total: number;
     page: number;
@@ -59,6 +59,7 @@ export const exportReport = async (params: ReportParams & { reportCategory: stri
   const response = await api.get("/reports/export", {
     params,
     responseType: "blob",
+    timeout: 60000,
   });
   return response.data;
 };

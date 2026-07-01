@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Loader2, Building, Image as ImageIcon, X, AlertCircle } from "lucide-react";
 import {
   updateSetting,
@@ -20,9 +20,37 @@ const CompanyBranding = () => {
   const queryClient = useQueryClient();
   const { data: settingsList = [], isLoading } = useAllSettings();
   const [settings, setSettings] = useState<Map<string, string>>(new Map());
-  const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("general");
   const [logoError, setLogoError] = useState(false);
+
+  const brandingKeys = [
+    "company_name",
+    "company_logo",
+    "company_address",
+    "primary_color",
+    "secondary_color",
+    "show_powered_by",
+    "payslip_show_company_name",
+    "email_show_company_name",
+  ];
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const promises: Promise<any>[] = [];
+      for (const [key, value] of settings) {
+        if (brandingKeys.includes(key)) {
+          promises.push(updateSetting(key, value));
+        }
+      }
+      await Promise.all(promises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      toast.success("Company branding saved successfully");
+    },
+    onError: () => {
+      toast.error("Failed to save company settings");
+    },
+  });
 
   useEffect(() => {
     if (settingsList.length > 0 && settings.size === 0) {
@@ -43,35 +71,8 @@ const CompanyBranding = () => {
     setSettings((prev) => new Map(prev).set(key, checked ? "true" : "false"));
   };
 
-  const handleSave = async () => {
-    try {
-      setSaving(true);
-      const brandingKeys = [
-        "company_name",
-        "company_logo",
-        "company_address",
-        "primary_color",
-        "secondary_color",
-        "show_powered_by",
-        "payslip_show_company_name",
-        "email_show_company_name",
-      ];
-
-      const promises = [];
-      for (const [key, value] of settings) {
-        if (brandingKeys.includes(key)) {
-          promises.push(updateSetting(key, value));
-        }
-      }
-      await Promise.all(promises);
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
-      toast.success("Company branding saved successfully");
-    } catch (error) {
-      console.error("Failed to save settings:", error);
-      toast.error("Failed to save company settings");
-    } finally {
-      setSaving(false);
-    }
+  const handleSave = () => {
+    saveMutation.mutate();
   };
 
   if (isLoading) {
@@ -434,8 +435,8 @@ const CompanyBranding = () => {
 
         {/* Save Button */}
         <div className="flex gap-3 pt-6 border-t mt-6">
-          <Button onClick={handleSave} disabled={saving} className="flex-1">
-            {saving ? (
+          <Button onClick={handleSave} disabled={saveMutation.isPending} className="flex-1">
+            {saveMutation.isPending ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Saving...

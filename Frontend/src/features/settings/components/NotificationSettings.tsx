@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -24,11 +25,11 @@ import {
   Clock,
 } from "lucide-react";
 import {
-  getAllRules,
   updateRule,
   toggleRule,
   type NotificationRule,
 } from "@/services/notificationRuleService";
+import { useNotificationRules } from "@/hooks/useNotificationRules";
 
 const MODULE_LABELS: Record<string, string> = {
   system: "Security",
@@ -78,35 +79,20 @@ const getRuleIcon = (ruleKey: string) => {
 };
 
 const NotificationSettings = () => {
-  const [rules, setRules] = useState<NotificationRule[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: rulesResponse, isLoading } = useNotificationRules();
+  const queryClient = useQueryClient();
+  const rules = rulesResponse?.data ?? [];
   const [toggling, setToggling] = useState<string | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
-
-  const fetchRules = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await getAllRules();
-      setRules(response.data);
-    } catch (error) {
-      console.error("Failed to fetch notification rules:", error);
-      toast.error("Failed to load notification settings");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchRules();
-  }, [fetchRules]);
 
   const handleToggle = async (ruleKey: string, field: "is_enabled" | "in_app_enabled" | "email_enabled") => {
     try {
       setToggling(`${ruleKey}:${field}`);
       const response = await toggleRule(ruleKey, field);
-      setRules((prev) =>
-        prev.map((r) => (r.rule_key === ruleKey ? response.data : r)),
-      );
+      queryClient.setQueryData(["notification-rules"], (old: any) => {
+        if (!old?.data) return old;
+        return { ...old, data: old.data.map((r: NotificationRule) => (r.rule_key === ruleKey ? response.data : r)) };
+      });
     } catch (error) {
       console.error("Failed to toggle rule:", error);
       toast.error("Failed to update setting");
@@ -119,9 +105,10 @@ const NotificationSettings = () => {
     try {
       setSaving(ruleKey);
       const response = await updateRule(ruleKey, payload);
-      setRules((prev) =>
-        prev.map((r) => (r.rule_key === ruleKey ? response.data : r)),
-      );
+      queryClient.setQueryData(["notification-rules"], (old: any) => {
+        if (!old?.data) return old;
+        return { ...old, data: old.data.map((r: NotificationRule) => (r.rule_key === ruleKey ? response.data : r)) };
+      });
       toast.success("Setting updated successfully");
     } catch (error) {
       console.error("Failed to update rule:", error);
@@ -143,7 +130,7 @@ const NotificationSettings = () => {
 
   const loginOtpRule = rules.find((r) => r.rule_key === "login_otp");
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card className="border-border/50 shadow-sm">
         <CardHeader>

@@ -2,6 +2,7 @@
 const emailTemplateModel = require("../models/emailTemplate.model");
 const { wrapEmailWithDesign } = require("./emailWrapper.service");
 const { cleanPlainText, cleanRichText } = require("../utils/inputSanitizer");
+const logger = require("../utils/logger");
 
 // Apply template variables
 const applyTemplate = (html, data) => {
@@ -78,9 +79,9 @@ const renderEmail = async (type, data) => {
   content = content || "";
   subject = subject || "";
 
-  console.log(`Rendering template: ${type}`);
-  console.log(`Subject: ${subject}`);
-  console.log(`Content length: ${content.length}`);
+  logger.info(`Rendering template: ${type}`);
+  logger.info(`Subject: ${subject}`);
+  logger.info(`Content length: ${content.length}`);
 
   // Wrap content with full email design (await the async function)
   const html = await wrapEmailWithDesign(content, subject);

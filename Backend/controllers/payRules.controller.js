@@ -1,39 +1,40 @@
 const service = require("../services/payRules.service");
 const audit = require("../services/audit.service");
+const logger = require("../utils/logger");
 
 // PAY RULES
 
 // GET ALL PAY RULES
-const getAllPayRules = async (req, res) => {
+const getAllPayRules = async (req, res, next) => {
   try {
     const data = await service.getAllPayRules();
     res.json(data);
   } catch (error) {
-    console.error("Error fetching pay rules:", error);
-    res.status(500).json({ error: "Failed to fetch pay rules" });
+    logger.error({ err: error, correlationId: req.correlationId }, "Error fetching pay rules");
+    next(error);
   }
 };
 
 // GET SINGLE PAY RULE
-const getPayRuleById = async (req, res) => {
+const getPayRuleById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const data = await service.getPayRuleById(id);
     res.json(data);
   } catch (error) {
-    console.error("Error fetching pay rule:", error);
+    logger.error({ err: error, correlationId: req.correlationId }, "Error fetching pay rule");
 
     if (error.message === "NOT_FOUND") {
       return res.status(404).json({ error: "Pay rule not found" });
     }
 
-    res.status(500).json({ error: "Failed to fetch pay rule" });
+    next(error);
   }
 };
 
 // CREATE PAY RULE
-const createPayRule = async (req, res) => {
+const createPayRule = async (req, res, next) => {
   try {
     const data = await service.createPayRule(req.body);
     audit.auditLog(req, {
@@ -45,7 +46,7 @@ const createPayRule = async (req, res) => {
     });
     res.status(201).json(data);
   } catch (error) {
-    console.error("Error creating pay rule:", error);
+    logger.error({ err: error, correlationId: req.correlationId }, "Error creating pay rule");
 
     if (error.message === "VALIDATION_ERROR") {
       return res.status(400).json({
@@ -53,12 +54,12 @@ const createPayRule = async (req, res) => {
       });
     }
 
-    res.status(500).json({ error: "Failed to create pay rule" });
+    next(error);
   }
 };
 
 // UPDATE PAY RULE
-const updatePayRule = async (req, res) => {
+const updatePayRule = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -72,7 +73,7 @@ const updatePayRule = async (req, res) => {
     });
     res.json(data);
   } catch (error) {
-    console.error("Error updating pay rule:", error);
+    logger.error({ err: error, correlationId: req.correlationId }, "Error updating pay rule");
 
     if (error.message === "NOT_FOUND") {
       return res.status(404).json({ error: "Pay rule not found" });
@@ -82,12 +83,12 @@ const updatePayRule = async (req, res) => {
       return res.status(400).json({ error: "Invalid input" });
     }
 
-    res.status(500).json({ error: "Failed to update pay rule" });
+    next(error);
   }
 };
 
 // DELETE PAY RULE
-const deletePayRule = async (req, res) => {
+const deletePayRule = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -100,7 +101,7 @@ const deletePayRule = async (req, res) => {
     });
     res.json({ message: "Pay rule deleted successfully" });
   } catch (error) {
-    console.error("Error deleting pay rule:", error);
+    logger.error({ err: error, correlationId: req.correlationId }, "Error deleting pay rule");
 
     if (error.message === "NOT_FOUND") {
       return res.status(404).json({ error: "Pay rule not found" });
@@ -114,7 +115,7 @@ const deletePayRule = async (req, res) => {
       });
     }
 
-    res.status(500).json({ error: "Failed to delete pay rule" });
+    next(error);
   }
 };
 
@@ -123,14 +124,14 @@ const deletePayRule = async (req, res) => {
 // ==============================
 
 // GET CALENDAR DAYS
-const getCalendarDays = async (req, res) => {
+const getCalendarDays = async (req, res, next) => {
   try {
     const { start_date, end_date } = req.query;
 
     const data = await service.getCalendarDays(start_date, end_date);
     res.json(data);
   } catch (error) {
-    console.error("Error fetching calendar days:", error);
+    logger.error({ err: error, correlationId: req.correlationId }, "Error fetching calendar days");
 
     if (error.message === "VALIDATION_ERROR") {
       return res.status(400).json({
@@ -138,12 +139,12 @@ const getCalendarDays = async (req, res) => {
       });
     }
 
-    res.status(500).json({ error: "Failed to fetch calendar days" });
+    next(error);
   }
 };
 
 // UPSERT CALENDAR DAY
-const upsertCalendarDay = async (req, res) => {
+const upsertCalendarDay = async (req, res, next) => {
   try {
     const data = await service.upsertCalendarDay(req.body);
     audit.auditLog(req, {
@@ -155,7 +156,7 @@ const upsertCalendarDay = async (req, res) => {
     });
     res.status(201).json(data);
   } catch (error) {
-    console.error("Error saving calendar day:", error);
+    logger.error({ err: error, correlationId: req.correlationId }, "Error saving calendar day");
 
     if (error.message === "VALIDATION_ERROR") {
       return res.status(400).json({
@@ -163,12 +164,12 @@ const upsertCalendarDay = async (req, res) => {
       });
     }
 
-    res.status(500).json({ error: "Failed to save calendar day" });
+    next(error);
   }
 };
 
 // DELETE CALENDAR DAY
-const deleteCalendarDay = async (req, res) => {
+const deleteCalendarDay = async (req, res, next) => {
   try {
     const { date } = req.params;
 
@@ -181,13 +182,13 @@ const deleteCalendarDay = async (req, res) => {
     });
     res.json({ message: "Calendar day deleted successfully" });
   } catch (error) {
-    console.error("Error deleting calendar day:", error);
+    logger.error({ err: error, correlationId: req.correlationId }, "Error deleting calendar day");
 
     if (error.message === "NOT_FOUND") {
       return res.status(404).json({ error: "Calendar day not found" });
     }
 
-    res.status(500).json({ error: "Failed to delete calendar day" });
+    next(error);
   }
 };
 

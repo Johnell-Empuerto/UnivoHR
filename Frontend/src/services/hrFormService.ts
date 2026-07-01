@@ -10,12 +10,12 @@ export const getHrFormById = async (id: number) => {
   return response.data;
 };
 
-export const createHrForm = async (data: any) => {
+export const createHrForm = async (data: Record<string, unknown>) => {
   const response = await api.post("/hr-forms", data);
   return response.data;
 };
 
-export const updateHrForm = async (id: number, data: any) => {
+export const updateHrForm = async (id: number, data: Record<string, unknown>) => {
   const response = await api.patch(`/hr-forms/${id}`, data);
   return response.data;
 };
@@ -30,12 +30,12 @@ export const getHrFormFields = async (formId: number) => {
   return response.data;
 };
 
-export const addHrFormField = async (formId: number, data: any) => {
+export const addHrFormField = async (formId: number, data: Record<string, unknown>) => {
   const response = await api.post(`/hr-forms/${formId}/fields`, data);
   return response.data;
 };
 
-export const updateHrFormField = async (fieldId: number, data: any) => {
+export const updateHrFormField = async (fieldId: number, data: Record<string, unknown>) => {
   const response = await api.put(`/hr-forms/fields/${fieldId}`, data);
   return response.data;
 };
@@ -81,7 +81,7 @@ export const deleteHrAssignment = async (assignmentId: number) => {
   return response.data;
 };
 
-export const submitHrForm = async (assignmentId: number, data: any) => {
+export const submitHrForm = async (assignmentId: number, data: Record<string, unknown>) => {
   const response = await api.post(`/hr-forms/assignments/${assignmentId}/submit`, data);
   return response.data;
 };

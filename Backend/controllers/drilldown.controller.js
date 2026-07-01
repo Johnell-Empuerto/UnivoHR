@@ -1,66 +1,60 @@
 const drilldownService = require("../services/drilldown.service");
 
-const getAttendance = async (req, res) => {
+const getAttendance = async (req, res, next) => {
   try {
     const result = await drilldownService.getDrillDownAttendance(req.user, req.query);
     res.json(result);
   } catch (error) {
-    console.error("[DrilldownController] attendance error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getPayroll = async (req, res) => {
+const getPayroll = async (req, res, next) => {
   try {
     const result = await drilldownService.getDrillDownPayroll(req.user, req.query);
     res.json(result);
   } catch (error) {
-    console.error("[DrilldownController] payroll error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getOvertime = async (req, res) => {
+const getOvertime = async (req, res, next) => {
   try {
     const result = await drilldownService.getDrillDownOvertime(req.user, req.query);
     res.json(result);
   } catch (error) {
-    console.error("[DrilldownController] overtime error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getLeaves = async (req, res) => {
+const getLeaves = async (req, res, next) => {
   try {
     const result = await drilldownService.getDrillDownLeaves(req.user, req.query);
     res.json(result);
   } catch (error) {
-    console.error("[DrilldownController] leaves error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getAnomalies = async (req, res) => {
+const getAnomalies = async (req, res, next) => {
   try {
     const result = await drilldownService.getDrillDownAnomalies(req.user, req.query);
     res.json(result);
   } catch (error) {
-    console.error("[DrilldownController] anomalies error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getBranches = async (req, res) => {
+const getBranches = async (req, res, next) => {
   try {
     const result = await drilldownService.getDrillDownBranch(req.user, req.query);
     res.json(result);
   } catch (error) {
-    console.error("[DrilldownController] branches error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const exportDrillDown = async (req, res) => {
+const exportDrillDown = async (req, res, next) => {
   try {
     const result = await drilldownService.exportDrillDown(req.user, req.query);
     if (result.csv) {
@@ -70,8 +64,7 @@ const exportDrillDown = async (req, res) => {
     }
     res.json(result);
   } catch (error) {
-    console.error("[DrilldownController] export error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

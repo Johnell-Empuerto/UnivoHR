@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  fetchPayrollRules,
   updatePayrollRule,
 } from "@/services/payrollRulesService";
 import type { PayrollRule } from "@/services/payrollRulesService";
+import { usePayrollRules } from "@/hooks/usePayrollRules";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/Input";
@@ -21,39 +22,31 @@ import {
 } from "@/components/ui/select";
 
 const PayrollRulesSettings = () => {
-  const [rules, setRules] = useState<Map<string, PayrollRule>>(new Map());
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: rulesData = [], isLoading, error } = usePayrollRules();
+  const rules = useMemo(() => {
+    const map = new Map<string, PayrollRule>();
+    rulesData.forEach((r) => map.set(r.rule_key, r));
+    return map;
+  }, [rulesData]);
   const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => {
-    loadRules();
-  }, []);
-
-  const loadRules = async () => {
-    setLoading(true);
-    try {
-      const data = await fetchPayrollRules();
-      const map = new Map<string, PayrollRule>();
-      data.forEach((r) => map.set(r.rule_key, r));
-      setRules(map);
-    } catch {
+    if (error) {
       toast.error("Failed to load payroll rules");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [error]);
 
   const handleToggle = async (enabled: boolean) => {
     const key = "night_differential_enabled";
     setSaving(key);
     try {
       await updatePayrollRule(key, enabled ? 1 : 0);
-      const updated = new Map(rules);
-      updated.set(key, {
-        ...updated.get(key)!,
-        rule_value: enabled ? 1 : 0,
-      });
-      setRules(updated);
+      queryClient.setQueryData<PayrollRule[]>(["payroll-rules"], (old) =>
+        (old ?? []).map((r) =>
+          r.rule_key === key ? { ...r, rule_value: enabled ? 1 : 0 } : r,
+        ),
+      );
       toast.success(
         enabled ? "Night differential enabled" : "Night differential disabled",
       );
@@ -70,9 +63,11 @@ const PayrollRulesSettings = () => {
     setSaving(key);
     try {
       await updatePayrollRule(key, decimal);
-      const updated = new Map(rules);
-      updated.set(key, { ...updated.get(key)!, rule_value: decimal });
-      setRules(updated);
+      queryClient.setQueryData<PayrollRule[]>(["payroll-rules"], (old) =>
+        (old ?? []).map((r) =>
+          r.rule_key === key ? { ...r, rule_value: decimal } : r,
+        ),
+      );
       toast.success(`Night differential rate set to ${percent}%`);
     } catch {
       toast.error("Failed to update rate");
@@ -87,9 +82,11 @@ const PayrollRulesSettings = () => {
     setSaving(key);
     try {
       await updatePayrollRule(key, numValue);
-      const updated = new Map(rules);
-      updated.set(key, { ...updated.get(key)!, rule_value: numValue });
-      setRules(updated);
+      queryClient.setQueryData<PayrollRule[]>(["payroll-rules"], (old) =>
+        (old ?? []).map((r) =>
+          r.rule_key === key ? { ...r, rule_value: numValue } : r,
+        ),
+      );
       const labels: Record<number, string> = {
         1: "Multiplicative",
         2: "Additive",
@@ -109,9 +106,11 @@ const PayrollRulesSettings = () => {
       setSaving(key);
       try {
         await updatePayrollRule(key, numValue);
-        const updated = new Map(rules);
-        updated.set(key, { ...updated.get(key)!, rule_value: numValue });
-        setRules(updated);
+        queryClient.setQueryData<PayrollRule[]>(["payroll-rules"], (old) =>
+          (old ?? []).map((r) =>
+            r.rule_key === key ? { ...r, rule_value: numValue } : r,
+          ),
+        );
         const labels: Record<number, string> = {
           1: "No Pay",
           2: "Daily Rate (1×)",
@@ -125,7 +124,7 @@ const PayrollRulesSettings = () => {
       }
     };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">

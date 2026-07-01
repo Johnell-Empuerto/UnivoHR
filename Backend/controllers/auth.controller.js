@@ -34,17 +34,17 @@ const verifyOTP = async (req, res) => {
   }
 };
 
-const resendOTP = async (req, res) => {
+const resendOTP = async (req, res, next) => {
   try {
     const { user_id } = req.body;
     const result = await authService.resendOTP({ user_id });
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const forgotPassword = async (req, res) => {
+const forgotPassword = async (req, res, next) => {
   try {
     const { username } = req.body;
     if (!username || !username.trim()) {
@@ -53,7 +53,7 @@ const forgotPassword = async (req, res) => {
     const result = await authService.forgotPassword({ username });
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -92,7 +92,7 @@ const refresh = async (req, res) => {
   }
 };
 
-const logout = async (req, res) => {
+const logout = async (req, res, next) => {
   try {
     const { refreshToken } = req.body;
     const accessJti = req.user?.jti;
@@ -101,7 +101,7 @@ const logout = async (req, res) => {
     const result = await authService.logout(accessJti, accessExp, refreshToken);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

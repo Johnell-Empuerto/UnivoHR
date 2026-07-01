@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getHrAssignmentById, submitHrForm } from "@/services/hrFormService";
+import { submitHrForm } from "@/services/hrFormService";
+import { useHrAssignmentById } from "@/hooks/useHrAssignmentById";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, ArrowLeft, Send } from "lucide-react";
@@ -11,7 +12,6 @@ import EmptyState from "@/components/shared/EmptyState";
 const MyFormFillPage = () => {
   const { assignmentId } = useParams<{ assignmentId: string }>();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [fields, setFields] = useState<any[]>([]);
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -19,28 +19,29 @@ const MyFormFillPage = () => {
   const [description, setDescription] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
+  const { data: assignment, isLoading, error } = useHrAssignmentById(
+    assignmentId ? Number(assignmentId) : undefined,
+  );
+
   useEffect(() => {
-    if (!assignmentId) return;
-    const load = async () => {
-      try {
-        const a = await getHrAssignmentById(Number(assignmentId));
-        setTitle(a.form_title);
-        setDescription(a.form_description || "");
-        setSubmitted(a.status !== "Pending");
-        if (a.answers && a.answers.length > 0) {
-          const map: Record<number, string> = {};
-          a.answers.forEach((ans: any) => { map[ans.field_id] = ans.answer || ""; });
-          setAnswers(map);
-        }
-        setFields(Array.isArray(a.fields) ? a.fields : []);
-        setLoading(false);
-      } catch {
-        toast.error("Failed to load form");
-        navigate("/my-forms");
-      }
-    };
-    load();
-  }, [assignmentId]);
+    if (!assignment) return;
+    setTitle(assignment.form_title);
+    setDescription(assignment.form_description || "");
+    setSubmitted(assignment.status !== "Pending");
+    if (assignment.answers && assignment.answers.length > 0) {
+      const map: Record<number, string> = {};
+      assignment.answers.forEach((ans: any) => { map[ans.field_id] = ans.answer || ""; });
+      setAnswers(map);
+    }
+    setFields(Array.isArray(assignment.fields) ? assignment.fields : []);
+  }, [assignment]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error("Failed to load form");
+      navigate("/my-forms");
+    }
+  }, [error]);
 
   const setAnswer = (fieldId: number, value: string) => {
     setAnswers((prev) => ({ ...prev, [fieldId]: value }));
@@ -139,7 +140,7 @@ const MyFormFillPage = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return <Loader message="Loading form..." fullPage />;
   }
 

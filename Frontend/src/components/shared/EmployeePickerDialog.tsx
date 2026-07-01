@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
 import {
@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Search, X, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
-import { searchEmployeesPaginated } from "@/services/overtimeService";
+import { useEmployeeSearch } from "@/hooks/useEmployeeSearch";
 import type { EmployeeSearchResult } from "@/services/overtimeService";
 
 interface EmployeePickerDialogProps {
@@ -42,43 +42,45 @@ const EmployeePickerDialog = ({
   requireUserAccount = false,
 }: EmployeePickerDialogProps) => {
   const [search, setSearch] = useState("");
-  const [data, setData] = useState<EmployeeSearchResult[]>([]);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-
-  const fetchEmployees = useCallback(async (p: number, s: string) => {
-    setLoading(true);
-    try {
-      const res = await searchEmployeesPaginated({
-        page: p,
-        limit: ITEMS_PER_PAGE,
-        search: s,
-        status: activeOnly ? "ACTIVE" : "",
-        hasUser: requireUserAccount,
-      });
-      const filtered = excludeEmployeeId
-        ? (res.data || []).filter((emp) => emp.id !== excludeEmployeeId)
-        : (res.data || []);
-      setData(filtered);
-      setTotal(filtered.length < (res.data || []).length
-        ? res.pagination.total - 1
-        : res.pagination.total);
-    } catch {
-      setData([]);
-      setTotal(0);
-    } finally {
-      setLoading(false);
-    }
-  }, [excludeEmployeeId, activeOnly, requireUserAccount]);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   useEffect(() => {
     if (!open) return;
     const timer = setTimeout(() => {
-      fetchEmployees(page, search);
+      setDebouncedSearch(search);
     }, search ? 300 : 0);
     return () => clearTimeout(timer);
-  }, [open, page, search, fetchEmployees]);
+  }, [open, search]);
+
+  const query = useEmployeeSearch(
+    {
+      page,
+      limit: ITEMS_PER_PAGE,
+      search: debouncedSearch,
+      status: activeOnly ? "ACTIVE" : "",
+      hasUser: requireUserAccount,
+    },
+    open,
+  );
+
+  const filtered = useMemo(() => {
+    const raw = query.data?.data ?? [];
+    if (!excludeEmployeeId) return raw;
+    return raw.filter((emp) => emp.id !== excludeEmployeeId);
+  }, [query.data, excludeEmployeeId]);
+
+  const total = useMemo(() => {
+    const rawTotal = query.data?.pagination?.total ?? 0;
+    if (excludeEmployeeId) {
+      const raw = query.data?.data ?? [];
+      const hasFiltered = raw.some((emp) => emp.id === excludeEmployeeId);
+      return hasFiltered ? rawTotal - 1 : rawTotal;
+    }
+    return rawTotal;
+  }, [query.data, excludeEmployeeId]);
+
+  const loading = query.isFetching;
 
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE) || 1;
 
@@ -109,7 +111,7 @@ const EmployeePickerDialog = ({
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
-            ) : data.length === 0 ? (
+            ) : filtered.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
                 No employees found
               </p>
@@ -127,7 +129,7 @@ const EmployeePickerDialog = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.map((emp) => (
+                  {filtered.map((emp) => (
                     <TableRow
                       key={emp.id}
                       className="cursor-pointer hover:bg-accent"

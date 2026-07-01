@@ -3,6 +3,7 @@ const anomalyModel = require("../models/anomaly.model");
 const notificationService = require("./notification.service");
 const auditService = require("./audit.service");
 const notificationRuleService = require("./notificationRule.service");
+const logger = require("../utils/logger");
 
 const DEDUP_WINDOW_DAYS = 1;
 
@@ -50,7 +51,7 @@ const createAnomalyRecord = async (req, anomalyData) => {
     try {
       await notifyHighSeverityAnomaly(anomaly);
     } catch (err) {
-      console.error("[Anomaly] Failed to send HIGH severity notification:", err.message);
+      logger.error({ err }, "[Anomaly] Failed to send HIGH severity notification");
     }
   }
 
@@ -73,7 +74,7 @@ const notifyHighSeverityAnomaly = async (anomaly) => {
         meta: { anomaly_id: anomaly.id, severity: "HIGH", anomaly_type: anomaly.anomaly_type },
       });
     } catch (err) {
-      console.error(`[Anomaly] Failed to notify user ${user.id}:`, err.message);
+      logger.error({ err }, `[Anomaly] Failed to notify user ${user.id}`);
     }
   }
 };
@@ -810,7 +811,7 @@ const detectManHourAnomalies = async (req) => {
 // ============================================
 
 const runDailyAnomalyScan = async (req = null) => {
-  console.log("[AnomalyScan] Starting daily scan...");
+  logger.info("[AnomalyScan] Starting daily scan...");
   const results = {
     attendance: { detected: 0, errors: 0 },
     overtime: { detected: 0, errors: 0 },
@@ -823,35 +824,35 @@ const runDailyAnomalyScan = async (req = null) => {
   try {
     results.attendance = await detectAttendanceAnomalies(req);
   } catch (err) {
-    console.error("[AnomalyScan] Attendance scan failed:", err.message);
+    logger.error({ err }, "[AnomalyScan] Attendance scan failed");
     results.attendance.errors = 1;
   }
 
   try {
     results.overtime = await detectOvertimeAnomalies(req);
   } catch (err) {
-    console.error("[AnomalyScan] Overtime scan failed:", err.message);
+    logger.error({ err }, "[AnomalyScan] Overtime scan failed");
     results.overtime.errors = 1;
   }
 
   try {
     results.leaves = await detectLeaveAnomalies(req);
   } catch (err) {
-    console.error("[AnomalyScan] Leave scan failed:", err.message);
+    logger.error({ err }, "[AnomalyScan] Leave scan failed");
     results.leaves.errors = 1;
   }
 
   try {
     results.time_modification = await detectTimeModificationAnomalies(req);
   } catch (err) {
-    console.error("[AnomalyScan] Time modification scan failed:", err.message);
+    logger.error({ err }, "[AnomalyScan] Time modification scan failed");
     results.time_modification.errors = 1;
   }
 
   try {
     results.man_hours = await detectManHourAnomalies(req);
   } catch (err) {
-    console.error("[AnomalyScan] Man-hour scan failed:", err.message);
+    logger.error({ err }, "[AnomalyScan] Man-hour scan failed");
     results.man_hours.errors = 1;
   }
 
@@ -862,12 +863,12 @@ const runDailyAnomalyScan = async (req = null) => {
     results.time_modification.detected +
     results.man_hours.detected;
 
-  console.log(`[AnomalyScan] Daily scan complete. ${results.total_detected} anomalies detected.`);
+  logger.info(`[AnomalyScan] Daily scan complete. ${results.total_detected} anomalies detected.`);
   return results;
 };
 
 const runWeeklyAnomalyScan = async (req = null) => {
-  console.log("[AnomalyScan] Starting weekly scan...");
+  logger.info("[AnomalyScan] Starting weekly scan...");
   const results = {
     payroll: { detected: 0, errors: 0 },
     total_detected: 0,
@@ -876,13 +877,13 @@ const runWeeklyAnomalyScan = async (req = null) => {
   try {
     results.payroll = await detectPayrollAnomalies(req);
   } catch (err) {
-    console.error("[AnomalyScan] Payroll scan failed:", err.message);
+    logger.error({ err }, "[AnomalyScan] Payroll scan failed");
     results.payroll.errors = 1;
   }
 
   results.total_detected = results.payroll.detected;
 
-  console.log(`[AnomalyScan] Weekly scan complete. ${results.total_detected} anomalies detected.`);
+  logger.info(`[AnomalyScan] Weekly scan complete. ${results.total_detected} anomalies detected.`);
   return results;
 };
 

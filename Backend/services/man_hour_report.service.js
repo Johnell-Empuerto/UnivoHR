@@ -5,6 +5,7 @@ const smtpService = require("./smtp.service");
 const emailTemplateService = require("./emailTemplate.service");
 const pool = require("../config/db");
 const { cleanPlainText } = require("../utils/inputSanitizer");
+const logger = require("../utils/logger");
 
 // Helper function to format date
 const formatDate = (dateStr) => {
@@ -30,7 +31,7 @@ const sendManHourEmailNotification = async (
     const allowed = await notificationDispatch.canSendEmail(ruleKey);
 
     if (!allowed) {
-      console.log(`Email notification for ${ruleKey} is disabled`);
+      logger.info(`Email notification for ${ruleKey} is disabled`);
       return;
     }
 
@@ -43,7 +44,7 @@ const sendManHourEmailNotification = async (
 
     const employee = employeeResult.rows[0];
     if (!employee || !employee.email) {
-      console.log(`No email found for employee ${report.employee_id}`);
+      logger.info(`No email found for employee ${report.employee_id}`);
       return;
     }
 
@@ -64,11 +65,9 @@ const sendManHourEmailNotification = async (
     );
 
     await smtpService.sendEmail(employee.email, subject, html);
-    console.log(
-      `Man hour ${status} email sent to ${employee.email} using template`,
-    );
+    logger.info(`Man hour ${status} email sent to ${employee.email} using template`);
   } catch (error) {
-    console.error(`Failed to send man hour ${status} email:`, error.message);
+    logger.error({ error }, `Failed to send man hour ${status} email`);
   }
 };
 
@@ -221,7 +220,7 @@ const approveManHourReport = async (id, approver_id, comment, userRole) => {
 
     await sendManHourEmailNotification(report, "APPROVED");
   } catch (emailError) {
-    console.error("Notification/email failed:", emailError);
+    logger.error({ err: emailError }, "Notification/email failed");
   }
 
   return result;
@@ -283,7 +282,7 @@ const rejectManHourReport = async (id, approver_id, reason, userRole) => {
 
     await sendManHourEmailNotification(report, "REJECTED", reason);
   } catch (emailError) {
-    console.error("Notification/email failed:", emailError);
+    logger.error({ err: emailError }, "Notification/email failed");
   }
 
   return result;

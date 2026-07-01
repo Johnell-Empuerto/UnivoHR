@@ -1,60 +1,60 @@
 const reportService = require("../services/report.service");
 
-const getEmployeeReport = async (req, res) => {
+const getEmployeeReport = async (req, res, next) => {
   try {
     const data = await reportService.getEmployeeReport(req.user, req.query);
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getLeaveReport = async (req, res) => {
+const getLeaveReport = async (req, res, next) => {
   try {
     const data = await reportService.getLeaveReport(req.user, req.query);
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getAttendanceReport = async (req, res) => {
+const getAttendanceReport = async (req, res, next) => {
   try {
     const data = await reportService.getAttendanceReport(req.user, req.query);
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getPayrollReport = async (req, res) => {
+const getPayrollReport = async (req, res, next) => {
   try {
     const data = await reportService.getPayrollReport(req.user, req.query);
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getBenefitsReport = async (req, res) => {
+const getBenefitsReport = async (req, res, next) => {
   try {
     const data = await reportService.getBenefitsReport(req.user, req.query);
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getPerformanceReport = async (req, res) => {
+const getPerformanceReport = async (req, res, next) => {
   try {
     const data = await reportService.getPerformanceReport(req.user, req.query);
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const exportReport = async (req, res) => {
+const exportReport = async (req, res, next) => {
   try {
     const result = await reportService.exportReport(req.user, req.query);
     if (result.csv) {
@@ -64,7 +64,7 @@ const exportReport = async (req, res) => {
     }
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

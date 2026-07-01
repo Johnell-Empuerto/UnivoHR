@@ -2,17 +2,17 @@ const emailTemplateService = require("../services/emailTemplate.service");
 const audit = require("../services/audit.service");
 
 // Get all templates
-const getAllTemplates = async (req, res) => {
+const getAllTemplates = async (req, res, next) => {
   try {
     const templates = await emailTemplateService.getAllTemplates();
     res.json(templates);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Get template by type
-const getTemplateByType = async (req, res) => {
+const getTemplateByType = async (req, res, next) => {
   try {
     const { type } = req.params;
     const template = await emailTemplateService.getTemplateByType(type);
@@ -21,12 +21,12 @@ const getTemplateByType = async (req, res) => {
     }
     res.json(template);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Create or update template
-const upsertTemplate = async (req, res) => {
+const upsertTemplate = async (req, res, next) => {
   try {
     const { type, subject, body_html } = req.body;
     const userId = req.user.id;
@@ -45,12 +45,12 @@ const upsertTemplate = async (req, res) => {
     });
     res.json(template);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Update template
-const updateTemplate = async (req, res) => {
+const updateTemplate = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { subject, body_html, is_active } = req.body;
@@ -71,12 +71,12 @@ const updateTemplate = async (req, res) => {
     });
     res.json(template);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Toggle template active status
-const toggleTemplate = async (req, res) => {
+const toggleTemplate = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { is_active } = req.body;
@@ -95,12 +95,12 @@ const toggleTemplate = async (req, res) => {
     });
     res.json(template);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Delete template
-const deleteTemplate = async (req, res) => {
+const deleteTemplate = async (req, res, next) => {
   try {
     const { id } = req.params;
     await emailTemplateService.deleteTemplate(id);
@@ -112,7 +112,7 @@ const deleteTemplate = async (req, res) => {
     });
     res.json({ message: "Template deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

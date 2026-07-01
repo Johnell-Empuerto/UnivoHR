@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -51,13 +51,13 @@ import {
   Clock,
 } from "lucide-react";
 import {
-  getRotationPatterns,
   getRotationPattern,
   createRotationPattern,
   updateRotationPattern,
   deleteRotationPattern,
 } from "@/services/rotationService";
 import { useActiveShifts } from "@/hooks/useShifts";
+import { useRotationPatterns } from "@/hooks/useRotationPatterns";
 import { getFriendlyErrorMessage } from "@/utils/errorMessage";
 import type {
   RotationPattern,
@@ -79,9 +79,8 @@ const shiftIcons: Record<string, React.ReactNode> = {
 };
 
 const RotationPatterns = () => {
-  const [patterns, setPatterns] = useState<RotationPattern[]>([]);
   const { data: shifts = [] } = useActiveShifts();
-  const [loading, setLoading] = useState(true);
+  const { data: patterns = [], isFetching, refetch, error } = useRotationPatterns();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<RotationPattern | null>(null);
   const [form, setForm] = useState(defaultForm);
@@ -91,21 +90,11 @@ const RotationPatterns = () => {
     null,
   );
 
-  const fetchPatterns = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await getRotationPatterns();
-      setPatterns(data);
-    } catch (e) {
-      toast.error(getFriendlyErrorMessage(e));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchPatterns();
-  }, [fetchPatterns]);
+    if (error) {
+      toast.error(getFriendlyErrorMessage(error));
+    }
+  }, [error]);
 
   const openCreate = () => {
     setEditing(null);
@@ -174,7 +163,7 @@ const RotationPatterns = () => {
         toast.success("Pattern created");
       }
       setDialogOpen(false);
-      fetchPatterns();
+      refetch();
     } catch (e) {
       toast.error(getFriendlyErrorMessage(e));
     } finally {
@@ -188,7 +177,7 @@ const RotationPatterns = () => {
       await deleteRotationPattern(deleteTarget.id);
       toast.success("Pattern deleted");
       setDeleteTarget(null);
-      fetchPatterns();
+      refetch();
     } catch (e) {
       toast.error(getFriendlyErrorMessage(e));
     }
@@ -252,7 +241,7 @@ const RotationPatterns = () => {
           </Button>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isFetching ? (
             <div className="text-center py-8 text-muted-foreground">
               Loading rotation patterns...
             </div>

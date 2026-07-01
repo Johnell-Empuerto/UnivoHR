@@ -7,6 +7,7 @@ const attendanceNotificationService = require("./services/attendanceNotification
 const notificationDispatch = require("./services/notificationDispatch.service");
 const pool = require("./config/db");
 require("dotenv").config();
+const logger = require("./utils/logger");
 
 // Helper to format currency
 const formatCurrency = (amount) => {
@@ -24,6 +25,18 @@ const formatDate = (dateStr) => {
     month: "long",
     day: "numeric",
   });
+};
+
+// Idempotent repeatable job registration — removes existing duplicates before adding
+const ensureRepeatableJob = async (queue, name, data, options) => {
+  const jobs = await queue.getRepeatableJobs();
+  const cron = options?.repeat?.cron;
+  for (const job of jobs) {
+    if (job.name === name && job.cron === cron) {
+      await queue.removeRepeatableByKey(job.key);
+    }
+  }
+  await queue.add(name, data, options);
 };
 
 // Create payslip email queue (same as main app)
@@ -64,7 +77,7 @@ const attendanceNotificationQueue = new Queue("attendance-notifications", {
 payslipQueue.process("send-payslip", async (job) => {
   const { payroll, employee } = job.data;
 
-  console.log(
+  logger.info(
     `[Worker] Processing payslip for ${employee.email} (Attempt ${job.attemptsMade + 1})`,
   );
 
@@ -72,7 +85,7 @@ payslipQueue.process("send-payslip", async (job) => {
     const isEnabled = await notificationDispatch.canSendEmail("payroll_marked_paid");
 
     if (!isEnabled) {
-      console.log(`[Worker] payroll_marked_paid email disabled via notification_rules, skipping payslip email`);
+      logger.info(`[Worker] payroll_marked_paid email disabled via notification_rules, skipping payslip email`);
       return { success: true, skipped: true };
     }
 
@@ -94,7 +107,7 @@ payslipQueue.process("send-payslip", async (job) => {
     );
     await smtpService.sendEmail(employee.email, subject, html);
 
-    console.log(`[Worker] Payslip email sent to ${employee.email}`);
+    logger.info(`[Worker] Payslip email sent to ${employee.email}`);
 
     // Log success to database
     await pool.query(
@@ -105,10 +118,7 @@ payslipQueue.process("send-payslip", async (job) => {
 
     return { success: true };
   } catch (error) {
-    console.error(
-      `[Worker] Failed to send payslip to ${employee.email}:`,
-      error.message,
-    );
+    logger.error({ error }, `[Worker] Failed to send payslip to ${employee.email}`);
 
     // Log failure to database
     await pool.query(
@@ -123,24 +133,21 @@ payslipQueue.process("send-payslip", async (job) => {
 
 // Queue event listeners
 payslipQueue.on("completed", (job, result) => {
-  console.log(`[Worker] Job ${job.id} completed successfully`);
+  logger.info(`[Worker] Job ${job.id} completed successfully`);
 });
 
 payslipQueue.on("failed", (job, err) => {
-  console.error(
-    `[Worker] Job ${job.id} failed after ${job.attemptsMade} attempts:`,
-    err.message,
-  );
+  logger.error({ err }, `[Worker] Job ${job.id} failed after ${job.attemptsMade} attempts`);
 });
 
 payslipQueue.on("error", (err) => {
-  console.error("[Worker] Queue error:", err);
+  logger.error({ err }, "[Worker] Queue error");
 });
 
 // Process attendance notification checks
 attendanceNotificationQueue.process("check-late-notices", async (job) => {
   const { threshold } = job.data;
-  console.log(`[Worker] Checking late notices (threshold: ${threshold})`);
+  logger.info(`[Worker] Checking late notices (threshold: ${threshold})`);
   const result =
     await attendanceNotificationService.checkAndSendLateNotices(threshold);
   return result;
@@ -149,7 +156,7 @@ attendanceNotificationQueue.process("check-late-notices", async (job) => {
 attendanceNotificationQueue.process(
   "check-absent-without-leave",
   async (job) => {
-    console.log(`[Worker] Checking absent without leave`);
+    logger.info(`[Worker] Checking absent without leave`);
     const result =
       await attendanceNotificationService.checkAndSendAbsentWithoutLeaveNotices();
     return result;
@@ -157,21 +164,15 @@ attendanceNotificationQueue.process(
 );
 
 attendanceNotificationQueue.on("completed", (job, result) => {
-  console.log(
-    `[Worker] Attendance notification job ${job.id} completed:`,
-    result,
-  );
+  logger.info({ result }, `[Worker] Attendance notification job ${job.id} completed`);
 });
 
 attendanceNotificationQueue.on("failed", (job, err) => {
-  console.error(
-    `[Worker] Attendance notification job ${job.id} failed:`,
-    err.message,
-  );
+  logger.error({ err }, `[Worker] Attendance notification job ${job.id} failed`);
 });
 
 attendanceNotificationQueue.on("error", (err) => {
-  console.error("[Worker] Attendance notification queue error:", err);
+  logger.error({ err }, "[Worker] Attendance notification queue error");
 });
 
 // ============================================
@@ -194,47 +195,37 @@ const anomalyService = require("./services/anomaly.service");
 const auditService = require("./services/audit.service");
 
 anomalyQueue.process("daily-scan", async (job) => {
-  console.log("[Worker] Processing daily anomaly scan...");
+  logger.info("[Worker] Processing daily anomaly scan...");
   const results = await anomalyService.runDailyAnomalyScan();
-  console.log(`[Worker] Daily anomaly scan complete: ${results.total_detected} anomalies`);
+  logger.info(`[Worker] Daily anomaly scan complete: ${results.total_detected} anomalies`);
   return results;
 });
 
 anomalyQueue.process("weekly-scan", async (job) => {
-  console.log("[Worker] Processing weekly anomaly scan...");
+  logger.info("[Worker] Processing weekly anomaly scan...");
   const results = await anomalyService.runWeeklyAnomalyScan();
-  console.log(`[Worker] Weekly anomaly scan complete: ${results.total_detected} anomalies`);
+  logger.info(`[Worker] Weekly anomaly scan complete: ${results.total_detected} anomalies`);
   return results;
 });
 
 anomalyQueue.on("completed", (job, result) => {
-  console.log(`[Worker] Anomaly scan job ${job.id} completed:`, result);
+  logger.info({ result }, `[Worker] Anomaly scan job ${job.id} completed`);
 });
 
 anomalyQueue.on("failed", (job, err) => {
-  console.error(`[Worker] Anomaly scan job ${job.id} failed:`, err.message);
+  logger.error({ err }, `[Worker] Anomaly scan job ${job.id} failed`);
 });
 
 // Schedule daily anomaly scan at 2:00 AM
-anomalyQueue.add(
-  "daily-scan",
-  {},
-  {
-    repeat: { cron: "0 2 * * *" },
-  },
-);
+ensureRepeatableJob(anomalyQueue, "daily-scan", {}, { repeat: { cron: "0 2 * * *" } })
+  .catch(err => logger.error({ err }, "[Worker] Failed to register daily-scan"));
 
 // Schedule weekly anomaly scan on Monday at 3:00 AM
-anomalyQueue.add(
-  "weekly-scan",
-  {},
-  {
-    repeat: { cron: "0 3 * * 1" },
-  },
-);
+ensureRepeatableJob(anomalyQueue, "weekly-scan", {}, { repeat: { cron: "0 3 * * 1" } })
+  .catch(err => logger.error({ err }, "[Worker] Failed to register weekly-scan"));
 
-console.log("[Worker] Scheduled daily anomaly scan at 2:00 AM");
-console.log("[Worker] Scheduled weekly anomaly scan on Monday at 3:00 AM");
+logger.info("[Worker] Scheduled daily anomaly scan at 2:00 AM");
+logger.info("[Worker] Scheduled weekly anomaly scan on Monday at 3:00 AM");
 
 // ============================================
 // STATISTICAL ANOMALY SCAN QUEUE
@@ -255,39 +246,37 @@ const statAnomalyQueue = new Queue("stat-anomaly-scans", {
 const statAnomalyService = require("./services/statisticalAnomaly.service");
 
 statAnomalyQueue.process("daily-stat-scan", async (job) => {
-  console.log("[Worker] Processing daily statistical anomaly scan...");
+  logger.info("[Worker] Processing daily statistical anomaly scan...");
   const results = await statAnomalyService.runDailyStatisticalScan();
-  console.log(`[Worker] Daily stat scan complete: ${results.total_detected} anomalies`);
+  logger.info(`[Worker] Daily stat scan complete: ${results.total_detected} anomalies`);
   return results;
 });
 
 statAnomalyQueue.process("weekly-stat-scan", async (job) => {
-  console.log("[Worker] Processing weekly statistical anomaly scan...");
+  logger.info("[Worker] Processing weekly statistical anomaly scan...");
   const results = await statAnomalyService.runWeeklyStatisticalScan();
-  console.log(`[Worker] Weekly stat scan complete: ${results.total_detected} anomalies`);
+  logger.info(`[Worker] Weekly stat scan complete: ${results.total_detected} anomalies`);
   return results;
 });
 
 statAnomalyQueue.on("completed", (job, result) => {
-  console.log(`[Worker] Stat anomaly job ${job.id} completed:`, result);
+  logger.info({ result }, `[Worker] Stat anomaly job ${job.id} completed`);
 });
 
 statAnomalyQueue.on("failed", (job, err) => {
-  console.error(`[Worker] Stat anomaly job ${job.id} failed:`, err.message);
+  logger.error({ err }, `[Worker] Stat anomaly job ${job.id} failed`);
 });
 
 // Schedule daily statistical scan at 2:30 AM
-statAnomalyQueue.add("daily-stat-scan", {}, {
-  repeat: { cron: "30 2 * * *" },
-});
+ensureRepeatableJob(statAnomalyQueue, "daily-stat-scan", {}, { repeat: { cron: "30 2 * * *" } })
+  .catch(err => logger.error({ err }, "[Worker] Failed to register daily-stat-scan"));
 
 // Schedule weekly statistical scan on Monday at 3:30 AM
-statAnomalyQueue.add("weekly-stat-scan", {}, {
-  repeat: { cron: "30 3 * * 1" },
-});
+ensureRepeatableJob(statAnomalyQueue, "weekly-stat-scan", {}, { repeat: { cron: "30 3 * * 1" } })
+  .catch(err => logger.error({ err }, "[Worker] Failed to register weekly-stat-scan"));
 
-console.log("[Worker] Scheduled daily statistical anomaly scan at 2:30 AM");
-console.log("[Worker] Scheduled weekly statistical anomaly scan on Monday at 3:30 AM");
+logger.info("[Worker] Scheduled daily statistical anomaly scan at 2:30 AM");
+logger.info("[Worker] Scheduled weekly statistical anomaly scan on Monday at 3:30 AM");
 
 // ============================================
 // HR FORM ASSIGNMENT QUEUE
@@ -313,7 +302,7 @@ const notificationService = require("./services/notification.service");
 
 hrFormQueue.process("bulk-assign", async (job) => {
   const { formId, employeeIds, userId, dueDate } = job.data;
-  console.log(`[Worker] Processing bulk assignment for form ${formId} to ${employeeIds.length} employees`);
+  logger.info(`[Worker] Processing bulk assignment for form ${formId} to ${employeeIds.length} employees`);
   const assignments = employeeIds.map(empId => ({
     form_id: formId,
     employee_id: empId,
@@ -335,23 +324,23 @@ hrFormQueue.process("bulk-assign", async (job) => {
           meta: { form_id: formId, form_title: form?.title },
         }));
       return Promise.all(promises);
-    }).catch(err => console.error("[Worker] Failed to send assignment notifications:", err));
+    }).catch(err => logger.error({ err }, "[Worker] Failed to send assignment notifications"));
   }
 
-  console.log(`[Worker] Bulk assignment complete: ${result.created_count} created, ${result.skipped_employee_ids.length} skipped`);
+  logger.info(`[Worker] Bulk assignment complete: ${result.created_count} created, ${result.skipped_employee_ids.length} skipped`);
   return result;
 });
 
 hrFormQueue.on("completed", (job, result) => {
-  console.log(`[Worker] HR Form assignment job ${job.id} completed:`, result);
+  logger.info({ result }, `[Worker] HR Form assignment job ${job.id} completed`);
 });
 
 hrFormQueue.on("failed", (job, err) => {
-  console.error(`[Worker] HR Form assignment job ${job.id} failed:`, err.message);
+  logger.error({ err }, `[Worker] HR Form assignment job ${job.id} failed`);
 });
 
 hrFormQueue.on("error", (err) => {
-  console.error("[Worker] HR Form assignment queue error:", err);
+  logger.error({ err }, "[Worker] HR Form assignment queue error");
 });
 
 // ============================================
@@ -373,71 +362,59 @@ const forecastQueue = new Queue("forecast-generation", {
 const forecastService = require("./services/forecast.service");
 
 forecastQueue.process("generate-forecasts", async (job) => {
-  console.log("[Worker] Generating all forecasts...");
+  logger.info("[Worker] Generating all forecasts...");
   const results = await forecastService.runAllForecasts();
-  console.log(`[Worker] Forecast generation complete`);
+  logger.info(`[Worker] Forecast generation complete`);
   return results;
 });
 
 forecastQueue.process("generate-branch-forecasts", async (job) => {
-  console.log("[Worker] Generating branch-level forecasts...");
+  logger.info("[Worker] Generating branch-level forecasts...");
   const results = await forecastService.forecastByBranch();
-  console.log(`[Worker] Branch forecast generation complete`);
+  logger.info(`[Worker] Branch forecast generation complete`);
   return results;
 });
 
 forecastQueue.on("completed", (job, result) => {
-  console.log(`[Worker] Forecast job ${job.id} completed`);
+  logger.info(`[Worker] Forecast job ${job.id} completed`);
 });
 
 forecastQueue.on("failed", (job, err) => {
-  console.error(`[Worker] Forecast job ${job.id} failed:`, err.message);
+  logger.error({ err }, `[Worker] Forecast job ${job.id} failed`);
 });
 
 // Schedule daily forecast at 4:00 AM
-forecastQueue.add("generate-forecasts", {}, {
-  repeat: { cron: "0 4 * * *" },
-});
+ensureRepeatableJob(forecastQueue, "generate-forecasts", {}, { repeat: { cron: "0 4 * * *" } })
+  .catch(err => logger.error({ err }, "[Worker] Failed to register generate-forecasts"));
 
 // Schedule weekly branch forecasts on Monday at 4:30 AM
-forecastQueue.add("generate-branch-forecasts", {}, {
-  repeat: { cron: "30 4 * * 1" },
-});
+ensureRepeatableJob(forecastQueue, "generate-branch-forecasts", {}, { repeat: { cron: "30 4 * * 1" } })
+  .catch(err => logger.error({ err }, "[Worker] Failed to register generate-branch-forecasts"));
 
-console.log("[Worker] Scheduled daily forecast generation at 4:00 AM");
-console.log("[Worker] Scheduled weekly branch forecast generation on Monday at 4:30 AM");
+logger.info("[Worker] Scheduled daily forecast generation at 4:00 AM");
+logger.info("[Worker] Scheduled weekly branch forecast generation on Monday at 4:30 AM");
 
 // Schedule daily checks (run at 6 PM every day)
-attendanceNotificationQueue.add(
-  "check-late-notices",
-  { threshold: 3 },
-  {
-    repeat: { cron: "0 18 * * *" },
-  },
-);
+ensureRepeatableJob(attendanceNotificationQueue, "check-late-notices", { threshold: 3 }, { repeat: { cron: "0 18 * * *" } })
+  .catch(err => logger.error({ err }, "[Worker] Failed to register check-late-notices"));
 
-attendanceNotificationQueue.add(
-  "check-absent-without-leave",
-  {},
-  {
-    repeat: { cron: "0 18 * * *" },
-  },
-);
+ensureRepeatableJob(attendanceNotificationQueue, "check-absent-without-leave", {}, { repeat: { cron: "0 18 * * *" } })
+  .catch(err => logger.error({ err }, "[Worker] Failed to register check-absent-without-leave"));
 
-console.log("[Worker] Scheduled daily attendance notification checks at 6 PM");
+logger.info("[Worker] Scheduled daily attendance notification checks at 6 PM");
 
 // Connect to database
 pool
   .connect()
-  .then(() => console.log("[Worker] PostgreSQL Connected"))
-  .catch((err) => console.error("[Worker] DB Error:", err));
+  .then(() => logger.info("[Worker] PostgreSQL Connected"))
+  .catch((err) => logger.error({ err }, "[Worker] DB Error"));
 
-console.log("[Worker] Worker started. Waiting for jobs...");
-console.log("[Worker] Queue: payslip-emails");
+logger.info("[Worker] Worker started. Waiting for jobs...");
+logger.info("[Worker] Queue: payslip-emails");
 
 // Graceful shutdown
 process.on("SIGTERM", async () => {
-  console.log("SIGTERM received, closing worker...");
+  logger.info("SIGTERM received, closing worker...");
   await payslipQueue.close();
   await attendanceNotificationQueue.close();
   await anomalyQueue.close();
@@ -449,7 +426,7 @@ process.on("SIGTERM", async () => {
 });
 
 process.on("SIGINT", async () => {
-  console.log("SIGINT received, closing worker...");
+  logger.info("SIGINT received, closing worker...");
   await payslipQueue.close();
   await attendanceNotificationQueue.close();
   await anomalyQueue.close();

@@ -105,9 +105,9 @@ export const getEmployeesForFinalPay = async (
       params: { page, limit, search },
     });
     return response.data;
-  } catch (error: any) {
-    console.error("Get employees for final pay error:", error);
-    throw error.response?.data || { message: "Failed to fetch employees" };
+  } catch (error: unknown) {
+    console.error("Get employees for final pay error:", error instanceof Error ? error.message : String(error));
+    throw (error as { response?: { data?: Record<string, unknown> } }).response?.data || { message: "Failed to fetch employees" };
   }
 };
 
@@ -124,9 +124,9 @@ export const calculateFinalPay = async (
   try {
     const response = await api.get(`/final-pay/calculate/${employeeId}`);
     return response.data;
-  } catch (error: any) {
-    console.error("Calculate final pay error:", error);
-    throw error.response?.data || { message: "Failed to calculate final pay" };
+  } catch (error: unknown) {
+    console.error("Calculate final pay error:", error instanceof Error ? error.message : String(error));
+    throw (error as { response?: { data?: Record<string, unknown> } }).response?.data || { message: "Failed to calculate final pay" };
   }
 };
 
@@ -147,9 +147,9 @@ export const processFinalPay = async (
   try {
     const response = await api.post(`/final-pay/process/${employeeId}`);
     return response.data;
-  } catch (error: any) {
-    console.error("Process final pay error:", error);
-    throw error.response?.data || { message: "Failed to process final pay" };
+  } catch (error: unknown) {
+    console.error("Process final pay error:", error instanceof Error ? error.message : String(error));
+    throw (error as { response?: { data?: Record<string, unknown> } }).response?.data || { message: "Failed to process final pay" };
   }
 };
 
@@ -172,9 +172,9 @@ export const getFinalPayHistory = async (
       params: { page, limit, search },
     });
     return response.data;
-  } catch (error: any) {
-    console.error("Get final pay history error:", error);
-    throw error.response?.data || { message: "Failed to fetch history" };
+  } catch (error: unknown) {
+    console.error("Get final pay history error:", error instanceof Error ? error.message : String(error));
+    throw (error as { response?: { data?: Record<string, unknown> } }).response?.data || { message: "Failed to fetch history" };
   }
 };
 
@@ -189,11 +189,9 @@ export const getFinalPayById = async (id: number): Promise<FinalPayRecord> => {
   try {
     const response = await api.get(`/final-pay/${id}`);
     return response.data;
-  } catch (error: any) {
-    console.error("Get final pay by ID error:", error);
-    throw (
-      error.response?.data || { message: "Failed to fetch final pay record" }
-    );
+  } catch (error: unknown) {
+    console.error("Get final pay by ID error:", error instanceof Error ? error.message : String(error));
+    throw (error as { response?: { data?: Record<string, unknown> } }).response?.data || { message: "Failed to fetch final pay record" };
   }
 };
 
@@ -208,10 +206,11 @@ export const downloadFinalPaySlip = async (id: number): Promise<Blob> => {
   try {
     const response = await api.get(`/final-pay/${id}/download`, {
       responseType: "blob",
+      timeout: 60000,
     });
     return response.data;
-  } catch (error: any) {
-    console.error("Download final pay slip error:", error);
+  } catch (error: unknown) {
+    console.error("Download final pay slip error:", error instanceof Error ? error.message : String(error));
     throw error;
   }
 };
@@ -239,9 +238,9 @@ export const getEmployeeFinalPaySummary = async (
   try {
     const response = await api.get(`/final-pay/employee/${employeeId}`);
     return response.data;
-  } catch (error: any) {
-    console.error("Get employee final pay summary error:", error);
-    throw error.response?.data || { message: "Failed to fetch summary" };
+  } catch (error: unknown) {
+    console.error("Get employee final pay summary error:", error instanceof Error ? error.message : String(error));
+    throw (error as { response?: { data?: Record<string, unknown> } }).response?.data || { message: "Failed to fetch summary" };
   }
 };
 
@@ -272,11 +271,9 @@ export const bulkProcessFinalPay = async (
   try {
     const response = await api.post("/final-pay/bulk-process", { employeeIds });
     return response.data;
-  } catch (error: any) {
-    console.error("Bulk process final pay error:", error);
-    throw (
-      error.response?.data || { message: "Failed to process bulk final pay" }
-    );
+  } catch (error: unknown) {
+    console.error("Bulk process final pay error:", error instanceof Error ? error.message : String(error));
+    throw (error as { response?: { data?: Record<string, unknown> } }).response?.data || { message: "Failed to process bulk final pay" };
   }
 };
 
@@ -304,9 +301,9 @@ export const getFinalPayStatistics = async (): Promise<{
   try {
     const response = await api.get("/final-pay/statistics");
     return response.data;
-  } catch (error: any) {
-    console.error("Get final pay statistics error:", error);
-    throw error.response?.data || { message: "Failed to fetch statistics" };
+  } catch (error: unknown) {
+    console.error("Get final pay statistics error:", error instanceof Error ? error.message : String(error));
+    throw (error as { response?: { data?: Record<string, unknown> } }).response?.data || { message: "Failed to fetch statistics" };
   }
 };
 
@@ -328,9 +325,9 @@ export const voidFinalPay = async (
   try {
     const response = await api.post(`/final-pay/${id}/void`, { reason });
     return response.data;
-  } catch (error: any) {
-    console.error("Void final pay error:", error);
-    throw error.response?.data || { message: "Failed to void final pay" };
+  } catch (error: unknown) {
+    console.error("Void final pay error:", error instanceof Error ? error.message : String(error));
+    throw (error as { response?: { data?: Record<string, unknown> } }).response?.data || { message: "Failed to void final pay" };
   }
 };
 

@@ -4,6 +4,7 @@ const { generateEmployeeCode } = require("./applicant.service");
 const { initializeNewEmployee } = require("./employeeInit.service");
 const notificationHelper = require("./notificationHelper.service");
 const { EMPLOYMENT_STATUS, COMPANY_DEFAULT_PROBATION_MONTHS } = require("../constants/employmentStatus");
+const logger = require("../utils/logger");
 
 const getEmployees = async (page, limit, search, status, allowedBranchIds, department, position) => {
   return await employeeModel.getEmployees(page, limit, search, status, allowedBranchIds, department, position);
@@ -89,7 +90,7 @@ const createEmployee = async (data) => {
       message: `${result.first_name} ${result.last_name} (${result.employee_code}) has been added to the system.`,
       reference_id: result.id,
       meta: { employee_id: result.id },
-    }).catch(err => console.error("[employee] Welcome notification error:", err.message));
+    }).catch(err => logger.error({ err }, "[employee] Welcome notification error"));
 
     return result;
   } catch (error) {

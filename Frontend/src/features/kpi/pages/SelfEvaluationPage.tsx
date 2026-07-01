@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
-  getMyKpiEvaluations, getKpiEvaluationById, saveKpiSelfEvaluation, getFriendlyKpiError,
+  getKpiEvaluationById, saveKpiSelfEvaluation, getFriendlyKpiError,
 } from "@/services/kpiService";
+import { useSelfEvaluations } from "@/hooks/useSelfEvaluations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,9 +30,9 @@ const statusBadge = (s: string) => {
 
 const SelfEvaluationPage = () => {
   useAuth();
-  const [evaluations, setEvaluations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
+  const { data: response, isFetching, refetch } = useSelfEvaluations();
+  const evaluations = response?.data ?? (Array.isArray(response) ? response : []);
+  const total = response?.pagination?.total ?? (Array.isArray(response) ? response.length : 0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -39,18 +40,6 @@ const SelfEvaluationPage = () => {
   const [currentEval, setCurrentEval] = useState<any>(null);
   const [selfEval, setSelfEval] = useState("");
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => { fetchAll(); }, [page, pageSize]);
-
-  const fetchAll = async () => {
-    try {
-      setLoading(true);
-      const r = await getMyKpiEvaluations("");
-      setEvaluations(r.data || (Array.isArray(r) ? r : []));
-      setTotal(r.pagination?.total || (Array.isArray(r) ? r.length : 0));
-    } catch { setEvaluations([]); }
-    finally { setLoading(false); }
-  };
 
   const handleOpen = async (id: number) => {
     try {
@@ -68,7 +57,7 @@ const SelfEvaluationPage = () => {
       setSaving(true);
       await saveKpiSelfEvaluation(currentEval.id, { self_evaluation: selfEval });
       toast.success(isAckMode ? "Acknowledgement saved" : "Self evaluation saved");
-      fetchAll();
+      refetch();
     } catch (err: any) { toast.error(getFriendlyKpiError(err, "Save failed")); }
     finally { setSaving(false); }
   };
@@ -84,7 +73,7 @@ const SelfEvaluationPage = () => {
 
       <Card className="shadow-sm">
         <CardContent className="p-0">
-          {loading ? (
+          {isFetching ? (
             <div className="p-6"><Loader message="Loading evaluations..." /></div>
           ) : evaluations.length === 0 ? (
             <div className="p-6"><EmptyState message="No evaluations assigned to you." /></div>

@@ -1,5 +1,6 @@
 const smtpModel = require("../models/smtp.model");
 const nodemailer = require("nodemailer");
+const logger = require("../utils/logger");
 
 const getSmtpSettings = async () => {
   return await smtpModel.getSmtpSettings();
@@ -45,13 +46,13 @@ const testSmtpConnection = async (id, testEmail) => {
   const smtp = await smtpModel.getSmtpSettingsById(id);
   if (!smtp) throw new Error("SMTP settings not found");
 
-  console.log("[TEST] Testing SMTP:", {
+  logger.info({
     host: smtp.host,
     port: smtp.port,
     encryption: smtp.encryption,
     username: smtp.username ? `${smtp.username.substring(0, 3)}...` : null,
     from_email: smtp.from_email,
-  });
+  }, "[TEST] Testing SMTP");
 
   // FIXED: Handle encryption properly
   let secure = false;
@@ -81,7 +82,7 @@ const testSmtpConnection = async (id, testEmail) => {
 
   // Verify connection
   await transporter.verify();
-  console.log("[TEST] SMTP verification successful");
+  logger.info("[TEST] SMTP verification successful");
 
   // Send test email
   const mailOptions = {
@@ -105,7 +106,7 @@ const testSmtpConnection = async (id, testEmail) => {
   };
 
   const result = await transporter.sendMail(mailOptions);
-  console.log(" [TEST] Test email sent, messageId:", result.messageId);
+  logger.info({ messageId: result.messageId }, " [TEST] Test email sent");
 
   // Update test email status
   await smtpModel.updateTestEmailStatus(id, true);
@@ -115,15 +116,15 @@ const testSmtpConnection = async (id, testEmail) => {
 
 // FIXED: Main sendEmail function with proper error handling
 const sendEmail = async (to, subject, html, attachments = []) => {
-  console.log("[SEND] Getting SMTP settings...");
+  logger.info("[SEND] Getting SMTP settings...");
   const smtp = await smtpModel.getSmtpSettings();
 
   if (!smtp) {
-    console.error("[SEND] No SMTP settings found");
+    logger.error("[SEND] No SMTP settings found");
     throw new Error("SMTP settings not configured");
   }
 
-  console.log("[SEND] SMTP Config:", {
+  logger.info({
     host: smtp.host,
     port: smtp.port,
     encryption: smtp.encryption,
@@ -132,11 +133,11 @@ const sendEmail = async (to, subject, html, attachments = []) => {
     from_email: smtp.from_email,
     from_name: smtp.from_name,
     is_active: smtp.is_active,
-  });
+  }, "[SEND] SMTP Config");
 
   // Validate credentials
   if (!smtp.username || !smtp.password) {
-    console.error("[SEND] Missing credentials - username or password is empty");
+    logger.error("[SEND] Missing credentials - username or password is empty");
     throw new Error(
       "SMTP credentials missing. Please check your SMTP settings.",
     );
@@ -146,13 +147,13 @@ const sendEmail = async (to, subject, html, attachments = []) => {
   let secure = false;
   if (smtp.encryption === "ssl") {
     secure = true;
-    console.log("[SEND] Using SSL encryption");
+    logger.info("[SEND] Using SSL encryption");
   } else if (smtp.encryption === "tls") {
     secure = false;
-    console.log("[SEND] Using TLS encryption");
+    logger.info("[SEND] Using TLS encryption");
   } else if (smtp.encryption === "none") {
     secure = false;
-    console.log("[SEND] Using no encryption");
+    logger.info("[SEND] Using no encryption");
   }
 
   const transporterConfig = {
@@ -171,13 +172,13 @@ const sendEmail = async (to, subject, html, attachments = []) => {
     socketTimeout: 30000,
   };
 
-  console.log("[SEND] Creating transporter with config:", {
+  logger.info({
     host: transporterConfig.host,
     port: transporterConfig.port,
     secure: transporterConfig.secure,
     auth_user_set: !!transporterConfig.auth.user,
     auth_pass_set: !!transporterConfig.auth.pass,
-  });
+  }, "[SEND] Creating transporter with config");
 
   const transporter = nodemailer.createTransport(transporterConfig);
 
@@ -189,26 +190,23 @@ const sendEmail = async (to, subject, html, attachments = []) => {
     attachments,
   };
 
-  console.log(" [SEND] Mail options:", {
+  logger.info({
     from: mailOptions.from,
     to: mailOptions.to,
     subject: mailOptions.subject,
     htmlLength: html?.length || 0,
-  });
+  }, " [SEND] Mail options");
 
   try {
-    console.log("[SEND] Attempting to send email...");
+    logger.info("[SEND] Attempting to send email...");
     const result = await transporter.sendMail(mailOptions);
-    console.log(
-      " [SEND] Email sent successfully! Message ID:",
-      result.messageId,
-    );
+    logger.info({ messageId: result.messageId }, " [SEND] Email sent successfully!");
     return result;
   } catch (error) {
-    console.error("[SEND] Failed to send email:", error.message);
-    console.error("[SEND] Error code:", error.code);
-    console.error("[SEND] Error command:", error.command);
-    console.error("[SEND] Error response:", error.response);
+    logger.error({ err: error }, "[SEND] Failed to send email");
+    logger.error({ err: error }, "[SEND] Error code");
+    logger.error({ err: error }, "[SEND] Error command");
+    logger.error({ err: error }, "[SEND] Error response");
 
     // Throw a user-friendly error
     throw new Error(`Email sending failed: ${error.message}`);

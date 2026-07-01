@@ -1,17 +1,18 @@
 const deviceProcessingQueue = require("../services/deviceProcessing.queue");
 const deviceProcessingService = require("../services/deviceProcessing.service");
+const logger = require("../utils/logger");
 
 const startWorker = async () => {
   if (process.env.WORKER_ENABLED === "false") {
-    console.log("[DeviceWorker] Disabled via WORKER_ENABLED=false");
+    logger.info("[DeviceWorker] Disabled via WORKER_ENABLED=false");
     return;
   }
 
   const redisReady = await deviceProcessingQueue.isReady();
   if (!redisReady) {
-    console.warn("[DeviceWorker] Redis is not available. Queue processor will not run. Integration service will use direct fallback for new logs.");
+    logger.warn("[DeviceWorker] Redis is not available. Queue processor will not run. Integration service will use direct fallback for new logs.");
   } else {
-    console.log("[DeviceWorker] Redis is available, registering queue processor");
+    logger.info("[DeviceWorker] Redis is available, registering queue processor");
   }
 
   deviceProcessingQueue.deviceProcessingQueue.process("process-log", async (job) => {
@@ -20,30 +21,27 @@ const startWorker = async () => {
   });
 
   deviceProcessingQueue.deviceProcessingQueue.on("completed", (job) => {
-    console.log(`[DeviceWorker] Job ${job.id} (raw_log ${job.data.rawLogId}) completed`);
+    logger.info({ jobId: job.id, rawLogId: job.data.rawLogId }, `[DeviceWorker] Job ${job.id} (raw_log ${job.data.rawLogId}) completed`);
   });
 
   deviceProcessingQueue.deviceProcessingQueue.on("failed", (job, err) => {
-    console.error(
-      `[DeviceWorker] Job ${job.id} (raw_log ${job.data.rawLogId}) failed after ${job.attemptsMade} attempts:`,
-      err.message
-    );
+    logger.error({ err, jobId: job.id, rawLogId: job.data.rawLogId, attempts: job.attemptsMade }, `[DeviceWorker] Job ${job.id} (raw_log ${job.data.rawLogId}) failed after ${job.attemptsMade} attempts:`);
   });
 
   deviceProcessingQueue.deviceProcessingQueue.on("error", (err) => {
-    console.error("[DeviceWorker] Queue error:", err.message);
+    logger.error({ err }, "[DeviceWorker] Queue error:");
   });
 
   // Drain existing PENDING/FAILED logs on startup
   deviceProcessingService.drainQueue().then((count) => {
     if (count > 0) {
-      console.log(`[DeviceWorker] Drained ${count} pending/failed logs from raw_logs`);
+      logger.info({ count }, `[DeviceWorker] Drained ${count} pending/failed logs from raw_logs`);
     }
   }).catch((err) => {
-    console.error("[DeviceWorker] Error draining raw_logs:", err.message);
+    logger.error({ err }, "[DeviceWorker] Error draining raw_logs:");
   });
 
-  console.log("[DeviceWorker] Device processing worker started");
+  logger.info("[DeviceWorker] Device processing worker started");
 };
 
 module.exports = { startWorker };

@@ -31,7 +31,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Clock, Plus, Pencil, Trash2 } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   createShift,
   updateShift,
@@ -71,8 +71,32 @@ const ShiftManagement = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [form, setForm] = useState(defaultForm);
-  const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<Shift | null>(null);
+
+  const saveMutation = useMutation({
+    mutationFn: async ({ editingId, payload }: { editingId: number | null; payload: any }) => {
+      if (editingId) return await updateShift(editingId, payload);
+      return await createShift(payload);
+    },
+    onSuccess: (_, { editingId }) => {
+      toast.success(editingId ? "Shift updated" : "Shift created");
+      setDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["shifts"] });
+    },
+    onError: () => toast.error("Failed to save shift"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => deleteShift(id),
+    onSuccess: () => {
+      toast.success("Shift deleted");
+      setDeleteConfirm(null);
+      queryClient.invalidateQueries({ queryKey: ["shifts"] });
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || err.message || "Failed to delete shift");
+    },
+  });
 
   const openCreate = () => {
     setEditingShift(null);
@@ -100,7 +124,7 @@ const ShiftManagement = () => {
     setDialogOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!form.name.trim()) {
       toast.error("Shift name is required");
       return;
@@ -109,43 +133,21 @@ const ShiftManagement = () => {
       toast.error("Start and end times are required");
       return;
     }
-    try {
-      setSaving(true);
-      const payload = {
-        ...form,
-        code: form.code.trim() || null,
-        description: form.description.trim() || null,
-        flex_start_window: form.flex_start_window || null,
-        flex_end_window: form.flex_end_window || null,
-        is_night_shift: form.type === "NIGHT",
-        is_flexitime: form.type === "FLEXITIME",
-      };
-      if (editingShift) {
-        await updateShift(editingShift.id, payload);
-        toast.success("Shift updated");
-      } else {
-        await createShift(payload as any);
-        toast.success("Shift created");
-      }
-      setDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["shifts"] });
-    } catch {
-      toast.error("Failed to save shift");
-    } finally {
-      setSaving(false);
-    }
+    const payload = {
+      ...form,
+      code: form.code.trim() || null,
+      description: form.description.trim() || null,
+      flex_start_window: form.flex_start_window || null,
+      flex_end_window: form.flex_end_window || null,
+      is_night_shift: form.type === "NIGHT",
+      is_flexitime: form.type === "FLEXITIME",
+    };
+    saveMutation.mutate({ editingId: editingShift?.id ?? null, payload });
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!deleteConfirm) return;
-    try {
-      await deleteShift(deleteConfirm.id);
-      toast.success("Shift deleted");
-      setDeleteConfirm(null);
-      queryClient.invalidateQueries({ queryKey: ["shifts"] });
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || err.message || "Failed to delete shift");
-    }
+    deleteMutation.mutate(deleteConfirm.id);
   };
 
   return (
@@ -400,8 +402,8 @@ const ShiftManagement = () => {
             >
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? "Saving..." : editingShift ? "Update" : "Create"}
+            <Button onClick={handleSave} disabled={saveMutation.isPending}>
+              {saveMutation.isPending ? "Saving..." : editingShift ? "Update" : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -417,7 +419,9 @@ const ShiftManagement = () => {
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending}>
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

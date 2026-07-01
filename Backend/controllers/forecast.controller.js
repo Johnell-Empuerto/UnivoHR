@@ -1,6 +1,6 @@
 const forecastService = require("../services/forecast.service");
 
-const generateForecasts = async (req, res) => {
+const generateForecasts = async (req, res, next) => {
   try {
     const { branch_id } = req.body;
     const results = branch_id
@@ -8,42 +8,38 @@ const generateForecasts = async (req, res) => {
       : await forecastService.runAllForecasts();
     res.json({ message: "Forecasts generated", results });
   } catch (error) {
-    console.error("[ForecastController] generate error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getHistory = async (req, res) => {
+const getHistory = async (req, res, next) => {
   try {
     const result = await forecastService.getForecastHistory(req.query);
     res.json(result);
   } catch (error) {
-    console.error("[ForecastController] history error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getLatest = async (req, res) => {
+const getLatest = async (req, res, next) => {
   try {
     const result = await forecastService.getLatestForecasts(req.query);
     res.json(result);
   } catch (error) {
-    console.error("[ForecastController] latest error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getAccuracy = async (req, res) => {
+const getAccuracy = async (req, res, next) => {
   try {
     const result = await forecastService.getForecastAccuracy(req.query);
     res.json(result);
   } catch (error) {
-    console.error("[ForecastController] accuracy error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const updateActual = async (req, res) => {
+const updateActual = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { actual_value } = req.body;
@@ -54,8 +50,7 @@ const updateActual = async (req, res) => {
     if (!updated) return res.status(404).json({ message: "Forecast not found" });
     res.json(updated);
   } catch (error) {
-    console.error("[ForecastController] updateActual error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

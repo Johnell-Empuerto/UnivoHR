@@ -20,12 +20,12 @@ export const employees = async (
   return response.data;
 };
 
-export const updateEmployee = async (id: number, data: any) => {
+export const updateEmployee = async (id: number, data: Record<string, unknown>) => {
   const response = await api.put(`/employees/${id}`, data);
   return response.data;
 };
 
-export const createEmployee = async (data: any) => {
+export const createEmployee = async (data: Record<string, unknown>) => {
   const response = await api.post("/employees", data);
   return response.data;
 };
@@ -48,6 +48,7 @@ export const getEmploymentStats = async () => {
 export const downloadEmployeeImportTemplate = async () => {
   const response = await api.get("/employees/import/template", {
     responseType: "blob",
+    timeout: 30000,
   });
   const url = window.URL.createObjectURL(new Blob([response.data]));
   const link = document.createElement("a");
@@ -65,12 +66,13 @@ export const validateEmployeeImport = async (file: File) => {
   formData.append("file", file);
   const response = await api.post("/employees/import/validate", formData, {
     headers: { "Content-Type": "multipart/form-data" },
+    timeout: 120000,
   });
   return response.data;
 };
 
 export const commitEmployeeImport = async (batchId: number) => {
-  const response = await api.post("/employees/import/commit", { batchId });
+  const response = await api.post("/employees/import/commit", { batchId }, { timeout: 120000 });
   return response.data;
 };
 
@@ -82,6 +84,7 @@ export const getEmployeeImportHistory = async () => {
 export const downloadEmployeeImportErrors = async (batchId: number) => {
   const response = await api.get(`/employees/import/${batchId}/errors`, {
     responseType: "blob",
+    timeout: 30000,
   });
   const url = window.URL.createObjectURL(new Blob([response.data]));
   const link = document.createElement("a");

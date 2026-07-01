@@ -58,7 +58,7 @@ export const getActiveRule = async () => {
 };
 
 //  CREATE RULE
-export const createAttendanceRule = async (data: any) => {
+export const createAttendanceRule = async (data: Record<string, unknown>) => {
   const res = await api.post("/attendance-rules", data);
   return res.data;
 };
@@ -75,7 +75,7 @@ export const deleteAttendanceRule = async (id: number) => {
   return res.data;
 };
 
-export const updateAttendanceRule = async (id: number, data: any) => {
+export const updateAttendanceRule = async (id: number, data: Record<string, unknown>) => {
   const res = await api.put(`/attendance-rules/${id}`, data);
   return res.data;
 };

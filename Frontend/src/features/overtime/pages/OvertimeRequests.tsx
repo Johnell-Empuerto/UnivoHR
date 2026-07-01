@@ -1,13 +1,12 @@
-// features/overtime/pages/OvertimeRequests.tsx
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  getAllOvertime,
   approveOvertime,
   rejectOvertime,
   getOvertimeDetails,
   deleteOvertime,
-  isApprover as checkIsApprover,
 } from "@/services/overtimeService";
+import { useOvertimeRequests, useIsOvertimeApprover } from "@/hooks/useOvertimeRequests";
 import ErrorMessage from "@/components/shared/ErrorMessage";
 import Loader from "@/components/shared/Loader";
 import { Button } from "@/components/ui/button";
@@ -57,19 +56,14 @@ type OvertimeRequest = {
 
 const OvertimeRequests = () => {
   const { user, hasPermission } = useAuth();
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalRecords, setTotalRecords] = useState(0);
-  const [isUserApprover, setIsUserApprover] = useState(false);
 
-  const [data, setData] = useState<OvertimeRequest[]>([]);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
@@ -78,65 +72,40 @@ const OvertimeRequests = () => {
   const [processing, setProcessing] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
+  const { data: queryData, isFetching, error: queryError } = useOvertimeRequests(
+    currentPage, rowsPerPage, search, statusFilter, dateFilter,
+  );
+  const { data: isUserApprover = false } = useIsOvertimeApprover();
+
+  const data = queryData?.data ?? [];
+  const totalPages = queryData?.pagination?.totalPages ?? 1;
+  const totalRecords = queryData?.pagination?.total ?? 0;
+  const loading = isFetching && data.length === 0;
+  const error = queryError ? (queryError as any)?.message || "Failed to fetch overtime requests" : "";
+
   const handleDelete = async (id: number) => {
     try {
       await deleteOvertime(id);
       toast.success("Overtime request deleted");
       setDeleteConfirm(null);
-      const res = await getAllOvertime(currentPage, rowsPerPage, search, statusFilter, dateFilter);
-      const enhancedData = res.data.map((request: any) => ({
-        id: request.id,
-        employee_name: request.employee_name,
-        employee_code: request.employee_code,
-        date: request.date,
-        start_time: request.start_time,
-        end_time: request.end_time,
-        total_hours: request.total_hours,
-        reason: request.reason,
-        status: request.status,
-        approver_name: request.approver_name,
-        reject_reason: request.reject_reason,
-        is_assigned_approver: request.is_assigned_approver,
-      }));
-      setData(enhancedData);
-      setTotalPages(res.pagination.totalPages);
-      setTotalRecords(res.pagination.total);
+      queryClient.invalidateQueries({ queryKey: ["overtime-requests"] });
     } catch (err: any) {
       toast.error(err.message || "Failed to delete overtime request");
     }
   };
 
-  // Check if current user is an approver
-  useEffect(() => {
-    const checkApproverStatus = async () => {
-      if (user?.id) {
-        try {
-          const result = await checkIsApprover();
-          setIsUserApprover(result.isApprover);
-        } catch (error) {
-          setIsUserApprover(false);
-        }
-      }
-    };
-    checkApproverStatus();
-  }, [user]);
-
-  // User can approve if has overtime.approve permission or assigned as approver
   const canUserApprove = (request: OvertimeRequest) => {
     if (hasPermission("overtime.approve")) {
       return true;
     }
 
-    // EMPLOYEE can only approve if they are assigned as approver for this specific request
     if (user?.role === "EMPLOYEE" && isUserApprover) {
-      //  Use snake_case field from backend
       return request.is_assigned_approver === true;
     }
 
     return false;
   };
 
-  //  Updated: Show approval buttons if user can approve
   const canShowApprovalActions = () => {
     return (
       hasPermission("overtime.approve") ||
@@ -151,51 +120,6 @@ const OvertimeRequests = () => {
     }, 800);
     return () => clearTimeout(delayDebounce);
   }, [searchInput]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const res = await getAllOvertime(
-          currentPage,
-          rowsPerPage,
-          search,
-          statusFilter,
-          dateFilter,
-        );
-
-        // Map backend snake_case to frontend expectations
-        const enhancedData = res.data.map((request: any) => ({
-          id: request.id,
-          employee_name: request.employee_name,
-          employee_code: request.employee_code,
-          employee_id: request.employee_id,
-          date: request.date,
-          start_time: request.start_time,
-          end_time: request.end_time,
-          hours: request.hours,
-          reason: request.reason,
-          status: request.status,
-          created_at: request.created_at,
-          approved_by_name: request.approved_by_name,
-          approved_at: request.approved_at,
-          rejected_by_name: request.rejected_by_name,
-          rejected_at: request.rejected_at,
-          rejected_reason: request.rejected_reason,
-          is_assigned_approver: request.is_assigned_approver ?? false,
-        }));
-
-        setData(enhancedData);
-        setTotalPages(res.pagination.totalPages);
-        setTotalRecords(res.pagination.total);
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch overtime requests");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [currentPage, rowsPerPage, search, statusFilter, dateFilter]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value);
@@ -243,21 +167,7 @@ const OvertimeRequests = () => {
       setProcessing(true);
       await approveOvertime(id);
       toast.success("Overtime request approved");
-      const res = await getAllOvertime(
-        currentPage,
-        rowsPerPage,
-        search,
-        statusFilter,
-        dateFilter,
-      );
-      // Re-map the data after refresh
-      const enhancedData = res.data.map((request: any) => ({
-        ...request,
-        is_assigned_approver: request.is_assigned_approver ?? false,
-      }));
-      setData(enhancedData);
-      setTotalPages(res.pagination.totalPages);
-      setTotalRecords(res.pagination.total);
+      queryClient.invalidateQueries({ queryKey: ["overtime-requests"] });
     } catch (err: any) {
       toast.error(err.message || "Failed to approve request");
     } finally {
@@ -285,20 +195,7 @@ const OvertimeRequests = () => {
       setIsRejectModalOpen(false);
       setRejectReason("");
       setRejectingId(null);
-      const res = await getAllOvertime(
-        currentPage,
-        rowsPerPage,
-        search,
-        statusFilter,
-        dateFilter,
-      );
-      const enhancedData = res.data.map((request: any) => ({
-        ...request,
-        is_assigned_approver: request.is_assigned_approver ?? false,
-      }));
-      setData(enhancedData);
-      setTotalPages(res.pagination.totalPages);
-      setTotalRecords(res.pagination.total);
+      queryClient.invalidateQueries({ queryKey: ["overtime-requests"] });
     } catch (err: any) {
       toast.error(err.message || "Failed to reject request");
     } finally {

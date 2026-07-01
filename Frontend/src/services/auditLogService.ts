@@ -10,8 +10,8 @@ export interface AuditLog {
   table_name: string;
   record_id: number | null;
   description: string | null;
-  old_values: any;
-  new_values: any;
+  old_values: Record<string, unknown>;
+  new_values: Record<string, unknown>;
   ip_address: string | null;
   user_agent: string | null;
   created_at: string;

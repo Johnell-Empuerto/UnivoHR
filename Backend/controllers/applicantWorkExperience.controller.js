@@ -1,11 +1,11 @@
 const service = require("../services/applicantWorkExperience.service");
 
-const getByApplicantId = async (req, res) => {
+const getByApplicantId = async (req, res, next) => {
   try {
     const result = await service.getByApplicantId(req.params.applicantId);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

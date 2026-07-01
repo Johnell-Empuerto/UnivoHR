@@ -1,11 +1,11 @@
 const employeeRestDayService = require("../services/employeeRestDay.service");
 
-const getByEmployee = async (req, res) => {
+const getByEmployee = async (req, res, next) => {
   try {
     const rows = await employeeRestDayService.getByEmployeeId(req.params.employeeId);
     res.json(rows);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
@@ -33,13 +33,13 @@ const update = async (req, res) => {
   }
 };
 
-const remove = async (req, res) => {
+const remove = async (req, res, next) => {
   try {
     const row = await employeeRestDayService.remove(req.params.id);
     if (!row) return res.status(404).json({ message: "Rest day not found" });
     res.json({ message: "Rest day removed", data: row });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

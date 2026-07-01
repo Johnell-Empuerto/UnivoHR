@@ -6,6 +6,7 @@ const API_BASE_URL =
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 15000,
   headers: {
     "Content-Type": "application/json",
   },
@@ -98,7 +99,7 @@ api.interceptors.response.use(
       const response = await axios.post(
         `${API_BASE_URL}/auth/refresh`,
         { refreshToken },
-        { headers: { "Content-Type": "application/json" } },
+        { headers: { "Content-Type": "application/json" }, timeout: 10000 },
       );
 
       const { token: newToken, refreshToken: newRefreshToken } = response.data;

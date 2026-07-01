@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEmployeeOnboardings } from "@/hooks/useEmployeeOnboardings";
 import {
-  getEmployeeOnboardings,
   updateEmployeeOnboarding,
 } from "@/services/employeeOnboardingService";
 import { getEmployeeRequirements, createEmployeeRequirement, updateEmployeeRequirement, deleteEmployeeRequirement } from "@/services/employeeRequirementService";
@@ -51,15 +52,18 @@ const statusBadge = (status: string) => {
 };
 
 const OnboardingPage = () => {
-  const [onboardings, setOnboardings] = useState<Onboarding[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
   const activeFilterCount = [search, statusFilter].filter(Boolean).length;
+
+  const { data: queryData, isFetching } = useEmployeeOnboardings(page, pageSize, search, statusFilter);
+  const onboardings = queryData?.data ?? [];
+  const total = queryData?.pagination?.total ?? 0;
+  const loading = isFetching && onboardings.length === 0;
 
   const [selectedOnboarding, setSelectedOnboarding] = useState<Onboarding | null>(null);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
@@ -68,23 +72,6 @@ const OnboardingPage = () => {
   const [reqForm, setReqForm] = useState({ requirement_name: "", description: "" });
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
-
-  useEffect(() => {
-    fetchOnboardings();
-  }, [page, pageSize, search, statusFilter]);
-
-  const fetchOnboardings = async () => {
-    try {
-      setLoading(true);
-      const result = await getEmployeeOnboardings(page, pageSize, search, statusFilter);
-      setOnboardings(result.data);
-      setTotal(result.pagination.total);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to load onboardings");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const openDetail = async (onboarding: Onboarding) => {
     setSelectedOnboarding(onboarding);
@@ -107,7 +94,7 @@ const OnboardingPage = () => {
     try {
       await updateEmployeeOnboarding(id, { status });
       toast.success(`Onboarding ${status.toLowerCase()}`);
-      fetchOnboardings();
+      queryClient.invalidateQueries({ queryKey: ["employee-onboardings"] });
       if (selectedOnboarding?.id === id) {
         setSelectedOnboarding({ ...selectedOnboarding, status });
       }
@@ -234,7 +221,7 @@ const OnboardingPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {onboardings.map((o) => (
+                  {onboardings.map((o: Onboarding) => (
                     <TableRow key={o.id}>
                       <TableCell className="font-medium">{o.first_name} {o.last_name}</TableCell>
                       <TableCell>{o.employee_code}</TableCell>

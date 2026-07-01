@@ -14,26 +14,26 @@ const fs = require("fs");
 
 // ─── DEVICES ────────────────────────────────────────────────
 
-const getDevices = async (req, res) => {
+const getDevices = async (req, res, next) => {
   try {
     const result = await deviceModel.getAll(req.query);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getDevice = async (req, res) => {
+const getDevice = async (req, res, next) => {
   try {
     const device = await deviceModel.getById(req.params.id);
     if (!device) return res.status(404).json({ message: "Device not found" });
     res.json(device);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const createDevice = async (req, res) => {
+const createDevice = async (req, res, next) => {
   try {
     const device = await deviceModel.create(req.body);
     audit.auditLog(req, {
@@ -53,11 +53,11 @@ const createDevice = async (req, res) => {
     });
     res.status(201).json(device);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const updateDevice = async (req, res) => {
+const updateDevice = async (req, res, next) => {
   try {
     const oldDevice = await deviceModel.getById(req.params.id);
     const device = await deviceModel.update(req.params.id, req.body);
@@ -87,11 +87,11 @@ const updateDevice = async (req, res) => {
     });
     res.json(device);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const deleteDevice = async (req, res) => {
+const deleteDevice = async (req, res, next) => {
   try {
     const device = await deviceModel.getById(req.params.id);
     if (!device) return res.status(404).json({ message: "Device not found" });
@@ -157,72 +157,72 @@ const deleteDevice = async (req, res) => {
     });
     res.json({ message: "Device deleted" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── DEVICE LOG MAPPINGS ────────────────────────────────────
 
-const getMappings = async (req, res) => {
+const getMappings = async (req, res, next) => {
   try {
     const deviceId = req.query.device_id;
     const mappings = deviceId ? await mappingModel.getByDevice(parseInt(deviceId)) : await mappingModel.getAll();
     res.json(mappings);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const createMapping = async (req, res) => {
+const createMapping = async (req, res, next) => {
   try {
     const mapping = await mappingModel.create(req.body);
     res.status(201).json(mapping);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const updateMapping = async (req, res) => {
+const updateMapping = async (req, res, next) => {
   try {
     const mapping = await mappingModel.update(req.params.id, req.body);
     if (!mapping) return res.status(404).json({ message: "Mapping not found" });
     res.json(mapping);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const deleteMapping = async (req, res) => {
+const deleteMapping = async (req, res, next) => {
   try {
     await mappingModel.remove(req.params.id);
     res.json({ message: "Mapping deleted" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── EMPLOYEE DEVICE USERS ──────────────────────────────────
 
-const getEmployeeDeviceUsers = async (req, res) => {
+const getEmployeeDeviceUsers = async (req, res, next) => {
   try {
     const result = await employeeDeviceUserModel.getAll(req.query);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getEmployeeDeviceUser = async (req, res) => {
+const getEmployeeDeviceUser = async (req, res, next) => {
   try {
     const user = await employeeDeviceUserModel.getById(req.params.id);
     if (!user) return res.status(404).json({ message: "Employee device user not found" });
     res.json(user);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const createEmployeeDeviceUser = async (req, res) => {
+const createEmployeeDeviceUser = async (req, res, next) => {
   try {
     const { employee_id, device_id, device_user_id } = req.body;
 
@@ -241,11 +241,11 @@ const createEmployeeDeviceUser = async (req, res) => {
     if (error.code === "23503") {
       return res.status(400).json({ message: "Invalid employee_id or device_id" });
     }
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const updateEmployeeDeviceUser = async (req, res) => {
+const updateEmployeeDeviceUser = async (req, res, next) => {
   try {
     const existing = await employeeDeviceUserModel.getByDeviceAndUserId(req.body.device_id, req.body.device_user_id);
     if (existing && existing.id !== parseInt(req.params.id)) {
@@ -255,43 +255,43 @@ const updateEmployeeDeviceUser = async (req, res) => {
     if (!user) return res.status(404).json({ message: "Employee device user not found" });
     res.json(user);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const deleteEmployeeDeviceUser = async (req, res) => {
+const deleteEmployeeDeviceUser = async (req, res, next) => {
   try {
     await employeeDeviceUserModel.remove(req.params.id);
     res.json({ message: "Employee device user deleted" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── RAW LOGS ───────────────────────────────────────────────
 
-const getRawLogs = async (req, res) => {
+const getRawLogs = async (req, res, next) => {
   try {
     const result = await rawLogsModel.getAll(req.query);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getRawLog = async (req, res) => {
+const getRawLog = async (req, res, next) => {
   try {
     const log = await rawLogsModel.getById(req.params.id);
     if (!log) return res.status(404).json({ message: "Raw log not found" });
     res.json(log);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── IMPORT ─────────────────────────────────────────────────
 
-const importLogs = async (req, res) => {
+const importLogs = async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
@@ -334,26 +334,25 @@ const importLogs = async (req, res) => {
     if (req.file) {
       fs.unlink(req.file.path, () => {});
     }
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── GENERIC PUSH ENDPOINT ──────────────────────────────────
 
-const pushLog = async (req, res) => {
+const pushLog = async (req, res, next) => {
   try {
     const deviceId = parseInt(req.params.deviceId);
     const result = await deviceIntegrationService.pushLog(deviceId, req.body);
     res.status(201).json({ message: "Log received", log: result });
   } catch (error) {
-    const status = error.status || 500;
-    res.status(status).json({ message: error.message });
+    next(error);
   }
 };
 
 // ─── PROCESSING ──────────────────────────────────────────────
 
-const processLog = async (req, res) => {
+const processLog = async (req, res, next) => {
   try {
     const rawLogId = parseInt(req.params.id);
     const log = await rawLogsModel.getById(rawLogId);
@@ -361,11 +360,11 @@ const processLog = async (req, res) => {
     const job = await deviceProcessingQueue.addLogToQueue(rawLogId);
     res.json({ message: "Log queued for processing", raw_log_id: rawLogId, job_id: job.id });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const processBatch = async (req, res) => {
+const processBatch = async (req, res, next) => {
   try {
     const { ids } = req.body;
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -374,11 +373,11 @@ const processBatch = async (req, res) => {
     const jobs = await deviceProcessingQueue.addBatchToQueue(ids);
     res.json({ message: `${ids.length} logs queued for processing`, count: ids.length });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const rotateDeviceKey = async (req, res) => {
+const rotateDeviceKey = async (req, res, next) => {
   try {
     const deviceId = parseInt(req.params.id);
     const device = await deviceModel.getById(deviceId);
@@ -403,7 +402,7 @@ const rotateDeviceKey = async (req, res) => {
       note: "Save this key — it will not be shown again",
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

@@ -118,7 +118,7 @@ export const addGroupMembers = async (
   groupId: number,
   employeeIds: number[],
   effectiveDate?: string
-): Promise<{ success: boolean; count: number; assignments: any[] }> => {
+): Promise<{ success: boolean; count: number; assignments: Record<string, unknown>[] }> => {
   const response = await api.post(`/rotation/groups/${groupId}/members`, {
     employee_ids: employeeIds,
     effective_date: effectiveDate,
@@ -130,7 +130,7 @@ export const removeGroupMember = async (
   groupId: number,
   employeeId: number,
   effectiveDate?: string
-): Promise<any> => {
+): Promise<Record<string, unknown>> => {
   const response = await api.put(`/rotation/groups/${groupId}/members/${employeeId}`, {
     effective_date: effectiveDate,
   });

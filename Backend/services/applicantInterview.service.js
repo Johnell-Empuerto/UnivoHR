@@ -1,6 +1,7 @@
 const applicantInterviewModel = require("../models/applicantInterview.model");
 const applicantModel = require("../models/applicant.model");
 const notificationService = require("./notification.service");
+const logger = require("../utils/logger");
 
 const VALID_RECOMMENDATIONS = ["PASSED", "FAILED", "FOR_REVIEW"];
 
@@ -48,7 +49,7 @@ const notifyAssignedUser = async (applicant, interview) => {
     title: "Interview Assignment",
     message: `You have been assigned to interview ${applicantName} for ${interview.interview_type || "Interview"} on ${dateStr}`,
     reference_id: applicant.id,
-  }).catch(err => console.error("[RECRUITMENT] Notification error:", err));
+  }).catch(err => logger.error({ err }, "[RECRUITMENT] Notification error"));
 };
 
 const notifyHR = async (applicant, interview) => {
@@ -64,7 +65,7 @@ const notifyHR = async (applicant, interview) => {
         reference_id: applicant.id,
       })
     );
-    Promise.all(promises).catch(err => console.error("[RECRUITMENT] Notification error:", err));
+    Promise.all(promises).catch(err => logger.error({ err }, "[RECRUITMENT] Notification error"));
   });
 };
 
@@ -103,7 +104,7 @@ const create = async (data) => {
         reference_id: data.applicant_id,
       })
     );
-    Promise.all(promises).catch(err => console.error("[RECRUITMENT] Notification error:", err));
+    Promise.all(promises).catch(err => logger.error({ err }, "[RECRUITMENT] Notification error"));
   });
 
   return interview;
@@ -175,7 +176,7 @@ const update = async (id, data) => {
             reference_id: applicant.id,
           })
         );
-        Promise.all(promises).catch(err => console.error("[RECRUITMENT] FOR_REVIEW notification error:", err));
+        Promise.all(promises).catch(err => logger.error({ err }, "[RECRUITMENT] FOR_REVIEW notification error"));
       });
     }
   }

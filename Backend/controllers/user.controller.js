@@ -1,18 +1,18 @@
 const userService = require("../services/user.service");
 const audit = require("../services/audit.service");
 
-const getUsers = async (req, res) => {
+const getUsers = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, search = "", role = "" } = req.query;
 
     const data = await userService.getUsers(page, limit, search, role);
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getUserById = async (req, res) => {
+const getUserById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const user = await userService.getUserById(id);
@@ -23,11 +23,11 @@ const getUserById = async (req, res) => {
 
     res.json(user);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const createUser = async (req, res) => {
+const createUser = async (req, res, next) => {
   try {
     const user = await userService.createUser(req.body);
     audit.auditLog(req, {
@@ -40,11 +40,11 @@ const createUser = async (req, res) => {
     });
     res.status(201).json({ message: "User created successfully", user });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const updateUser = async (req, res) => {
+const updateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
     const oldValues = await audit.fetchOldValues("users", id);
@@ -60,11 +60,11 @@ const updateUser = async (req, res) => {
     });
     res.json({ message: "User updated successfully", user });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const deleteUser = async (req, res) => {
+const deleteUser = async (req, res, next) => {
   try {
     const { id } = req.params;
     const oldValues = await audit.fetchOldValues("users", id);
@@ -78,26 +78,26 @@ const deleteUser = async (req, res) => {
     });
     res.json({ message: "User deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getEmployeesWithoutAccounts = async (req, res) => {
+const getEmployeesWithoutAccounts = async (req, res, next) => {
   try {
     const employees = await userService.getEmployeesWithoutAccounts();
     res.json(employees);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getEmployeeName = async (req, res) => {
+const getEmployeeName = async (req, res, next) => {
   try {
     const { employeeId } = req.params;
     const employee = await userService.getEmployeeName(employeeId);
     res.json(employee);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

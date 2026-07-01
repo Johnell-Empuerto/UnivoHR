@@ -10,6 +10,7 @@ const notificationService = require("./notification.service");
 const { initializeNewEmployee } = require("./employeeInit.service");
 const { EMPLOYMENT_STATUS, COMPANY_DEFAULT_PROBATION_MONTHS } = require("../constants/employmentStatus");
 const applicantWorkflowService = require("./applicantWorkflow.service");
+const logger = require("../utils/logger");
 
 const hasApprovedHiringApproval = async (applicantId) => {
   const approvals = await applicantApprovalModel.getByApplicantId(applicantId);
@@ -72,7 +73,7 @@ const notifyParty = (userIds, title, message, referenceId) => {
   const promises = userIds.map(id =>
     notificationService.notify({ user_id: id, type: "RECRUITMENT", title, message, reference_id: referenceId })
   );
-  Promise.all(promises).catch(err => console.error("[RECRUITMENT] Notification error:", err));
+  Promise.all(promises).catch(err => logger.error({ err }, "[RECRUITMENT] Notification error"));
 };
 
 const autoCreateStageRecords = async (applicantId, normalizedStatus) => {
@@ -231,7 +232,7 @@ const create = async (data) => {
     );
   }
 
-  console.log(
+  logger.info(
     `[RECRUITMENT] Workflow resolved for applicant creation: "${preResolved.workflow.name}" (id=${preResolved.workflow.id}) with ${preResolved.stages.length} stages`,
   );
 
@@ -246,11 +247,11 @@ const create = async (data) => {
 
   try {
     await applicantWorkflowService.autoInitializeWorkflow(applicant, preResolved);
-    console.log(
+    logger.info(
       `[RECRUITMENT] Workflow initialized for applicant #${applicant.id} using "${preResolved.workflow.name}"`,
     );
   } catch (err) {
-    console.error(`[RECRUITMENT] Workflow init error for applicant #${applicant.id}:`, err.message);
+    logger.error({ err }, `[RECRUITMENT] Workflow init error for applicant #${applicant.id}`);
   }
 
   const result = await applicantModel.getById(applicant.id);
@@ -286,7 +287,7 @@ const update = async (id, data) => {
   const updated = await applicantModel.update(id, merged);
   if (merged.status !== existing.status) {
     autoCreateStageRecords(id, merged.status).catch(err =>
-      console.error("[RECRUITMENT] Auto-create stage records error:", err)
+      logger.error({ err }, "[RECRUITMENT] Auto-create stage records error")
     );
   }
   return updated;
@@ -303,7 +304,7 @@ const updateStatus = async (id, status) => {
   }
   const updated = await applicantModel.updateStatus(id, normalized);
   autoCreateStageRecords(id, normalized).catch(err =>
-    console.error("[RECRUITMENT] Auto-create stage records error:", err)
+    logger.error({ err }, "[RECRUITMENT] Auto-create stage records error")
   );
   applicantModel.getActiveHRUserIds().then(userIds => {
     notifyParty(userIds, "Applicant Status Updated", `${existing.first_name} ${existing.last_name} status changed to ${status}`, updated.id);
@@ -367,7 +368,7 @@ const convertToEmployee = async (applicantId, additionalData) => {
       await client.query("COMMIT");
 
       autoCreateStageRecords(applicantId, "Completed").catch(err =>
-        console.error("[RECRUITMENT] Auto-create stage records error:", err)
+        logger.error({ err }, "[RECRUITMENT] Auto-create stage records error")
       );
 
       applicantModel.getActiveHRUserIds().then(userIds => {
@@ -525,7 +526,7 @@ const convertToEmployee = async (applicantId, additionalData) => {
     }
 
     autoCreateStageRecords(applicantId, "Completed").catch(err =>
-      console.error("[RECRUITMENT] Auto-create stage records error:", err)
+      logger.error({ err }, "[RECRUITMENT] Auto-create stage records error")
     );
 
     applicantModel.getActiveHRUserIds().then(userIds => {

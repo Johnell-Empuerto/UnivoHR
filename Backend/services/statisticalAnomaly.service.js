@@ -2,6 +2,7 @@ const pool = require("../config/db");
 const anomalyModel = require("../models/anomaly.model");
 const notificationService = require("./notification.service");
 const notificationRuleService = require("./notificationRule.service");
+const logger = require("../utils/logger");
 
 const DEDUP_WINDOW_DAYS = 1;
 
@@ -49,7 +50,7 @@ const notifyHighSeverity = async (anomaly) => {
         meta: { anomaly_id: anomaly.id, severity: "HIGH", anomaly_type: anomaly.anomaly_type, statistical_method: anomaly.statistical_method },
       });
     } catch (err) {
-      console.error(`[StatAnomaly] Notify failed for user ${user.id}:`, err.message);
+      logger.error({ err }, `[StatAnomaly] Notify failed for user ${user.id}`);
     }
   }
 };
@@ -415,7 +416,7 @@ const detectStatisticalBranchAnomalies = async () => {
 // ============================================
 
 const runDailyStatisticalScan = async () => {
-  console.log("[StatAnomalyScan] Starting daily statistical scan...");
+  logger.info("[StatAnomalyScan] Starting daily statistical scan...");
   const results = {
     attendance: { detected: 0, errors: 0 },
     overtime: { detected: 0, errors: 0 },
@@ -425,35 +426,35 @@ const runDailyStatisticalScan = async () => {
   };
 
   try { results.attendance = await detectStatisticalAttendanceAnomalies(); }
-  catch (err) { console.error("[StatAnomalyScan] Attendance:", err.message); results.attendance.errors = 1; }
+  catch (err) { logger.error({ err }, "[StatAnomalyScan] Attendance"); results.attendance.errors = 1; }
 
   try { results.overtime = await detectStatisticalOvertimeAnomalies(); }
-  catch (err) { console.error("[StatAnomalyScan] Overtime:", err.message); results.overtime.errors = 1; }
+  catch (err) { logger.error({ err }, "[StatAnomalyScan] Overtime"); results.overtime.errors = 1; }
 
   try { results.leaves = await detectStatisticalLeaveAnomalies(); }
-  catch (err) { console.error("[StatAnomalyScan] Leaves:", err.message); results.leaves.errors = 1; }
+  catch (err) { logger.error({ err }, "[StatAnomalyScan] Leaves"); results.leaves.errors = 1; }
 
   try { results.branch = await detectStatisticalBranchAnomalies(); }
-  catch (err) { console.error("[StatAnomalyScan] Branch:", err.message); results.branch.errors = 1; }
+  catch (err) { logger.error({ err }, "[StatAnomalyScan] Branch"); results.branch.errors = 1; }
 
   results.total_detected = results.attendance.detected + results.overtime.detected +
     results.leaves.detected + results.branch.detected;
-  console.log(`[StatAnomalyScan] Daily stat scan complete. ${results.total_detected} anomalies.`);
+  logger.info(`[StatAnomalyScan] Daily stat scan complete. ${results.total_detected} anomalies.`);
   return results;
 };
 
 const runWeeklyStatisticalScan = async () => {
-  console.log("[StatAnomalyScan] Starting weekly statistical scan...");
+  logger.info("[StatAnomalyScan] Starting weekly statistical scan...");
   const results = {
     payroll: { detected: 0, errors: 0 },
     total_detected: 0,
   };
 
   try { results.payroll = await detectStatisticalPayrollAnomalies(); }
-  catch (err) { console.error("[StatAnomalyScan] Payroll:", err.message); results.payroll.errors = 1; }
+  catch (err) { logger.error({ err }, "[StatAnomalyScan] Payroll"); results.payroll.errors = 1; }
 
   results.total_detected = results.payroll.detected;
-  console.log(`[StatAnomalyScan] Weekly stat scan complete. ${results.total_detected} anomalies.`);
+  logger.info(`[StatAnomalyScan] Weekly stat scan complete. ${results.total_detected} anomalies.`);
   return results;
 };
 

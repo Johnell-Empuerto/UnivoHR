@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Loader2, Hash, Eye, Save, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -31,14 +31,36 @@ const SETTINGS_KEYS = [
 const EmployeeCodeSettings = () => {
   const queryClient = useQueryClient();
   const { data: settingsData = [], isLoading } = useAllSettings();
-  const [, setSaving] = useState<string | null>(null);
-  const [savingAll, setSavingAll] = useState(false);
   const [settings, setSettings] = useState({
     employee_code_auto_generate: "true",
     employee_code_prefix: "EMP",
     employee_code_separator: "",
     employee_code_padding: "4",
     employee_code_counter: "0",
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: ({ key, value }: { key: string; value: string }) => updateSetting(key, value),
+    onSuccess: (_, { key, value }) => {
+      setSettings((prev) => ({ ...prev, [key]: value }));
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+    },
+    onError: (_, { key }) => toast.error(`Failed to save ${key}`),
+  });
+
+  const saveAllMutation = useMutation({
+    mutationFn: async () => {
+      const promises = SETTINGS_KEYS.map((key) => {
+        const value = settings[key as keyof typeof settings];
+        return updateSetting(key, value);
+      });
+      await Promise.all(promises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      toast.success("Employee code settings saved successfully");
+    },
+    onError: () => toast.error("Failed to save employee code settings"),
   });
   const [preview, setPreview] = useState<{
     nextCode: string;
@@ -98,34 +120,12 @@ const EmployeeCodeSettings = () => {
     }
   };
 
-  const handleSave = async (key: string, value: string) => {
-    try {
-      setSaving(key);
-      await updateSetting(key, value);
-      setSettings((prev) => ({ ...prev, [key]: value }));
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
-    } catch {
-      toast.error(`Failed to save ${key}`);
-    } finally {
-      setSaving(null);
-    }
+  const handleSave = (key: string, value: string) => {
+    saveMutation.mutate({ key, value });
   };
 
-  const handleSaveAll = async () => {
-    try {
-      setSavingAll(true);
-      const promises = SETTINGS_KEYS.map((key) => {
-        const value = settings[key as keyof typeof settings];
-        return updateSetting(key, value);
-      });
-      await Promise.all(promises);
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
-      toast.success("Employee code settings saved successfully");
-    } catch {
-      toast.error("Failed to save employee code settings");
-    } finally {
-      setSavingAll(false);
-    }
+  const handleSaveAll = () => {
+    saveAllMutation.mutate();
   };
 
   const isAutoGen = settings.employee_code_auto_generate === "true";
@@ -329,8 +329,8 @@ const EmployeeCodeSettings = () => {
                 codes will not be changed.
               </p>
             </div>
-            <Button onClick={handleSaveAll} disabled={savingAll} className="w-full">
-              {savingAll ? (
+            <Button onClick={handleSaveAll} disabled={saveAllMutation.isPending} className="w-full">
+              {saveAllMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Saving All Settings...

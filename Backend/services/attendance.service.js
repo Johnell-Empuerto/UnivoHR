@@ -6,6 +6,7 @@ const rotationService = require("./rotation.service");
 const STATUS = require("../constants/status");
 const { getLocalDate } = require("../utils/date");
 const { resolveEmployeeTimezone, resolveBranchId, resolveDeviceBranchId } = require("../utils/timezone");
+const logger = require("../utils/logger");
 
 //check duplication
 const isDuplicateScan = (lastTime, currentTime, minutes = 2) => {
@@ -15,7 +16,7 @@ const isDuplicateScan = (lastTime, currentTime, minutes = 2) => {
 
 // Core logic: check-in / check-out
 const createAttendance = async ({ employee_id, timestamp, source = 'BIOMETRIC', device_id = null }) => {
-  console.log("SERVICE INPUT:", { employee_id, timestamp, source, device_id });
+  logger.info({ employee_id, timestamp, source, device_id }, "SERVICE INPUT");
 
   // Resolve timezone first so getLocalDate can use it
   const timezone = await resolveEmployeeTimezone(employee_id, device_id);
@@ -39,7 +40,7 @@ const createAttendance = async ({ employee_id, timestamp, source = 'BIOMETRIC', 
     todayRecord = await attendanceModel.getTodayRecord(employee_id, timestamp, timezone);
   }
 
-  console.log("TODAY RECORD:", todayRecord);
+  logger.info({ todayRecord }, "TODAY RECORD");
 
   const rules = await rulesModel.getRules();
 

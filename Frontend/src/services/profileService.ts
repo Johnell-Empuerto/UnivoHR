@@ -42,7 +42,7 @@ export const getProfile = async (): Promise<Profile> => {
   return response.data;
 };
 
-export const updateProfile = async (data: Partial<Profile>): Promise<any> => {
+export const updateProfile = async (data: Partial<Profile>): Promise<Profile> => {
   const response = await api.put("/profile", data);
   return response.data;
 };

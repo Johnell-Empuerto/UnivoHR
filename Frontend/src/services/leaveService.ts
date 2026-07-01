@@ -2,7 +2,7 @@ import api from "./api";
 
 export const leaveService = {
   // CREATE LEAVE
-  createLeave: async (data: any) => {
+  createLeave: async (data: Record<string, unknown>) => {
     const res = await api.post("/leaves", data);
     return res.data;
   },
@@ -16,7 +16,7 @@ export const leaveService = {
   },
 
   // CREATE LEAVE FOR EMPLOYEE (immediately approved)
-  createLeaveForEmployee: async (data: any) => {
+  createLeaveForEmployee: async (data: Record<string, unknown>) => {
     const res = await api.post("/leaves/create-for-employee", data);
     return res.data;
   },
@@ -46,7 +46,7 @@ export const leaveService = {
     status: string,
     rejectionReason?: string,
   ) => {
-    const payload: any = { status };
+    const payload: Record<string, unknown> = { status };
     if (status === "REJECTED" && rejectionReason) {
       payload.rejection_reason = rejectionReason;
     }
@@ -79,7 +79,7 @@ export const leaveService = {
   },
 
   // UPDATE EMPLOYEE CREDITS
-  updateEmployeeCredits: async (employeeId: number, data: any) => {
+  updateEmployeeCredits: async (employeeId: number, data: Record<string, unknown>) => {
     const res = await api.put(`/leaves/credits/${employeeId}`, data);
     return res.data;
   },
@@ -91,7 +91,7 @@ export const getEmployeeSalary = async () => {
   return res.data;
 };
 
-export const updateEmployeeSalary = async (id: number, data: any) => {
+export const updateEmployeeSalary = async (id: number, data: Record<string, unknown>) => {
   const res = await api.put(`/payroll/salary/${id}`, data);
   return res.data;
 };
@@ -102,12 +102,12 @@ export const getDeductions = async (employeeId: number) => {
   return res.data;
 };
 
-export const createDeduction = async (data: any) => {
+export const createDeduction = async (data: Record<string, unknown>) => {
   const res = await api.post(`/payroll/deductions`, data);
   return res.data;
 };
 
-export const updateDeduction = async (id: number, data: any) => {
+export const updateDeduction = async (id: number, data: Record<string, unknown>) => {
   const res = await api.put(`/payroll/deductions/${id}`, data);
   return res.data;
 };
@@ -129,12 +129,12 @@ export const getAllLeaveTypesAdmin = async () => {
   return res.data;
 };
 
-export const createLeaveType = async (data: any) => {
+export const createLeaveType = async (data: Record<string, unknown>) => {
   const res = await api.post("/leaves/leave-types", data);
   return res.data;
 };
 
-export const updateLeaveTypeAdmin = async (id: number, data: any) => {
+export const updateLeaveTypeAdmin = async (id: number, data: Record<string, unknown>) => {
   const res = await api.put(`/leaves/leave-types/${id}`, data);
   return res.data;
 };
@@ -155,7 +155,7 @@ export const getLeaveTypes = async () => {
   return res.data;
 };
 
-export const updateLeaveType = async (id: number, data: any) => {
+export const updateLeaveType = async (id: number, data: Record<string, unknown>) => {
   const res = await api.put(`/leave-conversion/types/${id}`, data);
   return res.data;
 };
@@ -166,15 +166,15 @@ export const getConversionSettings = async () => {
   return res.data;
 };
 
-export const updateConversionSettings = async (data: any) => {
+export const updateConversionSettings = async (data: Record<string, unknown>) => {
   const res = await api.put("/leave-conversion/settings", data);
   return res.data;
 };
 
 //  SAVE ALL (Bulk Update)
 export const saveAllConversionSettings = async (
-  leaveTypes: any[],
-  settings: any,
+  leaveTypes: unknown[],
+  settings: unknown,
 ) => {
   const res = await api.post("/leave-conversion/save-all", {
     leaveTypes,

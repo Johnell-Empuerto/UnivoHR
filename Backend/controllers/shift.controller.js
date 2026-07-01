@@ -1,26 +1,26 @@
 const shiftService = require("../services/shift.service");
 const audit = require("../services/audit.service");
 
-const getAll = async (req, res) => {
+const getAll = async (req, res, next) => {
   try {
     const data = await shiftService.getAll();
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getById = async (req, res) => {
+const getById = async (req, res, next) => {
   try {
     const data = await shiftService.getById(req.params.id);
     if (!data) return res.status(404).json({ message: "Shift not found" });
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const create = async (req, res) => {
+const create = async (req, res, next) => {
   try {
     const data = await shiftService.create(req.body);
     audit.auditLog(req, {
@@ -32,11 +32,11 @@ const create = async (req, res) => {
     });
     res.status(201).json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const update = async (req, res) => {
+const update = async (req, res, next) => {
   try {
     const oldValues = await audit.fetchOldValues("shift_schedules", req.params.id);
     const data = await shiftService.update(req.params.id, req.body);
@@ -51,11 +51,11 @@ const update = async (req, res) => {
     });
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const remove = async (req, res) => {
+const remove = async (req, res, next) => {
   try {
     const oldValues = await audit.fetchOldValues("shift_schedules", req.params.id);
     const data = await shiftService.remove(req.params.id);
@@ -78,30 +78,30 @@ const remove = async (req, res) => {
         dependencies: error.dependencies,
       });
     }
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getActiveShifts = async (req, res) => {
+const getActiveShifts = async (req, res, next) => {
   try {
     const data = await shiftService.getActiveShifts();
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getEmployeeShiftForDate = async (req, res) => {
+const getEmployeeShiftForDate = async (req, res, next) => {
   try {
     const { employeeId, date } = req.params;
     const data = await shiftService.getEmployeeShiftForDate(employeeId, date);
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const assignShift = async (req, res) => {
+const assignShift = async (req, res, next) => {
   try {
     const { employee_id, shift_id, effective_date, end_date } = req.body;
     if (!employee_id || !shift_id || !effective_date) {
@@ -118,20 +118,20 @@ const assignShift = async (req, res) => {
     });
     res.status(201).json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const getAssignments = async (req, res) => {
+const getAssignments = async (req, res, next) => {
   try {
     const data = await shiftService.getAssignments(req.params.employeeId);
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
-const removeAssignment = async (req, res) => {
+const removeAssignment = async (req, res, next) => {
   try {
     const data = await shiftService.removeAssignment(req.params.id);
     if (!data) return res.status(404).json({ message: "Assignment not found" });
@@ -143,7 +143,7 @@ const removeAssignment = async (req, res) => {
     });
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

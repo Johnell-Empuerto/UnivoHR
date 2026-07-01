@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import {
-  getDevices,
   createDevice,
   updateDevice,
   deleteDevice,
 } from "@/services/deviceIntegrationService";
+import { useDevices } from "@/hooks/useDevices";
 import { useActiveBranches } from "@/hooks/useBranches";
 import type { Device } from "@/services/deviceIntegrationService";
 import { Button } from "@/components/ui/button";
@@ -35,11 +35,7 @@ import DeviceTable from "../components/DeviceTable";
 const DevicePage = () => {
   const { hasPermission } = useAuth();
   const canManage = hasPermission("devices.manage");
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalRecords, setTotalRecords] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -61,6 +57,11 @@ const DevicePage = () => {
     branch_id: "",
   });
 
+  const { data: deviceResponse, isFetching, refetch } = useDevices(page, rowsPerPage, debouncedSearch || undefined);
+  const devices = deviceResponse?.data ?? [];
+  const totalPages = deviceResponse?.pagination?.totalPages ?? 1;
+  const totalRecords = deviceResponse?.pagination?.total ?? 0;
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
@@ -68,28 +69,6 @@ const DevicePage = () => {
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);
-
-  const fetchDevices = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await getDevices({
-        page,
-        limit: rowsPerPage,
-        search: debouncedSearch || undefined,
-      });
-      setDevices(res.data);
-      setTotalPages(res.pagination.totalPages);
-      setTotalRecords(res.pagination.total);
-    } catch {
-      toast.error("Failed to load devices");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, rowsPerPage, debouncedSearch]);
-
-  useEffect(() => {
-    fetchDevices();
-  }, [fetchDevices]);
 
   const openCreate = () => {
     setEditing(null);
@@ -146,7 +125,7 @@ const DevicePage = () => {
         toast.success("Device created");
       }
       setShowDialog(false);
-      fetchDevices();
+      refetch();
     } catch {
       toast.error("Failed to save device");
     }
@@ -162,7 +141,7 @@ const DevicePage = () => {
       await deleteDevice(deleteConfirm);
       toast.success("Device deleted");
       setDeleteConfirm(null);
-      fetchDevices();
+      refetch();
     } catch {
       toast.error("Failed to delete device");
       setDeleteConfirm(null);
@@ -204,7 +183,7 @@ const DevicePage = () => {
                 className="pl-8"
               />
             </div>
-            <Button variant="outline" size="icon" onClick={fetchDevices}>
+            <Button variant="outline" size="icon" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
@@ -220,7 +199,7 @@ const DevicePage = () => {
             rowsPerPage={rowsPerPage}
             onEdit={openEdit}
             onDelete={handleDelete}
-            loading={loading}
+            loading={isFetching}
           />
         </CardContent>
       </Card>

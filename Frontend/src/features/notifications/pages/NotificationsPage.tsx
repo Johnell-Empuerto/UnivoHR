@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { TablePagination } from "@/components/shared/TablePagination";
@@ -17,8 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useNotifications } from "@/hooks/useNotifications";
 import {
-  getMyNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
   type Notification,
@@ -31,48 +32,33 @@ import EmptyState from "@/components/shared/EmptyState";
 const NotificationsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const [unreadCount, setUnreadCount] = useState(0);
 
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      const data = await getMyNotifications(page, pageSize);
-
-      const sortedData = [...data.data].sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      );
-
-      setNotifications(sortedData);
-      setTotalPages(data.pagination.totalPages);
-      setTotalCount(data.pagination.total);
-      setUnreadCount(data.unreadCount);
-    } catch (error) {
-      console.error("Failed to fetch notifications:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchNotifications();
-  }, [page, pageSize, user?.id]);
+  const { data: notifResponse, isFetching } = useNotifications(page, pageSize, user?.id);
+  const rawNotifications = notifResponse?.data ?? [];
+  const notifications = useMemo(
+    () => [...rawNotifications].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    [rawNotifications],
+  );
+  const totalPages = notifResponse?.pagination?.totalPages ?? 1;
+  const totalCount = notifResponse?.pagination?.total ?? 0;
+  const unreadCount = notifResponse?.unreadCount ?? 0;
 
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.is_read) {
       await markNotificationAsRead(notification.id);
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === notification.id ? { ...n, is_read: true } : n,
-        ),
-      );
+      queryClient.setQueryData(["notifications", page, pageSize, user?.id], (old: any) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: old.data.map((n: Notification) =>
+            n.id === notification.id ? { ...n, is_read: true } : n,
+          ),
+          unreadCount: Math.max(0, (old.unreadCount ?? 0) - 1),
+        };
+      });
     }
 
     switch (notification.type) {
@@ -136,8 +122,14 @@ const NotificationsPage = () => {
   const handleMarkAllRead = async () => {
     try {
       await markAllNotificationsAsRead();
-      setUnreadCount(0);
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      queryClient.setQueryData(["notifications", page, pageSize, user?.id], (old: any) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: old.data.map((n: Notification) => ({ ...n, is_read: true })),
+          unreadCount: 0,
+        };
+      });
     } catch (error) {
       console.error("Failed to mark all as read:", error);
     }
@@ -275,7 +267,7 @@ const NotificationsPage = () => {
     }
   };
 
-  if (loading && notifications.length === 0) {
+  if (isFetching && notifications.length === 0) {
     return <Loader fullPage />;
   }
 

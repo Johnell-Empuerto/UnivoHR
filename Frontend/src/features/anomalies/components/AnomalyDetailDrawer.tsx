@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Drawer,
   DrawerContent,
@@ -10,8 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { getAnomalyById, updateAnomalyStatus } from "@/services/anomalyService";
+import { updateAnomalyStatus } from "@/services/anomalyService";
 import type { Anomaly } from "@/services/anomalyService";
+import { useAnomalyDetail } from "@/hooks/useAnomalyDetail";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -54,21 +56,12 @@ interface Props {
 }
 
 const AnomalyDetailDrawer = ({ anomalyId, open, onOpenChange, onStatusUpdate }: Props) => {
-  const [anomaly, setAnomaly] = useState<Anomaly | null>(null);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [updating, setUpdating] = useState(false);
 
-  useEffect(() => {
-    if (open && anomalyId) {
-      setLoading(true);
-      getAnomalyById(anomalyId)
-        .then(setAnomaly)
-        .catch(() => toast.error("Failed to load anomaly details"))
-        .finally(() => setLoading(false));
-    } else {
-      setAnomaly(null);
-    }
-  }, [open, anomalyId]);
+  const query = useAnomalyDetail(anomalyId, open);
+  const anomaly = query.data ?? null;
+  const loading = query.isFetching;
 
   const handleStatusUpdate = async (status: "REVIEWED" | "RESOLVED") => {
     if (!anomalyId) return;
@@ -77,7 +70,9 @@ const AnomalyDetailDrawer = ({ anomalyId, open, onOpenChange, onStatusUpdate }: 
       await updateAnomalyStatus(anomalyId, status);
       toast.success(`Anomaly marked as ${status.toLowerCase()}`);
       onStatusUpdate();
-      setAnomaly((prev) => prev ? { ...prev, status } : prev);
+      queryClient.setQueryData(["anomaly", anomalyId], (old: Anomaly | undefined) =>
+        old ? { ...old, status } : old,
+      );
     } catch {
       toast.error("Failed to update status");
     } finally {

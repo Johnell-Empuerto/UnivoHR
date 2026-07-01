@@ -2,27 +2,27 @@ const smtpService = require("../services/smtp.service");
 const audit = require("../services/audit.service");
 
 // Get active SMTP settings
-const getSmtpSettings = async (req, res) => {
+const getSmtpSettings = async (req, res, next) => {
   try {
     const data = await smtpService.getSmtpSettings();
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Get all SMTP settings
-const getAllSmtpSettings = async (req, res) => {
+const getAllSmtpSettings = async (req, res, next) => {
   try {
     const data = await smtpService.getAllSmtpSettings();
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Create SMTP settings
-const createSmtpSettings = async (req, res) => {
+const createSmtpSettings = async (req, res, next) => {
   try {
     const data = await smtpService.createSmtpSettings(req.body);
     audit.auditLog(req, {
@@ -34,12 +34,12 @@ const createSmtpSettings = async (req, res) => {
     });
     res.status(201).json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Update SMTP settings
-const updateSmtpSettings = async (req, res) => {
+const updateSmtpSettings = async (req, res, next) => {
   try {
     const { id } = req.params;
     const data = await smtpService.updateSmtpSettings(id, req.body);
@@ -52,12 +52,12 @@ const updateSmtpSettings = async (req, res) => {
     });
     res.json(data);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Delete SMTP settings
-const deleteSmtpSettings = async (req, res) => {
+const deleteSmtpSettings = async (req, res, next) => {
   try {
     const { id } = req.params;
     await smtpService.deleteSmtpSettings(id);
@@ -79,18 +79,18 @@ const deleteSmtpSettings = async (req, res) => {
         dependencies: error.dependencies,
       });
     }
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 
 // Test SMTP connection
-const testSmtpConnection = async (req, res) => {
+const testSmtpConnection = async (req, res, next) => {
   try {
     const { id, test_email } = req.body;
     const result = await smtpService.testSmtpConnection(id, test_email);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

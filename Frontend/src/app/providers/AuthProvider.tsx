@@ -46,7 +46,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 const PERMISSIONS_KEY = "user_permissions";
 
-export const AuthProvider = ({ children }: any) => {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem("token");
   const [isAuth, setIsAuth] = useState(!!token);
   const [user, setUser] = useState<User | null>(() => {

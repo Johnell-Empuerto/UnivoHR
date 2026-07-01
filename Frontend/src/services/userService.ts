@@ -94,7 +94,7 @@ export const getEmployeesWithoutAccounts = async (): Promise<
 };
 
 // GET EMPLOYEE NAME BY ID
-export const getEmployeeName = async (employeeId: number): Promise<any> => {
+export const getEmployeeName = async (employeeId: number): Promise<Record<string, unknown>> => {
   const response = await api.get(`/users/employee/${employeeId}`);
   return response.data;
 };

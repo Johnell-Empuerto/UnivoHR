@@ -1,11 +1,12 @@
 // features/overtime/pages/MyOvertime.tsx
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  getMyOvertime,
   createOvertime,
   getOvertimeDetails,
   deleteOvertime,
 } from "@/services/overtimeService";
+import { useMyOvertime } from "@/hooks/useMyOvertime";
 import ErrorMessage from "@/components/shared/ErrorMessage";
 import Loader from "@/components/shared/Loader";
 import { Button } from "@/components/ui/button";
@@ -47,17 +48,13 @@ type OvertimeRequest = {
 };
 
 const MyOvertime = () => {
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalRecords, setTotalRecords] = useState(0);
 
-  const [data, setData] = useState<OvertimeRequest[]>([]);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -74,28 +71,14 @@ const MyOvertime = () => {
     return () => clearTimeout(delayDebounce);
   }, [searchInput]);
 
-  // Fetch data
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const res = await getMyOvertime(
-          currentPage,
-          rowsPerPage,
-          search,
-          statusFilter,
-        );
-        setData(res.data);
-        setTotalPages(res.pagination.totalPages);
-        setTotalRecords(res.pagination.total);
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch overtime requests");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [currentPage, rowsPerPage, search, statusFilter]);
+  const query = useMyOvertime(currentPage, rowsPerPage, search, statusFilter);
+  const data = query.data?.data ?? [];
+  const totalPages = query.data?.pagination?.totalPages ?? 1;
+  const totalRecords = query.data?.pagination?.total ?? 0;
+  const loading = query.isFetching;
+  const error = query.error
+    ? (query.error as any).message || "Failed to fetch overtime requests"
+    : "";
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value);
@@ -126,12 +109,8 @@ const MyOvertime = () => {
       await createOvertime(formData);
       toast.success("Overtime request submitted successfully");
       setIsModalOpen(false);
-      // Refresh data
       setCurrentPage(1);
-      const res = await getMyOvertime(1, rowsPerPage, search, statusFilter);
-      setData(res.data);
-      setTotalPages(res.pagination.totalPages);
-      setTotalRecords(res.pagination.total);
+      queryClient.invalidateQueries({ queryKey: ["my-overtime"] });
     } catch (err: any) {
       toast.error(err.message || "Failed to submit overtime request");
     } finally {
@@ -147,10 +126,7 @@ const MyOvertime = () => {
       toast.success("Overtime request deleted");
       setDeleteConfirm(null);
       setCurrentPage(1);
-      const res = await getMyOvertime(1, rowsPerPage, search, statusFilter);
-      setData(res.data);
-      setTotalPages(res.pagination.totalPages);
-      setTotalRecords(res.pagination.total);
+      queryClient.invalidateQueries({ queryKey: ["my-overtime"] });
     } catch (err: any) {
       toast.error(err.message || "Failed to delete overtime request");
     }

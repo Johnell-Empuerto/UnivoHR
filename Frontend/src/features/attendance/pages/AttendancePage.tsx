@@ -1,16 +1,13 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import {
-  attendance as attendanceApi,
-  getAttendanceByEmployee,
-} from "@/services/attendanceService";
-import { useActiveBranches } from "@/hooks/useBranches";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAttendanceRecords } from "@/hooks/useAttendanceRecords";
+import { useTimeModificationRequests } from "@/hooks/useTimeModificationRequests";
 import {
   createTimeModificationRequest,
-  getMyTimeModificationRequests,
-  getAllTimeModificationRequests,
   updateTimeModificationStatus,
 } from "@/services/attendanceService";
+import { useActiveBranches } from "@/hooks/useBranches";
 import AttendanceTable from "../components/AttendanceTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/Input";
@@ -65,6 +62,7 @@ import { useAuth } from "@/app/providers/AuthProvider";
 const AttendancePage = () => {
   const { user, hasPermission } = useAuth();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const isAdmin = hasPermission("attendance.manage");
 
   // Read tab from query parameter
@@ -79,12 +77,6 @@ const AttendancePage = () => {
   // ========== ATTENDANCE TAB STATE ==========
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalRecords, setTotalRecords] = useState(0);
-
-  const [attendanceData, setAttendanceData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -94,16 +86,26 @@ const AttendancePage = () => {
   const [branchFilter, setBranchFilter] = useState("");
   const { data: branches = [] } = useActiveBranches();
 
+  const { data: attendanceQuery, isFetching: attendanceFetching, error } = useAttendanceRecords(
+    isAdmin, user?.employee_id, currentPage, rowsPerPage, search, statusFilter, formattedDate, branchFilter,
+  );
+  const attendanceData = attendanceQuery?.data ?? [];
+  const totalPages = attendanceQuery?.pagination?.totalPages ?? 1;
+  const totalRecords = attendanceQuery?.pagination?.total ?? 0;
+  const loading = attendanceFetching && attendanceData.length === 0;
+
   // ========== TIME REQUEST TAB STATE ==========
   const [activeTab, setActiveTab] = useState("attendance");
-  const [timeRequests, setTimeRequests] = useState<any[]>([]);
-  const [timeRequestsLoading, setTimeRequestsLoading] = useState(false);
 
-  // Time Requests Pagination State
   const [timeRequestsPage, setTimeRequestsPage] = useState(1);
   const [timeRequestsRowsPerPage, setTimeRequestsRowsPerPage] = useState(10);
-  const [timeRequestsTotalPages, setTimeRequestsTotalPages] = useState(1);
-  const [timeRequestsTotalRecords, setTimeRequestsTotalRecords] = useState(0);
+
+  const { data: timeRequestsQuery, isFetching: timeRequestsLoading } = useTimeModificationRequests(
+    isAdmin, timeRequestsPage, timeRequestsRowsPerPage,
+  );
+  const timeRequests = timeRequestsQuery?.data ?? [];
+  const timeRequestsTotalPages = timeRequestsQuery?.pagination?.totalPages ?? 1;
+  const timeRequestsTotalRecords = timeRequestsQuery?.pagination?.total ?? 0;
 
   // Request Form State
   const [requestFormOpen, setRequestFormOpen] = useState(false);
@@ -133,103 +135,6 @@ const AttendancePage = () => {
 
     return () => clearTimeout(delayDebounce);
   }, [searchInput]);
-
-  // Fetch attendance data
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        let result;
-
-        if (!hasPermission("attendance.manage")) {
-          if (!user?.employee_id) return;
-          const data = await getAttendanceByEmployee(user.employee_id, formattedDate);
-          result = {
-            data,
-            pagination: {
-              total: data.length,
-              page: 1,
-              limit: data.length,
-              totalPages: 1,
-            },
-          };
-        } else {
-          result = await attendanceApi(
-            currentPage,
-            rowsPerPage,
-            search,
-            statusFilter,
-            formattedDate,
-            branchFilter,
-          );
-        }
-
-        setAttendanceData(result.data);
-        setTotalPages(result.pagination.totalPages);
-        setTotalRecords(result.pagination.total);
-      } catch (err: any) {
-        console.error("Fetch error:", err);
-        setError(err.message || "Failed to fetch attendance records");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [currentPage, rowsPerPage, search, statusFilter, formattedDate, branchFilter, user?.role, user?.employee_id]);
-
-  // Fetch time requests when tab changes or pagination changes
-  useEffect(() => {
-    if (activeTab === "time-requests") {
-      fetchTimeRequests();
-    }
-  }, [activeTab, timeRequestsPage, timeRequestsRowsPerPage]);
-
-  const fetchTimeRequests = async () => {
-    try {
-      setTimeRequestsLoading(true);
-
-      // Use backend pagination
-      const result = isAdmin
-        ? await getAllTimeModificationRequests(
-            timeRequestsPage,
-            timeRequestsRowsPerPage,
-          )
-        : await getMyTimeModificationRequests(
-            timeRequestsPage,
-            timeRequestsRowsPerPage,
-          );
-
-      // Handle both paginated and non-paginated responses
-      if (result.data && result.pagination) {
-        // Paginated response
-        setTimeRequests(result.data);
-        setTimeRequestsTotalPages(result.pagination.totalPages);
-        setTimeRequestsTotalRecords(result.pagination.total);
-      } else if (Array.isArray(result)) {
-        // Fallback for non-paginated response (manual pagination)
-        const start = (timeRequestsPage - 1) * timeRequestsRowsPerPage;
-        const end = start + timeRequestsRowsPerPage;
-        const paginatedData = result.slice(start, end);
-        setTimeRequests(paginatedData);
-        setTimeRequestsTotalRecords(result.length);
-        setTimeRequestsTotalPages(
-          Math.ceil(result.length / timeRequestsRowsPerPage),
-        );
-      } else {
-        setTimeRequests([]);
-        setTimeRequestsTotalRecords(0);
-        setTimeRequestsTotalPages(1);
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to fetch time requests");
-      setTimeRequests([]);
-      setTimeRequestsTotalRecords(0);
-      setTimeRequestsTotalPages(1);
-    } finally {
-      setTimeRequestsLoading(false);
-    }
-  };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value);
@@ -293,7 +198,7 @@ const AttendancePage = () => {
         requested_check_out: "",
         reason: "",
       });
-      fetchTimeRequests();
+      queryClient.invalidateQueries({ queryKey: ["time-modification-requests"] });
     } catch (err: any) {
       toast.error(err.response?.data?.message || err.message);
     }
@@ -318,7 +223,7 @@ const AttendancePage = () => {
       });
       toast.success(`Request ${actionType.toLowerCase()} successfully`);
       setActionDialogOpen(false);
-      fetchTimeRequests();
+      queryClient.invalidateQueries({ queryKey: ["time-modification-requests"] });
     } catch (err: any) {
       toast.error(err.response?.data?.message || err.message);
     } finally {
@@ -326,7 +231,6 @@ const AttendancePage = () => {
     }
   };
 
-  // Status badge for time requests - matching PayrollTable Badge pattern
   const getRequestStatusBadge = (status: string) => {
     switch (status) {
       case "PENDING":
@@ -368,13 +272,10 @@ const AttendancePage = () => {
     }
   };
 
-
-
-  if (error) return <ErrorMessage message={error} />;
+  if (error) return <ErrorMessage message={(error as any)?.message || "Failed to fetch attendance records"} />;
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
           <Clock className="h-5 w-5 text-primary" />
@@ -395,9 +296,7 @@ const AttendancePage = () => {
           <TabsTrigger value="time-requests">Time Requests</TabsTrigger>
         </TabsList>
 
-        {/* ========== ATTENDANCE TAB ========== */}
         <TabsContent value="attendance" className="space-y-6">
-          {/* Filters Card */}
           <Card>
             <CardContent className="p-4">
               <div className="flex flex-wrap items-center gap-4">
@@ -441,7 +340,6 @@ const AttendancePage = () => {
                   />
                 </div>
 
-                {/* Branch Filter */}
                 {user?.role !== "EMPLOYEE" && <Select
                   value={branchFilter || "all"}
                   onValueChange={(value) => {
@@ -475,10 +373,8 @@ const AttendancePage = () => {
             </CardContent>
           </Card>
 
-          {/* Loading Indicator */}
           {loading && <Loader message="Loading attendance records..." />}
 
-          {/* Table */}
           <Card>
             <CardContent className="p-4">
               <AttendanceTable
@@ -495,7 +391,6 @@ const AttendancePage = () => {
           </Card>
         </TabsContent>
 
-        {/* ========== TIME REQUESTS TAB - WITH BACKEND PAGINATION ========== */}
         <TabsContent value="time-requests" className="space-y-6">
           <Card>
             <CardHeader>
@@ -507,7 +402,7 @@ const AttendancePage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4">
-              {timeRequestsLoading ? (
+              {timeRequestsLoading && timeRequests.length === 0 ? (
                 <Loader message="Loading requests..." />
               ) : timeRequests.length === 0 ? (
                 <EmptyState
@@ -530,7 +425,7 @@ const AttendancePage = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {timeRequests.map((request) => (
+                      {timeRequests.map((request: any) => (
                         <TableRow key={request.id}>
                           {isAdmin && (
                             <TableCell className="font-medium">
@@ -631,7 +526,6 @@ const AttendancePage = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Request Form Dialog */}
       <Dialog open={requestFormOpen} onOpenChange={setRequestFormOpen}>
         <DialogContent className="max-w-lg! w-full sm:max-w-lg!">
           <DialogHeader>
@@ -712,7 +606,6 @@ const AttendancePage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Action Dialog (Approve/Reject) */}
       <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>
         <DialogContent className="max-w-lg! w-full sm:max-w-lg!">
           <DialogHeader>

@@ -18,7 +18,7 @@ export interface DrillDownParams {
 }
 
 export interface DrillDownResponse {
-  data: any[];
+  data: Record<string, unknown>[];
   pagination: {
     total: number;
     page: number;
@@ -61,6 +61,7 @@ export const exportDrillDown = async (params: DrillDownParams & { module: string
   const response = await api.get("/drilldown/export", {
     params,
     responseType: "blob",
+    timeout: 60000,
   });
   return response.data;
 };

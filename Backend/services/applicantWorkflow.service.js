@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const notificationService = require("./notification.service");
+const logger = require("../utils/logger");
 
 const notifyHRUsers = (title, message, reference_id) => {
   pool.query(
@@ -15,7 +16,7 @@ const notifyHRUsers = (title, message, reference_id) => {
 
 const resolveWorkflowForApplicant = async (jobPositionId) => {
   if (!jobPositionId) {
-    console.warn("[applicantWorkflow] No job_position_id provided");
+    logger.warn("[applicantWorkflow] No job_position_id provided");
     return null;
   }
 
@@ -29,9 +30,7 @@ const resolveWorkflowForApplicant = async (jobPositionId) => {
   );
 
   if (result.rows.length === 0) {
-    console.warn(
-      `[applicantWorkflow] No active workflow found for job_position_id=${jobPositionId}`,
-    );
+    logger.warn(`[applicantWorkflow] No active workflow found for job_position_id=${jobPositionId}`);
     return null;
   }
 
@@ -107,9 +106,7 @@ const getStagesForWorkflow = async (workflowId) => {
 
 const createWorkflowInstanceForApplicant = async (applicantId, workflow, stages) => {
   if (!stages || stages.length === 0) {
-    console.warn(
-      `[applicantWorkflow] Workflow ${workflow.id} has no stages — skipping instance creation for applicant ${applicantId}`,
-    );
+    logger.warn(`[applicantWorkflow] Workflow ${workflow.id} has no stages — skipping instance creation for applicant ${applicantId}`);
     return null;
   }
 
@@ -178,15 +175,11 @@ const createWorkflowInstanceForApplicant = async (applicantId, workflow, stages)
 
     await client.query("COMMIT");
 
-    console.log(
-      `[applicantWorkflow] Instance ${instance.id} created for applicant ${applicantId} with workflow ${workflow.id}`,
-    );
+    logger.info(`[applicantWorkflow] Instance ${instance.id} created for applicant ${applicantId} with workflow ${workflow.id}`);
     return instance;
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error(
-      `[applicantWorkflow] Failed to create workflow instance for applicant ${applicantId}: ${error.message}`,
-    );
+    logger.error({ error }, `[applicantWorkflow] Failed to create workflow instance for applicant ${applicantId}`);
     return null;
   } finally {
     client.release();
@@ -216,9 +209,7 @@ const autoInitializeWorkflow = async (applicant, preResolved) => {
 
     const stages = await getStagesForWorkflow(workflow.id);
     if (!stages || stages.length === 0) {
-      console.warn(
-        `[applicantWorkflow] Workflow ${workflow.id} has no stages — skipping applicant ${applicant.id}`,
-      );
+      logger.warn(`[applicantWorkflow] Workflow ${workflow.id} has no stages — skipping applicant ${applicant.id}`);
       return applicant;
     }
 
@@ -231,9 +222,7 @@ const autoInitializeWorkflow = async (applicant, preResolved) => {
       applicant.workflow_instance_id = instance.id;
     }
   } catch (error) {
-    console.error(
-      `[applicantWorkflow] autoInitializeWorkflow error for applicant ${applicant.id}: ${error.message}`,
-    );
+    logger.error({ error }, `[applicantWorkflow] autoInitializeWorkflow error for applicant ${applicant.id}`);
   }
 
   return applicant;
@@ -1067,7 +1056,7 @@ const approveStage = async (stageRecordId, comments, currentUser) => {
 
   let employeeId = currentUser?.employee_id || null;
   if (currentUser && !currentUser.employee_id) {
-    console.warn(`[approveStage] Warning: currentUser has no employee_id. user: ${JSON.stringify(currentUser)}`);
+    logger.warn({ currentUser }, `[approveStage] Warning: currentUser has no employee_id`);
   }
 
   const client = await pool.connect();
@@ -1130,7 +1119,7 @@ const rejectStage = async (stageRecordId, comments, currentUser) => {
 
   let employeeId = currentUser?.employee_id || null;
   if (currentUser && !currentUser.employee_id) {
-    console.warn(`[rejectStage] Warning: currentUser has no employee_id. user: ${JSON.stringify(currentUser)}`);
+    logger.warn({ currentUser }, `[rejectStage] Warning: currentUser has no employee_id`);
   }
 
   const client = await pool.connect();
@@ -1261,9 +1250,7 @@ const rollbackToStage = async (applicantId, targetStageId, reason, currentUser) 
     await client.query("COMMIT");
 
     const oldStageName = oldCurrent.rows.length > 0 ? oldCurrent.rows[0].stage_name : "none";
-    console.log(
-      `[applicantWorkflow] rollback: applicant #${applicantId} rolled back to "${targetStage.rows[0].stage_name}". Reason: ${reason}`,
-    );
+    logger.info(`[applicantWorkflow] rollback: applicant #${applicantId} rolled back to "${targetStage.rows[0].stage_name}". Reason: ${reason}`);
 
     return {
       action: "ROLLBACK",
@@ -1323,9 +1310,7 @@ const correctStageResult = async (stageRecordId, data, currentUser) => {
   );
   if (result.rows.length === 0) throw new Error("Stage record not found");
 
-  console.log(
-    `[applicantWorkflow] Stage #${stageRecordId} corrected. Reason: ${data.correction_reason}`,
-  );
+  logger.info(`[applicantWorkflow] Stage #${stageRecordId} corrected. Reason: ${data.correction_reason}`);
 
   return {
     action: "CORRECTED",
@@ -1367,9 +1352,7 @@ const failDynamicApplicant = async (applicantId, reason, currentUser) => {
 
     await client.query("COMMIT");
 
-    console.log(
-      `[applicantWorkflow] Applicant #${applicantId} failed by admin. Reason: ${reason}`,
-    );
+    logger.info(`[applicantWorkflow] Applicant #${applicantId} failed by admin. Reason: ${reason}`);
 
     return {
       action: "ADMIN_FAILED",

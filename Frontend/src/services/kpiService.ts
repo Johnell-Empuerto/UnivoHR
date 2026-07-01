@@ -1,9 +1,9 @@
 import api from "./api";
 
-export const getFriendlyKpiError = (err: any, fallback = "Unable to complete action.") => {
+export const getFriendlyKpiError = (err: unknown, fallback = "Unable to complete action.") => {
   const message =
-    err?.response?.data?.message ||
-    err?.message ||
+    (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+    (err instanceof Error ? err.message : "") ||
     fallback;
 
   if (message.includes("No scores saved")) {
@@ -35,12 +35,12 @@ export const getKpiTemplateById = async (id: number) => {
   return response.data;
 };
 
-export const createKpiTemplate = async (data: any) => {
+export const createKpiTemplate = async (data: Record<string, unknown>) => {
   const response = await api.post("/kpi/templates", data);
   return response.data;
 };
 
-export const updateKpiTemplate = async (id: number, data: any) => {
+export const updateKpiTemplate = async (id: number, data: Record<string, unknown>) => {
   const response = await api.put(`/kpi/templates/${id}`, data);
   return response.data;
 };
@@ -60,12 +60,12 @@ export const getKpiTemplateItems = async (templateId: number) => {
   return response.data;
 };
 
-export const addKpiTemplateItem = async (templateId: number, data: any) => {
+export const addKpiTemplateItem = async (templateId: number, data: Record<string, unknown>) => {
   const response = await api.post(`/kpi/templates/${templateId}/items`, data);
   return response.data;
 };
 
-export const updateKpiTemplateItem = async (itemId: number, data: any) => {
+export const updateKpiTemplateItem = async (itemId: number, data: Record<string, unknown>) => {
   const response = await api.put(`/kpi/templates/items/${itemId}`, data);
   return response.data;
 };
@@ -80,7 +80,7 @@ export const getActiveKpiTemplates = async () => {
   return response.data;
 };
 
-export const assignKpiEvaluation = async (data: any) => {
+export const assignKpiEvaluation = async (data: Record<string, unknown>) => {
   const response = await api.post("/kpi/evaluations/assign", data);
   return response.data;
 };
@@ -105,27 +105,27 @@ export const getKpiHrView = async (search = "", status = "", page = 1, limit = 1
   return response.data;
 };
 
-export const saveKpiScores = async (evaluationId: number, data: any) => {
+export const saveKpiScores = async (evaluationId: number, data: Record<string, unknown>) => {
   const response = await api.post(`/kpi/evaluations/${evaluationId}/scores`, data);
   return response.data;
 };
 
-export const submitKpiEvaluation = async (evaluationId: number, data: any) => {
+export const submitKpiEvaluation = async (evaluationId: number, data: Record<string, unknown>) => {
   const response = await api.post(`/kpi/evaluations/${evaluationId}/submit`, data);
   return response.data;
 };
 
-export const saveKpiSelfEvaluation = async (evaluationId: number, data: any) => {
+export const saveKpiSelfEvaluation = async (evaluationId: number, data: Record<string, unknown>) => {
   const response = await api.post(`/kpi/evaluations/${evaluationId}/self-evaluation`, data);
   return response.data;
 };
 
-export const approveKpiEvaluation = async (evaluationId: number, data: any) => {
+export const approveKpiEvaluation = async (evaluationId: number, data: Record<string, unknown>) => {
   const response = await api.post(`/kpi/evaluations/${evaluationId}/approve`, data);
   return response.data;
 };
 
-export const rejectKpiEvaluation = async (evaluationId: number, data: any) => {
+export const rejectKpiEvaluation = async (evaluationId: number, data: Record<string, unknown>) => {
   const response = await api.post(`/kpi/evaluations/${evaluationId}/reject`, data);
   return response.data;
 };

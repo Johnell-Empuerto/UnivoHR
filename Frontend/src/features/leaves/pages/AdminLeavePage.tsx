@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAdminLeaves } from "@/hooks/useAdminLeaves";
 import { leaveService } from "@/services/leaveService";
 import LeaveTable from "../components/LeaveTable";
 import LeaveConversionSettings from "../components/LeaveConversionSettings";
@@ -29,74 +31,39 @@ type PaginationData = {
   totalPages: number;
 };
 
-type Leave = {
-  id: number;
-  employee_name: string;
-  employee_code?: string;
-  type: string;
-  from_date?: string;
-  to_date?: string;
-  status: string;
-  day_fraction?: number;
-  half_day_type?: "MORNING" | "AFTERNOON" | null;
-};
-
 const AdminLeavePage = () => {
   const { hasPermission } = useAuth();
-  const [leaves, setLeaves] = useState<Leave[]>([]);
+  const queryClient = useQueryClient();
   const [pagination, setPagination] = useState<PaginationData>({
     page: 1,
     limit: 10,
     total: 0,
     totalPages: 1,
   });
-  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("requests");
 
-  // Filter states
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
 
-  // Reject modal states
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectId, setRejectId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchLeaves = async () => {
-    try {
-      setLoading(true);
-      const data = await leaveService.getAllLeaves(
-        pagination.page,
-        pagination.limit,
-        search,
-        statusFilter,
-        typeFilter,
-      );
-      setLeaves(data.data);
-      setPagination(data.pagination);
-    } catch (error) {
-      console.error("Failed to fetch leaves:", error);
-      toast.error("Failed to load leave requests");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: queryData, isFetching } = useAdminLeaves(
+    pagination.page, pagination.limit, search, statusFilter, typeFilter,
+  );
 
-  // Fetch when dependencies change
+  const leaves = queryData?.data ?? [];
+  const loading = isFetching && leaves.length === 0;
+
+  // Sync pagination from server response
   useEffect(() => {
-    if (activeTab === "requests") {
-      fetchLeaves();
+    if (queryData?.pagination) {
+      setPagination(queryData.pagination);
     }
-  }, [
-    activeTab,
-    pagination.page,
-    pagination.limit,
-    search,
-    statusFilter,
-    typeFilter,
-  ]);
+  }, [queryData]);
 
   const handleUpdate = async (id: number, status: string) => {
     if (status === "REJECTED") {
@@ -109,7 +76,7 @@ const AdminLeavePage = () => {
     try {
       await leaveService.updateLeaveStatus(id, status);
       toast.success(`Leave ${status.toLowerCase()} successfully`);
-      fetchLeaves(); // Refresh with current pagination
+      queryClient.invalidateQueries({ queryKey: ["admin-leaves"] });
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Something went wrong");
     }
@@ -130,7 +97,7 @@ const AdminLeavePage = () => {
       setRejectModalOpen(false);
       setRejectReason("");
       setRejectId(null);
-      fetchLeaves(); // Refresh with current pagination
+      queryClient.invalidateQueries({ queryKey: ["admin-leaves"] });
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to reject leave");
     } finally {
@@ -148,7 +115,6 @@ const AdminLeavePage = () => {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
           <CalendarDays className="h-5 w-5 text-primary" />
@@ -196,12 +162,11 @@ const AdminLeavePage = () => {
           )}
         </TabsList>
 
-        {/* LEAVE REQUESTS TAB */}
         <TabsContent value="requests" className="mt-6">
           <LeaveTable
             data={leaves}
             onUpdate={handleUpdate}
-            onCreate={() => fetchLeaves()}
+            onCreate={() => queryClient.invalidateQueries({ queryKey: ["admin-leaves"] })}
             title="All Leave Requests"
             pagination={pagination}
             onPageChange={handlePageChange}
@@ -213,19 +178,16 @@ const AdminLeavePage = () => {
           />
         </TabsContent>
 
-        {/* CONVERSION HISTORY TAB */}
         <TabsContent value="history" className="mt-6">
           <LeaveConversionHistory />
         </TabsContent>
 
-        {/* CONVERSION SETTINGS TAB */}
         {hasPermission("leave.manage") && (
           <TabsContent value="settings" className="mt-6">
             <LeaveConversionSettings />
           </TabsContent>
         )}
 
-        {/* LEAVE CREDITS TAB */}
         {hasPermission("leave.credits.view") && (
           <TabsContent value="credits" className="mt-6">
             <EmployeeCreditsTable />
@@ -233,7 +195,6 @@ const AdminLeavePage = () => {
         )}
       </Tabs>
 
-      {/* Reject Reason Modal */}
       <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>

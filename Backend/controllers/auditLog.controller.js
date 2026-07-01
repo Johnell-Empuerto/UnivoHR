@@ -1,6 +1,6 @@
 const pool = require("../config/db");
 
-const getAuditLogs = async (req, res) => {
+const getAuditLogs = async (req, res, next) => {
   try {
     const {
       page = 1,
@@ -106,8 +106,7 @@ const getAuditLogs = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("[AuditLog] Get logs error:", error.message);
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

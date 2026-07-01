@@ -2,7 +2,7 @@ const hrPolicyService = require("../services/hrPolicy.service");
 const audit = require("../services/audit.service");
 const { hasPermission } = require("../services/permission.service");
 
-const getAll = async (req, res) => {
+const getAll = async (req, res, next) => {
   try {
     const { page, limit, search, category, status } = req.query;
     if (page) {
@@ -18,7 +18,7 @@ const getAll = async (req, res) => {
     const policies = await hrPolicyService.getAll(req.user);
     res.json(policies);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    next(error);
   }
 };
 

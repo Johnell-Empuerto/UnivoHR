@@ -1,6 +1,7 @@
 const applicantApprovalModel = require("../models/applicantApproval.model");
 const applicantModel = require("../models/applicant.model");
 const notificationService = require("./notification.service");
+const logger = require("../utils/logger");
 
 const getByApplicantId = async (applicantId) => {
   const applicant = await applicantModel.getById(applicantId);
@@ -31,7 +32,7 @@ const create = async (data) => {
           title: "Approval Required",
           message: `${applicantName} requires your ${data.approval_type} approval`,
           reference_id: data.applicant_id,
-        }).catch(err => console.error("[RECRUITMENT] Notification error:", err));
+        }).catch(err => logger.error({ err }, "[RECRUITMENT] Notification error"));
       }
     });
   }
@@ -73,7 +74,7 @@ const update = async (id, data) => {
           reference_id: existing.applicant_id,
         })
       );
-      Promise.all(promises).catch(err => console.error("[RECRUITMENT] Notification error:", err));
+      Promise.all(promises).catch(err => logger.error({ err }, "[RECRUITMENT] Notification error"));
     });
   }
 
