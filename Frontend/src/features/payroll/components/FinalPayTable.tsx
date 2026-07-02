@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -9,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { getStatusBadgeClass } from "@/utils/statusBadge";
+import { formatCurrency } from "@/utils/formatCurrency";
 import { Button } from "@/components/ui/button";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { Eye, DollarSign, Loader2, CheckCircle, Download } from "lucide-react";
@@ -24,11 +26,11 @@ import { toast } from "sonner";
 import {
   processFinalPay,
   calculateFinalPay,
-  getFinalPayHistory,
   downloadFinalPaySlip,
 } from "@/services/finalPayService";
 import { formatDate } from "@/utils/formatDate";
 import EmptyState from "@/components/shared/EmptyState";
+import { useFinalPayHistory } from "../hooks/useFinalPayHistory";
 
 interface FinalPayEmployee {
   id: number;
@@ -83,13 +85,6 @@ interface FinalPayTableProps {
   pendingLoading?: boolean;
 }
 
-const formatCurrency = (value: number) => {
-  return Number(value || 0).toLocaleString("en-PH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-};
-
 const formatEmployeeName = (emp: FinalPayEmployee | FinalPayRecord) => {
   return `${emp.first_name} ${emp.middle_name || ""} ${emp.last_name}${emp.suffix ? `, ${emp.suffix}` : ""}`.trim();
 };
@@ -102,6 +97,7 @@ const FinalPayTable = ({
   onPendingLimitChange,
   pendingLoading = false,
 }: FinalPayTableProps) => {
+  const queryClient = useQueryClient();
   const [selectedEmployee, setSelectedEmployee] =
     useState<FinalPayEmployee | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -111,12 +107,8 @@ const FinalPayTable = ({
   const [processing, setProcessing] = useState(false);
 
   // History state
-  const [historyData, setHistoryData] = useState<FinalPayRecord[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
   const [historyCurrentPage, setHistoryCurrentPage] = useState(1);
   const [historyRowsPerPage, setHistoryRowsPerPage] = useState(5);
-  const [historyTotalPages, setHistoryTotalPages] = useState(1);
-  const [historyTotalRecords, setHistoryTotalRecords] = useState(0);
   const [historySearch, setHistorySearch] = useState("");
   const [historySearchInput, setHistorySearchInput] = useState("");
   const [selectedRecord, setSelectedRecord] = useState<FinalPayRecord | null>(
@@ -125,24 +117,12 @@ const FinalPayTable = ({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
-  // Fetch history
-  const fetchHistory = async () => {
-    try {
-      setHistoryLoading(true);
-      const result = await getFinalPayHistory(
-        historyCurrentPage,
-        historyRowsPerPage,
-        historySearch,
-      );
-      setHistoryData(result.data);
-      setHistoryTotalPages(result.pagination.totalPages);
-      setHistoryTotalRecords(result.pagination.total);
-    } catch (error) {
-      console.error("Failed to fetch final pay history:", error);
-    } finally {
-      setHistoryLoading(false);
-    }
-  };
+  const { data: historyData, isLoading: historyLoading } = useFinalPayHistory(
+    historyCurrentPage, historyRowsPerPage, historySearch
+  );
+  const historyRecords = historyData?.data ?? [];
+  const historyTotalPages = historyData?.pagination?.totalPages ?? 1;
+  const historyTotalRecords = historyData?.pagination?.total ?? 0;
 
   // Debounce search for history
   useEffect(() => {
@@ -152,18 +132,6 @@ const FinalPayTable = ({
     }, 500);
     return () => clearTimeout(delayDebounce);
   }, [historySearchInput]);
-
-  // Fetch history when page/rows/search changes
-  useEffect(() => {
-    fetchHistory();
-  }, [historyCurrentPage, historyRowsPerPage, historySearch]);
-
-  // Refresh history after processing
-  useEffect(() => {
-    if (!previewOpen && !processOpen) {
-      fetchHistory();
-    }
-  }, [previewOpen, processOpen]);
 
   const handlePreview = async (employee: FinalPayEmployee) => {
     try {
@@ -196,7 +164,7 @@ const FinalPayTable = ({
         setProcessOpen(false);
         setPreviewOpen(false);
         onRefresh();
-        fetchHistory();
+        queryClient.invalidateQueries({ queryKey: ["final-pay-history"] });
       } else {
         toast.error(result.message || "Failed to process final pay");
       }
@@ -416,14 +384,14 @@ const FinalPayTable = ({
                     </p>
                   </TableCell>
                 </TableRow>
-              ) : historyData.length === 0 ? (
+              ) : historyRecords.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8">
                     <EmptyState message="No processed final pay records found" />
                   </TableCell>
                 </TableRow>
               ) : (
-                historyData.map((record) => (
+                historyRecords.map((record) => (
                   <TableRow key={record.id}>
                     <TableCell className="font-medium">
                       {record.employee_code}

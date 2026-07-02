@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  getAllManHourReports,
   approveManHourReport,
   rejectManHourReport,
-  getManHourReportDetails,
-  isApprover as checkIsApprover,
   downloadManHourReports,
 } from "@/services/manHourReportService";
 import ErrorMessage from "@/components/shared/ErrorMessage";
@@ -43,6 +41,9 @@ import ManHourReportDrawer from "../components/ManHourReportDrawer";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/app/providers/AuthProvider";
+import { useManHourReports } from "../hooks/useManHourReports";
+import { useIsManHourApprover } from "../hooks/useIsManHourApprover";
+import { useManHourReportDetail } from "../hooks/useManHourReportDetail";
 
 type ManHourReport = {
   id: number;
@@ -60,19 +61,14 @@ type ManHourReport = {
 
 const ManHoursApproval = () => {
   const { user, hasPermission } = useAuth();
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalRecords, setTotalRecords] = useState(0);
-  const [isUserApprover, setIsUserApprover] = useState(false);
 
-  const [data, setData] = useState<ManHourReport[]>([]);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [selectedReport, setSelectedReport] = useState<any>(null);
+  const [selectedReportId, setSelectedReportId] = useState<number | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -97,26 +93,18 @@ const ManHoursApproval = () => {
   const [downloadEmployeeId, setDownloadEmployeeId] = useState("");
   const [downloading, setDownloading] = useState(false);
 
-  // Check if current user is an approver
-  useEffect(() => {
-    const checkApproverStatus = async () => {
-      if (user?.id) {
-        try {
-          const result = await checkIsApprover();
-          setIsUserApprover(result.isApprover);
-        } catch (error) {
-          setIsUserApprover(false);
-        }
-      }
-    };
-    checkApproverStatus();
-  }, [user]);
+  const { data: queryData, isLoading, isFetching, isError, error } = useManHourReports(
+    currentPage, rowsPerPage, search, dateFilter
+  );
+  const { data: isUserApprover } = useIsManHourApprover(!!user?.id);
+  const { data: selectedReport } = useManHourReportDetail(selectedReportId);
+
+  const data = queryData?.data ?? [];
+  const totalPages = queryData?.pagination?.totalPages ?? 1;
+  const totalRecords = queryData?.pagination?.total ?? 0;
 
   const canShowApprovalActions = () => {
-    return (
-      hasPermission("manhours.approve") ||
-      isUserApprover
-    );
+    return hasPermission("manhours.approve") || isUserApprover;
   };
 
   useEffect(() => {
@@ -126,43 +114,6 @@ const ManHoursApproval = () => {
     }, 800);
     return () => clearTimeout(delayDebounce);
   }, [searchInput]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const res = await getAllManHourReports(
-          currentPage,
-          rowsPerPage,
-          search,
-          dateFilter,
-        );
-
-        const enhancedData = res.data.map((report: any) => ({
-          id: report.id,
-          employee_name: report.employee_name,
-          employee_code: report.employee_code,
-          employee_id: report.employee_id,
-          work_date: report.work_date,
-          task: report.task,
-          hours: report.hours,
-          remarks: report.remarks,
-          created_at: report.created_at,
-          is_assigned_approver: report.is_assigned_approver ?? false,
-          status: report.status || "SUBMITTED",
-        }));
-
-        setData(enhancedData);
-        setTotalPages(res.pagination.totalPages);
-        setTotalRecords(res.pagination.total);
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch man hour reports");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [currentPage, rowsPerPage, search, dateFilter]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value);
@@ -180,16 +131,12 @@ const ManHoursApproval = () => {
     setSearchInput("");
     setSearch("");
     setDateFilter("");
+    queryClient.invalidateQueries({ queryKey: ["man-hour-reports"] });
   };
 
-  const handleView = async (report: ManHourReport) => {
-    try {
-      const details = await getManHourReportDetails(report.id);
-      setSelectedReport(details);
-      setIsDrawerOpen(true);
-    } catch (err: any) {
-      toast.error("Failed to load report details");
-    }
+  const handleView = (report: ManHourReport) => {
+    setSelectedReportId(report.id);
+    setIsDrawerOpen(true);
   };
 
   const handleApprove = async (id: number) => {
@@ -197,21 +144,7 @@ const ManHoursApproval = () => {
       setProcessing(true);
       await approveManHourReport(id);
       toast.success("Man hour report approved");
-
-      const res = await getAllManHourReports(
-        currentPage,
-        rowsPerPage,
-        search,
-        dateFilter,
-      );
-      const enhancedData = res.data.map((report: any) => ({
-        ...report,
-        is_assigned_approver: report.is_assigned_approver ?? false,
-        status: report.status || "SUBMITTED",
-      }));
-      setData(enhancedData);
-      setTotalPages(res.pagination.totalPages);
-      setTotalRecords(res.pagination.total);
+      queryClient.invalidateQueries({ queryKey: ["man-hour-reports"] });
     } catch (err: any) {
       toast.error(err.message || "Failed to approve report");
     } finally {
@@ -233,21 +166,7 @@ const ManHoursApproval = () => {
       setIsRejectModalOpen(false);
       setRejectReason("");
       setRejectingId(null);
-
-      const res = await getAllManHourReports(
-        currentPage,
-        rowsPerPage,
-        search,
-        dateFilter,
-      );
-      const enhancedData = res.data.map((report: any) => ({
-        ...report,
-        is_assigned_approver: report.is_assigned_approver ?? false,
-        status: report.status || "SUBMITTED",
-      }));
-      setData(enhancedData);
-      setTotalPages(res.pagination.totalPages);
-      setTotalRecords(res.pagination.total);
+      queryClient.invalidateQueries({ queryKey: ["man-hour-reports"] });
     } catch (err: any) {
       toast.error(err.message || "Failed to reject report");
     } finally {
@@ -297,7 +216,7 @@ const ManHoursApproval = () => {
     }
   };
 
-  if (error) return <ErrorMessage title="Error" message={error} />;
+  if (isError) return <ErrorMessage title="Error" message={(error as any)?.message || "Failed to fetch"} />;
 
   return (
     <div className="space-y-6 p-6">
@@ -398,8 +317,7 @@ const ManHoursApproval = () => {
         </CardContent>
       </Card>
 
-      {/* Loading Indicator */}
-      {loading && <Loader message="Loading man hour reports..." />}
+      {(isLoading || isFetching) && <Loader message="Loading man hour reports..." />}
 
       {/* Man Hour Reports Table */}
       <ManHourReportTable

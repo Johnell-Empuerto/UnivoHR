@@ -1,16 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { formatCurrency } from "@/utils/formatCurrency";
 
-//  CURRENCY FORMATTER
-const formatCurrency = (value: number) => {
-  return Number(value || 0).toLocaleString("en-PH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-};
-
-//  Helper to format employee name
 const formatEmployeeName = (record: any) => {
   if (record.first_name && record.last_name) {
     return `${record.first_name} ${record.middle_name || ""} ${record.last_name}${record.suffix ? `, ${record.suffix}` : ""}`.trim();

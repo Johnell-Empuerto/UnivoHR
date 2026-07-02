@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import EmptyState from "@/components/shared/EmptyState";
@@ -40,13 +40,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  getMyPayroll,
-  getMySalaryDetails,
   downloadPayslip,
 } from "@/services/payrollService";
 import { toast } from "sonner";
 import { formatDate } from "@/utils/formatDate";
+import { formatCurrency } from "@/utils/formatCurrency";
 import { useAuth } from "@/app/providers/AuthProvider";
+import { useMyPayroll } from "../hooks/useMyPayroll";
+import { useMySalaryDetails } from "../hooks/useMySalaryDetails";
 
 // Helper function to format deduction labels
 const formatDeductionLabel = (type: string) => {
@@ -68,19 +69,8 @@ const formatDeductionLabel = (type: string) => {
   }
 };
 
-//  Currency formatter
-const formatCurrency = (value: number) => {
-  return Number(value || 0).toLocaleString("en-PH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-};
-
 const EmployeePayrollPage = () => {
   const [date, setDate] = useState<Date>(new Date());
-  const [payrollData, setPayrollData] = useState<any[]>([]);
-  const [salaryDetails, setSalaryDetails] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
@@ -93,38 +83,8 @@ const EmployeePayrollPage = () => {
   const cutoffEndStr = format(cutoffEnd, "yyyy-MM-dd");
   const { user } = useAuth();
 
-  const fetchPayroll = async () => {
-    try {
-      setLoading(true);
-      const data = await getMyPayroll(cutoffStartStr, cutoffEndStr);
-      setPayrollData(data);
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to load payroll data");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchSalaryDetails = async () => {
-    try {
-      const data = await getMySalaryDetails();
-      setSalaryDetails(data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  useEffect(() => {
-    fetchPayroll();
-    fetchSalaryDetails();
-  }, [date]);
-
-  useEffect(() => {
-    if (!user) return;
-    fetchPayroll();
-    fetchSalaryDetails();
-  }, [date, user]);
+  const { data: payrollData, isLoading, refetch } = useMyPayroll(cutoffStartStr, cutoffEndStr);
+  const { data: salaryDetails } = useMySalaryDetails();
 
   const handleViewDetails = (record: any) => {
     setSelectedRecord(record);
@@ -282,7 +242,7 @@ const EmployeePayrollPage = () => {
                 />
               </PopoverContent>
             </Popover>
-            <Button onClick={fetchPayroll} variant="ghost">
+            <Button onClick={() => refetch()} variant="ghost">
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
@@ -302,9 +262,9 @@ const EmployeePayrollPage = () => {
           </p>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <Loader message="Loading payroll data..." />
-          ) : payrollData.length === 0 ? (
+          ) : !payrollData || payrollData.length === 0 ? (
             <EmptyState message="No payroll records found for this period" />
           ) : (
             <div className="rounded-md border shadow-sm">

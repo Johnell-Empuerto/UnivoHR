@@ -1,5 +1,5 @@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { getAnomalies, getAnomalySummary } from "@/services/anomalyService";
+import { getAnomalies } from "@/services/anomalyService";
 
 export const useAnomalies = (
   page: number,
@@ -29,11 +29,4 @@ export const useAnomalies = (
   });
 };
 
-export const useAnomalySummary = () => {
-  return useQuery({
-    queryKey: ["anomaly-summary"],
-    queryFn: getAnomalySummary,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-  });
-};
+

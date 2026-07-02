@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getHrSubmissions } from "@/services/hrFormService";
+import { useHrFormSubmissions } from "../hooks/useHrFormSubmissions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Input } from "@/components/ui/Input";
 import { Eye, FileText } from "lucide-react";
-import { toast } from "sonner";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
 import { TablePagination } from "@/components/shared/TablePagination";
@@ -24,22 +23,13 @@ const statusBadge = (s: string) => {
 
 const HrFormSubmissionsPage = () => {
   const navigate = useNavigate();
-  const [submissions, setSubmissions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState("10");
   const [search, setSearch] = useState("");
 
-
-
-  useEffect(() => { fetchSubmissions(); }, [page, pageSize, search]);
-
-  const fetchSubmissions = async () => {
-    try { setLoading(true); const r = await getHrSubmissions(page, Number(pageSize), search); setSubmissions(r.data); setTotal(r.pagination.total); }
-    catch { toast.error("Failed to load submissions"); setSubmissions([]); }
-    finally { setLoading(false); }
-  };
+  const { data: submissionsResult, isLoading } = useHrFormSubmissions(page, Number(pageSize), search);
+  const submissions = submissionsResult?.data ?? [];
+  const total = submissionsResult?.pagination?.total ?? 0;
 
   return (
     <div className="space-y-6 p-6">
@@ -56,7 +46,7 @@ const HrFormSubmissionsPage = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <Loader message="Loading submissions..." />
           ) : submissions.length === 0 ? (
             <EmptyState message="No submissions yet" description="Submissions will appear here once employees fill out forms." />

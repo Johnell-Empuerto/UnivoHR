@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -9,7 +8,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, DollarSign, Clock, UserX } from "lucide-react";
-import { getLatestForecasts } from "@/services/forecastService";
+import { useLatestForecasts } from "../hooks/useLatestForecasts";
 
 const metricConfig: Record<string, { label: string; icon: React.ReactNode; color: string; format: (v: number | string) => string }> = {
   attendance_rate: {
@@ -39,24 +38,9 @@ const metricConfig: Record<string, { label: string; icon: React.ReactNode; color
 };
 
 const ForecastCard = () => {
-  const [forecasts, setForecasts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: forecasts = [], isLoading } = useLatestForecasts();
 
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        const data = await getLatestForecasts();
-        setForecasts(data);
-      } catch (err) {
-        console.error("[ForecastCard] fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Card className="border-border/50 shadow-sm">
         <CardHeader><Skeleton className="h-5 w-48" /><Skeleton className="h-4 w-64 mt-1" /></CardHeader>

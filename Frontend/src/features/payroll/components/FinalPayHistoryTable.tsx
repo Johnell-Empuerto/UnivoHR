@@ -11,13 +11,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
 import { TablePagination } from "@/components/shared/TablePagination";
-import {
-  Search,
+import { Search,
   Download,
   Eye,
   Loader2,
   Wallet,
 } from "lucide-react";
+import { formatCurrency } from "@/utils/formatCurrency";
 import {
   Dialog,
   DialogContent,
@@ -25,11 +25,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  getFinalPayHistory,
   downloadFinalPaySlip,
 } from "@/services/finalPayService";
 import { formatDate } from "@/utils/formatDate";
 import { toast } from "sonner";
+import { useFinalPayHistory } from "../hooks/useFinalPayHistory";
 
 interface FinalPayRecord {
   id: number;
@@ -51,24 +51,13 @@ interface FinalPayRecord {
   processed_at: string;
 }
 
-const formatCurrency = (value: number) => {
-  return Number(value || 0).toLocaleString("en-PH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-};
-
 const formatEmployeeName = (record: FinalPayRecord) => {
   return `${record.first_name} ${record.middle_name || ""} ${record.last_name}${record.suffix ? `, ${record.suffix}` : ""}`.trim();
 };
 
 const FinalPayHistoryTable = () => {
-  const [data, setData] = useState<FinalPayRecord[]>([]);
-  const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalRecords, setTotalRecords] = useState(0);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [selectedRecord, setSelectedRecord] = useState<FinalPayRecord | null>(
@@ -76,6 +65,11 @@ const FinalPayHistoryTable = () => {
   );
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+
+  const { data: historyData, isLoading } = useFinalPayHistory(currentPage, rowsPerPage, search);
+  const data = historyData?.data ?? [];
+  const totalPages = historyData?.pagination?.totalPages ?? 1;
+  const totalRecords = historyData?.pagination?.total ?? 0;
 
   // Debounce search
   useEffect(() => {
@@ -85,26 +79,6 @@ const FinalPayHistoryTable = () => {
     }, 500);
     return () => clearTimeout(delayDebounce);
   }, [searchInput]);
-
-  // Fetch history
-  useEffect(() => {
-    fetchHistory();
-  }, [currentPage, rowsPerPage, search]);
-
-  const fetchHistory = async () => {
-    try {
-      setLoading(true);
-      const result = await getFinalPayHistory(currentPage, rowsPerPage, search);
-      setData(result.data);
-      setTotalPages(result.pagination.totalPages);
-      setTotalRecords(result.pagination.total);
-    } catch (error) {
-      console.error("Failed to fetch final pay history:", error);
-      toast.error("Failed to load final pay history");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDownload = async (record: FinalPayRecord) => {
     try {
@@ -182,7 +156,7 @@ const FinalPayHistoryTable = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading ? (
+                {isLoading ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin mx-auto" />

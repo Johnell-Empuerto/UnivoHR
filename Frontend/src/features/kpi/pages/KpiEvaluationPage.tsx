@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  getKpiHrView, getKpiEvaluationById, assignKpiEvaluation,
-  approveKpiEvaluation, rejectKpiEvaluation, getActiveKpiTemplates, getFriendlyKpiError,
+  assignKpiEvaluation, approveKpiEvaluation, rejectKpiEvaluation, getFriendlyKpiError,
   bulkAssignKpiEvaluations,
 } from "@/services/kpiService";
 import { Button } from "@/components/ui/button";
@@ -19,10 +19,14 @@ import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
 import { TablePagination } from "@/components/shared/TablePagination";
 import EmployeePickerDialog from "@/components/shared/EmployeePickerDialog";
-import { searchEmployeesPaginated, type EmployeeSearchResult } from "@/services/overtimeService";
+import { type EmployeeSearchResult } from "@/services/overtimeService";
 import { ClipboardList, Plus, ChevronLeft, ChevronRight, Loader2, Eye, CheckCircle, XCircle, CheckSquare, Search, User, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers/AuthProvider";
+import { useKpiHrView } from "../hooks/useKpiHrView";
+import { useKpiActiveTemplates } from "../hooks/useKpiActiveTemplates";
+import { useKpiEvaluationDetail } from "@/hooks/useKpiEvaluationDetail";
+import { useSearchEmployeesPaginated } from "../hooks/useSearchEmployeesPaginated";
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
@@ -37,10 +41,8 @@ const statusBadge = (s: string) => {
 
 const KpiEvaluationPage = () => {
   const { hasPermission } = useAuth();
+  const queryClient = useQueryClient();
   const isHr = hasPermission("performance.evaluations.manage");
-  const [evaluations, setEvaluations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
@@ -50,42 +52,23 @@ const KpiEvaluationPage = () => {
 
   const [assignDialog, setAssignDialog] = useState(false);
   const [assignForm, setAssignForm] = useState({ employee_id: "", evaluator_id: "", template_id: "", evaluation_period_start: "", evaluation_period_end: "" });
-  const [templates, setTemplates] = useState<any[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeSearchResult | null>(null);
   const [selectedEvaluator, setSelectedEvaluator] = useState<EmployeeSearchResult | null>(null);
   const [employeePickerOpen, setEmployeePickerOpen] = useState(false);
   const [evaluatorPickerOpen, setEvaluatorPickerOpen] = useState(false);
 
   const [detailDialog, setDetailDialog] = useState(false);
-  const [detail, setDetail] = useState<any>(null);
+  const [selectedEvalId, setSelectedEvalId] = useState<number | null>(null);
 
   const [bulkDialog, setBulkDialog] = useState(false);
   const [bulkForm, setBulkForm] = useState({ template_id: "", evaluation_period_start: "", evaluation_period_end: "" });
-  const [bulkTemplates, setBulkTemplates] = useState<any[]>([]);
   const [selectedBulkEvaluator, setSelectedBulkEvaluator] = useState<EmployeeSearchResult | null>(null);
   const [bulkEvaluatorPickerOpen, setBulkEvaluatorPickerOpen] = useState(false);
   const [selectedEmpIds, setSelectedEmpIds] = useState<Set<number>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
-  const [bulkEmps, setBulkEmps] = useState<any[]>([]);
-  const [bulkTotal, setBulkTotal] = useState(0);
   const [bulkPage, setBulkPage] = useState(1);
   const [bulkSearch, setBulkSearch] = useState("");
-  const [bulkLoadingEmps, setBulkLoadingEmps] = useState(false);
   const BULK_PAGE_SIZE = 10;
-
-  const fetchBulkEmployees = useCallback(async (p: number, s: string) => {
-    setBulkLoadingEmps(true);
-    try {
-      const res = await searchEmployeesPaginated({ page: p, limit: BULK_PAGE_SIZE, search: s, status: "ACTIVE" });
-      setBulkEmps(res.data || []);
-      setBulkTotal(res.pagination.total);
-    } catch {
-      setBulkEmps([]);
-      setBulkTotal(0);
-    } finally {
-      setBulkLoadingEmps(false);
-    }
-  }, []);
 
   const [approveDialog, setApproveDialog] = useState(false);
   const [rejectDialog, setRejectDialog] = useState(false);
@@ -94,16 +77,21 @@ const KpiEvaluationPage = () => {
   const [terminationDate, setTerminationDate] = useState("");
   const [terminationReason, setTerminationReason] = useState("");
 
-  useEffect(() => { fetchEvaluations(); }, [page, pageSize, search, statusFilter]);
+  const { data: evaluationsData, isLoading } = useKpiHrView(search, statusFilter, page, pageSize);
+  const evaluations = evaluationsData?.data ?? [];
+  const total = evaluationsData?.pagination?.total ?? 0;
 
-  useEffect(() => {
-    if (bulkDialog) fetchBulkEmployees(bulkPage, bulkSearch);
-  }, [bulkDialog, bulkPage, bulkSearch, fetchBulkEmployees]);
+  const { data: activeTemplates } = useKpiActiveTemplates();
+  const templates = activeTemplates ?? [];
+  const bulkTemplates = activeTemplates ?? [];
 
-  const fetchEvaluations = async () => {
-    try { setLoading(true); const r = await getKpiHrView(search, statusFilter, page, pageSize); setEvaluations(r.data); setTotal(r.pagination.total); }
-    catch (err: any) { toast.error(err.message || "Failed to load"); } finally { setLoading(false); }
-  };
+  const { data: detail } = useKpiEvaluationDetail(selectedEvalId);
+
+  const { data: bulkEmpsData, isLoading: bulkLoadingEmps } = useSearchEmployeesPaginated(
+    bulkSearch, bulkPage, BULK_PAGE_SIZE, bulkDialog
+  );
+  const bulkEmps = bulkEmpsData?.data ?? [];
+  const bulkTotal = bulkEmpsData?.pagination?.total ?? 0;
 
   const handleClearFilters = () => {
     setSearch("");
@@ -111,11 +99,7 @@ const KpiEvaluationPage = () => {
     setPage(1);
   };
 
-  const handleOpenAssign = async () => {
-    try {
-      const tmps = await getActiveKpiTemplates();
-      setTemplates(tmps);
-    } catch { }
+  const handleOpenAssign = () => {
     setAssignForm({ employee_id: "", evaluator_id: "", template_id: "", evaluation_period_start: "", evaluation_period_end: "" });
     setSelectedEmployee(null);
     setSelectedEvaluator(null);
@@ -136,13 +120,13 @@ const KpiEvaluationPage = () => {
       });
       toast.success("Evaluation assigned");
       setAssignDialog(false);
-      fetchEvaluations();
+      queryClient.invalidateQueries({ queryKey: ["kpi-hr-view"] });
     } catch (err: any) { toast.error(getFriendlyKpiError(err, "Assignment failed")); }
   };
 
-  const handleViewDetail = async (id: number) => {
-    try { const d = await getKpiEvaluationById(id); setDetail(d); setDetailDialog(true); }
-    catch (err: any) { toast.error(err.message || "Failed to load detail"); }
+  const handleViewDetail = (id: number) => {
+    setSelectedEvalId(id);
+    setDetailDialog(true);
   };
 
   const handleOpenApprove = (ev: any) => {
@@ -165,25 +149,22 @@ const KpiEvaluationPage = () => {
       await approveKpiEvaluation(selectedEval.id, payload);
       toast.success(selectedEval.recommendation === "Regularize" ? "Employee regularized!" : selectedEval.recommendation === "Terminate" ? "Employee terminated" : "Evaluation approved");
       setApproveDialog(false);
-      fetchEvaluations();
+      queryClient.invalidateQueries({ queryKey: ["kpi-hr-view"] });
     } catch (err: any) { toast.error(getFriendlyKpiError(err, "Unable to approve evaluation.")); }
   };
 
   const handleOpenReject = (ev: any) => { setSelectedEval(ev); setHrComment(""); setRejectDialog(true); };
   const handleConfirmReject = async () => {
     if (!selectedEval) return;
-    try { await rejectKpiEvaluation(selectedEval.id, { hr_comments: hrComment || null }); toast.success("Evaluation rejected"); setRejectDialog(false); fetchEvaluations(); }
-    catch (err: any) { toast.error(getFriendlyKpiError(err, "Unable to reject evaluation.")); }
+    try {
+      await rejectKpiEvaluation(selectedEval.id, { hr_comments: hrComment || null });
+      toast.success("Evaluation rejected");
+      setRejectDialog(false);
+      queryClient.invalidateQueries({ queryKey: ["kpi-hr-view"] });
+    } catch (err: any) { toast.error(getFriendlyKpiError(err, "Unable to reject evaluation.")); }
   };
 
-  const handleOpenBulkAssign = async () => {
-    try {
-      setBulkLoading(true);
-      const tmps = await getActiveKpiTemplates();
-      setBulkTemplates(tmps || []);
-      await fetchBulkEmployees(1, "");
-    } catch { setBulkTemplates([]); }
-    finally { setBulkLoading(false); }
+  const handleOpenBulkAssign = () => {
     setBulkForm({ template_id: "", evaluation_period_start: "", evaluation_period_end: "" });
     setSelectedBulkEvaluator(null);
     setSelectedEmpIds(new Set());
@@ -237,7 +218,7 @@ const KpiEvaluationPage = () => {
       });
       toast.success(`Assigned: ${result.created_count}, Skipped: ${result.skipped_count}`);
       setBulkDialog(false);
-      fetchEvaluations();
+      queryClient.invalidateQueries({ queryKey: ["kpi-hr-view"] });
     } catch (err: any) { toast.error(getFriendlyKpiError(err, "Bulk assignment failed")); }
     finally { setBulkLoading(false); }
   };
@@ -277,7 +258,7 @@ const KpiEvaluationPage = () => {
           {isHr && <div className="flex gap-2"><Button onClick={handleOpenAssign} className="flex items-center gap-2"><Plus className="h-4 w-4" /> Assign</Button><Button onClick={handleOpenBulkAssign} variant="outline" className="flex items-center gap-2"><CheckSquare className="h-4 w-4" /> Bulk Assign</Button></div>}
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <Loader message="Loading evaluations..." />
           ) : evaluations.length === 0 ? (
             <EmptyState message="No evaluations found." />
@@ -605,7 +586,7 @@ const KpiEvaluationPage = () => {
         requireUserAccount={true}
       />
 
-      <Dialog open={detailDialog} onOpenChange={setDetailDialog}>
+      <Dialog open={detailDialog} onOpenChange={(v) => { if (!v) setSelectedEvalId(null); setDetailDialog(v); }}>
         <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Evaluation Detail</DialogTitle></DialogHeader>
           {detail && (

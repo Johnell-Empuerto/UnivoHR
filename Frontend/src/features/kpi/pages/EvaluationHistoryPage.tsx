@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { getKpiHistory, getKpiEvaluationById } from "@/services/kpiService";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/Input";
@@ -9,47 +8,44 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
 import { TablePagination } from "@/components/shared/TablePagination";
-import { History, Eye, Search } from "lucide-react";
-import { toast } from "sonner";
+import { History, Eye, Search, Loader2 } from "lucide-react";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { formatDateShort } from "@/utils/formatDate";
 import { getStatusBadgeClass } from "@/utils/statusBadge";
+import { useKpiHistory } from "../hooks/useKpiHistory";
+import { useKpiEvaluationDetail } from "@/hooks/useKpiEvaluationDetail";
 
 const EvaluationHistoryPage = () => {
   const { hasPermission } = useAuth();
   const isHr = hasPermission("performance.view");
-  const [records, setRecords] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [total, setTotal] = useState(0);
 
   const [detailDialog, setDetailDialog] = useState(false);
-  const [detail, setDetail] = useState<any>(null);
+  const [selectedEvalId, setSelectedEvalId] = useState<number | null>(null);
 
   const [searchText, setSearchText] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
 
-  useEffect(() => { fetchHistory(); }, [page, pageSize, activeSearch]);
+  const { data: historyData, isLoading } = useKpiHistory(page, pageSize, activeSearch);
+  const { data: detail, isLoading: detailLoading } = useKpiEvaluationDetail(selectedEvalId);
 
-  const fetchHistory = async () => {
-    try {
-      setLoading(true);
-      const r = await getKpiHistory(undefined, page, pageSize, activeSearch);
-      setRecords(Array.isArray(r) ? r : r.data || []);
-      setTotal(r.pagination?.total || 0);
-    } catch { setRecords([]); }
-    finally { setLoading(false); }
-  };
+  const records = Array.isArray(historyData) ? historyData : historyData?.data || [];
+  const total = historyData?.pagination?.total || 0;
 
   const handleSearch = () => {
     setActiveSearch(searchText.trim());
     setPage(1);
   };
 
-  const handleViewDetail = async (id: number) => {
-    try { const d = await getKpiEvaluationById(id); setDetail(d); setDetailDialog(true); }
-    catch (err: any) { toast.error(err.message || "Failed to load"); }
+  const handleViewDetail = (id: number) => {
+    setSelectedEvalId(id);
+    setDetailDialog(true);
+  };
+
+  const handleCloseDetail = () => {
+    setDetailDialog(false);
+    setSelectedEvalId(null);
   };
 
   const statusBadge = (s: string) => {
@@ -83,7 +79,7 @@ const EvaluationHistoryPage = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <Loader message="Loading evaluation history..." />
           ) : records.length === 0 ? (
             <EmptyState message="No completed evaluations found." />
@@ -130,10 +126,12 @@ const EvaluationHistoryPage = () => {
         </CardContent>
       </Card>
 
-      <Dialog open={detailDialog} onOpenChange={setDetailDialog}>
+      <Dialog open={detailDialog} onOpenChange={(v) => { if (!v) handleCloseDetail(); }}>
         <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Evaluation Detail</DialogTitle></DialogHeader>
-          {detail && (
+          {detailLoading ? (
+            <div className="py-8 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></div>
+          ) : detail ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 {detail.employee_name && <div><span className="text-muted-foreground">Employee:</span> {detail.employee_name}</div>}
@@ -153,8 +151,8 @@ const EvaluationHistoryPage = () => {
                 <div><p className="text-xs font-semibold text-muted-foreground mb-1">HR Comments</p><p className="text-sm bg-muted p-2 rounded">{detail.hr_comments}</p></div>
               )}
             </div>
-          )}
-          <DialogFooter><Button variant="outline" onClick={() => setDetailDialog(false)}>Close</Button></DialogFooter>
+          ) : null}
+          <DialogFooter><Button variant="outline" onClick={handleCloseDetail}>Close</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  getJobPositions,
   createJobPosition,
   updateJobPosition,
   deleteJobPosition,
 } from "@/services/jobPositionService";
 import { useActiveBranches } from "@/hooks/useBranches";
-import { getRecruitmentWorkflows } from "@/services/recruitmentWorkflowService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
@@ -36,6 +35,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/utils/formatDate";
+import { useJobPositionsList } from "../hooks/useJobPositionsList";
+import { useRecruitmentWorkflowsDropdown } from "../hooks/useRecruitmentWorkflowsDropdown";
 
 interface JobPosition {
   id: number;
@@ -73,9 +74,7 @@ const emptyForm = {
 };
 
 const JobPositionsPage = () => {
-  const [positions, setPositions] = useState<JobPosition[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState("10");
   const [search, setSearch] = useState("");
@@ -86,26 +85,14 @@ const JobPositionsPage = () => {
   const [form, setForm] = useState({ ...emptyForm });
   const [saving, setSaving] = useState(false);
   const { data: branches = [] } = useActiveBranches();
-  const [workflows, setWorkflows] = useState<RecruitmentWorkflow[]>([]);
+  const { data: workflows = [] } = useRecruitmentWorkflowsDropdown();
   const [deleteTarget, setDeleteTarget] = useState<JobPosition | null>(null);
 
-  useEffect(() => {
-    fetchPositions();
-    getRecruitmentWorkflows().then((res) => setWorkflows(res.data || [])).catch(() => {});
-  }, [page, pageSize, search, statusFilter]);
+  const { data: positionsResult, isLoading } = useJobPositionsList(page, Number(pageSize), search, statusFilter);
+  const positions = positionsResult?.data ?? [];
+  const total = positionsResult?.pagination?.total ?? 0;
 
-  const fetchPositions = async () => {
-    try {
-      setLoading(true);
-      const result = await getJobPositions(page, Number(pageSize), search, statusFilter);
-      setPositions(result.data);
-      setTotal(result.pagination.total);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to load job positions");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const invalidateList = () => queryClient.invalidateQueries({ queryKey: ["job-positions"] });
 
   const handleOpenCreate = () => {
     setEditId(null);
@@ -149,7 +136,7 @@ const JobPositionsPage = () => {
         toast.success("Job position created");
       }
       setDialogOpen(false);
-      fetchPositions();
+      invalidateList();
     } catch (err: any) {
       toast.error(err.message || "Operation failed");
     } finally {
@@ -162,7 +149,7 @@ const JobPositionsPage = () => {
     try {
       await updateJobPosition(pos.id, { ...pos, status: newStatus });
       toast.success(`Position ${newStatus === "ACTIVE" ? "activated" : "deactivated"}`);
-      fetchPositions();
+      invalidateList();
     } catch (err: any) {
       toast.error(err.message || "Failed to update status");
     }
@@ -175,7 +162,7 @@ const JobPositionsPage = () => {
       await deleteJobPosition(deleteTarget.id);
       toast.success("Job position deleted");
       setDeleteTarget(null);
-      fetchPositions();
+      invalidateList();
     } catch (err: any) {
       toast.error(err.message || "Delete failed");
     } finally {
@@ -227,7 +214,7 @@ const JobPositionsPage = () => {
           </Button>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <Loader message="Loading job positions..." />
           ) : positions.length === 0 ? (
             <EmptyState message="No job positions found." />

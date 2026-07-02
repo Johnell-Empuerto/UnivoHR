@@ -1,19 +1,17 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  getMyInterviews,
   updateApplicantInterview,
 } from "@/services/applicantInterviewService";
 import {
   updateApplicant as updateApplicantStatus,
-  getMyWorkflowStageAssignments,
   completeWorkflowStage,
   moveToNextWorkflowStage,
   failApplicantWorkflow,
 } from "@/services/applicantService";
 import { formatDateTimeLocal } from "@/utils/formatDate";
 import { useAuth } from "@/app/providers/AuthProvider";
-import ErrorMessage from "@/components/shared/ErrorMessage";
 import Loader from "@/components/shared/Loader";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { Button } from "@/components/ui/button";
@@ -41,6 +39,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useMyInterviews } from "../hooks/useMyInterviews";
+import { useMyWorkflowStageAssignments } from "../hooks/useMyWorkflowStageAssignments";
 
 type Interview = {
   id: number;
@@ -130,14 +130,10 @@ const getRecommendationBadge = (rec: string | null) => {
 
 const MyInterviewAssignmentsPage = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { hasPermission } = useAuth();
 
   const [activeTab, setActiveTab] = useState<Tab>("table");
-
-  const [interviews, setInterviews] = useState<Interview[]>([]);
-  const [dynamicStages, setDynamicStages] = useState<DynamicStageAssignment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   const [searchInput, setSearchInput] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -172,26 +168,16 @@ const MyInterviewAssignmentsPage = () => {
 
   const [editingInterview, setEditingInterview] = useState<Interview | null>(null);
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const [interviewsData, dynamicData] = await Promise.all([
-        getMyInterviews().catch(() => []),
-        getMyWorkflowStageAssignments().catch(() => []),
-      ]);
-      setInterviews(Array.isArray(interviewsData) ? interviewsData : []);
-      setDynamicStages(Array.isArray(dynamicData) ? dynamicData : []);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err.message || "Failed to load assignments");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const interviewsQuery = useMyInterviews();
+  const assignmentsQuery = useMyWorkflowStageAssignments();
+  const isLoading = interviewsQuery.isLoading || assignmentsQuery.isLoading;
+  const interviews = Array.isArray(interviewsQuery.data) ? interviewsQuery.data : [];
+  const dynamicStages = Array.isArray(assignmentsQuery.data) ? assignmentsQuery.data : [];
 
-  useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
+  const invalidateAssignments = () => {
+    queryClient.invalidateQueries({ queryKey: ["my-interviews"] });
+    queryClient.invalidateQueries({ queryKey: ["my-workflow-stage-assignments"] });
+  };
 
   const interviewFiltered = interviews.filter((iv) => {
     if (searchInput) {
@@ -259,7 +245,7 @@ const MyInterviewAssignmentsPage = () => {
       if (rec === "FOR_REVIEW") {
         toast.success("Interview marked for review. Applicant stage unchanged.");
         setEditingInterview(null);
-        fetchAll();
+        invalidateAssignments();
       } else {
         const suggested = getSuggestedStageFromInterview(it, rec);
         if (suggested && aid) {
@@ -267,7 +253,7 @@ const MyInterviewAssignmentsPage = () => {
         } else {
           toast.success("Interview updated successfully");
           setEditingInterview(null);
-          fetchAll();
+          invalidateAssignments();
         }
       }
     } catch (err: any) {
@@ -288,7 +274,7 @@ const MyInterviewAssignmentsPage = () => {
       );
       setStageConfirm({ open: false, suggestedStage: "", interviewType: "", applicantId: 0 });
       setEditingInterview(null);
-      fetchAll();
+      invalidateAssignments();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err.message || "Failed to update applicant stage");
       setStageConfirm({ open: false, suggestedStage: "", interviewType: "", applicantId: 0 });
@@ -302,7 +288,7 @@ const MyInterviewAssignmentsPage = () => {
     setStageConfirm({ open: false, suggestedStage: "", interviewType: "", applicantId: 0 });
     setEditingInterview(null);
     setUpdating(false);
-    fetchAll();
+    invalidateAssignments();
   };
 
   const [dynamicUpdateDialog, setDynamicUpdateDialog] = useState<{ open: boolean; stage: DynamicStageAssignment | null }>({ open: false, stage: null });
@@ -338,7 +324,7 @@ const MyInterviewAssignmentsPage = () => {
         setDynamicConfirm({ open: true, action: "FAIL", stageRecordId: stage.stage_record_id, applicantId: stage.applicant_id });
       } else {
         toast.success("Stage completed");
-        fetchAll();
+        invalidateAssignments();
       }
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err.message || "Failed to complete stage");
@@ -360,7 +346,7 @@ const MyInterviewAssignmentsPage = () => {
       }
       setDynamicConfirm({ open: false, action: null, stageRecordId: null, applicantId: null });
       setDynamicUpdateDialog({ open: false, stage: null });
-      fetchAll();
+      invalidateAssignments();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err.message || "Action failed");
     } finally {
@@ -370,7 +356,7 @@ const MyInterviewAssignmentsPage = () => {
 
   const handleDynamicConfirmCancel = () => {
     setDynamicConfirm({ open: false, action: null, stageRecordId: null, applicantId: null });
-    fetchAll();
+    invalidateAssignments();
   };
 
   const tabs: { key: Tab; label: string }[] = [
@@ -378,8 +364,7 @@ const MyInterviewAssignmentsPage = () => {
     { key: "table", label: "List View" },
   ];
 
-  if (loading) return <Loader message="Loading assignments..." />;
-  if (error) return <ErrorMessage message={error} title="Error Loading Assignments" />;
+  if (isLoading) return <Loader message="Loading assignments..." />;
 
   const renderTableView = () => (
     <>
@@ -614,7 +599,7 @@ const MyInterviewAssignmentsPage = () => {
           <h1 className="text-2xl font-bold">My Recruitment Assignments</h1>
           <p className="text-sm text-muted-foreground">Assigned applicant workflow tasks</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchAll}>
+        <Button variant="outline" size="sm" onClick={invalidateAssignments}>
           <RefreshCw className="h-4 w-4 mr-1" />
           Refresh
         </Button>

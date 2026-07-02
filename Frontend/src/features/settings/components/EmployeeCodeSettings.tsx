@@ -14,11 +14,9 @@ import {
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { Loader2, Hash, Eye, Save, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import {
-  updateSetting,
-  getNextEmployeeCode,
-} from "@/services/settingsService";
+import { updateSetting } from "@/services/settingsService";
 import { useAllSettings } from "@/hooks/useSettings";
+import { useNextEmployeeCode } from "../hooks/useNextEmployeeCode";
 
 const SETTINGS_KEYS = [
   "employee_code_auto_generate",
@@ -62,12 +60,13 @@ const EmployeeCodeSettings = () => {
     },
     onError: () => toast.error("Failed to save employee code settings"),
   });
+  const nextCodeQuery = useNextEmployeeCode();
+
   const [preview, setPreview] = useState<{
     nextCode: string;
     nextNumber: number;
     format: string;
   } | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
     if (settingsData.length > 0) {
@@ -105,18 +104,15 @@ const EmployeeCodeSettings = () => {
   };
 
   const fetchPreviewFromDb = async () => {
-    try {
-      setPreviewLoading(true);
-      const result = await getNextEmployeeCode();
+    const result = await nextCodeQuery.refetch();
+    if (result.isSuccess && result.data) {
       setPreview({
-        nextCode: result.nextCode,
-        nextNumber: result.nextNumber,
-        format: result.format,
+        nextCode: result.data.nextCode,
+        nextNumber: result.data.nextNumber,
+        format: result.data.format,
       });
-    } catch {
+    } else {
       toast.error("Failed to fetch next code from database");
-    } finally {
-      setPreviewLoading(false);
     }
   };
 
@@ -288,10 +284,10 @@ const EmployeeCodeSettings = () => {
                 variant="outline"
                 size="sm"
                 onClick={fetchPreviewFromDb}
-                disabled={previewLoading}
+                disabled={nextCodeQuery.isFetching}
                 className="text-xs"
               >
-                {previewLoading && (
+                {nextCodeQuery.isFetching && (
                   <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                 )}
                 Check Next Code

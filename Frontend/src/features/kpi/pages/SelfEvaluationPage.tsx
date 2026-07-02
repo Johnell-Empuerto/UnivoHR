@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   getKpiEvaluationById, saveKpiSelfEvaluation, getFriendlyKpiError,
 } from "@/services/kpiService";
-import { useSelfEvaluations } from "@/hooks/useSelfEvaluations";
+import { useMyKpiEvaluations } from "@/hooks/useMyKpiEvaluations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,7 +30,7 @@ const statusBadge = (s: string) => {
 
 const SelfEvaluationPage = () => {
   useAuth();
-  const { data: response, isFetching, refetch } = useSelfEvaluations();
+  const { data: response, isFetching, refetch } = useMyKpiEvaluations("");
   const evaluations = response?.data ?? (Array.isArray(response) ? response : []);
   const total = response?.pagination?.total ?? (Array.isArray(response) ? response.length : 0);
   const [page, setPage] = useState(1);

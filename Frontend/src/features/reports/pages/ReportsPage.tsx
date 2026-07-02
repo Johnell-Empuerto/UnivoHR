@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import EmptyState from "@/components/shared/EmptyState";
 import Loader from "@/components/shared/Loader";
 import { formatTimeLocal, getTimezoneAbbr } from "@/utils/formatDate";
+import { formatCurrency } from "@/utils/formatCurrency";
 import {
   Table,
   TableBody,
@@ -31,24 +32,9 @@ import {
   Search,
   RefreshCw,
 } from "lucide-react";
-import {
-  getEmployeeReport,
-  getLeaveReport,
-  getAttendanceReport,
-  getPayrollReport,
-  getBenefitsReport,
-  getPerformanceReport,
-} from "@/services/reportService";
 import ExportButton from "../components/ExportButton";
-import { toast } from "sonner";
 import { formatDate } from "@/utils/formatDate";
-
-const formatCurrency = (value: number) => {
-  return Number(value || 0).toLocaleString("en-PH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-};
+import { useReportData } from "../hooks/useReportData";
 
 const formatDeductionLabel = (type?: string | null) => {
   if (!type) return "-";
@@ -83,14 +69,8 @@ const formatDeductionLabel = (type?: string | null) => {
 const ReportsPage = () => {
   const { hasPermission } = useAuth();
   const [activeTab, setActiveTab] = useState("employees");
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({
-    total: 0,
-    page: 1,
-    limit: 20,
-    totalPages: 0,
-  });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -98,9 +78,6 @@ const ReportsPage = () => {
   const [reportTypeFilter, setReportTypeFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-
-  const rows = Array.isArray(data) ? data : [];
-  const [pageSize, setPageSize] = useState(10);
 
   const getReportType = useCallback(() => {
     if (activeTab === "employees") return reportTypeFilter || "master_list";
@@ -112,77 +89,29 @@ const ReportsPage = () => {
     return "";
   }, [activeTab, reportTypeFilter]);
 
-  const buildParams = useCallback(
-    (page = 1) => {
-      const base: any = {
-        reportType: getReportType(),
-        department: departmentFilter || undefined,
-        search: search || undefined,
-        page,
-        limit: pageSize,
-      };
-      if (activeTab === "payroll") {
-        base.status = statusFilter || undefined;
-        base.cutoffStart = dateFrom || undefined;
-        base.cutoffEnd = dateTo || undefined;
-        base.startDate = dateFrom || undefined;
-        base.endDate = dateTo || undefined;
-      } else if (activeTab === "benefits") {
-        base.status = statusFilter || undefined;
-      } else {
-        base.status = statusFilter || undefined;
-        base.startDate = dateFrom || undefined;
-        base.endDate = dateTo || undefined;
-      }
-      return base;
-    },
-    [
-      getReportType,
-      statusFilter,
-      departmentFilter,
-      dateFrom,
-      dateTo,
-      search,
-      activeTab,
-      pageSize,
-    ],
-  );
+  const reportParams = {
+    reportType: getReportType(),
+    department: departmentFilter || undefined,
+    search: search || undefined,
+    page,
+    limit: pageSize,
+    status: statusFilter || undefined,
+    ...(activeTab === "payroll"
+      ? { cutoffStart: dateFrom || undefined, cutoffEnd: dateTo || undefined, startDate: dateFrom || undefined, endDate: dateTo || undefined }
+      : { startDate: dateFrom || undefined, endDate: dateTo || undefined }),
+  };
 
-  const fetchData = useCallback(
-    async (page = 1) => {
-      try {
-        setLoading(true);
-        const params = buildParams(page);
-        let result;
-        if (activeTab === "employees") result = await getEmployeeReport(params);
-        else if (activeTab === "leaves") result = await getLeaveReport(params);
-        else if (activeTab === "attendance")
-          result = await getAttendanceReport(params);
-        else if (activeTab === "payroll")
-          result = await getPayrollReport(params);
-        else if (activeTab === "benefits")
-          result = await getBenefitsReport(params);
-        else result = await getPerformanceReport(params);
-        setData(Array.isArray(result?.data) ? result.data : []);
-        setPagination(
-          result?.pagination || { total: 0, page: 1, limit: 20, totalPages: 0 },
-        );
-      } catch (error) {
-        console.error("Report fetch error:", error);
-        toast.error("Failed to load report data");
-        setData([]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [activeTab, buildParams],
-  );
+  const { data: reportData, isLoading } = useReportData(activeTab, reportParams);
+  const data = Array.isArray(reportData?.data) ? reportData.data : [];
+  const pagination = reportData?.pagination || { total: 0, page: 1, limit: 20, totalPages: 0 };
+
+  const rows = Array.isArray(data) ? data : [];
 
   useEffect(() => {
-    fetchData(1);
+    setPage(1);
   }, [activeTab, reportTypeFilter]);
 
-  const handleSearch = () => fetchData(1);
+  const handleSearch = () => setPage(1);
 
   const resetFilters = () => {
     setSearch("");
@@ -191,6 +120,7 @@ const ReportsPage = () => {
     setDateFrom("");
     setDateTo("");
     setReportTypeFilter("");
+    setPage(1);
   };
 
   const employeeReportOptions = [
@@ -1200,7 +1130,7 @@ const ReportsPage = () => {
                     value={reportTypeFilter}
                     onValueChange={(v) => {
                       setReportTypeFilter(v);
-                      setData([]);
+                      
                     }}
                   >
                     <SelectTrigger className="w-45">
@@ -1251,7 +1181,7 @@ const ReportsPage = () => {
                   </CardContent>
                 </Card>
 
-                {loading ? (
+                {isLoading ? (
                   <Loader message={`Loading ${activeTab} report...`} />
                 ) : rows.length === 0 ? (
                   <EmptyState
@@ -1268,8 +1198,8 @@ const ReportsPage = () => {
                   totalPages={pagination.totalPages || 1}
                   totalItems={pagination.total || 0}
                   pageSize={pageSize}
-                  onPageChange={(p) => fetchData(p)}
-                  onPageSizeChange={(size) => { setPageSize(size); fetchData(1); }}
+                  onPageChange={setPage}
+                  onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
                 />
               </CardContent>
             </Card>
@@ -1286,7 +1216,7 @@ const ReportsPage = () => {
                     value={reportTypeFilter}
                     onValueChange={(v) => {
                       setReportTypeFilter(v);
-                      setData([]);
+                      
                     }}
                   >
                     <SelectTrigger className="w-45">
@@ -1337,7 +1267,7 @@ const ReportsPage = () => {
                   </CardContent>
                 </Card>
 
-                {loading ? (
+                {isLoading ? (
                   <Loader message={`Loading ${activeTab} report...`} />
                 ) : rows.length === 0 ? (
                   <EmptyState
@@ -1352,8 +1282,8 @@ const ReportsPage = () => {
                   totalPages={pagination.totalPages || 1}
                   totalItems={pagination.total || 0}
                   pageSize={pageSize}
-                  onPageChange={(p) => fetchData(p)}
-                  onPageSizeChange={(size) => { setPageSize(size); fetchData(1); }}
+                  onPageChange={setPage}
+                  onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
                 />
               </CardContent>
             </Card>
@@ -1370,7 +1300,7 @@ const ReportsPage = () => {
                     value={reportTypeFilter}
                     onValueChange={(v) => {
                       setReportTypeFilter(v);
-                      setData([]);
+                      
                     }}
                   >
                     <SelectTrigger className="w-45">
@@ -1421,7 +1351,7 @@ const ReportsPage = () => {
                   </CardContent>
                 </Card>
 
-                {loading ? (
+                {isLoading ? (
                   <Loader message={`Loading ${activeTab} report...`} />
                 ) : rows.length === 0 ? (
                   <EmptyState
@@ -1438,8 +1368,8 @@ const ReportsPage = () => {
                   totalPages={pagination.totalPages || 1}
                   totalItems={pagination.total || 0}
                   pageSize={pageSize}
-                  onPageChange={(p) => fetchData(p)}
-                  onPageSizeChange={(size) => { setPageSize(size); fetchData(1); }}
+                  onPageChange={setPage}
+                  onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
                 />
               </CardContent>
             </Card>
@@ -1457,7 +1387,7 @@ const ReportsPage = () => {
                       value={reportTypeFilter}
                       onValueChange={(v) => {
                         setReportTypeFilter(v);
-                        setData([]);
+                        
                       }}
                     >
                       <SelectTrigger className="w-45">
@@ -1508,7 +1438,7 @@ const ReportsPage = () => {
                     </CardContent>
                   </Card>
 
-                  {loading ? (
+                  {isLoading ? (
                     <Loader message={`Loading ${activeTab} report...`} />
                   ) : rows.length === 0 ? (
                     <EmptyState
@@ -1525,8 +1455,8 @@ const ReportsPage = () => {
                     totalPages={pagination.totalPages || 1}
                     totalItems={pagination.total || 0}
                     pageSize={pageSize}
-                    onPageChange={(p) => fetchData(p)}
-                    onPageSizeChange={(size) => { setPageSize(size); fetchData(1); }}
+                    onPageChange={setPage}
+                    onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
                   />
                 </CardContent>
               </Card>
@@ -1544,7 +1474,7 @@ const ReportsPage = () => {
                     value={reportTypeFilter}
                     onValueChange={(v) => {
                       setReportTypeFilter(v);
-                      setData([]);
+                      
                     }}
                   >
                     <SelectTrigger className="w-45">
@@ -1595,7 +1525,7 @@ const ReportsPage = () => {
                   </CardContent>
                 </Card>
 
-                {loading ? (
+                {isLoading ? (
                   <Loader message={`Loading ${activeTab} report...`} />
                 ) : rows.length === 0 ? (
                   <EmptyState
@@ -1612,8 +1542,8 @@ const ReportsPage = () => {
                   totalPages={pagination.totalPages || 1}
                   totalItems={pagination.total || 0}
                   pageSize={pageSize}
-                  onPageChange={(p) => fetchData(p)}
-                  onPageSizeChange={(size) => { setPageSize(size); fetchData(1); }}
+                  onPageChange={setPage}
+                  onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
                 />
               </CardContent>
             </Card>
@@ -1630,7 +1560,7 @@ const ReportsPage = () => {
                     value={reportTypeFilter}
                     onValueChange={(v) => {
                       setReportTypeFilter(v);
-                      setData([]);
+                      
                     }}
                   >
                     <SelectTrigger className="w-45">
@@ -1681,7 +1611,7 @@ const ReportsPage = () => {
                   </CardContent>
                 </Card>
 
-                {loading ? (
+                {isLoading ? (
                   <Loader message={`Loading ${activeTab} report...`} />
                 ) : rows.length === 0 ? (
                   <EmptyState
@@ -1698,8 +1628,8 @@ const ReportsPage = () => {
                   totalPages={pagination.totalPages || 1}
                   totalItems={pagination.total || 0}
                   pageSize={pageSize}
-                  onPageChange={(p) => fetchData(p)}
-                  onPageSizeChange={(size) => { setPageSize(size); fetchData(1); }}
+                  onPageChange={setPage}
+                  onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
                 />
               </CardContent>
             </Card>

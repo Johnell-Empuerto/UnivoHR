@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  getApplicants,
   deleteApplicant,
 } from "@/services/applicantService";
-import { getActiveJobPositions } from "@/services/jobPositionService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useAuth } from "@/app/providers/AuthProvider";
@@ -27,6 +26,8 @@ import { TablePagination } from "@/components/shared/TablePagination";
 import { formatDateShort } from "@/utils/formatDate";
 import { Users, Plus, Eye, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
+import { useApplicantsList } from "../hooks/useApplicantsList";
+import { useActiveJobPositions } from "../hooks/useActiveJobPositions";
 
 interface Applicant {
   id: number;
@@ -65,47 +66,22 @@ const statusBadge = (status: string) => {
 
 const ApplicantsPage = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { hasPermission } = useAuth();
   const canDelete = hasPermission("recruitment.applicants.delete");
-  const [applicants, setApplicants] = useState<Applicant[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState("10");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [jobFilter, setJobFilter] = useState("");
-  const [jobPositions, setJobPositions] = useState<JobPosition[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<Applicant | null>(null);
 
+  const { data: applicantsResult, isLoading } = useApplicantsList(page, Number(pageSize), search, statusFilter, jobFilter);
+  const { data: jobPositions = [] } = useActiveJobPositions();
+  const applicants = applicantsResult?.data ?? [];
+  const total = applicantsResult?.pagination?.total ?? 0;
+
   const activeFilterCount = [search, statusFilter, jobFilter].filter(Boolean).length;
-
-  useEffect(() => {
-    fetchApplicants();
-    fetchJobPositions();
-  }, [page, pageSize, search, statusFilter, jobFilter]);
-
-  const fetchApplicants = async () => {
-    try {
-      setLoading(true);
-      const normalizedStatus = statusFilter === "all" ? "" : statusFilter;
-      const normalizedJob = jobFilter === "all" ? "" : jobFilter;
-      const result = await getApplicants(page, Number(pageSize), search, normalizedStatus, normalizedJob);
-      setApplicants(result.data);
-      setTotal(result.pagination.total);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to load applicants");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchJobPositions = async () => {
-    try {
-      const data = await getActiveJobPositions();
-      setJobPositions(data);
-    } catch { /* ignore */ }
-  };
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
@@ -113,7 +89,7 @@ const ApplicantsPage = () => {
       await deleteApplicant(deleteTarget.id);
       toast.success("Applicant deleted");
       setDeleteTarget(null);
-      fetchApplicants();
+      queryClient.invalidateQueries({ queryKey: ["applicants"] });
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err.message || "Delete failed");
       setDeleteTarget(null);
@@ -185,7 +161,7 @@ const ApplicantsPage = () => {
           </Button>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <Loader message="Loading applicants..." />
           ) : applicants.length === 0 ? (
             <EmptyState message="No applicants found." />

@@ -24,11 +24,8 @@ import { useState, useEffect } from "react";
 import { Loader2, AlertCircle, PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import {
-  type User,
-  type EmployeeWithoutAccount,
-  getEmployeesWithoutAccounts,
-} from "@/services/userService";
+import { type User } from "@/services/userService";
+import { useEmployeesWithoutAccounts } from "../hooks/useEmployeesWithoutAccounts";
 
 type UserDrawerFormProps = {
   open: boolean;
@@ -54,16 +51,9 @@ const UserDrawerForm = ({
     employee_id: "",
   });
   const [submitting, setSubmitting] = useState(false);
-  const [availableEmployees, setAvailableEmployees] = useState<
-    EmployeeWithoutAccount[]
-  >([]);
-  const [loadingEmployees, setLoadingEmployees] = useState(false);
 
-  useEffect(() => {
-    if (mode === "create" && open && availableEmployees.length === 0) {
-      fetchAvailableEmployees();
-    }
-  }, [mode, open]);
+  const { data: availableEmployees, isLoading: loadingEmployees } = useEmployeesWithoutAccounts();
+  const employees = availableEmployees ?? [];
 
   useEffect(() => {
     if (mode === "edit" && user) {
@@ -85,24 +75,13 @@ const UserDrawerForm = ({
     }
   }, [user, mode, open]);
 
-  const fetchAvailableEmployees = async () => {
-    try {
-      setLoadingEmployees(true);
-      const employees = await getEmployeesWithoutAccounts();
-      setAvailableEmployees(employees);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to fetch employees");
-    } finally {
-      setLoadingEmployees(false);
-    }
-  };
-
   const handleNavigateToEmployees = () => {
     onClose();
     navigate("/employees");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    if (!employees) return;
     e.preventDefault();
 
     if (!formData.username.trim()) {
@@ -164,9 +143,8 @@ const UserDrawerForm = ({
       : "Update user account information";
   };
 
-  // Check if no employees available
   const noEmployeesAvailable =
-    mode === "create" && !loadingEmployees && availableEmployees.length === 0;
+    mode === "create" && !loadingEmployees && employees.length === 0;
 
   return (
     <Drawer open={open} onOpenChange={onClose} direction="right">
@@ -206,8 +184,8 @@ const UserDrawerForm = ({
                       }
                     />
                   </SelectTrigger>
-                  <SelectContent position="popper" className="z-10000">
-                    {availableEmployees.map((emp) => (
+                    <SelectContent position="popper" className="z-10000">
+                      {employees.map((emp) => (
                       <SelectItem key={emp.id} value={emp.id.toString()}>
                         {emp.first_name} {emp.last_name} ({emp.employee_code}) -{" "}
                         {emp.department}

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
@@ -13,12 +14,12 @@ import { TablePagination } from "@/components/shared/TablePagination";
 import { Search } from "lucide-react";
 
 import {
-  getEmployeeSalary,
   updateEmployeeSalary,
-  getDeductions,
   createDeduction,
   deleteDeduction,
 } from "@/services/payrollService";
+import { useEmployeeSalaryList } from "../hooks/useEmployeeSalaryList";
+import { useDeductions } from "../hooks/useDeductions";
 
 //  Helper to format employee name
 const formatEmployeeName = (emp: any) => {
@@ -29,14 +30,10 @@ const formatEmployeeName = (emp: any) => {
 };
 
 const PayrollSettings = () => {
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalRecords, setTotalRecords] = useState(0);
-
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
 
@@ -49,7 +46,6 @@ const PayrollSettings = () => {
     working_days_per_month: "26",
   });
 
-  const [deductions, setDeductions] = useState<any[]>([]);
   const [newDeduction, setNewDeduction] = useState({
     type: "",
     amount: "",
@@ -57,6 +53,28 @@ const PayrollSettings = () => {
 
   const [lateType, setLateType] = useState("");
   const [lateAmount, setLateAmount] = useState("");
+
+  const { data: employeesData, isLoading } = useEmployeeSalaryList(currentPage, rowsPerPage, search);
+  const employees = employeesData?.data ?? [];
+  const totalPages = employeesData?.pagination?.totalPages ?? 1;
+  const totalRecords = employeesData?.pagination?.total ?? 0;
+
+  const selectedId = selected?.id ?? null;
+  const { data: deductionsData } = useDeductions(selectedId);
+  const allDeductions = deductionsData ?? [];
+
+  const deductions = allDeductions.filter((d: any) => !d.type.startsWith("LATE"));
+  const lateDeduction = allDeductions.find((d: any) => d.type.startsWith("LATE"));
+
+  useEffect(() => {
+    if (lateDeduction) {
+      setLateType(lateDeduction.type);
+      setLateAmount(lateDeduction.amount || "");
+    } else {
+      setLateType("");
+      setLateAmount("");
+    }
+  }, [lateDeduction]);
 
   // Debounce effect
   useEffect(() => {
@@ -66,46 +84,6 @@ const PayrollSettings = () => {
     }, 500);
     return () => clearTimeout(delayDebounce);
   }, [searchInput]);
-
-  const fetchEmployees = async () => {
-    try {
-      setLoading(true);
-      const res = await getEmployeeSalary(currentPage, rowsPerPage, search);
-      setEmployees(res.data);
-      setTotalPages(res.pagination.totalPages);
-      setTotalRecords(res.pagination.total);
-    } catch {
-      toast.error("Failed to load employees");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchEmployees();
-  }, [currentPage, rowsPerPage, search]);
-
-  const fetchDeductions = async (employeeId: number) => {
-    try {
-      const data = await getDeductions(employeeId);
-      const nonLateDeductions = data.filter(
-        (d: any) => !d.type.startsWith("LATE"),
-      );
-      setDeductions(nonLateDeductions);
-
-      // Extract late deduction if exists
-      const late = data.find((d: any) => d.type.startsWith("LATE"));
-      if (late) {
-        setLateType(late.type);
-        setLateAmount(late.amount || "");
-      } else {
-        setLateType("");
-        setLateAmount("");
-      }
-    } catch {
-      toast.error("Failed to load deductions");
-    }
-  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -124,7 +102,6 @@ const PayrollSettings = () => {
       overtime_rate: emp.overtime_rate || "",
       working_days_per_month: emp.working_days_per_month || "26",
     });
-    fetchDeductions(emp.id);
     setOpen(true);
   };
 
@@ -137,7 +114,7 @@ const PayrollSettings = () => {
       });
       toast.success("Salary updated");
       setOpen(false);
-      fetchEmployees();
+      queryClient.invalidateQueries({ queryKey: ["employee-salary-list"] });
     } catch {
       toast.error("Failed to update salary");
     }
@@ -156,7 +133,7 @@ const PayrollSettings = () => {
       });
       toast.success("Deduction added");
       setNewDeduction({ type: "", amount: "" });
-      fetchDeductions(selected.id);
+      queryClient.invalidateQueries({ queryKey: ["deductions", selected.id] });
     } catch {
       toast.error("Failed to add deduction");
     }
@@ -166,7 +143,7 @@ const PayrollSettings = () => {
     try {
       await deleteDeduction(id);
       toast.success("Deleted");
-      fetchDeductions(selected.id);
+      queryClient.invalidateQueries({ queryKey: ["deductions", selected.id] });
     } catch {
       toast.error("Failed to delete");
     }
@@ -185,8 +162,7 @@ const PayrollSettings = () => {
     }
 
     try {
-      // First, remove any existing late deduction
-      const existingLate = deductions.find((d) => d.type.startsWith("LATE"));
+      const existingLate = allDeductions.find((d: any) => d.type.startsWith("LATE"));
       if (existingLate) {
         await deleteDeduction(existingLate.id);
       }
@@ -198,7 +174,7 @@ const PayrollSettings = () => {
       });
 
       toast.success("Late deduction saved");
-      fetchDeductions(selected.id);
+      queryClient.invalidateQueries({ queryKey: ["deductions", selected.id] });
     } catch {
       toast.error("Failed to save late deduction");
     }
@@ -206,13 +182,13 @@ const PayrollSettings = () => {
 
   const handleDeleteLate = async () => {
     try {
-      const existingLate = deductions.find((d) => d.type.startsWith("LATE"));
+      const existingLate = allDeductions.find((d: any) => d.type.startsWith("LATE"));
       if (existingLate) {
         await deleteDeduction(existingLate.id);
         toast.success("Late deduction removed");
         setLateType("");
         setLateAmount("");
-        fetchDeductions(selected.id);
+        queryClient.invalidateQueries({ queryKey: ["deductions", selected.id] });
       }
     } catch {
       toast.error("Failed to delete late deduction");
@@ -266,7 +242,7 @@ const PayrollSettings = () => {
             </div>
           </div>
 
-          {loading ? (
+          {isLoading ? (
             <p>Loading...</p>
           ) : (
             <div className="rounded-md border shadow-sm">

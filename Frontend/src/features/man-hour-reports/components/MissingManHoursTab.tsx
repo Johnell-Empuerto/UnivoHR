@@ -1,24 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getMissingManHourDates } from "@/services/manHourReportService";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, AlertCircle, Loader2 } from "lucide-react";
 import { formatDate } from "@/utils/formatDate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
-
-type MissingDate = {
-  missing_date: string;
-};
+import { useMissingManHourDates } from "../hooks/useMissingManHourDates";
 
 const MissingManHoursTab = () => {
-  const [missingDates, setMissingDates] = useState<MissingDate[]>([]);
-  const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
-    date.setDate(1); // First day of current month
+    date.setDate(1);
     return date.toISOString().split("T")[0];
   });
   const [endDate, setEndDate] = useState(() => {
@@ -26,23 +20,7 @@ const MissingManHoursTab = () => {
     return date.toISOString().split("T")[0];
   });
 
-  const fetchMissingDates = async () => {
-    try {
-      setLoading(true);
-      const data = await getMissingManHourDates(startDate, endDate);
-      setMissingDates(data);
-    } catch (error: any) {
-      console.error("Failed to fetch missing dates:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (startDate && endDate) {
-      fetchMissingDates();
-    }
-  }, [startDate, endDate]);
+  const { data: missingDates, isLoading, refetch } = useMissingManHourDates(startDate, endDate);
 
   return (
     <div className="space-y-4">
@@ -68,7 +46,7 @@ const MissingManHoursTab = () => {
                 max={new Date().toISOString().split("T")[0]}
               />
             </div>
-            <Button onClick={fetchMissingDates} variant="outline">
+            <Button onClick={() => refetch()} variant="outline">
               Refresh
             </Button>
           </div>
@@ -83,7 +61,7 @@ const MissingManHoursTab = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,11 +43,11 @@ import { toast } from "sonner";
 import EmployeePickerDialog from "@/components/shared/EmployeePickerDialog";
 import type { EmployeeSearchResult } from "@/services/overtimeService";
 import {
-  getApprovers,
   createApprover,
   updateApprover,
   deleteApprover,
 } from "@/services/approverService";
+import { useApprovers } from "../hooks/useApprovers";
 
 type ApproverMapping = {
   id: number;
@@ -62,15 +63,11 @@ type ApproverMapping = {
 };
 
 const ApprovalSettings = () => {
-  const [data, setData] = useState<ApproverMapping[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalRecords, setTotalRecords] = useState(0);
   const [rowsPerPage] = useState(10);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
@@ -89,23 +86,14 @@ const ApprovalSettings = () => {
     approval_type: "OVERTIME",
   });
 
-  useEffect(() => {
-    const fetchApprovers = async () => {
-      try {
-        setLoading(true);
-        const res = await getApprovers(currentPage, rowsPerPage, search, typeFilter);
-        setData(res.data);
-        setTotalPages(res.pagination.totalPages);
-        setTotalRecords(res.pagination.total);
-        setError("");
-      } catch (err: any) {
-        setError(err.message || "Failed to fetch approver mappings");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchApprovers();
-  }, [currentPage, rowsPerPage, search, typeFilter]);
+  const { data: result, isLoading, error } = useApprovers(
+    currentPage, rowsPerPage, search, typeFilter,
+  );
+  const data = result?.data ?? [];
+  const totalPages = result?.pagination?.totalPages ?? 1;
+  const totalRecords = result?.pagination?.total ?? 0;
+
+  const invalidateList = () => queryClient.invalidateQueries({ queryKey: ["approvers"] });
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value);
@@ -195,8 +183,8 @@ const ApprovalSettings = () => {
     if (deleteConfirm === null) return;
     try {
       await deleteApprover(deleteConfirm);
-      setData(data.filter((item) => item.id !== deleteConfirm));
       setDeleteConfirm(null);
+      invalidateList();
       toast.success("Approver mapping removed successfully");
     } catch (err: any) {
       toast.error(err.message || "Failed to remove approver mapping");
@@ -236,9 +224,6 @@ const ApprovalSettings = () => {
           approval_type: formData.approval_type,
         });
         toast.success("Approver mapping updated successfully");
-
-        const res = await getApprovers(currentPage, rowsPerPage, search, typeFilter);
-        setData(res.data);
       } else {
         await createApprover({
           employee_id: parseInt(formData.employee_id),
@@ -246,14 +231,10 @@ const ApprovalSettings = () => {
           approval_type: formData.approval_type,
         });
         toast.success("Approver mapping created successfully");
-
-        const res = await getApprovers(1, rowsPerPage, search, typeFilter);
-        setData(res.data);
-        setTotalPages(res.pagination.totalPages);
-        setTotalRecords(res.pagination.total);
         setCurrentPage(1);
       }
 
+      invalidateList();
       setIsModalOpen(false);
     } catch (err: any) {
       toast.error(err.message || "Operation failed");
@@ -325,14 +306,14 @@ const ApprovalSettings = () => {
           </Button>
         </div>
 
-        {loading && (
+        {isLoading && (
           <div className="flex items-center justify-center py-4">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
             <span className="text-sm text-muted-foreground">Loading approver mappings...</span>
           </div>
         )}
 
-        {!loading && (
+        {!isLoading && (
           <>
             <div className="rounded-md border">
               <Table>

@@ -31,7 +31,7 @@ export const useAdminAnalytics = (enabled = true) =>
 
 export const useAnomalySummaryQuery = (enabled = true) =>
   useQuery({
-    queryKey: ["anomaly", "summary"],
+    queryKey: ["anomaly-summary"],
     queryFn: getAnomalySummary,
     staleTime: 30 * 1000,
     enabled,

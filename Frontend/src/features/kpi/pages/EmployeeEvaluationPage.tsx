@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  getMyKpiAssignments, getKpiEvaluationById, saveKpiScores, submitKpiEvaluation, getFriendlyKpiError,
+  saveKpiScores, submitKpiEvaluation, getFriendlyKpiError,
 } from "@/services/kpiService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -17,6 +18,8 @@ import { TablePagination } from "@/components/shared/TablePagination";
 import { ClipboardList, Loader2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/app/providers/AuthProvider";
+import { useMyKpiAssignments } from "../hooks/useMyKpiAssignments";
+import { useKpiEvaluationDetail } from "@/hooks/useKpiEvaluationDetail";
 
 const statusBadge = (s: string) => {
   const map: Record<string, string> = {
@@ -31,45 +34,53 @@ const statusBadge = (s: string) => {
 
 const EmployeeEvaluationPage = () => {
   useAuth();
-  const [assignments, setAssignments] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState("");
 
   const [evalDialog, setEvalDialog] = useState(false);
-  const [currentEval, setCurrentEval] = useState<any>(null);
+  const [selectedEvalId, setSelectedEvalId] = useState<number | null>(null);
   const [scores, setScores] = useState<any[]>([]);
   const [managerComments, setManagerComments] = useState("");
   const [recommendation, setRecommendation] = useState("");
   const [saving, setSaving] = useState(false);
 
   const [submitConfirm, setSubmitConfirm] = useState(false);
+  const formInitId = useRef<number | null>(null);
 
-  useEffect(() => { fetchAssignments(); }, [page, pageSize, statusFilter]);
+  const { data: assignmentsData, isLoading } = useMyKpiAssignments(statusFilter, page, pageSize);
+  const assignments = assignmentsData?.data ?? [];
+  const total = assignmentsData?.pagination?.total ?? 0;
 
-  const fetchAssignments = async () => {
-    try { setLoading(true); const r = await getMyKpiAssignments(statusFilter, page, pageSize); setAssignments(r.data); setTotal(r.pagination.total); }
-    catch { } finally { setLoading(false); }
-  };
+  const { data: detailData } = useKpiEvaluationDetail(selectedEvalId);
+  const currentEval = detailData ?? null;
 
-  const handleOpenEval = async (id: number) => {
-    try {
-      const d = await getKpiEvaluationById(id);
-      setCurrentEval(d);
-      const initialScores = d.items.map((item: any) => {
+  useEffect(() => {
+    if (detailData && selectedEvalId && formInitId.current !== selectedEvalId) {
+      formInitId.current = selectedEvalId;
+      const d = detailData;
+      setScores(d.items.map((item: any) => {
         const existing = (d.scores || []).find((s: any) => s.template_item_id === item.id);
         return {
           template_item_id: item.id, kpi_name: item.kpi_name, weight: item.weight,
           manager_score: existing?.manager_score || 0, remarks: existing?.remarks || "",
         };
-      });
-      setScores(initialScores);
+      }));
       setManagerComments(d.manager_comments || "");
       setRecommendation(d.recommendation || "");
-      setEvalDialog(true);
-    } catch (err: any) { toast.error(getFriendlyKpiError(err, "Failed to load evaluation")); }
+    }
+  }, [detailData, selectedEvalId]);
+
+  const handleOpenEval = (id: number) => {
+    setSelectedEvalId(id);
+    setEvalDialog(true);
+  };
+
+  const handleCloseEval = () => {
+    setEvalDialog(false);
+    setSelectedEvalId(null);
+    formInitId.current = null;
   };
 
   const handleScoreChange = (templateItemId: number, value: number) => {
@@ -82,8 +93,7 @@ const EmployeeEvaluationPage = () => {
       setSaving(true);
       await saveKpiScores(currentEval.id, { scores });
       toast.success("Scores saved");
-      const d = await getKpiEvaluationById(currentEval.id);
-      setCurrentEval(d);
+      queryClient.invalidateQueries({ queryKey: ["kpi-evaluation-detail", selectedEvalId] });
     } catch (err: any) { toast.error(getFriendlyKpiError(err, "Save failed")); }
     finally { setSaving(false); }
   };
@@ -101,9 +111,11 @@ const EmployeeEvaluationPage = () => {
       setSaving(true);
       await submitKpiEvaluation(currentEval.id, { manager_comments: managerComments, recommendation });
       toast.success("Evaluation submitted");
-      setEvalDialog(false);
       setSubmitConfirm(false);
-      fetchAssignments();
+      const evalId = selectedEvalId;
+      handleCloseEval();
+      queryClient.invalidateQueries({ queryKey: ["my-kpi-assignments"] });
+      if (evalId) queryClient.invalidateQueries({ queryKey: ["kpi-evaluation-detail", evalId] });
     } catch (err: any) { toast.error(getFriendlyKpiError(err, "Submit failed")); }
     finally { setSaving(false); }
   };
@@ -135,7 +147,7 @@ const EmployeeEvaluationPage = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <Loader message="Loading assignments..." />
           ) : assignments.length === 0 ? (
             <EmptyState message="No KPI evaluations assigned to you yet." />
@@ -182,7 +194,7 @@ const EmployeeEvaluationPage = () => {
         </CardContent>
       </Card>
 
-      <Dialog open={evalDialog} onOpenChange={setEvalDialog}>
+      <Dialog open={evalDialog} onOpenChange={(v) => { if (!v) handleCloseEval(); }}>
         <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Evaluate - {currentEval?.employee_name}</DialogTitle></DialogHeader>
           {currentEval && (

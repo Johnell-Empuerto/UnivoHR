@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  getKpiTemplates, createKpiTemplate, updateKpiTemplate, deleteKpiTemplate, toggleKpiTemplate,
-  getKpiTemplateItems, addKpiTemplateItem, updateKpiTemplateItem, deleteKpiTemplateItem,
+  createKpiTemplate, updateKpiTemplate, deleteKpiTemplate, toggleKpiTemplate,
+  addKpiTemplateItem, updateKpiTemplateItem, deleteKpiTemplateItem,
 } from "@/services/kpiService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -18,6 +19,8 @@ import EmptyState from "@/components/shared/EmptyState";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { FileText, Plus, Loader2, Pencil, Trash2, ToggleLeft, ToggleRight, Search, X } from "lucide-react";
 import { toast } from "sonner";
+import { useKpiTemplatesList } from "../hooks/useKpiTemplatesList";
+import { useKpiTemplateItems } from "../hooks/useKpiTemplateItems";
 
 interface Template { id: number; name: string; description: string | null; department: string | null; is_active: boolean; item_count: string; }
 interface Item { id: number; template_id: number; kpi_name: string; description: string | null; weight: number; }
@@ -26,9 +29,7 @@ const emptyTemplateForm = { name: "", description: "", department: "" };
 const emptyItemForm = { kpi_name: "", description: "", weight: 0 };
 
 const KpiTemplatesPage = () => {
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState("");
@@ -47,7 +48,7 @@ const KpiTemplatesPage = () => {
 
   const [itemsDialogOpen, setItemsDialogOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-  const [items, setItems] = useState<Item[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
 
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
   const [editItemId, setEditItemId] = useState<number | null>(null);
@@ -61,18 +62,11 @@ const KpiTemplatesPage = () => {
   const [deleteItemTargetId, setDeleteItemTargetId] = useState<number | null>(null);
   const [deleteItemTargetName, setDeleteItemTargetName] = useState("");
 
-  useEffect(() => { fetchTemplates(); }, [page, pageSize, search]);
+  const { data: templatesData, isLoading } = useKpiTemplatesList(page, pageSize, search);
+  const templates = templatesData?.data ?? [];
+  const total = templatesData?.pagination?.total ?? 0;
 
-  const fetchTemplates = async () => {
-    try {
-      setLoading(true);
-      const result = await getKpiTemplates(page, pageSize, search);
-      setTemplates(result.data);
-      setTotal(result.pagination.total);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to load templates");
-    } finally { setLoading(false); }
-  };
+  const { data: items } = useKpiTemplateItems(selectedTemplateId);
 
   const handleOpenCreate = () => { setEditId(null); setForm({ ...emptyTemplateForm }); setDialogOpen(true); };
   const handleOpenEdit = (t: Template) => {
@@ -88,14 +82,17 @@ const KpiTemplatesPage = () => {
       if (editId) { await updateKpiTemplate(editId, form); toast.success("Template updated"); }
       else { await createKpiTemplate(form); toast.success("Template created"); }
       setDialogOpen(false);
-      fetchTemplates();
+      queryClient.invalidateQueries({ queryKey: ["kpi-templates"] });
     } catch (err: any) { toast.error(err.message || "Operation failed"); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id: number) => {
-    try { await deleteKpiTemplate(id); toast.success("Template deleted"); fetchTemplates(); }
-    catch (err: any) { toast.error(err.message || "Delete failed"); }
+    try {
+      await deleteKpiTemplate(id);
+      toast.success("Template deleted");
+      queryClient.invalidateQueries({ queryKey: ["kpi-templates"] });
+    } catch (err: any) { toast.error(err.message || "Delete failed"); }
     setDeleteDialogOpen(false);
   };
 
@@ -103,16 +100,13 @@ const KpiTemplatesPage = () => {
     try {
       const result = await toggleKpiTemplate(id);
       toast.success(result.is_active ? "Template activated" : "Template deactivated");
-      fetchTemplates();
+      queryClient.invalidateQueries({ queryKey: ["kpi-templates"] });
     } catch (err: any) { toast.error(err.message || "Toggle failed"); }
   };
 
-  const handleOpenItems = async (t: Template) => {
+  const handleOpenItems = (t: Template) => {
     setSelectedTemplate(t);
-    try {
-      const data = await getKpiTemplateItems(t.id);
-      setItems(data);
-    } catch { setItems([]); }
+    setSelectedTemplateId(t.id);
     setItemsDialogOpen(true);
   };
 
@@ -133,8 +127,8 @@ const KpiTemplatesPage = () => {
       if (editItemId) { await updateKpiTemplateItem(editItemId, itemForm); toast.success("Item updated"); }
       else { await addKpiTemplateItem(selectedTemplate.id, itemForm); toast.success("Item added"); }
       setItemDialogOpen(false);
-      const data = await getKpiTemplateItems(selectedTemplate.id);
-      setItems(data);
+      queryClient.invalidateQueries({ queryKey: ["kpi-template-items", selectedTemplateId] });
+      queryClient.invalidateQueries({ queryKey: ["kpi-templates"] });
     } catch (err: any) { toast.error(err.message || "Operation failed"); }
     finally { setSaving(false); }
   };
@@ -143,15 +137,13 @@ const KpiTemplatesPage = () => {
     try {
       await deleteKpiTemplateItem(itemId);
       toast.success("Item deleted");
-      if (selectedTemplate) {
-        const data = await getKpiTemplateItems(selectedTemplate.id);
-        setItems(data);
-      }
+      queryClient.invalidateQueries({ queryKey: ["kpi-template-items", selectedTemplateId] });
+      queryClient.invalidateQueries({ queryKey: ["kpi-templates"] });
     } catch (err: any) { toast.error(err.message || "Delete failed"); }
     setDeleteItemDialogOpen(false);
   };
 
-  const totalWeight = items.reduce((s, i) => s + Number(i.weight), 0);
+  const totalWeight = (items ?? []).reduce((s, i) => s + Number(i.weight), 0);
 
   return (
     <div className="space-y-6 p-6">
@@ -186,7 +178,7 @@ const KpiTemplatesPage = () => {
           </Button>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <Loader message="Loading templates..." />
           ) : templates.length === 0 ? (
             <EmptyState message="No templates found." />
@@ -258,14 +250,14 @@ const KpiTemplatesPage = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={itemsDialogOpen} onOpenChange={setItemsDialogOpen}>
+      <Dialog open={itemsDialogOpen} onOpenChange={(v) => { if (!v) { setSelectedTemplateId(null); setSelectedTemplate(null); } setItemsDialogOpen(v); }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader><DialogTitle>KPI Items - {selectedTemplate?.name}</DialogTitle></DialogHeader>
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs text-muted-foreground">Total weight: <span className={`font-semibold ${totalWeight === 100 ? "text-green-600" : totalWeight > 100 ? "text-red-600" : "text-amber-600"}`}>{totalWeight}%</span> {totalWeight === 0 ? "" : totalWeight < 100 ? "(under 100%)" : totalWeight > 100 ? "(exceeds 100%!)" : "(balanced)"}</p>
             <Button size="sm" onClick={handleOpenAddItem}><Plus className="h-4 w-4 mr-1" /> Add Item</Button>
           </div>
-          {items.length === 0 ? (
+          {(items ?? []).length === 0 ? (
             <EmptyState message="No KPI items yet." />
           ) : (
             <div className="rounded-md border">
@@ -278,7 +270,7 @@ const KpiTemplatesPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item) => (
+                  {(items ?? []).map((item) => (
                     <TableRow key={item.id}>
                       <TableCell>{item.kpi_name}{item.description ? <p className="text-xs text-muted-foreground">{item.description}</p> : null}</TableCell>
                       <TableCell>{item.weight}%</TableCell>

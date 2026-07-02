@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Color from "@tiptap/extension-color";
@@ -38,11 +39,11 @@ import {
   Redo,
 } from "lucide-react";
 import {
-  getAllTemplates,
   updateTemplate,
   toggleTemplate,
   type EmailTemplate,
 } from "@/services/emailTemplateService";
+import { useEmailTemplates } from "../hooks/useEmailTemplates";
 
 // Available template types
 const TEMPLATE_TYPES = [
@@ -137,11 +138,10 @@ const ToolbarButton = ({
 );
 
 const EmailTemplateEditor = () => {
-  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const queryClient = useQueryClient();
   const [selectedType, setSelectedType] = useState<string>("OVERTIME_APPROVED");
   const [subject, setSubject] = useState("");
   const [isActive, setIsActive] = useState(true);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
 
@@ -175,34 +175,9 @@ const EmailTemplateEditor = () => {
     immediatelyRender: false,
   });
 
-  // Fetch all templates
-  const fetchTemplates = async () => {
-    try {
-      setLoading(true);
-      const data = await getAllTemplates();
-      setTemplates(data);
+  const { data: templates = [], isLoading } = useEmailTemplates();
 
-      const selected = data.find((t) => t.type === selectedType);
-      if (selected) {
-        setSubject(selected.subject);
-        setIsActive(selected.is_active);
-        if (editor && selected.body_html) {
-          editor.commands.setContent(selected.body_html);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch templates:", error);
-      toast.error("Failed to load email templates");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchTemplates();
-  }, []);
-
-  // Update editor content when template changes
+  // Populate editor when templates load or selection changes
   useEffect(() => {
     const template = templates.find((t) => t.type === selectedType);
     if (template && editor) {
@@ -243,7 +218,7 @@ const EmailTemplateEditor = () => {
         toast.success("Template updated successfully");
       }
 
-      await fetchTemplates();
+      queryClient.invalidateQueries({ queryKey: ["email-templates"] });
     } catch (error) {
       console.error("Failed to save template:", error);
       toast.error("Failed to save template");
@@ -263,9 +238,7 @@ const EmailTemplateEditor = () => {
 
     try {
       await toggleTemplate(existing.id, newValue);
-      setTemplates((prev) =>
-        prev.map((t) => (t.id === existing.id ? { ...t, is_active: newValue } : t)),
-      );
+      queryClient.invalidateQueries({ queryKey: ["email-templates"] });
       toast.success(`Template ${newValue ? "activated" : "deactivated"}`);
     } catch {
       setIsActive(!newValue);
@@ -307,7 +280,7 @@ const EmailTemplateEditor = () => {
   const undo = () => editor?.chain().focus().undo().run();
   const redo = () => editor?.chain().focus().redo().run();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card className="border-border/50 shadow-sm">
         <CardContent className="p-8 text-center">

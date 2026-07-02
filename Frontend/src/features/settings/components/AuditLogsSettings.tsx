@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,7 +29,7 @@ import {
 import { TablePagination } from "@/components/shared/TablePagination";
 import Loader from "@/components/shared/Loader";
 import EmptyState from "@/components/shared/EmptyState";
-import { getAuditLogs, type AuditLog } from "@/services/auditLogService";
+import { type AuditLog } from "@/services/auditLogService";
 import { formatDateShort } from "@/utils/formatDate";
 import {
   History,
@@ -38,6 +38,7 @@ import {
   Eye,
   X,
 } from "lucide-react";
+import { useAuditLogs } from "../hooks/useAuditLogs";
 
 const ACTION_OPTIONS = [
   "CREATE",
@@ -65,11 +66,7 @@ const TABLE_OPTIONS = [
 ];
 
 const AuditLogsSettings = () => {
-  const [data, setData] = useState<AuditLog[]>([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
   const [pageSize, setPageSize] = useState(10);
 
   const [search, setSearch] = useState("");
@@ -82,31 +79,12 @@ const AuditLogsSettings = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 
-  const fetchData = async (p: number) => {
-    setLoading(true);
-    try {
-      const res = await getAuditLogs({
-        page: p,
-        limit: pageSize,
-        search: search || undefined,
-        action: actionFilter || undefined,
-        table_name: tableFilter || undefined,
-        date_from: dateFrom || undefined,
-        date_to: dateTo || undefined,
-      });
-      setData(res.data);
-      setTotalPages(res.pagination.totalPages);
-      setTotalItems(res.pagination.total);
-    } catch {
-      setData([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData(page);
-  }, [page, pageSize, search, actionFilter, tableFilter, dateFrom, dateTo]);
+  const { data: result, isLoading } = useAuditLogs(
+    page, pageSize, search, actionFilter, tableFilter, dateFrom, dateTo,
+  );
+  const data = result?.data ?? [];
+  const totalPages = result?.pagination?.totalPages ?? 1;
+  const totalItems = result?.pagination?.total ?? 0;
 
   useEffect(() => {
     const delay = setTimeout(() => {
@@ -128,7 +106,6 @@ const AuditLogsSettings = () => {
 
   const handleRefresh = () => {
     handleClearFilters();
-    fetchData(1);
   };
 
   const hasFilters = searchInput || actionFilter || tableFilter || dateFrom || dateTo;
@@ -240,7 +217,7 @@ const AuditLogsSettings = () => {
           </Button>
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <Loader message="Loading audit logs..." />
         ) : data.length === 0 ? (
           <EmptyState message="No audit logs found matching your criteria." />

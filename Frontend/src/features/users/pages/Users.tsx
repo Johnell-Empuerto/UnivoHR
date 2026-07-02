@@ -1,5 +1,6 @@
 // features/users/pages/Users.tsx
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { UserCog, Search, RefreshCw, Plus } from "lucide-react";
 import Loader from "@/components/shared/Loader";
 import {
@@ -27,24 +28,21 @@ import { useAuth } from "@/app/providers/AuthProvider";
 import UsersTable from "../components/UsersTable";
 import UserDrawerForm from "../components/UserDrawersForm";
 import {
-  getUsers,
   createUser,
   updateUser,
   deleteUser,
   type User,
 } from "@/services/userService";
+import { useUsersList } from "../hooks/useUsersList";
 
 const Users = () => {
   const { hasPermission } = useAuth();
   const canManage = hasPermission("users.manage");
-  const [data, setData] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalRecords, setTotalRecords] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{
@@ -57,6 +55,11 @@ const Users = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [mode, setMode] = useState<"create" | "edit">("create");
 
+  const { data: usersData, isLoading, isFetching } = useUsersList(currentPage, rowsPerPage, search, roleFilter);
+  const data = usersData?.data ?? [];
+  const totalPages = usersData?.pagination?.totalPages ?? 1;
+  const totalRecords = usersData?.pagination?.total ?? 0;
+
   // Debounce search
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
@@ -65,29 +68,6 @@ const Users = () => {
     }, 800);
     return () => clearTimeout(delayDebounce);
   }, [searchInput]);
-
-  // Fetch users
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-        const res = await getUsers(
-          currentPage,
-          rowsPerPage,
-          search,
-          roleFilter,
-        );
-        setData(res.data);
-        setTotalPages(res.pagination.totalPages);
-        setTotalRecords(res.pagination.total);
-      } catch (err: any) {
-        toast.error(err.message || "Failed to fetch users");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUsers();
-  }, [currentPage, rowsPerPage, search, roleFilter]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(e.target.value);
@@ -110,6 +90,7 @@ const Users = () => {
     setSearchInput("");
     setSearch("");
     setRoleFilter("");
+    queryClient.invalidateQueries({ queryKey: ["users-list"] });
   };
 
   const handleAddNew = () => {
@@ -134,10 +115,7 @@ const Users = () => {
     try {
       await deleteUser(deleteTarget.id);
       toast.success("User deleted successfully");
-      const res = await getUsers(currentPage, rowsPerPage, search, roleFilter);
-      setData(res.data);
-      setTotalPages(res.pagination.totalPages);
-      setTotalRecords(res.pagination.total);
+      queryClient.invalidateQueries({ queryKey: ["users-list"] });
     } catch (err: any) {
       toast.error(err.message || "Failed to delete user");
     } finally {
@@ -146,11 +124,9 @@ const Users = () => {
     }
   };
 
-  //  FIXED: Proper handleSubmit with API calls
   const handleSubmit = async (formData: any) => {
     try {
       if (mode === "create") {
-        //  CREATE USER - API CALL
         await createUser({
           username: formData.username,
           password: formData.password,
@@ -158,15 +134,9 @@ const Users = () => {
           employee_id: formData.employee_id,
         });
         toast.success("User created successfully");
-
-        // Refresh to first page
         setCurrentPage(1);
-        const res = await getUsers(1, rowsPerPage, search, roleFilter);
-        setData(res.data);
-        setTotalPages(res.pagination.totalPages);
-        setTotalRecords(res.pagination.total);
+        queryClient.invalidateQueries({ queryKey: ["users-list"] });
       } else {
-        //  UPDATE USER - API CALL
         if (editingUser) {
           await updateUser(editingUser.id, {
             username: formData.username,
@@ -174,22 +144,12 @@ const Users = () => {
             password: formData.password || undefined,
           });
           toast.success("User updated successfully");
-
-          // Refresh current page
-          const res = await getUsers(
-            currentPage,
-            rowsPerPage,
-            search,
-            roleFilter,
-          );
-          setData(res.data);
-          setTotalPages(res.pagination.totalPages);
-          setTotalRecords(res.pagination.total);
+          queryClient.invalidateQueries({ queryKey: ["users-list"] });
         }
       }
     } catch (err: any) {
       toast.error(err.message || "Operation failed");
-      throw err; // Re-throw so drawer knows it failed
+      throw err;
     }
   };
 
@@ -260,7 +220,7 @@ const Users = () => {
         </CardContent>
       </Card>
 
-      {loading && <Loader message="Loading users..." />}
+      {(isLoading || isFetching) && <Loader message="Loading users..." />}
 
       {/* Users Table */}
       <UsersTable

@@ -1,9 +1,8 @@
 // components/settings/AttendanceSettings.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
-  getAttendanceRules,
   createAttendanceRule,
   updateAttendanceRule,
   activateAttendanceRule,
@@ -12,6 +11,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useSetting } from "@/hooks/useSettings";
 import { toggleSetting } from "@/services/settingsService";
+import { useAttendanceRules } from "../hooks/useAttendanceRules";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -48,7 +48,6 @@ interface AttendanceRule {
 }
 
 const AttendanceSettings = () => {
-  const [rules, setRules] = useState<AttendanceRule[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -75,6 +74,8 @@ const AttendanceSettings = () => {
   const webClockEnabled = webClockSetting?.value === "true";
   const [toggling, setToggling] = useState<string | null>(null);
 
+  const { data: rules = [] } = useAttendanceRules();
+
   const handleWebClockToggle = async () => {
     try {
       setToggling("enable_web_clock_in_out");
@@ -93,21 +94,6 @@ const AttendanceSettings = () => {
       setToggling(null);
     }
   };
-
-  // LOAD RULES
-  const fetchRules = async () => {
-    try {
-      const data = await getAttendanceRules();
-      setRules(data);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load attendance rules");
-    }
-  };
-
-  useEffect(() => {
-    fetchRules();
-  }, []);
 
   // HANDLE INPUT
   const handleChange = (
@@ -166,7 +152,7 @@ const AttendanceSettings = () => {
         late_deduction_value: 50,
         late_deduction_enabled: true,
       });
-      fetchRules();
+      queryClient.invalidateQueries({ queryKey: ["attendance-rules"] });
     } catch (err) {
       console.error(err);
       toast.error("Failed to create rule");
@@ -214,7 +200,7 @@ const AttendanceSettings = () => {
       setUpdating(true);
       await updateAttendanceRule(ruleToEdit.id, form);
       toast.success("Attendance rule updated successfully");
-      fetchRules();
+      queryClient.invalidateQueries({ queryKey: ["attendance-rules"] });
       setEditDialogOpen(false);
       setRuleToEdit(null);
     } catch (err) {
@@ -231,7 +217,7 @@ const AttendanceSettings = () => {
       setLoading(true);
       await activateAttendanceRule(id);
       toast.success("Rule activated successfully");
-      fetchRules();
+      queryClient.invalidateQueries({ queryKey: ["attendance-rules"] });
     } catch (err) {
       console.error(err);
       toast.error("Failed to activate rule");
@@ -260,7 +246,7 @@ const AttendanceSettings = () => {
       setLoading(true);
       await deleteAttendanceRule(ruleToDelete.id);
       toast.success("Rule deleted successfully");
-      fetchRules();
+      queryClient.invalidateQueries({ queryKey: ["attendance-rules"] });
       setDeleteDialogOpen(false);
       setRuleToDelete(null);
     } catch (err) {

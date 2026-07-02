@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { useMyBenefits } from "@/hooks/useMyBenefits";
 import { useAuth } from "@/app/providers/AuthProvider";
+import { formatCurrency } from "@/utils/formatCurrency";
 import {
   HeartHandshake,
   BadgeInfo,
@@ -69,13 +70,6 @@ const getDeductionColor = (type: string) => {
     default:
       return "from-slate-50/50 to-transparent dark:from-slate-950/20";
   }
-};
-
-const formatCurrency = (value: number) => {
-  return Number(value || 0).toLocaleString("en-PH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 };
 
 const MyBenefitsPage = () => {

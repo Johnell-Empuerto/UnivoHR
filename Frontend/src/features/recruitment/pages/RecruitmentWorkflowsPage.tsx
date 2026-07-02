@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  getRecruitmentWorkflows,
   createRecruitmentWorkflow,
   updateRecruitmentWorkflow,
   deleteRecruitmentWorkflow,
-  getWorkflowStages,
   createWorkflowStage,
   updateWorkflowStage,
   deleteWorkflowStage,
@@ -39,6 +38,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/utils/formatDate";
+import { useRecruitmentWorkflowsList } from "../hooks/useRecruitmentWorkflowsList";
+import { useWorkflowStages } from "../hooks/useWorkflowStages";
 
 interface Workflow {
   id: number;
@@ -95,12 +96,9 @@ const STAGE_TYPE_COLORS: Record<string, string> = {
 };
 
 const RecruitmentWorkflowsPage = () => {
+  const queryClient = useQueryClient();
   const { hasPermission } = useAuth();
   const canManage = hasPermission("recruitment.workflows.manage");
-
-  const [workflows, setWorkflows] = useState<Workflow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState("10");
   const [search, setSearch] = useState("");
@@ -116,9 +114,7 @@ const RecruitmentWorkflowsPage = () => {
     is_active: true,
   });
 
-  const [stages, setStages] = useState<Stage[]>([]);
   const [stagesWorkflowId, setStagesWorkflowId] = useState<number | null>(null);
-  const [stagesLoading, setStagesLoading] = useState(false);
   const [stagesDialogOpen, setStagesDialogOpen] = useState(false);
 
   const [stageFormOpen, setStageFormOpen] = useState(false);
@@ -143,25 +139,14 @@ const RecruitmentWorkflowsPage = () => {
   const [deleteTarget, setDeleteTarget] = useState<Workflow | null>(null);
   const [deleteStageTarget, setDeleteStageTarget] = useState<Stage | null>(null);
 
-  useEffect(() => { fetchWorkflows(); }, [page, pageSize, search, isActiveFilter]);
+  const invalidateWorkflows = () => queryClient.invalidateQueries({ queryKey: ["recruitment-workflows"] });
+  const invalidateStages = () => queryClient.invalidateQueries({ queryKey: ["workflow-stages", stagesWorkflowId] });
 
-  const fetchWorkflows = async () => {
-    try {
-      setLoading(true);
-      const result = await getRecruitmentWorkflows({
-        page,
-        limit: Number(pageSize),
-        search,
-        is_active: isActiveFilter === "all" ? "" : isActiveFilter,
-      });
-      setWorkflows(result.data);
-      setTotal(result.pagination.total);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to load workflows");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: workflowsResult, isLoading } = useRecruitmentWorkflowsList(page, Number(pageSize), search, isActiveFilter);
+  const workflows = workflowsResult?.data ?? [];
+  const total = workflowsResult?.pagination?.total ?? 0;
+
+  const { data: stages = [], isLoading: stagesLoading } = useWorkflowStages(stagesWorkflowId);
 
   const openCreateDialog = () => {
     setEditId(null);
@@ -192,7 +177,7 @@ const RecruitmentWorkflowsPage = () => {
         toast.success("Workflow created");
       }
       setDialogOpen(false);
-      fetchWorkflows();
+      invalidateWorkflows();
     } catch (err: any) {
       toast.error(err.message || "Failed to save workflow");
     } finally {
@@ -207,7 +192,7 @@ const RecruitmentWorkflowsPage = () => {
       await deleteRecruitmentWorkflow(deleteTarget.id);
       toast.success("Workflow deleted");
       setDeleteTarget(null);
-      fetchWorkflows();
+      invalidateWorkflows();
     } catch (err: any) {
       toast.error(err.message || "Failed to delete workflow");
     } finally {
@@ -215,24 +200,14 @@ const RecruitmentWorkflowsPage = () => {
     }
   };
 
-  const openStagesDialog = async (wf: Workflow) => {
+  const openStagesDialog = (wf: Workflow) => {
     setStagesWorkflowId(wf.id);
     setStagesDialogOpen(true);
-    setStagesLoading(true);
-    try {
-      const data = await getWorkflowStages(wf.id);
-      setStages(data);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to load stages");
-    } finally {
-      setStagesLoading(false);
-    }
   };
 
   const closeStagesDialog = () => {
     setStagesDialogOpen(false);
     setStagesWorkflowId(null);
-    setStages([]);
     setStageFormOpen(false);
     setEditingStage(null);
   };
@@ -296,10 +271,7 @@ const RecruitmentWorkflowsPage = () => {
       }
       setStageFormOpen(false);
       setEditingStage(null);
-      if (stagesWorkflowId) {
-        const data = await getWorkflowStages(stagesWorkflowId);
-        setStages(data);
-      }
+      invalidateStages();
     } catch (err: any) {
       toast.error(err.message || "Failed to save stage");
     } finally {
@@ -314,10 +286,7 @@ const RecruitmentWorkflowsPage = () => {
       await deleteWorkflowStage(deleteStageTarget.id);
       toast.success("Stage deleted");
       setDeleteStageTarget(null);
-      if (stagesWorkflowId) {
-        const data = await getWorkflowStages(stagesWorkflowId);
-        setStages(data);
-      }
+      invalidateStages();
     } catch (err: any) {
       toast.error(err.message || "Failed to delete stage");
     } finally {
@@ -334,8 +303,7 @@ const RecruitmentWorkflowsPage = () => {
     try {
       if (stagesWorkflowId) {
         await reorderWorkflowStages(stagesWorkflowId, orderedIds);
-        const data = await getWorkflowStages(stagesWorkflowId);
-        setStages(data);
+        invalidateStages();
         toast.success("Stages reordered");
       }
     } catch (err: any) {
@@ -390,7 +358,7 @@ const RecruitmentWorkflowsPage = () => {
           </Button>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <Loader message="Loading workflows..." />
           ) : workflows.length === 0 ? (
             <EmptyState message="No workflows found. Create your first recruitment workflow template." />

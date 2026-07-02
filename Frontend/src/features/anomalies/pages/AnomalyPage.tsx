@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAnomalies, useAnomalySummary } from "@/hooks/useAnomalies";
+import { useAnomalies } from "@/hooks/useAnomalies";
+import { useAnomalySummaryQuery } from "@/hooks/useDashboardQueries";
 import {
   updateAnomalyStatus,
   runDailyScan,
@@ -104,7 +105,7 @@ const AnomalyPage = () => {
   const { data: anomaliesData, isFetching } = useAnomalies(
     page, rowsPerPage, statusFilter, severityFilter, typeFilter, moduleFilter, searchTerm,
   );
-  const { data: summary } = useAnomalySummary();
+  const { data: summary } = useAnomalySummaryQuery();
 
   const anomalies = anomaliesData?.data ?? [];
   const totalPages = anomaliesData?.pagination?.totalPages ?? 1;

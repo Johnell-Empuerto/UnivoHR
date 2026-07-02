@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -17,7 +16,7 @@ import {
 } from "recharts";
 import { TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getAnomalyTrend } from "@/services/analyticsService";
+import { useAnomalyTrend } from "../hooks/useAnomalyTrend";
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -36,27 +35,13 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const StatInsightCard = () => {
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: rawData = [], isLoading } = useAnomalyTrend(30);
+  const data = rawData.map((d: any) => ({
+    ...d,
+    date: new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+  }));
 
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        const trend = await getAnomalyTrend(30);
-        setData(trend.map((d: any) => ({
-          ...d,
-          date: new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-        })));
-      } catch (err) {
-        console.error("[StatInsightCard] fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Card className="border-border/50 shadow-sm">
         <CardHeader><Skeleton className="h-5 w-48" /><Skeleton className="h-4 w-64 mt-1" /></CardHeader>

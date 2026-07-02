@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getHrForms, createHrForm, updateHrForm, deleteHrForm } from "@/services/hrFormService";
+import { useQueryClient } from "@tanstack/react-query";
+import { createHrForm, updateHrForm, deleteHrForm } from "@/services/hrFormService";
+import { useHrFormsList } from "../hooks/useHrFormsList";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -28,16 +30,12 @@ const statusBadge = (active: boolean) => {
 
 const HrFormsPage = () => {
   const navigate = useNavigate();
-  const [forms, setForms] = useState<HrForm[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState("10");
   const [search, setSearch] = useState("");
 
   const activeFilterCount = [search].filter(Boolean).length;
-
-
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -47,13 +45,10 @@ const HrFormsPage = () => {
   const [deleteDialog, setDeleteDialog] = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  useEffect(() => { fetchForms(); }, [page, pageSize, search]);
-
-  const fetchForms = async () => {
-    try { setLoading(true); const r = await getHrForms(page, Number(pageSize), search); setForms(r.data); setTotal(r.pagination.total); }
-    catch { toast.error("Failed to load forms"); setForms([]); }
-    finally { setLoading(false); }
-  };
+  const { data: formsResult, isLoading } = useHrFormsList(page, Number(pageSize), search);
+  const forms = formsResult?.data ?? [];
+  const total = formsResult?.pagination?.total ?? 0;
+  const invalidateList = () => queryClient.invalidateQueries({ queryKey: ["hr-forms"] });
 
   const handleClearFilters = () => {
     setSearch("");
@@ -74,19 +69,19 @@ const HrFormsPage = () => {
       if (editId) { await updateHrForm(editId, formData); toast.success("Form updated"); }
       else { await createHrForm(formData); toast.success("Form created"); }
       setDialogOpen(false);
-      fetchForms();
+      invalidateList();
     } catch (err: any) { toast.error(err.message || "Save failed"); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id: number) => {
-    try { setDeleteLoading(true); await deleteHrForm(id); toast.success("Form deleted"); setDeleteDialog(null); fetchForms(); }
+    try { setDeleteLoading(true); await deleteHrForm(id); toast.success("Form deleted"); setDeleteDialog(null); invalidateList(); }
     catch (err: any) { toast.error(err.message || "Delete failed"); setDeleteDialog(null); }
     finally { setDeleteLoading(false); }
   };
 
   const handleToggleActive = async (f: HrForm) => {
-    try { await updateHrForm(f.id, { is_active: !f.is_active }); toast.success(f.is_active ? "Form deactivated" : "Form activated"); fetchForms(); }
+    try { await updateHrForm(f.id, { is_active: !f.is_active }); toast.success(f.is_active ? "Form deactivated" : "Form activated"); invalidateList(); }
     catch (err: any) { toast.error(err.message || "Toggle failed"); }
   };
 
@@ -131,7 +126,7 @@ const HrFormsPage = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <Loader message="Loading forms..." />
           ) : forms.length === 0 ? (
             <EmptyState message="No forms found" description="Create your first form to get started." action={{ label: "Create Form", onClick: handleOpenCreate }} />

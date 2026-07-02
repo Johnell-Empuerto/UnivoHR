@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { getStatusBadgeClass } from "@/utils/statusBadge";
+import { formatCurrency } from "@/utils/formatCurrency";
 import { Button } from "@/components/ui/button";
 import { TablePagination } from "@/components/shared/TablePagination";
 import {
@@ -56,15 +57,6 @@ interface PayrollTableProps {
   onRowsPerPageChange: (rows: number) => void;
 }
 
-//  CURRENCY FORMATTER - FIXES DECIMAL ISSUES
-const formatCurrency = (value: number) => {
-  return Number(value || 0).toLocaleString("en-PH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-};
-
-//  Helper to format employee name
 const formatEmployeeName = (record: PayrollRecord) => {
   if (record.first_name && record.last_name) {
     return `${record.first_name} ${record.middle_name || ""} ${record.last_name}${record.suffix ? `, ${record.suffix}` : ""}`.trim();
