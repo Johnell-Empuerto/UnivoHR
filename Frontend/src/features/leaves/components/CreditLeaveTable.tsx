@@ -1,5 +1,5 @@
 // features/leaves/components/CreditLeaveTable.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -122,7 +122,7 @@ const CreditLeaveTable = () => {
     );
   };
 
-  const renderBalanceCards = () => {
+  const balanceCards = useMemo(() => {
     const balances = credits?.balances || [];
     if (balances.length > 0) {
       const sorted = [...balances].sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99));
@@ -220,7 +220,7 @@ const CreditLeaveTable = () => {
         </Card>
       </>
     );
-  };
+  }, [credits]);
 
   if (loading) {
     return (
@@ -242,7 +242,7 @@ const CreditLeaveTable = () => {
     <div className="space-y-6">
       {/* Credits Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {renderBalanceCards()}
+        {balanceCards}
       </div>
 
       {/* Transaction History */}

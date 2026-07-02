@@ -16,9 +16,9 @@ import {
   Clock,
   Trash2,
 } from "lucide-react";
+import { memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { formatDate } from "@/utils/formatDate";
 import EmptyState from "@/components/shared/EmptyState";
 import { TablePagination } from "@/components/shared/TablePagination";
@@ -63,43 +63,27 @@ const getStatusBadge = (status: OvertimeStatus) => {
   switch (status) {
     case "PENDING":
       return (
-        <Badge
-          variant="secondary"
-          className={getStatusBadgeClass("warning")}
-        >
+        <Badge variant="secondary">
           <Clock className="h-3 w-3 mr-1" />
           PENDING
         </Badge>
       );
     case "APPROVED":
       return (
-        <Badge
-          variant="default"
-          className={getStatusBadgeClass("success")}
-        >
+        <Badge variant="default">
           <CheckCircle className="h-3 w-3 mr-1" />
           APPROVED
         </Badge>
       );
     case "REJECTED":
       return (
-        <Badge
-          variant="destructive"
-          className={getStatusBadgeClass("danger")}
-        >
+        <Badge variant="destructive">
           <XCircle className="h-3 w-3 mr-1" />
           REJECTED
         </Badge>
       );
     default:
-      return (
-        <Badge
-          variant="secondary"
-          className={getStatusBadgeClass("neutral")}
-        >
-          {status}
-        </Badge>
-      );
+      return <Badge variant="secondary">{status}</Badge>;
   }
 };
 
@@ -235,4 +219,4 @@ const OvertimeTable = ({
   );
 };
 
-export default OvertimeTable;
+export default memo(OvertimeTable);

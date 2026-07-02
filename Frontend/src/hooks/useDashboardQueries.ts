@@ -41,7 +41,7 @@ export const useEmploymentStats = (enabled = true) =>
   useQuery({
     queryKey: ["employees", "stats"],
     queryFn: getEmploymentStats,
-    staleTime: 60 * 1000,
+    staleTime: 5 * 60 * 1000,
     enabled,
   });
 
@@ -49,7 +49,7 @@ export const useDueForRegularization = (enabled = true) =>
   useQuery({
     queryKey: ["employees", "due-for-regularization"],
     queryFn: getDueForRegularization,
-    staleTime: 60 * 1000,
+    staleTime: 5 * 60 * 1000,
     enabled,
   });
 

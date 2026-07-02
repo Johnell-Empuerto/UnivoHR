@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, Pencil, Plus, Upload } from "lucide-react";
-import { useState } from "react";
+import { useState, memo } from "react";
 import EmployeeDrawer from "./EmployeeDrawer";
 import BulkImportDialog from "./BulkImportDialog";
 import { Button } from "@/components/ui/button";
@@ -77,41 +77,13 @@ const EmployeeTable = ({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "ACTIVE":
-        return (
-          <Badge
-            variant="default"
-            className={getStatusBadgeClass("success")}
-          >
-            ACTIVE
-          </Badge>
-        );
+        return <Badge variant="default">ACTIVE</Badge>;
       case "RESIGNED":
-        return (
-          <Badge
-            variant="destructive"
-            className={getStatusBadgeClass("danger")}
-          >
-            RESIGNED
-          </Badge>
-        );
+        return <Badge variant="destructive">RESIGNED</Badge>;
       case "TERMINATED":
-        return (
-          <Badge
-            variant="secondary"
-            className={getStatusBadgeClass("neutral")}
-          >
-            TERMINATED
-          </Badge>
-        );
+        return <Badge variant="secondary">TERMINATED</Badge>;
       default:
-        return (
-          <Badge
-            variant="secondary"
-            className={getStatusBadgeClass("warning")}
-          >
-            {status}
-          </Badge>
-        );
+        return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
@@ -266,4 +238,4 @@ const EmployeeTable = ({
   );
 };
 
-export default EmployeeTable;
+export default memo(EmployeeTable);

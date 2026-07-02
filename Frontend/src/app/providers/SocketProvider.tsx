@@ -1,5 +1,5 @@
 // app/providers/SocketProvider.tsx
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useMemo } from "react";
 import { io, Socket } from "socket.io-client";
 import { useAuth } from "./AuthProvider";
 import { toast } from "sonner";
@@ -111,8 +111,13 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [isAuth, user?.id, user?.role]);
 
+  const value = useMemo(
+    () => ({ socket, lastNotification }),
+    [socket, lastNotification],
+  );
+
   return (
-    <SocketContext.Provider value={{ socket, lastNotification }}>
+    <SocketContext.Provider value={value}>
       {children}
     </SocketContext.Provider>
   );

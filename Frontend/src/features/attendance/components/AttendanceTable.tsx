@@ -6,8 +6,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { memo } from "react";
 import { Badge } from "@/components/ui/badge";
-import { getStatusBadgeClass } from "@/utils/statusBadge";
 import { Button } from "@/components/ui/button";
 import { FileClock } from "lucide-react";
 import EmptyState from "@/components/shared/EmptyState";
@@ -46,6 +46,42 @@ type AttendanceTableProps = {
   onRequestModification?: (attendance: Attendance) => void;
 };
 
+const getFullName = (item: Attendance) => {
+  if (item.first_name && item.last_name) {
+    return `${item.first_name} ${item.middle_name || ""} ${item.last_name}${item.suffix ? `, ${item.suffix}` : ""}`.trim();
+  }
+  return item.name || `${item.first_name} ${item.last_name}`.trim();
+};
+
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case "PRESENT":
+      return <Badge variant="default">PRESENT</Badge>;
+    case "LATE":
+      return (
+        <Badge
+          variant="secondary"
+          className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/30"
+        >
+          LATE
+        </Badge>
+      );
+    case "ABSENT":
+      return <Badge variant="destructive">ABSENT</Badge>;
+    case "LEAVE":
+      return (
+        <Badge
+          variant="outline"
+          className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+        >
+          ON LEAVE
+        </Badge>
+      );
+    default:
+      return <Badge variant="secondary">{status}</Badge>;
+  }
+};
+
 const AttendanceTable = ({
   data,
   currentPage,
@@ -56,67 +92,6 @@ const AttendanceTable = ({
   onRowsPerPageChange,
   onRequestModification,
 }: AttendanceTableProps) => {
-  // Helper function to get full name
-  const getFullName = (item: Attendance) => {
-    if (item.first_name && item.last_name) {
-      return `${item.first_name} ${item.middle_name || ""} ${item.last_name}${item.suffix ? `, ${item.suffix}` : ""}`.trim();
-    }
-    return item.name || `${item.first_name} ${item.last_name}`.trim();
-  };
-
-  // Updated status badge styling - matching PayrollTable Badge pattern
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "PRESENT":
-        return (
-          <Badge
-            variant="default"
-            className={getStatusBadgeClass("success")}
-          >
-            PRESENT
-          </Badge>
-        );
-      case "LATE":
-        return (
-          <Badge
-            variant="secondary"
-            className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/30"
-          >
-            LATE
-          </Badge>
-        );
-      case "ABSENT":
-        return (
-          <Badge
-            variant="destructive"
-            className={getStatusBadgeClass("danger")}
-          >
-            ABSENT
-          </Badge>
-        );
-      case "LEAVE":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30"
-          >
-            ON LEAVE
-          </Badge>
-        );
-      default:
-        return (
-          <Badge
-            variant="secondary"
-            className={getStatusBadgeClass("neutral")}
-          >
-            {status}
-          </Badge>
-        );
-    }
-  };
-
-
-
   return (
     <div className="rounded-md border">
       <Table>
@@ -237,4 +212,4 @@ const AttendanceTable = ({
   );
 };
 
-export default AttendanceTable;
+export default memo(AttendanceTable);

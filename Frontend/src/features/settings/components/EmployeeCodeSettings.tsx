@@ -41,7 +41,8 @@ const EmployeeCodeSettings = () => {
     mutationFn: ({ key, value }: { key: string; value: string }) => updateSetting(key, value),
     onSuccess: (_, { key, value }) => {
       setSettings((prev) => ({ ...prev, [key]: value }));
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      queryClient.invalidateQueries({ queryKey: ["settings", key] });
+      queryClient.invalidateQueries({ queryKey: ["settings", "all"] });
     },
     onError: (_, { key }) => toast.error(`Failed to save ${key}`),
   });
@@ -55,7 +56,10 @@ const EmployeeCodeSettings = () => {
       await Promise.all(promises);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      SETTINGS_KEYS.forEach((key) => {
+        queryClient.invalidateQueries({ queryKey: ["settings", key] });
+      });
+      queryClient.invalidateQueries({ queryKey: ["settings", "all"] });
       toast.success("Employee code settings saved successfully");
     },
     onError: () => toast.error("Failed to save employee code settings"),

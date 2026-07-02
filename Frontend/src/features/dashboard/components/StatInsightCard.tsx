@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useMemo, memo } from "react";
 import {
   Area,
   AreaChart,
@@ -36,10 +37,17 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 const StatInsightCard = () => {
   const { data: rawData = [], isLoading } = useAnomalyTrend(30);
-  const data = rawData.map((d: any) => ({
-    ...d,
-    date: new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-  }));
+
+  const { data, total, highTotal, trend } = useMemo(() => {
+    const d = rawData.map((item: any) => ({
+      ...item,
+      date: new Date(item.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    }));
+    const t = d.reduce((s: number, item: any) => s + item.total, 0);
+    const h = d.reduce((s: number, item: any) => s + item.high, 0);
+    const tr = d.length >= 2 ? d[d.length - 1].total - d[0].total : 0;
+    return { data: d, total: t, highTotal: h, trend: tr };
+  }, [rawData]);
 
   if (isLoading) {
     return (
@@ -49,10 +57,6 @@ const StatInsightCard = () => {
       </Card>
     );
   }
-
-  const total = data.reduce((s, d) => s + d.total, 0);
-  const highTotal = data.reduce((s, d) => s + d.high, 0);
-  const trend = data.length >= 2 ? data[data.length - 1].total - data[0].total : 0;
 
   return (
     <Card className="border-border/50 shadow-sm">
@@ -112,4 +116,4 @@ const StatInsightCard = () => {
   );
 };
 
-export default StatInsightCard;
+export default memo(StatInsightCard);

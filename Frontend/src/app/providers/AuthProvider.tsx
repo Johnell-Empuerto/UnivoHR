@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { jwtDecode } from "jwt-decode";
 import { setOnTokenRefreshed, clearSessionExpiredFlag } from "@/services/api";
 import { logoutAPI } from "@/services/authService";
@@ -74,7 +74,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     [user?.role, permissions],
   );
 
-  const login = (data: LoginData) => {
+  const login = useCallback((data: LoginData) => {
     localStorage.setItem("token", data.token);
     if (data.refreshToken) {
       localStorage.setItem("refreshToken", data.refreshToken);
@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setPermissions(perms);
 
     setIsAuth(true);
-  };
+  }, []);
 
   const [showSessionExpired, setShowSessionExpired] = useState(false);
   const sessionExpiredRef = useRef(false);
@@ -151,8 +151,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => window.removeEventListener("auth:force-logout", handleForceLogout);
   }, []);
 
+  const value = useMemo(
+    () => ({ isAuth, user, permissions, login, logout, hasPermission }),
+    [isAuth, user, permissions, login, logout, hasPermission],
+  );
+
   return (
-    <AuthContext.Provider value={{ isAuth, user, permissions, login, logout, hasPermission }}>
+    <AuthContext.Provider value={value}>
       {children}
 
       <Dialog open={showSessionExpired} onOpenChange={() => {}}>

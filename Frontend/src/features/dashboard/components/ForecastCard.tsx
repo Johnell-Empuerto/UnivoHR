@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useMemo, memo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, DollarSign, Clock, UserX } from "lucide-react";
@@ -40,6 +41,16 @@ const metricConfig: Record<string, { label: string; icon: React.ReactNode; color
 const ForecastCard = () => {
   const { data: forecasts = [], isLoading } = useLatestForecasts();
 
+  const { grouped, metrics } = useMemo(() => {
+    const g = forecasts.reduce((acc, f) => {
+      if (!acc[f.metric_name]) acc[f.metric_name] = [];
+      acc[f.metric_name].push(f);
+      return acc;
+    }, {} as Record<string, any[]>);
+    const m = Object.keys(g).filter((k) => metricConfig[k]);
+    return { grouped: g, metrics: m };
+  }, [forecasts]);
+
   if (isLoading) {
     return (
       <Card className="border-border/50 shadow-sm">
@@ -48,14 +59,6 @@ const ForecastCard = () => {
       </Card>
     );
   }
-
-  const grouped = forecasts.reduce((acc, f) => {
-    if (!acc[f.metric_name]) acc[f.metric_name] = [];
-    acc[f.metric_name].push(f);
-    return acc;
-  }, {} as Record<string, any[]>);
-
-  const metrics = Object.keys(grouped).filter((k) => metricConfig[k]);
 
   if (metrics.length === 0) return null;
 
@@ -99,4 +102,4 @@ const ForecastCard = () => {
   );
 };
 
-export default ForecastCard;
+export default memo(ForecastCard);

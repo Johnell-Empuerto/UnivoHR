@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getMyNotifications } from "@/services/notificationService";
+import { keepPreviousData } from "@tanstack/react-query";
 
 export const useNotifications = (page: number, pageSize: number, userId?: number) => {
   return useQuery({
@@ -7,5 +8,6 @@ export const useNotifications = (page: number, pageSize: number, userId?: number
     queryFn: () => getMyNotifications(page, pageSize),
     staleTime: 10 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
+    placeholderData: keepPreviousData,
   });
 };

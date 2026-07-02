@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { memo } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { Button } from "@/components/ui/button";
@@ -154,4 +155,4 @@ const UsersTable = ({
   );
 };
 
-export default UsersTable;
+export default memo(UsersTable);

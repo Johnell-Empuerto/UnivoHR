@@ -41,7 +41,8 @@ const CompanyTimezoneSettings = () => {
   const updateTimezoneMutation = useMutation({
     mutationFn: (value: string) => updateSetting("company_timezone", value),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      queryClient.invalidateQueries({ queryKey: ["settings", "company_timezone"] });
+      queryClient.invalidateQueries({ queryKey: ["settings", "all"] });
     },
   });
 

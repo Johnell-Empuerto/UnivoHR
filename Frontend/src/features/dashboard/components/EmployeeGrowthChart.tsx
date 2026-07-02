@@ -47,10 +47,13 @@ export function EmployeeGrowthChart({ data }: EmployeeGrowthChartProps) {
     return data.slice(-monthsToShow);
   }, [data, timeRange]);
 
-  const chartData = filteredData.map((item) => ({
-    date: item.month,
-    employees: item.total,
-  }));
+  const chartData = React.useMemo(
+    () => filteredData.map((item) => ({
+      date: item.month,
+      employees: item.total,
+    })),
+    [filteredData],
+  );
 
   return (
     <Card className="border-border/50 shadow-sm">

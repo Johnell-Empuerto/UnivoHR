@@ -1,5 +1,5 @@
 // features/leaves/components/EmployeeCreditsTable.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -75,6 +75,20 @@ interface LeaveCredits {
   emergency_leave_remaining?: number;
 }
 
+const getVal = (employee: any, code: string, field: 'total_days' | 'used_days' | 'remaining_days'): number => {
+  const balances = employee.balances || [];
+  const bal = balances.find((b: any) => b.code === code);
+  if (bal) return bal[field] ?? 0;
+  const flatMap: Record<string, Record<string, string>> = {
+    SL: { total_days: 'sick_leave', used_days: 'used_sick_leave', remaining_days: 'sick_leave_remaining' },
+    VL: { total_days: 'vacation_leave', used_days: 'used_vacation_leave', remaining_days: 'vacation_leave_remaining' },
+    ML: { total_days: 'maternity_leave', used_days: 'used_maternity_leave', remaining_days: 'maternity_leave_remaining' },
+    EL: { total_days: 'emergency_leave', used_days: 'used_emergency_leave', remaining_days: 'emergency_leave_remaining' },
+  };
+  const flatField = flatMap[code]?.[field];
+  return flatField ? (employee as any)[flatField] ?? 0 : 0;
+};
+
 const EmployeeCreditsTable = () => {
   const [credits, setCredits] = useState<LeaveCredits[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,7 +102,10 @@ const EmployeeCreditsTable = () => {
 
   // Leave types for dynamic columns
   const { data: leaveTypesRaw = [] } = useEnabledLeaveTypes();
-  const leaveTypes = leaveTypesRaw.filter((t: any) => t.include_in_credits !== false);
+  const leaveTypes = useMemo(
+    () => leaveTypesRaw.filter((t: any) => t.include_in_credits !== false),
+    [leaveTypesRaw],
+  );
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -175,10 +192,10 @@ const EmployeeCreditsTable = () => {
     setCurrentPage(1);
   };
 
-  const getDepartmentOptions = () => {
+  const departmentOptions = useMemo(() => {
     const departments = new Set(credits.map((c) => c.department));
     return Array.from(departments);
-  };
+  }, [credits]);
 
 
 
@@ -217,7 +234,7 @@ const EmployeeCreditsTable = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Departments</SelectItem>
-                {getDepartmentOptions().map((dept) => (
+                {departmentOptions.map((dept) => (
                   <SelectItem key={dept} value={dept}>
                     {dept}
                   </SelectItem>
@@ -275,19 +292,6 @@ const EmployeeCreditsTable = () => {
                 </TableHeader>
                 <TableBody>
                   {credits.map((employee) => {
-                    const getVal = (code: string, field: 'total_days' | 'used_days' | 'remaining_days'): number => {
-                      const balances = employee.balances || [];
-                      const bal = balances.find((b: any) => b.code === code);
-                      if (bal) return bal[field] ?? 0;
-                      const flatMap: Record<string, Record<string, string>> = {
-                        SL: { total_days: 'sick_leave', used_days: 'used_sick_leave', remaining_days: 'sick_leave_remaining' },
-                        VL: { total_days: 'vacation_leave', used_days: 'used_vacation_leave', remaining_days: 'vacation_leave_remaining' },
-                        ML: { total_days: 'maternity_leave', used_days: 'used_maternity_leave', remaining_days: 'maternity_leave_remaining' },
-                        EL: { total_days: 'emergency_leave', used_days: 'used_emergency_leave', remaining_days: 'emergency_leave_remaining' },
-                      };
-                      const flatField = flatMap[code]?.[field];
-                      return flatField ? (employee as any)[flatField] ?? 0 : 0;
-                    };
                     return (
                       <TableRow key={employee.id}>
                         <TableCell>
@@ -303,9 +307,9 @@ const EmployeeCreditsTable = () => {
                         </TableCell>
                         <TableCell>{employee.department}</TableCell>
                         {leaveTypes.filter((lt: any) => lt.code !== 'NP').map((lt: any) => {
-                          const total = getVal(lt.code, 'total_days');
-                          const used = getVal(lt.code, 'used_days');
-                          const rem = getVal(lt.code, 'remaining_days');
+                          const total = getVal(employee, lt.code, 'total_days');
+                          const used = getVal(employee, lt.code, 'used_days');
+                          const rem = getVal(employee, lt.code, 'remaining_days');
                           return (
                             <TableCell key={lt.code} className="text-center">
                               <div className="text-sm">

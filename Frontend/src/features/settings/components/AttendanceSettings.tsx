@@ -84,7 +84,8 @@ const AttendanceSettings = () => {
         key: "enable_web_clock_in_out",
         value: result.value ? "true" : "false",
       });
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      queryClient.invalidateQueries({ queryKey: ["settings", "enable_web_clock_in_out"] });
+      queryClient.invalidateQueries({ queryKey: ["settings", "all"] });
       toast.success(
         `Web Clock In/Out ${result.value ? "enabled" : "disabled"}`,
       );

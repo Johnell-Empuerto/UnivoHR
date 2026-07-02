@@ -47,10 +47,13 @@ export function AbsentTrendChart({ data }: AbsentTrendChartProps) {
     return data.slice(-monthsToShow);
   }, [data, timeRange]);
 
-  const chartData = filteredData.map((item) => ({
-    date: item.month,
-    absent: item.absent,
-  }));
+  const chartData = React.useMemo(
+    () => filteredData.map((item) => ({
+      date: item.month,
+      absent: item.absent,
+    })),
+    [filteredData],
+  );
 
   return (
     <Card className="border-border/50 shadow-sm">

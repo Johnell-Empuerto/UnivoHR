@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, memo } from "react";
 import { formatDateLocal, formatTimeLocal, getTimezoneAbbr } from "@/utils/formatDate";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -143,7 +143,7 @@ const DrilldownDrawer = ({ open, onClose, module, title, defaultParams }: Drilld
     }
   };
 
-  const formatValue = (row: Record<string, unknown>, key: string): React.ReactNode => {
+  const formatValue = useCallback((row: Record<string, unknown>, key: string): React.ReactNode => {
     const v = row[key];
     if (v === null || v === undefined) return "—";
     if (key === "net_salary") return `₱${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
@@ -168,7 +168,7 @@ const DrilldownDrawer = ({ open, onClose, module, title, defaultParams }: Drilld
       return formatDateLocal(v as string);
     }
     return String(v);
-  };
+  }, []);
 
   const severityColor = (s: unknown): string => {
     if (s === "HIGH") return "text-red-600 font-medium";
@@ -250,4 +250,4 @@ const DrilldownDrawer = ({ open, onClose, module, title, defaultParams }: Drilld
   );
 };
 
-export default DrilldownDrawer;
+export default memo(DrilldownDrawer);
