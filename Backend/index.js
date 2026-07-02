@@ -1,5 +1,6 @@
 const app = require("./app");
 const pool = require("./config/db");
+const redisClient = require("./config/redis");
 const port = 3002;
 const http = require("http");
 const server = http.createServer(app);
@@ -24,15 +25,17 @@ startDeviceProcessingWorker().catch((err) => {
   logger.error({ err }, "[DeviceWorker] Failed to start worker");
 });
 
-// Graceful shutdown - clean up queues
+// Graceful shutdown - clean up queues and connections
 const shutdown = async (signal) => {
-  logger.info(`${signal} received, closing queues...`);
+  logger.info(`${signal} received, closing connections...`);
   await Promise.allSettled([
     queueService.payslipQueue.close(),
     queueService.hrFormQueue.close(),
     deviceProcessingQueue.deviceProcessingQueue.close(),
+    redisClient.quit(),
+    pool.end(),
   ]);
-  logger.info("All queues closed. Exiting.");
+  logger.info("All connections closed. Exiting.");
   process.exit(0);
 };
 
