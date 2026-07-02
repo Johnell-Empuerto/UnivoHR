@@ -89,6 +89,6 @@ describe("errorHandler", () => {
 
     errorHandler(err, req, res, next);
 
-    expect(res.json).toHaveBeenCalledWith({ message: "sensitive detail" });
+    expect(res.json).toHaveBeenCalledWith({ correlationId: "none", message: "sensitive detail" });
   });
 });

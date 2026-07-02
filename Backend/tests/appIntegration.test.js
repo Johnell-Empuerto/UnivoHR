@@ -78,11 +78,11 @@ describe("GET /api/health (public)", () => {
     expect(Number.isInteger(res.body.uptime)).toBe(true);
   });
 
-  it("has environment field", async () => {
+  it("has version field", async () => {
     const res = await request(app).get("/api/health");
-    expect(res.body.environment).toBeDefined();
-    expect(typeof res.body.environment).toBe("string");
-    expect(res.body.environment.length).toBeGreaterThan(0);
+    expect(res.body.version).toBeDefined();
+    expect(typeof res.body.version).toBe("string");
+    expect(res.body.version.length).toBeGreaterThan(0);
   });
 
   it("has required fields", async () => {
@@ -91,21 +91,18 @@ describe("GET /api/health (public)", () => {
     expect(keys).toContain("status");
     expect(keys).toContain("timestamp");
     expect(keys).toContain("uptime");
-    expect(keys).toContain("environment");
     expect(keys).toContain("version");
-    expect(keys).toContain("dependencies");
-    expect(keys).toContain("dependencies.postgresql");
+    expect(keys).toContain("database");
+    expect(keys).toContain("redis");
     expect(keys).toContain("memory");
   });
 
   it("includes dependency status", async () => {
     const res = await request(app).get("/api/health");
-    expect(res.body.dependencies).toBeDefined();
-    expect(res.body.dependencies.postgresql).toBeDefined();
-    expect(res.body.dependencies.redis).toBeDefined();
-    expect(["healthy", "degraded", "unhealthy", "disconnected"]).toContain(
-      res.body.dependencies.postgresql.status,
-    );
+    expect(res.body.database).toBeDefined();
+    expect(res.body.redis).toBeDefined();
+    expect(["connected", "error"]).toContain(res.body.database.status);
+    expect(["connected", "error"]).toContain(res.body.redis.status);
   });
 });
 
