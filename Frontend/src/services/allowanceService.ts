@@ -2,7 +2,7 @@ import api from "./api";
 
 export const getAllowanceTypes = async () => {
   const response = await api.get("/allowances/types");
-  return response.data;
+  return response.data.data ?? [];
 };
 
 export const createAllowanceType = async (data: Record<string, unknown>) => {
@@ -22,7 +22,7 @@ export const deleteAllowanceType = async (id: number) => {
 
 export const getEmployeeAllowances = async (employeeId: number) => {
   const response = await api.get(`/allowances/employee/${employeeId}`);
-  return response.data;
+  return response.data.data ?? [];
 };
 
 export const createEmployeeAllowance = async (data: Record<string, unknown>) => {
