@@ -1,4 +1,4 @@
-import { AlertTriangle, Info } from "lucide-react";
+import { AlertTriangle, Info, Calculator } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -117,6 +117,10 @@ const PayrollAdminDocs = () => (
                 <li>Approved overtime hours × overtime rate</li>
                 <li>Calendar day types (regular, holidays, special days) and pay multipliers from System Settings → Pay Rules</li>
                 <li>Government deductions and late deduction rules per employee (Settings tab)</li>
+                <li>Enterprise payroll: auto-computed SSS, PhilHealth, Pag-IBIG from bracket tables</li>
+                <li>Enterprise payroll: BIR TRAIN withholding tax based on taxable income</li>
+                <li>Enterprise payroll: per-employee allowances (total_allowances added to taxable income)</li>
+                <li>Enterprise payroll: employer-side contribution tracking (SSS, PhilHealth, Pag-IBIG)</li>
                 <li>Leave conversion amounts recorded for the employee, when applicable</li>
               </ul>
               <p className="text-xs">
@@ -125,6 +129,76 @@ const PayrollAdminDocs = () => (
             </div>
 
             
+          </div>
+
+          {/* Phase 4 — Enterprise Payroll */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-base flex items-center gap-2">
+              <Calculator className="h-4 w-4 text-primary" />
+              Enterprise Payroll — Allowances, Approvals &amp; Government Contributions
+            </h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Phase 4 adds automatic government contribution bracket lookup,
+              per-employee allowance management, and a payroll approval workflow.
+              These features appear as new tabs in the Payroll page for users
+              with the required permissions.
+            </p>
+
+            {/* Allowances */}
+            <h4 className="font-semibold text-sm">Allowances tab</h4>
+            <ol className="space-y-2 list-decimal list-inside text-sm text-muted-foreground mb-3">
+              <li className="leading-relaxed pl-1">
+                Define <strong>Allowance Types</strong> (name, default amount,
+                taxable/recurring flag, frequency).
+              </li>
+              <li className="leading-relaxed pl-1">
+                Assign allowances to specific employees with custom amounts
+                and effective/end dates.
+              </li>
+              <li className="leading-relaxed pl-1">
+                When payroll is generated, allowances are auto-summed into{" "}
+                <strong>Total Allowances</strong> and added to taxable income.
+              </li>
+            </ol>
+
+            {/* Approvals */}
+            <h4 className="font-semibold text-sm">Approvals tab</h4>
+            <ol className="space-y-2 list-decimal list-inside text-sm text-muted-foreground mb-3">
+              <li className="leading-relaxed pl-1">
+                View all generated payroll batches grouped by status (PENDING,
+                APPROVED, REJECTED).
+              </li>
+              <li className="leading-relaxed pl-1">
+                Request approval for a batch — attach remarks explaining the
+                payroll run.
+              </li>
+              <li className="leading-relaxed pl-1">
+                <strong>Approve</strong> or <strong>Reject</strong> a pending
+                request. Approving a batch automatically marks all payroll
+                records in that batch as PAID.
+              </li>
+            </ol>
+
+            {/* Contribution Tables */}
+            <h4 className="font-semibold text-sm">Contributions tab</h4>
+            <ol className="space-y-2 list-decimal list-inside text-sm text-muted-foreground">
+              <li className="leading-relaxed pl-1">
+                View read-only government contribution tables: <strong>SSS</strong>{" "}
+                (bracket table, 500+ rows), <strong>PhilHealth</strong>,{" "}
+                <strong>Pag-IBIG</strong>, and <strong>BIR Tax</strong> (TRAIN
+                law withholding tax brackets).
+              </li>
+              <li className="leading-relaxed pl-1">
+                Tables are auto-seeded with official 2024–2025 Philippine rates
+                and updates require a database migration.
+              </li>
+              <li className="leading-relaxed pl-1">
+                Payroll generation now automatically computes SSS, PhilHealth,
+                Pag-IBIG, and withholding tax from these brackets — no need to
+                enter manual deduction amounts (manual entries still override
+                auto-computed values if higher).
+              </li>
+            </ol>
           </div>
 
           <Separator />
@@ -138,7 +212,8 @@ const PayrollAdminDocs = () => (
               <strong>Salary Breakdown</strong>: monthly salary, this cutoff
               earnings, overtime pay, leave conversion, late and absent
               deductions, itemized government contributions (SSS, PhilHealth,
-              Pag-IBIG, tax, loan, other when configured), and net salary.
+              Pag-IBIG, withholding tax, loan, other when configured),
+              allowances, employer-side contributions, and net salary.
             </p>
             <ol className="space-y-2 list-decimal list-inside text-sm text-muted-foreground">
               <li className="leading-relaxed pl-1">
@@ -307,9 +382,33 @@ const PayrollAdminDocs = () => (
               <li className="text-sm text-blue-800/90 dark:text-blue-300/90 flex gap-2">
                 <span className="text-blue-500 shrink-0">•</span>
                 <span>
-                  This system does not include a separate “bonus” line item in
+                  This system does not include a separate "bonus" line item in
                   payroll tables; only basic pay, overtime, leave conversion, and
                   listed deductions appear.
+                </span>
+              </li>
+              <li className="text-sm text-blue-800/90 dark:text-blue-300/90 flex gap-2">
+                <span className="text-blue-500 shrink-0">•</span>
+                <span>
+                  <strong>Enterprise Payroll</strong> automatically computes SSS,
+                  PhilHealth, Pag-IBIG, and withholding tax from government bracket
+                  tables. Manual deduction amounts still work — the system uses the
+                  higher of manual vs. auto-computed value.
+                </span>
+              </li>
+              <li className="text-sm text-blue-800/90 dark:text-blue-300/90 flex gap-2">
+                <span className="text-blue-500 shrink-0">•</span>
+                <span>
+                  <strong>Allowances</strong> are defined in the Allowances tab and
+                  assigned per employee. They are included in taxable income and
+                  shown in the Salary Breakdown.
+                </span>
+              </li>
+              <li className="text-sm text-blue-800/90 dark:text-blue-300/90 flex gap-2">
+                <span className="text-blue-500 shrink-0">•</span>
+                <span>
+                  <strong>Payroll Approval</strong> links to batch status —
+                  approving a batch automatically marks all its records as PAID.
                 </span>
               </li>
             </ul>
@@ -410,6 +509,29 @@ const PayrollAdminDocs = () => (
                 <span>
                   <strong>Final pay preview failed</strong> — Employee may
                   already be processed, or separation dates may be incomplete.
+                </span>
+              </li>
+              <li className="text-sm text-amber-900/90 dark:text-amber-300/90 flex gap-2">
+                <span className="text-amber-500 shrink-0">•</span>
+                <span>
+                  <strong>Government contribution is 0.00</strong> — Run the Phase 4
+                  migration (053_enterprise_payroll_phase4.sql) to create the bracket
+                  tables and seed data.
+                </span>
+              </li>
+              <li className="text-sm text-amber-900/90 dark:text-amber-300/90 flex gap-2">
+                <span className="text-amber-500 shrink-0">•</span>
+                <span>
+                  <strong>Allowances not showing in payroll</strong> — Define
+                  allowance types and assign them to employees in the Allowances tab
+                  before generating payroll.
+                </span>
+              </li>
+              <li className="text-sm text-amber-900/90 dark:text-amber-300/90 flex gap-2">
+                <span className="text-amber-500 shrink-0">•</span>
+                <span>
+                  <strong>Payroll approval not available</strong> — Verify your
+                  account has the required permissions for payroll settings.
                 </span>
               </li>
             </ul>

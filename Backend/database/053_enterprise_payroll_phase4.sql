@@ -595,7 +595,7 @@ SELECT 166667.01, 666667, 33541.80, 0.3000, 0
 WHERE NOT EXISTS (SELECT 1 FROM withholding_tax_brackets WHERE salary_from = 166667.01);
 
 INSERT INTO withholding_tax_brackets (salary_from, salary_to, tax_base, percentage_over_base, exempt_amount)
-SELECT 666667.01, 999999999.99, 183541.80, 0.3500, 0
+SELECT 666667.01, 99999999.99, 183541.80, 0.3500, 0
 WHERE NOT EXISTS (SELECT 1 FROM withholding_tax_brackets WHERE salary_from = 666667.01);
 
 -- 6. Allowance Tables
