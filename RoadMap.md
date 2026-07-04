@@ -317,6 +317,7 @@ These modules were deferred from automated React Query migration due to complex 
 - **Allowance service fix**: unwrap `response.data.data` so `allowanceTypes` / `employeeAllowances` are arrays, not objects.
 - **Contribution tables made editable**: full CRUD backend (POST/PUT/DELETE per table) + frontend Edit/Add/Delete with confirmation guard dialogs and salary range validation.
 - **Pagination added**: per-tab pagination (25 rows default) in `ContributionTablesPanel` for SSS (500+ rows), PhilHealth, Pag-IBIG, BIR Tax. Client-side pagination (10 rows default) added to Allowance Types table in `AllowanceSettings`.
+- **🔥 Critical TDZ bug fix in `payroll.model.js`**: Enterprise auto-computation block was placed BEFORE variable declarations (`monthly_salary`, `basic_pay`, `overtime_pay`, `night_differential_pay`), causing silent ReferenceErrors in try-catch → bracket tables were never consulted, auto-computed contributions always returned 0, and `Math.max(manual, auto)` always picked the manual value. **Fix**: Moved entire enterprise computation block + `total_deductions` to after `basic_pay` is computed, and declared `taxableIncome` outside the try block to fix its scope bug. Bracket tables now actually work.
 
 Estimated Payroll Completion: **~90%**
 

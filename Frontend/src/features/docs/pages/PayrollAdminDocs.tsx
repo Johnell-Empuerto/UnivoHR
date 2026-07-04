@@ -534,6 +534,16 @@ const PayrollAdminDocs = () => (
                   account has the required permissions for payroll settings.
                 </span>
               </li>
+              <li className="text-sm text-amber-900/90 dark:text-amber-300/90 flex gap-2">
+                <span className="text-amber-500 shrink-0">•</span>
+                <span>
+                  <strong>Government contributions always 0 after migration</strong> —
+                  A Temporal Dead Zone bug in payroll.model.js placed the auto-computation
+                  code before the variable declarations it needed. The fix moves the computation
+                  block after all required variables are defined. Re-generate payroll after
+                  the fix is deployed.
+                </span>
+              </li>
             </ul>
           </div>
         </CardContent>

@@ -566,50 +566,6 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
       // Get government deductions (from memory)
       const government_deduction = govDeductionsByEmployee.get(emp.id) || 0;
 
-      // ENTERPRISE PAYROLL: Auto-compute government contributions by salary bracket
-      let computedSss = { employee_share: 0, employer_share: 0, total_contribution: 0 };
-      let computedPhilHealth = { employee_share: 0, employer_share: 0, monthly_premium: 0 };
-      let computedPagIbig = { employee_share: 0, employer_share: 0 };
-      let autoGovDeduction = 0;
-      let employerSss = 0;
-      let employerPhilHealth = 0;
-      let employerPagIbig = 0;
-
-      try {
-        computedSss = calcSssContribution(monthly_salary, sssTable);
-        computedPhilHealth = calcPhilHealthContribution(monthly_salary, philHealthTable);
-        computedPagIbig = calcPagIbigContribution(monthly_salary, pagIbigTable);
-        autoGovDeduction = computedSss.employee_share + computedPhilHealth.employee_share + computedPagIbig.employee_share;
-        employerSss = computedSss.employer_share;
-        employerPhilHealth = computedPhilHealth.employer_share;
-        employerPagIbig = computedPagIbig.employer_share;
-      } catch (err) {
-        logger.warn({ employee_id: emp.id, err }, "[PAYROLL] Contribution computation failed");
-      }
-
-      // Use the HIGHER of manual vs auto-computed government deduction
-      const effectiveGovernmentDeduction = Math.max(government_deduction, autoGovDeduction);
-
-      // ENTERPRISE PAYROLL: Compute allowances
-      const totalAllowances = employeeAllowancesMap.get(emp.id) || 0;
-
-      // ENTERPRISE PAYROLL: Compute withholding tax
-      let withholdingTax = 0;
-      try {
-        const taxableIncome = calcTaxableIncome(
-          basic_pay,
-          totalAllowances,
-          overtime_pay,
-          night_differential_pay,
-          computedSss.employee_share,
-          computedPhilHealth.employee_share,
-          computedPagIbig.employee_share
-        );
-        withholdingTax = calcSemiMonthlyTax(calcWithholdingTax(taxableIncome, taxBrackets));
-      } catch (err) {
-        logger.warn({ employee_id: emp.id, err }, "[PAYROLL] Tax computation failed");
-      }
-
       // Get late deduction config (from memory)
       const empLate = lateDeductionsByEmployee.get(emp.id);
 
@@ -888,10 +844,55 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
         maxWorkHours: rules?.max_work_hours || 8,
       });
 
-      const total_deductions = effectiveGovernmentDeduction + late_deduction;
-
       // BASIC PAY = Daily Rate × Weighted Work Units
       const basic_pay = daily_rate * total_work_units_with_multiplier;
+
+      // ENTERPRISE PAYROLL: Auto-compute government contributions by salary bracket
+      let computedSss = { employee_share: 0, employer_share: 0, total_contribution: 0 };
+      let computedPhilHealth = { employee_share: 0, employer_share: 0, monthly_premium: 0 };
+      let computedPagIbig = { employee_share: 0, employer_share: 0 };
+      let autoGovDeduction = 0;
+      let employerSss = 0;
+      let employerPhilHealth = 0;
+      let employerPagIbig = 0;
+
+      try {
+        computedSss = calcSssContribution(monthly_salary, sssTable);
+        computedPhilHealth = calcPhilHealthContribution(monthly_salary, philHealthTable);
+        computedPagIbig = calcPagIbigContribution(monthly_salary, pagIbigTable);
+        autoGovDeduction = computedSss.employee_share + computedPhilHealth.employee_share + computedPagIbig.employee_share;
+        employerSss = computedSss.employer_share;
+        employerPhilHealth = computedPhilHealth.employer_share;
+        employerPagIbig = computedPagIbig.employer_share;
+      } catch (err) {
+        logger.warn({ employee_id: emp.id, err }, "[PAYROLL] Contribution computation failed");
+      }
+
+      // Use the HIGHER of manual vs auto-computed government deduction
+      const effectiveGovernmentDeduction = Math.max(government_deduction, autoGovDeduction);
+
+      // ENTERPRISE PAYROLL: Compute allowances
+      const totalAllowances = employeeAllowancesMap.get(emp.id) || 0;
+
+      // ENTERPRISE PAYROLL: Compute withholding tax
+      let withholdingTax = 0;
+      let taxableIncome = 0;
+      try {
+        taxableIncome = calcTaxableIncome(
+          basic_pay,
+          totalAllowances,
+          overtime_pay,
+          night_differential_pay,
+          computedSss.employee_share,
+          computedPhilHealth.employee_share,
+          computedPagIbig.employee_share
+        );
+        withholdingTax = calcSemiMonthlyTax(calcWithholdingTax(taxableIncome, taxBrackets));
+      } catch (err) {
+        logger.warn({ employee_id: emp.id, err }, "[PAYROLL] Tax computation failed");
+      }
+
+      const total_deductions = effectiveGovernmentDeduction + late_deduction;
 
       const net_salary = calcEnterpriseNetSalary(basic_pay, total_deductions, leave_conversion_cash, overtime_pay, night_differential_pay, totalAllowances, withholdingTax);
 
