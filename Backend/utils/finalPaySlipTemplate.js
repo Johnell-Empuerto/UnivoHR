@@ -36,6 +36,31 @@ const finalPaySlipTemplate = async (data) => {
   const salaryUntilLastDay = Number(data.salary_until_last_day || 0);
   const leaveConversionAmount = Number(data.leave_conversion_amount || 0);
   const totalFinalPay = Number(data.total_amount || data.total_final_pay || 0);
+  const totalAllowances = Number(data.total_allowances || 0);
+
+  // Build itemized deduction items (new columns preferred, fallback to deductions_list)
+  const hasComputedDeductions =
+    data.employee_sss != null ||
+    data.employee_philhealth != null ||
+    data.employee_pagibig != null ||
+    data.withholding_tax != null;
+
+  const deductionItems = hasComputedDeductions
+    ? [
+        ...(data.employee_sss ? [{ type: 'SSS', amount: data.employee_sss }] : []),
+        ...(data.employee_philhealth ? [{ type: 'PhilHealth', amount: data.employee_philhealth }] : []),
+        ...(data.employee_pagibig ? [{ type: 'Pag-IBIG', amount: data.employee_pagibig }] : []),
+        ...(data.withholding_tax ? [{ type: 'Withholding Tax', amount: data.withholding_tax }] : []),
+      ]
+    : (data.deductions_list || []).filter(d =>
+        ['SSS', 'PHILHEALTH', 'PAGIBIG', 'TAX'].includes(String(d.type).toUpperCase()),
+      );
+
+  const otherDeductions = !hasComputedDeductions
+    ? (data.deductions_list || []).filter(d =>
+        !['SSS', 'PHILHEALTH', 'PAGIBIG', 'TAX'].includes(String(d.type).toUpperCase()),
+      )
+    : [];
 
   return `
   <!DOCTYPE html>
@@ -261,6 +286,17 @@ const finalPaySlipTemplate = async (data) => {
             <td class="text-right">${formatCurrency(salaryUntilLastDay)}</td>
           </tr>
 
+          ${
+            totalAllowances > 0
+              ? `
+          <tr>
+            <td>Allowances</td>
+            <td class="text-right">${formatCurrency(totalAllowances)}</td>
+          </tr>
+          `
+              : ""
+          }
+
           <!-- LEAVE CONVERSION ROW -->
           ${
             leaveConversionAmount > 0
@@ -278,7 +314,7 @@ const finalPaySlipTemplate = async (data) => {
 
           <tr class="total-row">
             <td><strong>Total Final Pay Earnings</strong></td>
-            <td class="text-right"><strong>${formatCurrency(salaryUntilLastDay + leaveConversionAmount)}</strong></td>
+            <td class="text-right"><strong>${formatCurrency(salaryUntilLastDay + totalAllowances + leaveConversionAmount)}</strong></td>
           </tr>
         </tbody>
       </table>
@@ -297,8 +333,23 @@ const finalPaySlipTemplate = async (data) => {
         </thead>
         <tbody>
           ${
-            data.deductions_list?.length
-              ? data.deductions_list
+            deductionItems.length
+              ? deductionItems
+                  .map(
+                    (d) => `
+          <tr>
+            <td>${d.type}</td>
+            <td class="text-right">${formatCurrency(d.amount)}</td>
+          </tr>
+          `,
+                  )
+                  .join("")
+              : ""
+          }
+
+          ${
+            otherDeductions.length
+              ? otherDeductions
                   .map(
                     (d) => `
           <tr>
@@ -351,6 +402,21 @@ const finalPaySlipTemplate = async (data) => {
           <span>${formatCurrency(totalFinalPay)}</span>
         </div>
       </div>
+
+      <!-- EMPLOYER CONTRIBUTIONS -->
+      ${
+        (data.employer_sss || data.employer_philhealth || data.employer_pagibig)
+          ? `
+      <div style="margin-top: 20px; padding: 12px; background: #f8f9fa; border-radius: 4px; font-size: 11px; color: #555;">
+        <strong style="color: #2c3e50;">Employer Contributions</strong>
+        ${data.employer_sss ? `<div style="display: flex; justify-content: space-between; margin-top: 6px;"><span>SSS</span><span>${formatCurrency(data.employer_sss)}</span></div>` : ""}
+        ${data.employer_philhealth ? `<div style="display: flex; justify-content: space-between;"><span>PhilHealth</span><span>${formatCurrency(data.employer_philhealth)}</span></div>` : ""}
+        ${data.employer_pagibig ? `<div style="display: flex; justify-content: space-between;"><span>Pag-IBIG</span><span>${formatCurrency(data.employer_pagibig)}</span></div>` : ""}
+        ${data.rule_snapshot?.taxable_income ? `<div style="display: flex; justify-content: space-between; margin-top: 6px; padding-top: 6px; border-top: 1px solid #ddd;"><span>Taxable Income</span><span>${formatCurrency(data.rule_snapshot.taxable_income)}</span></div>` : ""}
+      </div>
+      `
+          : ""
+      }
 
       <!-- LEAVE CONVERSION NOTE -->
       ${

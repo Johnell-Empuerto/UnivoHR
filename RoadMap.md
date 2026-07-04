@@ -1,6 +1,6 @@
 # HRMS - Roadmap & Completion Status
 
-Generated: Jul 2, 2026
+Generated: Jul 4, 2026
 
 ---
 
@@ -318,8 +318,9 @@ These modules were deferred from automated React Query migration due to complex 
 - **Contribution tables made editable**: full CRUD backend (POST/PUT/DELETE per table) + frontend Edit/Add/Delete with confirmation guard dialogs and salary range validation.
 - **Pagination added**: per-tab pagination (25 rows default) in `ContributionTablesPanel` for SSS (500+ rows), PhilHealth, Pag-IBIG, BIR Tax. Client-side pagination (10 rows default) added to Allowance Types table in `AllowanceSettings`.
 - **🔥 Critical TDZ bug fix in `payroll.model.js`**: Enterprise auto-computation block was placed BEFORE variable declarations (`monthly_salary`, `basic_pay`, `overtime_pay`, `night_differential_pay`), causing silent ReferenceErrors in try-catch → bracket tables were never consulted, auto-computed contributions always returned 0, and `Math.max(manual, auto)` always picked the manual value. **Fix**: Moved entire enterprise computation block + `total_deductions` to after `basic_pay` is computed, and declared `taxableIncome` outside the try block to fix its scope bug. Bracket tables now actually work.
+- **Payslip UI merge & PDF enterprise values**: Merged the split "Enterprise Payroll Info" section into the main Salary Breakdown UI — allowances now show in earnings, auto-computed SSS/PhilHealth/Pag-IBIG/withholding tax show as itemized deductions, employer contributions sit in a clean informational section. PDF payslip and final pay slip templates updated with the same layout.
 
-Estimated Payroll Completion: **~90%**
+Estimated Payroll Completion: **100%**
 
 ---
 

@@ -10,7 +10,6 @@ const formatEmployeeName = (record: any) => {
   return record.name || "";
 };
 
-//  Helper function to format deduction labels
 const formatDeductionLabel = (type: string) => {
   switch (type.toUpperCase()) {
     case "SSS":
@@ -51,9 +50,13 @@ interface SalaryBreakdownProps {
     net_salary: number;
     total_allowances?: number;
     withholding_tax?: number;
+    employee_sss?: number;
+    employee_philhealth?: number;
+    employee_pagibig?: number;
     employer_sss?: number;
     employer_philhealth?: number;
     employer_pagibig?: number;
+    employer_total_contributions?: number;
     rule_snapshot?: {
       taxable_income?: number;
     };
@@ -62,10 +65,34 @@ interface SalaryBreakdownProps {
 }
 
 const SalaryBreakdown = ({ record }: SalaryBreakdownProps) => {
-  //  Use monthly_salary if available, otherwise fallback to basic_salary
   const monthlySalary = record.monthly_salary || record.basic_salary;
   const cutoffSalary = record.basic_salary;
   const deductionPercentage = (record.deductions / monthlySalary) * 100;
+
+  const hasComputedDeductions =
+    record.employee_sss != null ||
+    record.employee_philhealth != null ||
+    record.employee_pagibig != null ||
+    record.withholding_tax != null;
+
+  const computedItems = [
+    ...(record.employee_sss ? [{ type: "SSS" as const, amount: record.employee_sss }] : []),
+    ...(record.employee_philhealth ? [{ type: "PhilHealth" as const, amount: record.employee_philhealth }] : []),
+    ...(record.employee_pagibig ? [{ type: "Pag-IBIG" as const, amount: record.employee_pagibig }] : []),
+    ...(record.withholding_tax ? [{ type: "Withholding Tax" as const, amount: record.withholding_tax }] : []),
+  ];
+
+  const deductionItems = hasComputedDeductions
+    ? computedItems
+    : (record.deductions_list || []).filter((d: any) =>
+        ["SSS", "PHILHEALTH", "PAGIBIG", "TAX"].includes(d.type.toUpperCase()),
+      );
+
+  const otherDeductions = !hasComputedDeductions
+    ? (record.deductions_list || []).filter(
+        (d: any) => !["SSS", "PHILHEALTH", "PAGIBIG", "TAX"].includes(d.type.toUpperCase()),
+      )
+    : [];
 
   return (
     <div className="space-y-4">
@@ -79,7 +106,6 @@ const SalaryBreakdown = ({ record }: SalaryBreakdownProps) => {
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/*  UPDATED: Show Monthly Salary with note */}
           <div>
             <div className="flex justify-between mb-2">
               <div>
@@ -95,7 +121,6 @@ const SalaryBreakdown = ({ record }: SalaryBreakdownProps) => {
             <Progress value={100} className="h-2" />
           </div>
 
-          {/*  NEW: Show Cutoff Salary (what they actually earned) */}
           {cutoffSalary !== monthlySalary && (
             <div className="bg-muted/30 p-3 rounded-lg">
               <div className="flex justify-between mb-1">
@@ -116,7 +141,17 @@ const SalaryBreakdown = ({ record }: SalaryBreakdownProps) => {
             </div>
           )}
 
-          {/* Overtime Pay */}
+          {record.total_allowances != null && record.total_allowances > 0 && (
+            <div className="flex justify-between">
+              <span className="text-sm font-medium text-purple-600">
+                Allowances
+              </span>
+              <span className="text-sm font-semibold text-purple-600">
+                +₱{formatCurrency(record.total_allowances)}
+              </span>
+            </div>
+          )}
+
           {record.overtime_pay > 0 && (
             <div>
               <div className="flex justify-between mb-2">
@@ -130,12 +165,11 @@ const SalaryBreakdown = ({ record }: SalaryBreakdownProps) => {
             </div>
           )}
 
-          {/* Leave Conversion */}
           {record.leave_conversion && record.leave_conversion > 0 && (
             <div>
               <div className="flex justify-between mb-2">
                 <span className="text-sm font-medium text-blue-600">
-                  🎉 Leave Conversion
+                  Leave Conversion
                 </span>
                 <span className="text-sm font-semibold text-blue-600">
                   +₱{formatCurrency(record.leave_conversion)}
@@ -147,7 +181,6 @@ const SalaryBreakdown = ({ record }: SalaryBreakdownProps) => {
             </div>
           )}
 
-          {/* Night Differential */}
           {record.night_differential_hours != null && record.night_differential_hours > 0 && (
             <div>
               <div className="flex justify-between mb-2">
@@ -164,11 +197,9 @@ const SalaryBreakdown = ({ record }: SalaryBreakdownProps) => {
             </div>
           )}
 
-          {/* Deductions Section */}
           <div className="space-y-3 pt-2 border-t">
             <p className="text-sm font-medium text-red-600">Deductions</p>
 
-            {/* Late Deductions */}
             {record.late_deduction > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Late Deductions</span>
@@ -178,7 +209,6 @@ const SalaryBreakdown = ({ record }: SalaryBreakdownProps) => {
               </div>
             )}
 
-            {/* Absence Value (informational) */}
             {record.absent_deduction > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Absence Value</span>
@@ -193,14 +223,13 @@ const SalaryBreakdown = ({ record }: SalaryBreakdownProps) => {
               </p>
             )}
 
-            {/* Itemized Government Contributions */}
-            {record.deductions_list && record.deductions_list.length > 0 && (
+            {deductionItems.length > 0 && (
               <div className="space-y-2 pt-1">
                 <p className="text-sm font-medium text-red-600">
                   Government Contributions
                 </p>
                 <div className="pl-4 space-y-1">
-                  {record.deductions_list.map((d: any, index: number) => (
+                  {deductionItems.map((d: any, index: number) => (
                     <div key={index} className="flex justify-between text-sm">
                       <span className="text-muted-foreground">
                         {formatDeductionLabel(d.type)}
@@ -214,8 +243,8 @@ const SalaryBreakdown = ({ record }: SalaryBreakdownProps) => {
               </div>
             )}
 
-            {/* Fallback government deduction */}
-            {(!record.deductions_list || record.deductions_list.length === 0) &&
+            {!hasComputedDeductions &&
+              (!record.deductions_list || record.deductions_list.length === 0) &&
               record.government_deduction > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">
@@ -226,9 +255,23 @@ const SalaryBreakdown = ({ record }: SalaryBreakdownProps) => {
                   </span>
                 </div>
               )}
+
+            {otherDeductions.length > 0 && (
+              <div className="space-y-1">
+                {otherDeductions.map((d: any, index: number) => (
+                  <div key={index} className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      {formatDeductionLabel(d.type)}
+                    </span>
+                    <span className="text-red-600">
+                      -₱{formatCurrency(Number(d.amount))}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Total Deductions */}
           <div className="pt-2 border-t">
             <div className="flex justify-between font-medium">
               <span>Total Deductions</span>
@@ -247,68 +290,50 @@ const SalaryBreakdown = ({ record }: SalaryBreakdownProps) => {
             </div>
           </div>
 
-          {/* Enterprise Payroll Info */}
-          <div className="space-y-3 pt-2 border-t">
-            <p className="text-sm font-medium text-purple-600">
-              Enterprise Payroll Info
-            </p>
+          {(record.employer_sss != null || record.employer_philhealth != null || record.employer_pagibig != null || record.rule_snapshot?.taxable_income != null) && (
+            <div className="space-y-3 pt-2 border-t">
+              <p className="text-sm font-medium text-muted-foreground">
+                Employer Contributions
+              </p>
 
-            {record.total_allowances != null && record.total_allowances > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Allowances</span>
-                <span className="font-medium text-purple-600">
-                  +₱{formatCurrency(record.total_allowances)}
-                </span>
-              </div>
-            )}
+              {record.employer_sss != null && record.employer_sss > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Employer SSS</span>
+                  <span className="text-muted-foreground">
+                    ₱{formatCurrency(record.employer_sss)}
+                  </span>
+                </div>
+              )}
 
-            {record.withholding_tax != null && record.withholding_tax > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Withholding Tax</span>
-                <span className="text-red-600">
-                  -₱{formatCurrency(record.withholding_tax)}
-                </span>
-              </div>
-            )}
+              {record.employer_philhealth != null && record.employer_philhealth > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Employer PhilHealth</span>
+                  <span className="text-muted-foreground">
+                    ₱{formatCurrency(record.employer_philhealth)}
+                  </span>
+                </div>
+              )}
 
-            {record.employer_sss != null && record.employer_sss > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Employer SSS</span>
-                <span className="text-muted-foreground">
-                  ₱{formatCurrency(record.employer_sss)}
-                </span>
-              </div>
-            )}
+              {record.employer_pagibig != null && record.employer_pagibig > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Employer Pag-IBIG</span>
+                  <span className="text-muted-foreground">
+                    ₱{formatCurrency(record.employer_pagibig)}
+                  </span>
+                </div>
+              )}
 
-            {record.employer_philhealth != null && record.employer_philhealth > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Employer PhilHealth</span>
-                <span className="text-muted-foreground">
-                  ₱{formatCurrency(record.employer_philhealth)}
-                </span>
-              </div>
-            )}
+              {record.rule_snapshot?.taxable_income != null && record.rule_snapshot.taxable_income > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Taxable Income</span>
+                  <span className="font-medium">
+                    ₱{formatCurrency(record.rule_snapshot.taxable_income)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
-            {record.employer_pagibig != null && record.employer_pagibig > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Employer Pag-IBIG</span>
-                <span className="text-muted-foreground">
-                  ₱{formatCurrency(record.employer_pagibig)}
-                </span>
-              </div>
-            )}
-
-            {record.rule_snapshot?.taxable_income != null && record.rule_snapshot.taxable_income > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Taxable Income</span>
-                <span className="font-medium">
-                  ₱{formatCurrency(record.rule_snapshot.taxable_income)}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Net Salary */}
           <div className="pt-4 border-t">
             <div className="flex justify-between items-center">
               <span className="text-lg font-semibold">Net Salary</span>
