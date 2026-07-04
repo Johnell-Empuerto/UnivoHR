@@ -41,6 +41,8 @@ interface PayrollRecord {
   late_deduction?: number;
   absent_deduction?: number;
   government_deduction?: number;
+  total_allowances?: number;
+  withholding_tax?: number;
   branch_id?: number | null;
   branch_name?: string | null;
 }
@@ -127,6 +129,8 @@ const PayrollTable = ({
             <TableHead>Leave Conv.</TableHead>
             <TableHead>Deductions</TableHead>
             <TableHead>Net Salary</TableHead>
+            <TableHead>Allowances</TableHead>
+            <TableHead>Withholding Tax</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
@@ -158,6 +162,16 @@ const PayrollTable = ({
                 </TableCell>
                 <TableCell className="font-semibold text-green-600">
                   ₱{formatCurrency(record.net_salary)}
+                </TableCell>
+                <TableCell className="text-purple-600">
+                  {record.total_allowances != null && record.total_allowances > 0
+                    ? `+₱${formatCurrency(record.total_allowances)}`
+                    : "—"}
+                </TableCell>
+                <TableCell className="text-red-600">
+                  {record.withholding_tax != null && record.withholding_tax > 0
+                    ? `-₱${formatCurrency(record.withholding_tax)}`
+                    : "—"}
                 </TableCell>
                 <TableCell>
                   <Badge
@@ -211,7 +225,7 @@ const PayrollTable = ({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={10} className="text-center py-8">
+              <TableCell colSpan={12} className="text-center py-8">
                 <EmptyState message="No payroll records found" />
               </TableCell>
             </TableRow>

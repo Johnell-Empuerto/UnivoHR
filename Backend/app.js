@@ -19,7 +19,7 @@ app.use(compression());
 // =====================
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
-  : ["http://localhost:5173", "http://192.168.0.110:5173"];
+  : ["http://localhost:5173", "http://192.168.0.101:5173"];
 
 app.use(
   cors({
@@ -48,6 +48,9 @@ const attendanceRoutes = require("./routes/attendance.routes");
 const deviceRoutes = require("./routes/device.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 const payrollRoutes = require("./routes/payroll.routes");
+const contributionTableRoutes = require("./routes/contributionTable.routes");
+const allowanceRoutes = require("./routes/allowance.routes");
+const payrollApprovalRoutes = require("./routes/payrollApproval.routes");
 const attendanceRulesRoutes = require("./routes/attendanceRules.routes");
 const calendarRoutes = require("./routes/calendar.routes");
 const payRulesRoutes = require("./routes/payRules.routes");
@@ -133,6 +136,9 @@ app.use("/api/employees", authenticate, employeeRoutes);
 app.use("/api/pay-rules", authenticate, payRulesRoutes);
 
 app.use("/api/payroll", authenticate, payrollRoutes);
+app.use("/api/contribution-tables", authenticate, contributionTableRoutes);
+app.use("/api/allowances", authenticate, allowanceRoutes);
+app.use("/api/payroll-approvals", authenticate, payrollApprovalRoutes);
 
 app.use("/api/attendance", authenticate, attendanceRoutes);
 

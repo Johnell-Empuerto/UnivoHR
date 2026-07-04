@@ -13,6 +13,10 @@ const {
   createEmptyBreakdown,
   accumulateBreakdown,
 } = require("../utils/payrollFormula.helper");
+const { calcSssContribution, calcPhilHealthContribution, calcPagIbigContribution, calcTotalGovernmentContributions } = require("../utils/contributionCalculator.helper");
+const { calcWithholdingTax, calcTaxableIncome, calcSemiMonthlyTax } = require("../utils/taxCalculator.helper");
+const { calcEnterpriseNetSalary } = require("../utils/payrollFormula.helper");
+const allowanceModel = require("./allowance.model");
 const logger = require("../utils/logger");
 
 // ============================================
@@ -206,6 +210,14 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
       }
     }
 
+    // BATCH: FETCH ALL EMPLOYEE ALLOWANCES (for enterprise payroll)
+    let employeeAllowancesMap = new Map();
+    try {
+      employeeAllowancesMap = await allowanceModel.bulkGetEmployeeAllowancesTotals(employeeIds, cutoff_start, cutoff_end);
+    } catch (err) {
+      logger.warn({ err }, "[PAYROLL] Allowance fetch failed, using empty map");
+    }
+
     // ============================================
     // BATCH 6: FETCH ALL LEAVE CONVERSIONS (1 query instead of N)
     // ============================================
@@ -370,6 +382,18 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
     payrollRulesRes.rows.forEach((r) => {
       payrollRulesMap.set(r.rule_key, Number(r.rule_value));
     });
+
+    // BATCH: FETCH CONTRIBUTION TABLES (for enterprise payroll)
+    const [sssTableResult, philHealthResult, pagIbigResult, taxBracketsResult] = await Promise.all([
+      client.query("SELECT * FROM sss_contributions ORDER BY salary_from"),
+      client.query("SELECT * FROM philhealth_contributions ORDER BY salary_from"),
+      client.query("SELECT * FROM pagibig_contributions ORDER BY salary_from"),
+      client.query("SELECT * FROM withholding_tax_brackets ORDER BY salary_from"),
+    ]);
+    const sssTable = sssTableResult.rows;
+    const philHealthTable = philHealthResult.rows;
+    const pagIbigTable = pagIbigResult.rows;
+    const taxBrackets = taxBracketsResult.rows;
 
     // ============================================
     // BATCH 9e: FETCH ROTATION GROUP DATA (for rotation shift resolution, Phase 2G.1)
@@ -541,6 +565,50 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
 
       // Get government deductions (from memory)
       const government_deduction = govDeductionsByEmployee.get(emp.id) || 0;
+
+      // ENTERPRISE PAYROLL: Auto-compute government contributions by salary bracket
+      let computedSss = { employee_share: 0, employer_share: 0, total_contribution: 0 };
+      let computedPhilHealth = { employee_share: 0, employer_share: 0, monthly_premium: 0 };
+      let computedPagIbig = { employee_share: 0, employer_share: 0 };
+      let autoGovDeduction = 0;
+      let employerSss = 0;
+      let employerPhilHealth = 0;
+      let employerPagIbig = 0;
+
+      try {
+        computedSss = calcSssContribution(monthly_salary, sssTable);
+        computedPhilHealth = calcPhilHealthContribution(monthly_salary, philHealthTable);
+        computedPagIbig = calcPagIbigContribution(monthly_salary, pagIbigTable);
+        autoGovDeduction = computedSss.employee_share + computedPhilHealth.employee_share + computedPagIbig.employee_share;
+        employerSss = computedSss.employer_share;
+        employerPhilHealth = computedPhilHealth.employer_share;
+        employerPagIbig = computedPagIbig.employer_share;
+      } catch (err) {
+        logger.warn({ employee_id: emp.id, err }, "[PAYROLL] Contribution computation failed");
+      }
+
+      // Use the HIGHER of manual vs auto-computed government deduction
+      const effectiveGovernmentDeduction = Math.max(government_deduction, autoGovDeduction);
+
+      // ENTERPRISE PAYROLL: Compute allowances
+      const totalAllowances = employeeAllowancesMap.get(emp.id) || 0;
+
+      // ENTERPRISE PAYROLL: Compute withholding tax
+      let withholdingTax = 0;
+      try {
+        const taxableIncome = calcTaxableIncome(
+          basic_pay,
+          totalAllowances,
+          overtime_pay,
+          night_differential_pay,
+          computedSss.employee_share,
+          computedPhilHealth.employee_share,
+          computedPagIbig.employee_share
+        );
+        withholdingTax = calcSemiMonthlyTax(calcWithholdingTax(taxableIncome, taxBrackets));
+      } catch (err) {
+        logger.warn({ employee_id: emp.id, err }, "[PAYROLL] Tax computation failed");
+      }
 
       // Get late deduction config (from memory)
       const empLate = lateDeductionsByEmployee.get(emp.id);
@@ -820,12 +888,12 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
         maxWorkHours: rules?.max_work_hours || 8,
       });
 
-      const total_deductions = government_deduction + late_deduction;
+      const total_deductions = effectiveGovernmentDeduction + late_deduction;
 
       // BASIC PAY = Daily Rate × Weighted Work Units
       const basic_pay = daily_rate * total_work_units_with_multiplier;
 
-      const net_salary = calcNetSalary(basic_pay, total_deductions, leave_conversion_cash, overtime_pay, night_differential_pay);
+      const net_salary = calcEnterpriseNetSalary(basic_pay, total_deductions, leave_conversion_cash, overtime_pay, night_differential_pay, totalAllowances, withholdingTax);
 
       if (net_salary === 0 && monthly_salary > 0 && attendanceMap.size > 0) {
         logger.warn({ employee_id: emp.id, monthly_salary, daily_rate, total_work_units_raw, basic_pay, deductions: total_deductions }, "[PAYROLL] ZERO NET SALARY despite salary+attendance");
@@ -858,9 +926,12 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
           basic_salary, overtime_pay, deductions, net_salary,
           late_deduction, absent_deduction, government_deduction,
           leave_conversion, rule_snapshot, branch_id,
-          night_differential_hours, night_differential_pay
+          night_differential_hours, night_differential_pay,
+          total_allowances, withholding_tax,
+          employer_sss, employer_philhealth, employer_pagibig, employer_total_contributions,
+          employee_sss, employee_philhealth, employee_pagibig
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27)
         ON CONFLICT ON CONSTRAINT unique_employee_payroll
         DO UPDATE SET
           overtime_pay = EXCLUDED.overtime_pay,
@@ -874,7 +945,16 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
           month = EXCLUDED.month,
           year = EXCLUDED.year,
           night_differential_hours = EXCLUDED.night_differential_hours,
-          night_differential_pay = EXCLUDED.night_differential_pay
+          night_differential_pay = EXCLUDED.night_differential_pay,
+          total_allowances = EXCLUDED.total_allowances,
+          withholding_tax = EXCLUDED.withholding_tax,
+          employer_sss = EXCLUDED.employer_sss,
+          employer_philhealth = EXCLUDED.employer_philhealth,
+          employer_pagibig = EXCLUDED.employer_pagibig,
+          employer_total_contributions = EXCLUDED.employer_total_contributions,
+          employee_sss = EXCLUDED.employee_sss,
+          employee_philhealth = EXCLUDED.employee_philhealth,
+          employee_pagibig = EXCLUDED.employee_pagibig
         RETURNING id`,
         [
           emp.id,
@@ -889,7 +969,7 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
           net_salary,
           late_deduction,
           absentDeductionAmount,
-          government_deduction,
+          effectiveGovernmentDeduction,
           leave_conversion_cash,
           JSON.stringify({
             attendance_rules: rules,
@@ -927,10 +1007,34 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
               rate: payrollRulesMap.get('night_differential_rate') || 0.10,
               pay: night_differential_pay,
             },
+            contributions: {
+              sss_employee: computedSss.employee_share,
+              sss_employer: employerSss,
+              philhealth_employee: computedPhilHealth.employee_share,
+              philhealth_employer: employerPhilHealth,
+              pagibig_employee: computedPagIbig.employee_share,
+              pagibig_employer: employerPagIbig,
+              auto_computed: autoGovDeduction > 0,
+              manual_override: government_deduction > autoGovDeduction,
+            },
+            allowances: {
+              total: totalAllowances,
+            },
+            withholding_tax: withholdingTax,
+            taxable_income: taxableIncome || 0,
             }),
           empBranchId,
           night_differential_hours,
           night_differential_pay,
+          totalAllowances,
+          withholdingTax,
+          employerSss,
+          employerPhilHealth,
+          employerPagIbig,
+          employerSss + employerPhilHealth + employerPagIbig,
+          computedSss.employee_share,
+          computedPhilHealth.employee_share,
+          computedPagIbig.employee_share,
         ],
       );
 
@@ -1040,6 +1144,15 @@ const getPayroll = async (
     p.cutoff_end,
     p.pay_date,
     p.branch_id,
+    p.total_allowances,
+    p.withholding_tax,
+    p.employer_sss,
+    p.employer_philhealth,
+    p.employer_pagibig,
+    p.employer_total_contributions,
+    p.employee_sss,
+    p.employee_philhealth,
+    p.employee_pagibig,
     b.name AS branch_name
 
   FROM payroll p

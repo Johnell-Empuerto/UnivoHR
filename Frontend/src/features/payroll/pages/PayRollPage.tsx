@@ -56,6 +56,9 @@ import { useActiveBranches } from "@/hooks/useBranches";
 import { useAuth } from "@/app/providers/AuthProvider";
 import FinalPayTable from "../components/FinalPayTable";
 import { getEmployeesForFinalPay } from "@/services/finalPayService";
+import AllowanceSettings from "./AllowanceSettings";
+import PayrollApprovalPanel from "../components/PayrollApprovalPanel";
+import ContributionTablesPanel from "../components/ContributionTablesPanel";
 
 const PayRollPage = () => {
 
@@ -387,12 +390,17 @@ const PayRollPage = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={`grid w-full max-w-md ${hasPermission("payroll.settings") ? "grid-cols-4" : "grid-cols-3"}`}>
+        <TabsList className={`grid w-full max-w-4xl ${hasPermission("payroll.settings") ? "grid-cols-7" : "grid-cols-3"}`}>
           <TabsTrigger value="records">Payroll Records</TabsTrigger>
           <TabsTrigger value="final-pay">Final Pay</TabsTrigger>
           <TabsTrigger value="generate">Generate Payroll</TabsTrigger>
           {hasPermission("payroll.settings") && (
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+              <TabsTrigger value="allowances">Allowances</TabsTrigger>
+              <TabsTrigger value="approvals">Approvals</TabsTrigger>
+              <TabsTrigger value="contribution-tables">Contributions</TabsTrigger>
+            </>
           )}
         </TabsList>
 
@@ -722,6 +730,33 @@ const PayRollPage = () => {
         {hasPermission("payroll.settings") && (
           <TabsContent value="settings" className="mt-6">
             <PayrollSettings />
+          </TabsContent>
+        )}
+
+        {/* ============================================ */}
+        {/* ALLOWANCES TAB */}
+        {/* ============================================ */}
+        {hasPermission("payroll.settings") && (
+          <TabsContent value="allowances" className="mt-6">
+            <AllowanceSettings />
+          </TabsContent>
+        )}
+
+        {/* ============================================ */}
+        {/* APPROVALS TAB */}
+        {/* ============================================ */}
+        {hasPermission("payroll.settings") && (
+          <TabsContent value="approvals" className="mt-6">
+            <PayrollApprovalPanel />
+          </TabsContent>
+        )}
+
+        {/* ============================================ */}
+        {/* CONTRIBUTION TABLES TAB */}
+        {/* ============================================ */}
+        {hasPermission("payroll.settings") && (
+          <TabsContent value="contribution-tables" className="mt-6">
+            <ContributionTablesPanel />
           </TabsContent>
         )}
       </Tabs>

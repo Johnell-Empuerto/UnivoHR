@@ -290,18 +290,29 @@ These modules were deferred from automated React Query migration due to complex 
 
 # Phase 4 — Enterprise Payroll
 
-⬜ Not Started
+> ✅ **Phase 4 implementation complete** — All 6 features delivered and build passes clean.
 
-| Feature                   | Status |
-| ------------------------- | ------ |
-| SSS                       | ⬜     |
-| PhilHealth                | ⬜     |
-| Pag-IBIG                  | ⬜     |
-| BIR Tax                   | ⬜     |
-| Allowance Engine          | ⬜     |
-| Payroll Approval Workflow | ⬜     |
+| Feature                   | Status | Details |
+| ------------------------- | ------ | ------- |
+| SSS                       | ✅     | Bracket table (500+ seeded rows), `contributionCalculator.helper.js`, read-only UI tab |
+| PhilHealth                | ✅     | Bracket table, auto-computation integrated into payroll engine |
+| Pag-IBIG                  | ✅     | Bracket table, auto-computation integrated into payroll engine |
+| BIR Tax                   | ✅     | `taxCalculator.helper.js` (TRAIN law), withholding tax in SalaryBreakdown + PayrollTable |
+| Allowance Engine          | ✅     | `allowance.model.js` CRUD + per-employee assignments, `AllowanceSettings.tsx` UI |
+| Payroll Approval Workflow | ✅     | `payrollApproval.model.js`, approval request/review, `PayrollApprovalPanel.tsx` |
 
-Estimated Payroll Completion: **~55%**
+### Migration
+- `Backend/database/053_enterprise_payroll_phase4.sql` — 9 new payroll columns (default 0), 4 government tables, allowance tables, payroll approvals table + seeded bracket data.
+- 9 backend files: 3 models, 3 controllers, 3 routes.
+- 2 utilities: `contributionCalculator.helper.js`, `taxCalculator.helper.js`.
+- `payrollFormula.helper.js` — added `calcEnterpriseNetSalary`.
+- `payroll.model.js` — `generatePayroll` auto-computes contributions/allowances/tax per employee.
+- `app.js` — 3 new route groups registered.
+- Frontend: 3 services, 4 hooks, 3 UI components (`AllowanceSettings.tsx`, `ContributionTablesPanel.tsx`, `PayrollApprovalPanel.tsx`).
+- `SalaryBreakdown.tsx` / `PayrollTable.tsx` / `PayRollPage.tsx` — integrated with new tabs/columns.
+- Existing `payroll.manual_sss`, `manual_philhealth`, `manual_pagibig` preserved — effective deduction = `Math.max(manual, autoComputed)`.
+
+Estimated Payroll Completion: **~85%**
 
 ---
 
@@ -350,7 +361,7 @@ Estimated Payroll Completion: **~55%**
 | Phase 1J — Final Frontend Audit     |   **100%** |
 | Phase 2 — Testing                   |    **10%** |
 | Phase 3 — Remaining Complex Modules |   **100%** |
-| Phase 4 — Enterprise Payroll        |     **0%** |
+| Phase 4 — Enterprise Payroll        |   **100%** |
 | Phase 5 — Enterprise Workflow       |     **0%** |
 | Phase 6 — Enterprise HR Modules     |     **0%** |
 

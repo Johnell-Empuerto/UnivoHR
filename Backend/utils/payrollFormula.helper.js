@@ -108,6 +108,13 @@ function calcNetSalary(basicPay, totalDeductions, leaveConversionCash = 0, overt
   return Math.max(0, basicPay - totalDeductions) + leaveConversionCash + overtimePay + nightDifferentialPay;
 }
 
+function calcEnterpriseNetSalary(basicPay, totalDeductions, leaveConversionCash, overtimePay, nightDifferentialPay, totalAllowances, withholdingTax) {
+  const grossPay = basicPay + totalAllowances + overtimePay + nightDifferentialPay + leaveConversionCash;
+  const netAfterDeductions = Math.max(0, grossPay - totalDeductions);
+  const netAfterTax = Math.max(0, netAfterDeductions - withholdingTax);
+  return Math.round(netAfterTax * 100) / 100;
+}
+
 // ──────────────────────────────────────────────
 // 6. Absent days
 // ──────────────────────────────────────────────
@@ -203,6 +210,7 @@ module.exports = {
   calcLatePenaltyMinutes,
   calcLateDeduction,
   calcNetSalary,
+  calcEnterpriseNetSalary,
   calcAbsentDays,
   getUnworkedHolidayPolicy,
   calcHolidayRestDayMultiplier,

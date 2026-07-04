@@ -49,6 +49,14 @@ interface SalaryBreakdownProps {
     night_differential_pay?: number;
     deductions: number;
     net_salary: number;
+    total_allowances?: number;
+    withholding_tax?: number;
+    employer_sss?: number;
+    employer_philhealth?: number;
+    employer_pagibig?: number;
+    rule_snapshot?: {
+      taxable_income?: number;
+    };
     deductions_list?: Array<{ type: string; amount: string | number }>;
   };
 }
@@ -237,6 +245,67 @@ const SalaryBreakdown = ({ record }: SalaryBreakdownProps) => {
                 {deductionPercentage.toFixed(1)}% of monthly salary
               </p>
             </div>
+          </div>
+
+          {/* Enterprise Payroll Info */}
+          <div className="space-y-3 pt-2 border-t">
+            <p className="text-sm font-medium text-purple-600">
+              Enterprise Payroll Info
+            </p>
+
+            {record.total_allowances != null && record.total_allowances > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Allowances</span>
+                <span className="font-medium text-purple-600">
+                  +₱{formatCurrency(record.total_allowances)}
+                </span>
+              </div>
+            )}
+
+            {record.withholding_tax != null && record.withholding_tax > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Withholding Tax</span>
+                <span className="text-red-600">
+                  -₱{formatCurrency(record.withholding_tax)}
+                </span>
+              </div>
+            )}
+
+            {record.employer_sss != null && record.employer_sss > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Employer SSS</span>
+                <span className="text-muted-foreground">
+                  ₱{formatCurrency(record.employer_sss)}
+                </span>
+              </div>
+            )}
+
+            {record.employer_philhealth != null && record.employer_philhealth > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Employer PhilHealth</span>
+                <span className="text-muted-foreground">
+                  ₱{formatCurrency(record.employer_philhealth)}
+                </span>
+              </div>
+            )}
+
+            {record.employer_pagibig != null && record.employer_pagibig > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Employer Pag-IBIG</span>
+                <span className="text-muted-foreground">
+                  ₱{formatCurrency(record.employer_pagibig)}
+                </span>
+              </div>
+            )}
+
+            {record.rule_snapshot?.taxable_income != null && record.rule_snapshot.taxable_income > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Taxable Income</span>
+                <span className="font-medium">
+                  ₱{formatCurrency(record.rule_snapshot.taxable_income)}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Net Salary */}
