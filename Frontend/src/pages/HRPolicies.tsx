@@ -219,13 +219,13 @@ const HRPolicies = () => {
     }
   };
 
-  const activePolicies = policies.filter((p) => p.is_active);
+  const activePolicies = policies.filter((p: any) => p.is_active);
 
   useEffect(() => {
     setNonAdminPage(1);
   }, [search, categoryFilter]);
 
-  const filteredPolicies = activePolicies.filter((p) => {
+  const filteredPolicies = activePolicies.filter((p: any) => {
     const matchesSearch =
       !search ||
       p.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -289,7 +289,7 @@ const HRPolicies = () => {
           <EmptyState message="No policies found" />
         ) : (
           <div className="grid gap-4">
-            {nonAdminPaginatedPolicies.map((policy) => (
+            {nonAdminPaginatedPolicies.map((policy: any) => (
               <Card
                 key={policy.id}
                 className="shadow-sm hover:shadow-md transition-shadow cursor-pointer"
@@ -461,7 +461,7 @@ const HRPolicies = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {policies.map((policy) => (
+                  {policies.map((policy: any) => (
                     <TableRow key={policy.id}>
                       <TableCell className="font-medium">
                         {policy.title}

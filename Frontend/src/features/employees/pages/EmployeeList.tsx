@@ -71,7 +71,7 @@ const EmployeeList = () => {
   const [branchFilter, setBranchFilter] = useState("");
   const { data: branches = [] } = useActiveBranches();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error] = useState("");
 
   const { data: queryData, isFetching } = useEmployeeList(
     currentPage, rowsPerPage, search, statusFilter, branchFilter,

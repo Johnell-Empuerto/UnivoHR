@@ -234,7 +234,7 @@ const BranchesPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {branches.map((branch) => (
+                  {branches.map((branch: any) => (
                     <TableRow key={branch.id}>
                       <TableCell className="font-medium">
                         {branch.code}

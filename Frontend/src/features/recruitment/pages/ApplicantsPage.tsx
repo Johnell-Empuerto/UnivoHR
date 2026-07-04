@@ -47,11 +47,6 @@ interface Applicant {
   workflow_name: string | null;
 }
 
-interface JobPosition {
-  id: number;
-  title: string;
-}
-
 const statusBadge = (status: string) => {
   const map: Record<string, string> = {
     Initial: getStatusBadgeClass("info"),
@@ -144,7 +139,7 @@ const ApplicantsPage = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Positions</SelectItem>
-                {jobPositions.map((jp) => (
+                {jobPositions.map((jp: any) => (
                   <SelectItem key={jp.id} value={String(jp.id)}>{jp.title}</SelectItem>
                 ))}
               </SelectContent>
@@ -180,7 +175,7 @@ const ApplicantsPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {applicants.map((a) => (
+                  {applicants.map((a: any) => (
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">
                         {a.first_name} {a.middle_name ? a.middle_name + " " : ""}{a.last_name}{a.suffix ? ", " + a.suffix : ""}

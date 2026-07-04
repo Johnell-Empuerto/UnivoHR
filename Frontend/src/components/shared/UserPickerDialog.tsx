@@ -113,7 +113,7 @@ const UserPickerDialog = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.map((user) => (
+                  {data.map((user: any) => (
                     <TableRow
                       key={user.user_id}
                       className={`cursor-pointer hover:bg-accent ${selectedUserId === user.user_id ? "bg-accent" : ""}`}

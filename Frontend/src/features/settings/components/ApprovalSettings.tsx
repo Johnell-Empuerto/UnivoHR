@@ -256,7 +256,7 @@ const ApprovalSettings = () => {
     }
   };
 
-  if (error) return <div className="text-red-500 p-6">{error}</div>;
+  if (error) return <div className="text-red-500 p-6">{String(error)}</div>;
 
   return (
     <Card className="border-border/50 shadow-sm">
@@ -330,7 +330,7 @@ const ApprovalSettings = () => {
                 </TableHeader>
                 <TableBody>
                   {data.length > 0 ? (
-                    data.map((item) => (
+                    data.map((item: any) => (
                       <TableRow key={item.id} className="border-b border-gray-400/50 dark:border-gray-400/50">
                         <TableCell className="font-medium">{item.employee_name}</TableCell>
                         <TableCell>{item.employee_code}</TableCell>

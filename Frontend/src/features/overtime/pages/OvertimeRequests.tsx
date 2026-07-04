@@ -157,7 +157,7 @@ const OvertimeRequests = () => {
   };
 
   const handleApprove = async (id: number) => {
-    const request = data.find((r) => r.id === id);
+    const request = data.find((r: any) => r.id === id);
     if (!canUserApprove(request!)) {
       toast.error("You don't have permission to approve this request");
       return;
@@ -182,7 +182,7 @@ const OvertimeRequests = () => {
       return;
     }
 
-    const request = data.find((r) => r.id === rejectingId);
+    const request = data.find((r: any) => r.id === rejectingId);
     if (!canUserApprove(request!)) {
       toast.error("You don't have permission to reject this request");
       return;

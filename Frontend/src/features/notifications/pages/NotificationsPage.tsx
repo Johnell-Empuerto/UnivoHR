@@ -136,7 +136,7 @@ const NotificationsPage = () => {
   };
 
   const formatNotificationMessage = (notification: Notification) => {
-    const meta = notification.meta || {};
+    const meta = (notification.meta || {}) as Record<string, any>;
     if (notification.type === "LEAVE") {
       if (meta.from_date && meta.to_date && meta.leave_type) {
         return `${meta.leave_type}: ${formatDateRange(meta.from_date, meta.to_date)}`;

@@ -105,7 +105,7 @@ const JobPositionPickerDialog = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.map((pos) => (
+                  {data.map((pos: any) => (
                     <TableRow
                       key={pos.id}
                       className={`cursor-pointer hover:bg-accent ${selectedId === pos.id ? "bg-accent" : ""}`}

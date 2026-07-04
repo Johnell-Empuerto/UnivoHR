@@ -143,7 +143,7 @@ const KpiTemplatesPage = () => {
     setDeleteItemDialogOpen(false);
   };
 
-  const totalWeight = (items ?? []).reduce((s, i) => s + Number(i.weight), 0);
+  const totalWeight = (items ?? []).reduce((s: any, i: any) => s + Number(i.weight), 0);
 
   return (
     <div className="space-y-6 p-6">
@@ -195,7 +195,7 @@ const KpiTemplatesPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {templates.map((t) => (
+                  {templates.map((t: any) => (
                     <TableRow key={t.id}>
                       <TableCell className="font-medium">{t.name}</TableCell>
                       <TableCell>{t.department || "-"}</TableCell>
@@ -270,7 +270,7 @@ const KpiTemplatesPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(items ?? []).map((item) => (
+                  {(items ?? []).map((item: any) => (
                     <TableRow key={item.id}>
                       <TableCell>{item.kpi_name}{item.description ? <p className="text-xs text-muted-foreground">{item.description}</p> : null}</TableCell>
                       <TableCell>{item.weight}%</TableCell>

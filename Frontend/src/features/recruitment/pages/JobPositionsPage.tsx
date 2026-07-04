@@ -55,12 +55,6 @@ interface JobPosition {
   created_at?: string;
 }
 
-interface RecruitmentWorkflow {
-  id: number;
-  name: string;
-  is_active: boolean;
-}
-
 const emptyForm = {
   title: "",
   department: "",
@@ -235,7 +229,7 @@ const JobPositionsPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {positions.map((pos) => (
+                  {positions.map((pos: any) => (
                     <TableRow key={pos.id}>
                       <TableCell className="font-medium">{pos.title}</TableCell>
                       <TableCell>{pos.department || "-"}</TableCell>
@@ -354,7 +348,7 @@ const JobPositionsPage = () => {
                     <SelectValue placeholder="Default (no workflow)" />
                   </SelectTrigger>
                   <SelectContent>
-                    {workflows.map((w) => (
+                    {workflows.map((w: any) => (
                       <SelectItem key={w.id} value={String(w.id)}>{w.name}</SelectItem>
                     ))}
                   </SelectContent>

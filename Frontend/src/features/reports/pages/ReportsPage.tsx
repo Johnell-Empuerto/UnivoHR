@@ -791,7 +791,7 @@ const ReportsPage = () => {
       );
     }
     if (rt === "completion_rate") {
-      const r = data[0] || {};
+      const r = (data[0] || {}) as Record<string, any>;
       return (
         <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 p-4">
           {[
@@ -816,7 +816,7 @@ const ReportsPage = () => {
               color: "text-yellow-600",
             },
             { label: "Draft", value: r.draft_count, color: "text-gray-600" },
-          ].map((item) => (
+          ].map((item: any) => (
             <div key={item.label} className="rounded-lg border p-4 text-center">
               <p className={`text-2xl font-bold ${item.color || ""}`}>
                 {item.value ?? "-"}

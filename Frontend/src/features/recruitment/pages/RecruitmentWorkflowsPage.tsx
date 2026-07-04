@@ -213,7 +213,7 @@ const RecruitmentWorkflowsPage = () => {
   };
 
   const openCreateStageForm = () => {
-    const nextOrder = stages.length > 0 ? Math.max(...stages.map(s => s.sequence_order)) + 1 : 1;
+    const nextOrder = stages.length > 0 ? Math.max(...stages.map((s: any) => s.sequence_order)) + 1 : 1;
     setEditingStage(null);
     setStageForm({
       stage_name: "",
@@ -378,7 +378,7 @@ const RecruitmentWorkflowsPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {workflows.map((wf) => (
+                  {workflows.map((wf: any) => (
                     <TableRow key={wf.id}>
                       <TableCell className="font-medium">{wf.name}</TableCell>
                       <TableCell>
@@ -485,7 +485,7 @@ const RecruitmentWorkflowsPage = () => {
               {stages.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-6">No stages yet. Add the first stage.</p>
               )}
-              {stages.map((stage, index) => (
+              {stages.map((stage: any, index: any) => (
                 <div key={stage.id} className="flex items-start gap-3 p-3 rounded-lg border bg-card">
                   <div className="flex flex-col gap-1 pt-1">
                     <Button variant="ghost" size="sm" className="h-5 w-5 p-0"

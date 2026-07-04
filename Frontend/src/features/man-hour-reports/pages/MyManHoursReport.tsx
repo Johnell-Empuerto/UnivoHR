@@ -88,8 +88,7 @@ const MyManHoursReport = () => {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error] = useState("");
 
   const { data: queryData, isFetching } = useMyManHoursReport(
     currentPage, rowsPerPage, search, statusFilter,

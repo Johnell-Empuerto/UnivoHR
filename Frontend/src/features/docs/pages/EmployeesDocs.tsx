@@ -1,4 +1,4 @@
-import { AlertTriangle, Info, Users } from "lucide-react";
+import { AlertTriangle, Info } from "lucide-react";
 import {
   Card,
   CardContent,

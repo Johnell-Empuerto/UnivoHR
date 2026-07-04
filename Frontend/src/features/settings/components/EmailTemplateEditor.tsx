@@ -41,7 +41,6 @@ import {
 import {
   updateTemplate,
   toggleTemplate,
-  type EmailTemplate,
 } from "@/services/emailTemplateService";
 import { useEmailTemplates } from "../hooks/useEmailTemplates";
 

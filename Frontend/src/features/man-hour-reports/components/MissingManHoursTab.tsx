@@ -75,7 +75,7 @@ const MissingManHoursTab = () => {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {missingDates.map((item) => (
+              {missingDates.map((item: any) => (
                 <div
                   key={item.missing_date}
                   className="p-3 rounded-lg border border-destructive/50 bg-destructive/5 text-center"

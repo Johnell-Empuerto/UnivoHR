@@ -452,7 +452,7 @@ const AttendanceSettings = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  rules.map((rule) => (
+                  rules.map((rule: any) => (
                     <TableRow key={rule.id}>
                       <TableCell className="font-medium">
                         {rule.late_threshold} min
