@@ -45,7 +45,6 @@ import {
 import { toast } from "sonner";
 import { formatDate } from "@/utils/formatDate";
 import { formatCurrency } from "@/utils/formatCurrency";
-import { useAuth } from "@/app/providers/AuthProvider";
 import { useMyPayroll } from "../hooks/useMyPayroll";
 import { useMySalaryDetails } from "../hooks/useMySalaryDetails";
 
@@ -81,8 +80,6 @@ const EmployeePayrollPage = () => {
 
   const cutoffStartStr = format(cutoffStart, "yyyy-MM-dd");
   const cutoffEndStr = format(cutoffEnd, "yyyy-MM-dd");
-  const { user } = useAuth();
-
   const { data: payrollData, isLoading, refetch } = useMyPayroll(cutoffStartStr, cutoffEndStr);
   const { data: salaryDetails } = useMySalaryDetails();
 
@@ -281,7 +278,7 @@ const EmployeePayrollPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {payrollData.map((record) => (
+                  {payrollData.map((record: any) => (
                     <TableRow key={record.id}>
                       <TableCell className="font-medium">
                         {formatDate(record.cutoff_start)} →{" "}

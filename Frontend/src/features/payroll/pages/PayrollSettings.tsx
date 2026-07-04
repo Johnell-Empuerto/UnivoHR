@@ -279,7 +279,7 @@ const PayrollSettings = () => {
                       </td>
                     </tr>
                   ) : (
-                    employees.map((emp) => (
+                    employees.map((emp: any) => (
                       <tr key={emp.id} className="border-b">
                         <td className="py-2 px-4">{formatEmployeeName(emp)}</td>
                         <td className="py-2 px-4">{emp.employee_code}</td>
@@ -434,7 +434,7 @@ const PayrollSettings = () => {
                 </p>
               ) : (
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {deductions.map((d) => (
+                  {deductions.map((d: any) => (
                     <div
                       key={d.id}
                       className="flex justify-between items-center border p-2 rounded"

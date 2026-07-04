@@ -343,7 +343,7 @@ const ManHoursApproval = () => {
         open={isDrawerOpen}
         onClose={() => {
           setIsDrawerOpen(false);
-          setSelectedReport(null);
+          setSelectedReportId(null);
         }}
         report={selectedReport}
       />

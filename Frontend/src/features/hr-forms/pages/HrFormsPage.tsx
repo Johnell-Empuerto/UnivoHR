@@ -146,7 +146,7 @@ const HrFormsPage = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {forms.map((f) => (
+                  {forms.map((f: HrForm) => (
                     <TableRow key={f.id} className={!f.is_active ? "opacity-60" : ""}>
                       <TableCell className="font-medium">{f.title}</TableCell>
                       <TableCell>{statusBadge(f.is_active)}</TableCell>
