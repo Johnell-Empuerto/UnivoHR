@@ -294,11 +294,11 @@ These modules were deferred from automated React Query migration due to complex 
 
 | Feature                   | Status | Details |
 | ------------------------- | ------ | ------- |
-| SSS                       | ✅     | Bracket table (500+ seeded rows), `contributionCalculator.helper.js`, read-only UI tab |
-| PhilHealth                | ✅     | Bracket table, auto-computation integrated into payroll engine |
-| Pag-IBIG                  | ✅     | Bracket table, auto-computation integrated into payroll engine |
-| BIR Tax                   | ✅     | `taxCalculator.helper.js` (TRAIN law), withholding tax in SalaryBreakdown + PayrollTable |
-| Allowance Engine          | ✅     | `allowance.model.js` CRUD + per-employee assignments, `AllowanceSettings.tsx` UI |
+| SSS                       | ✅     | Bracket table (500+ seeded rows), `contributionCalculator.helper.js`, editable CRUD UI with pagination |
+| PhilHealth                | ✅     | Bracket table, auto-computation, editable CRUD UI with pagination |
+| Pag-IBIG                  | ✅     | Bracket table, auto-computation, editable CRUD UI with pagination |
+| BIR Tax                   | ✅     | `taxCalculator.helper.js` (TRAIN law), withholding tax in SalaryBreakdown + PayrollTable, editable CRUD UI with pagination |
+| Allowance Engine          | ✅     | `allowance.model.js` CRUD + per-employee assignments, `AllowanceSettings.tsx` UI with pagination on types & employees |
 | Payroll Approval Workflow | ✅     | `payrollApproval.model.js`, approval request/review, `PayrollApprovalPanel.tsx` |
 
 ### Migration
@@ -312,7 +312,13 @@ These modules were deferred from automated React Query migration due to complex 
 - `SalaryBreakdown.tsx` / `PayrollTable.tsx` / `PayRollPage.tsx` — integrated with new tabs/columns.
 - Existing `payroll.manual_sss`, `manual_philhealth`, `manual_pagibig` preserved — effective deduction = `Math.max(manual, autoComputed)`.
 
-Estimated Payroll Completion: **~85%**
+### Post-launch fixes
+- **BIR bracket overflow fix**: `999999999.99` → `99999999.99` to fit NUMERIC(10,2) column.
+- **Allowance service fix**: unwrap `response.data.data` so `allowanceTypes` / `employeeAllowances` are arrays, not objects.
+- **Contribution tables made editable**: full CRUD backend (POST/PUT/DELETE per table) + frontend Edit/Add/Delete with confirmation guard dialogs and salary range validation.
+- **Pagination added**: per-tab pagination (25 rows default) in `ContributionTablesPanel` for SSS (500+ rows), PhilHealth, Pag-IBIG, BIR Tax. Client-side pagination (10 rows default) added to Allowance Types table in `AllowanceSettings`.
+
+Estimated Payroll Completion: **~90%**
 
 ---
 

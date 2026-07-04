@@ -13,6 +13,7 @@ import {
 } from "../hooks/useContributionTables";
 import { formatCurrency } from "@/utils/formatCurrency";
 import { toast } from "sonner";
+import { TablePagination } from "@/components/shared/TablePagination";
 import {
   Dialog,
   DialogContent,
@@ -30,11 +31,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-type SssRow = { id: number; salary_from: number; salary_to: number; employer_share: number; employee_share: number; total_contribution: number };
-type PhilHealthRow = { id: number; salary_from: number; salary_to: number; employee_rate: number; employer_rate: number; monthly_premium: number };
-type PagIbigRow = { id: number; salary_from: number; salary_to: number; employee_share: number; employer_share: number };
-type TaxRow = { id: number; salary_from: number; salary_to: number; tax_base: number; percentage_over_base: number; exempt_amount: number };
 
 type TableKind = "sss" | "philhealth" | "pagibig" | "tax";
 
@@ -70,6 +66,13 @@ const numberField = (v: string) => (v === "" ? 0 : Number(v));
 const ContributionTablesPanel = () => {
   const [tab, setTab] = useState<TableKind>("sss");
 
+  const [pagination, setPagination] = useState<Record<string, { page: number; rowsPerPage: number }>>({
+    sss: { page: 1, rowsPerPage: 25 },
+    philhealth: { page: 1, rowsPerPage: 25 },
+    pagibig: { page: 1, rowsPerPage: 25 },
+    tax: { page: 1, rowsPerPage: 25 },
+  });
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -85,6 +88,15 @@ const ContributionTablesPanel = () => {
   const philM = usePhilHealthMutations();
   const pagM = usePagIbigMutations();
   const taxM = useTaxMutations();
+
+  const mutationSet: Record<string, typeof sssM> = { sss: sssM, philhealth: philM, pagibig: pagM, tax: taxM };
+  const mut = mutationSet[tab];
+
+  const pag = pagination[tab] ?? { page: 1, rowsPerPage: 25 };
+
+  const updatePag = (partial: Partial<{ page: number; rowsPerPage: number }>) => {
+    setPagination((prev) => ({ ...prev, [tab]: { ...prev[tab], ...partial } }));
+  };
 
   const openAdd = () => {
     setEditingId(null);
@@ -120,16 +132,12 @@ const ContributionTablesPanel = () => {
     return true;
   };
 
-  const mutationSet: Record<string, typeof sssM> = { sss: sssM, philhealth: philM, pagibig: pagM, tax: taxM };
-  const mut = mutationSet[tab];
-
   const handleSave = async () => {
     if (!validate()) return;
     const payload: Record<string, unknown> = {};
     for (const key of Object.keys(form)) {
       payload[key] = numberField(form[key]);
     }
-
     try {
       if (editingId) {
         await (mut.update as any).mutateAsync({ id: editingId, data: payload });
@@ -174,6 +182,46 @@ const ContributionTablesPanel = () => {
     </TableCell>
   );
 
+  const renderTable = (data: any[], headers: string[], renderRow: (row: any, i: number) => any, loading: boolean) => {
+    const totalItems = data.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / pag.rowsPerPage));
+    const start = (pag.page - 1) * pag.rowsPerPage;
+    const pageData = data.slice(start, start + pag.rowsPerPage);
+
+    if (loading) return renderLoader();
+    if (totalItems === 0) return renderEmpty();
+
+    return (
+      <>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {headers.map((h) => <TableHead key={h}>{h}</TableHead>)}
+              {actionHeader}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pageData.map((row: any, i: number) => (
+              <TableRow key={row.id ?? i}>
+                {renderRow(row, i)}
+                {actionCell(row)}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <TablePagination
+          page={pag.page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pag.rowsPerPage}
+          onPageChange={(p) => updatePag({ page: p })}
+          onPageSizeChange={(s) => updatePag({ page: 1, rowsPerPage: s })}
+          itemLabel="rows"
+        />
+      </>
+    );
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -193,108 +241,65 @@ const ContributionTablesPanel = () => {
           </div>
 
           <TabsContent value="sss">
-            {sssLoading ? renderLoader() : sssData.length === 0 ? renderEmpty() : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Salary From</TableHead><TableHead>Salary To</TableHead>
-                    <TableHead>Employer Share</TableHead><TableHead>Employee Share</TableHead>
-                    <TableHead>Total Contribution</TableHead>
-                    {actionHeader}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sssData.map((row: SssRow, i: number) => (
-                    <TableRow key={row.id ?? i}>
-                      <TableCell>₱{formatCurrency(row.salary_from)}</TableCell>
-                      <TableCell>₱{formatCurrency(row.salary_to)}</TableCell>
-                      <TableCell>₱{formatCurrency(row.employer_share)}</TableCell>
-                      <TableCell>₱{formatCurrency(row.employee_share)}</TableCell>
-                      <TableCell>₱{formatCurrency(row.total_contribution)}</TableCell>
-                      {actionCell(row)}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            {renderTable(sssData,
+              ["Salary From", "Salary To", "Employer Share", "Employee Share", "Total Contribution"],
+              (row: any) => (
+                <>
+                  <TableCell>₱{formatCurrency(row.salary_from)}</TableCell>
+                  <TableCell>₱{formatCurrency(row.salary_to)}</TableCell>
+                  <TableCell>₱{formatCurrency(row.employer_share)}</TableCell>
+                  <TableCell>₱{formatCurrency(row.employee_share)}</TableCell>
+                  <TableCell>₱{formatCurrency(row.total_contribution)}</TableCell>
+                </>
+              ),
+              sssLoading,
             )}
           </TabsContent>
 
           <TabsContent value="philhealth">
-            {philHealthLoading ? renderLoader() : philHealthData.length === 0 ? renderEmpty() : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Salary From</TableHead><TableHead>Salary To</TableHead>
-                    <TableHead>Employee Rate (%)</TableHead><TableHead>Employer Rate (%)</TableHead>
-                    <TableHead>Monthly Premium</TableHead>
-                    {actionHeader}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {philHealthData.map((row: PhilHealthRow, i: number) => (
-                    <TableRow key={row.id ?? i}>
-                      <TableCell>₱{formatCurrency(row.salary_from)}</TableCell>
-                      <TableCell>₱{formatCurrency(row.salary_to)}</TableCell>
-                      <TableCell>{row.employee_rate}%</TableCell>
-                      <TableCell>{row.employer_rate}%</TableCell>
-                      <TableCell>₱{formatCurrency(row.monthly_premium)}</TableCell>
-                      {actionCell(row)}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            {renderTable(philHealthData,
+              ["Salary From", "Salary To", "Employee Rate (%)", "Employer Rate (%)", "Monthly Premium"],
+              (row: any) => (
+                <>
+                  <TableCell>₱{formatCurrency(row.salary_from)}</TableCell>
+                  <TableCell>₱{formatCurrency(row.salary_to)}</TableCell>
+                  <TableCell>{row.employee_rate}%</TableCell>
+                  <TableCell>{row.employer_rate}%</TableCell>
+                  <TableCell>₱{formatCurrency(row.monthly_premium)}</TableCell>
+                </>
+              ),
+              philHealthLoading,
             )}
           </TabsContent>
 
           <TabsContent value="pagibig">
-            {pagIbigLoading ? renderLoader() : pagIbigData.length === 0 ? renderEmpty() : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Salary From</TableHead><TableHead>Salary To</TableHead>
-                    <TableHead>Employee Share (%)</TableHead><TableHead>Employer Share (%)</TableHead>
-                    {actionHeader}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pagIbigData.map((row: PagIbigRow, i: number) => (
-                    <TableRow key={row.id ?? i}>
-                      <TableCell>₱{formatCurrency(row.salary_from)}</TableCell>
-                      <TableCell>₱{formatCurrency(row.salary_to)}</TableCell>
-                      <TableCell>{row.employee_share}%</TableCell>
-                      <TableCell>{row.employer_share}%</TableCell>
-                      {actionCell(row)}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            {renderTable(pagIbigData,
+              ["Salary From", "Salary To", "Employee Share (%)", "Employer Share (%)"],
+              (row: any) => (
+                <>
+                  <TableCell>₱{formatCurrency(row.salary_from)}</TableCell>
+                  <TableCell>₱{formatCurrency(row.salary_to)}</TableCell>
+                  <TableCell>{row.employee_share}%</TableCell>
+                  <TableCell>{row.employer_share}%</TableCell>
+                </>
+              ),
+              pagIbigLoading,
             )}
           </TabsContent>
 
           <TabsContent value="tax">
-            {taxLoading ? renderLoader() : taxData.length === 0 ? renderEmpty() : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Salary From</TableHead><TableHead>Salary To</TableHead>
-                    <TableHead>Tax Base</TableHead><TableHead>% Over Base</TableHead>
-                    <TableHead>Exempt Amount</TableHead>
-                    {actionHeader}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {taxData.map((row: TaxRow, i: number) => (
-                    <TableRow key={row.id ?? i}>
-                      <TableCell>₱{formatCurrency(row.salary_from)}</TableCell>
-                      <TableCell>₱{formatCurrency(row.salary_to)}</TableCell>
-                      <TableCell>₱{formatCurrency(row.tax_base)}</TableCell>
-                      <TableCell>{row.percentage_over_base}%</TableCell>
-                      <TableCell>₱{formatCurrency(row.exempt_amount)}</TableCell>
-                      {actionCell(row)}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            {renderTable(taxData,
+              ["Salary From", "Salary To", "Tax Base", "% Over Base", "Exempt Amount"],
+              (row: any) => (
+                <>
+                  <TableCell>₱{formatCurrency(row.salary_from)}</TableCell>
+                  <TableCell>₱{formatCurrency(row.salary_to)}</TableCell>
+                  <TableCell>₱{formatCurrency(row.tax_base)}</TableCell>
+                  <TableCell>{row.percentage_over_base}%</TableCell>
+                  <TableCell>₱{formatCurrency(row.exempt_amount)}</TableCell>
+                </>
+              ),
+              taxLoading,
             )}
           </TabsContent>
         </Tabs>

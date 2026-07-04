@@ -72,6 +72,8 @@ const AllowanceSettings = () => {
 
   const [typeSearch, setTypeSearch] = useState("");
   const [typeSearchInput, setTypeSearchInput] = useState("");
+  const [typesPage, setTypesPage] = useState(1);
+  const [typesRowsPerPage, setTypesRowsPerPage] = useState(10);
 
   const [showTypeDialog, setShowTypeDialog] = useState(false);
   const [editingType, setEditingType] = useState<any>(null);
@@ -93,6 +95,7 @@ const AllowanceSettings = () => {
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       setTypeSearch(typeSearchInput);
+      setTypesPage(1);
     }, 500);
     return () => clearTimeout(delayDebounce);
   }, [typeSearchInput]);
@@ -220,9 +223,13 @@ const AllowanceSettings = () => {
     }
   };
 
-  const filteredTypes = allowanceTypes.filter((t: any) =>
+  const filteredTypesAll = allowanceTypes.filter((t: any) =>
     t.name?.toLowerCase().includes(typeSearch.toLowerCase()),
   );
+  const filteredTypesTotal = filteredTypesAll.length;
+  const filteredTypesPages = Math.max(1, Math.ceil(filteredTypesTotal / typesRowsPerPage));
+  const typesStart = (typesPage - 1) * typesRowsPerPage;
+  const filteredTypes = filteredTypesAll.slice(typesStart, typesStart + typesRowsPerPage);
 
   return (
     <div className="p-6 space-y-6">
@@ -308,6 +315,15 @@ const AllowanceSettings = () => {
               </TableBody>
             </Table>
           </div>
+          <TablePagination
+            page={typesPage}
+            totalPages={filteredTypesPages}
+            totalItems={filteredTypesTotal}
+            pageSize={typesRowsPerPage}
+            onPageChange={setTypesPage}
+            onPageSizeChange={(s) => { setTypesRowsPerPage(s); setTypesPage(1); }}
+            itemLabel="allowance types"
+          />
         </CardContent>
       </Card>
 
