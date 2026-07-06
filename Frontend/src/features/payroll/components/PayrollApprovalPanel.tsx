@@ -64,7 +64,7 @@ const PayrollApprovalPanel = () => {
 
   const { data: branches = [] } = useActiveBranches();
   const { data: approvals, isLoading } = usePayrollApprovals(
-    branchFilter || undefined,
+    branchFilter && branchFilter !== "all" ? branchFilter : undefined,
     "PENDING",
   );
 

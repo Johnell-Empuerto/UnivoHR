@@ -211,9 +211,15 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
     }
 
     // BATCH: FETCH ALL EMPLOYEE ALLOWANCES (for enterprise payroll)
-    let employeeAllowancesMap = new Map();
+    let taxableAllowancesMap = new Map();
+    let nonTaxableAllowancesMap = new Map();
     try {
-      employeeAllowancesMap = await allowanceModel.bulkGetEmployeeAllowancesTotals(employeeIds, cutoff_start, cutoff_end);
+      const [taxable, nonTaxable] = await Promise.all([
+        allowanceModel.bulkGetEmployeeAllowancesTotals(employeeIds, cutoff_start, cutoff_end, true),
+        allowanceModel.bulkGetEmployeeAllowancesTotals(employeeIds, cutoff_start, cutoff_end, false),
+      ]);
+      taxableAllowancesMap = taxable;
+      nonTaxableAllowancesMap = nonTaxable;
     } catch (err) {
       logger.warn({ err }, "[PAYROLL] Allowance fetch failed, using empty map");
     }
@@ -872,22 +878,28 @@ const generatePayroll = async (cutoff_start, cutoff_end, pay_date, branch_id = n
       const effectiveGovernmentDeduction = Math.max(government_deduction, autoGovDeduction);
 
       // ENTERPRISE PAYROLL: Compute allowances
-      const totalAllowances = employeeAllowancesMap.get(emp.id) || 0;
+      const taxableAllowances = taxableAllowancesMap.get(emp.id) || 0;
+      const nonTaxableAllowances = nonTaxableAllowancesMap.get(emp.id) || 0;
+      const totalAllowances = taxableAllowances + nonTaxableAllowances;
 
       // ENTERPRISE PAYROLL: Compute withholding tax
       let withholdingTax = 0;
       let taxableIncome = 0;
       try {
+        // taxableIncome is semi-monthly (basic_pay is cutoff pay)
         taxableIncome = calcTaxableIncome(
           basic_pay,
-          totalAllowances,
+          taxableAllowances,
           overtime_pay,
           night_differential_pay,
           computedSss.employee_share,
           computedPhilHealth.employee_share,
           computedPagIbig.employee_share
         );
-        withholdingTax = calcSemiMonthlyTax(calcWithholdingTax(taxableIncome, taxBrackets));
+        // Annualize: semi-monthly → monthly (×2) → compute monthly tax → divide by 2
+        const monthlyTaxableIncome = taxableIncome * 2;
+        const monthlyTax = calcWithholdingTax(monthlyTaxableIncome, taxBrackets);
+        withholdingTax = calcSemiMonthlyTax(monthlyTax);
       } catch (err) {
         logger.warn({ employee_id: emp.id, err }, "[PAYROLL] Tax computation failed");
       }

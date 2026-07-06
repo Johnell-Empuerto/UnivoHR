@@ -44,10 +44,14 @@ const reviewApprovalRequest = async (id, status, reviewedBy, remarks) => {
     try {
       const approval = await pool.query("SELECT payroll_id, cutoff_start, cutoff_end FROM payroll_approvals WHERE id = $1", [id]);
       if (approval.rows.length > 0 && approval.rows[0].payroll_id) {
-        await pool.query(
-          "UPDATE payroll SET status = 'PAID', paid_at = NOW(), paid_by = $1 WHERE id = $2",
+        const updateRes = await pool.query(
+          "UPDATE payroll SET status = 'PAID', paid_at = NOW(), paid_by = $1 WHERE id = $2 AND status = 'UNPAID'",
           [reviewedBy, approval.rows[0].payroll_id]
         );
+        if (updateRes.rowCount === 0) {
+          await pool.query("ROLLBACK");
+          throw new Error("Payroll is not UNPAID — cannot approve");
+        }
       }
       const result = await pool.query(
         `UPDATE payroll_approvals SET status = $1, reviewed_by = $2, reviewed_at = NOW(), remarks = $3 WHERE id = $4 RETURNING *`,

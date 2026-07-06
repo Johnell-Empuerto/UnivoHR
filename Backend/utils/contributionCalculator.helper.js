@@ -5,6 +5,9 @@
  */
 
 function calcSssContribution(monthlySalary, sssTable) {
+  if (!sssTable || sssTable.length === 0) {
+    return { employee_share: 0, employer_share: 0, total_contribution: 0 };
+  }
   const bracket = sssTable.find(
     (row) => monthlySalary >= Number(row.salary_from) && monthlySalary <= Number(row.salary_to)
   );
@@ -26,6 +29,9 @@ function calcSssContribution(monthlySalary, sssTable) {
 }
 
 function calcPhilHealthContribution(monthlySalary, philHealthTable) {
+  if (!philHealthTable || philHealthTable.length === 0) {
+    return { employee_share: 0, employer_share: 0, monthly_premium: 0 };
+  }
   const bracket = philHealthTable.find(
     (row) => monthlySalary >= Number(row.salary_from) && monthlySalary <= Number(row.salary_to)
   );
@@ -49,11 +55,14 @@ function calcPhilHealthContribution(monthlySalary, philHealthTable) {
 }
 
 function calcPagIbigContribution(monthlySalary, pagIbigTable) {
+  if (!pagIbigTable || pagIbigTable.length === 0) {
+    return { employee_share: 0, employer_share: 0 };
+  }
   const bracket = pagIbigTable.find(
     (row) => monthlySalary >= Number(row.salary_from) && monthlySalary <= Number(row.salary_to)
   );
   if (!bracket) {
-    return { employee_share: 100, employer_share: 100 };
+    return { employee_share: 0, employer_share: 0 };
   }
   const employeeRate = Number(bracket.employee_share);
   const employerRate = Number(bracket.employer_share);

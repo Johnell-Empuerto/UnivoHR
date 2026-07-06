@@ -468,6 +468,16 @@ const processFinalPay = async (employeeId, processedBy) => {
   try {
     await client.query("BEGIN");
 
+    // Guard: check if already processed
+    const existingRes = await client.query(
+      "SELECT id FROM final_pay WHERE employee_id = $1",
+      [employeeId],
+    );
+    if (existingRes.rows.length > 0) {
+      await client.query("ROLLBACK");
+      throw new Error("Final pay already processed for this employee");
+    }
+
     const calculation = await calculateFinalPay(employeeId);
 
     if (!calculation.success) {

@@ -20,6 +20,16 @@ import {
 import { markPayrollAsPaid, downloadPayslip } from "@/services/payrollService";
 import { toast } from "sonner";
 import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import EmptyState from "@/components/shared/EmptyState";
 
 interface PayrollRecord {
@@ -78,10 +88,10 @@ const PayrollTable = ({
   totalRecords,
 }: PayrollTableProps) => {
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [markPaidTarget, setMarkPaidTarget] = useState<number | null>(null);
 
   const handleMarkPaid = async (payrollId: number) => {
     try {
-      console.log("[Payroll/Pay] Mark paid — payroll id sent:", payrollId);
       await markPayrollAsPaid(payrollId);
       toast.success("Marked as paid");
       onRefresh?.();
@@ -215,7 +225,7 @@ const PayrollTable = ({
                       disabled={
                         !record.payroll_id || record.status === "PAID"
                       }
-                      onClick={() => handleMarkPaid(record.payroll_id!)}
+                      onClick={() => setMarkPaidTarget(record.payroll_id!)}
                     >
                       Mark Paid
                     </Button>
@@ -243,6 +253,23 @@ const PayrollTable = ({
           onPageSizeChange={(size) => { onRowsPerPageChange(size); onPageChange(1); }}
         />
       )}
+
+      <AlertDialog open={markPaidTarget !== null} onOpenChange={() => setMarkPaidTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark Payroll as Paid</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The employee&apos;s payroll will be marked as PAID.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (markPaidTarget) handleMarkPaid(markPaidTarget); setMarkPaidTarget(null); }}>
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

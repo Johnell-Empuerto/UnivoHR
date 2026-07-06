@@ -81,18 +81,25 @@ const getEmployeeAllowancesTotal = async (employeeId, cutoffStart, cutoffEnd) =>
   return parseFloat(result.rows[0].total);
 };
 
-const bulkGetEmployeeAllowancesTotals = async (employeeIds, cutoffStart, cutoffEnd) => {
+const bulkGetEmployeeAllowancesTotals = async (employeeIds, cutoffStart, cutoffEnd, isTaxable = null) => {
   if (employeeIds.length === 0) return new Map();
+  const params = [employeeIds, cutoffStart, cutoffEnd];
+  let taxableClause = "";
+  if (isTaxable !== null) {
+    params.push(isTaxable);
+    taxableClause = `AND at.is_taxable = $${params.length}`;
+  }
   const result = await pool.query(
     `SELECT ea.employee_id, COALESCE(SUM(ea.amount), 0) as total
      FROM employee_allowances ea
      JOIN allowance_types at ON at.id = ea.allowance_type_id
      WHERE ea.employee_id = ANY($1::int[])
        AND at.is_recurring = true
+       ${taxableClause}
        AND (ea.effective_date IS NULL OR ea.effective_date <= $3::date)
        AND (ea.end_date IS NULL OR ea.end_date >= $2::date)
      GROUP BY ea.employee_id`,
-    [employeeIds, cutoffStart, cutoffEnd]
+    params
   );
   const map = new Map();
   result.rows.forEach((row) => map.set(row.employee_id, parseFloat(row.total)));

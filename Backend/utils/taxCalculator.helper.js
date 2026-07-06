@@ -21,7 +21,8 @@ function calcWithholdingTax(monthlyTaxableIncome, taxBrackets) {
 }
 
 function calcTaxableIncome(monthlyBasicPay, allowances, overtimePay, nightDifferentialPay, sssShare, philHealthShare, pagIbigShare) {
-  const grossIncome = monthlyBasicPay + allowances + overtimePay + nightDifferentialPay;
+  // Night differential is non-taxable per RA 11701
+  const grossIncome = monthlyBasicPay + allowances + overtimePay;
   const totalGovDeductions = sssShare + philHealthShare + pagIbigShare;
   return Math.max(0, grossIncome - totalGovDeductions);
 }

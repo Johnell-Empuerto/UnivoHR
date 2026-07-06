@@ -1,6 +1,6 @@
 # HRMS - Roadmap & Completion Status
 
-Generated: Jul 4, 2026
+Generated: Jul 6, 2026
 
 ---
 
@@ -319,6 +319,18 @@ These modules were deferred from automated React Query migration due to complex 
 - **Pagination added**: per-tab pagination (25 rows default) in `ContributionTablesPanel` for SSS (500+ rows), PhilHealth, Pag-IBIG, BIR Tax. Client-side pagination (10 rows default) added to Allowance Types table in `AllowanceSettings`.
 - **🔥 Critical TDZ bug fix in `payroll.model.js`**: Enterprise auto-computation block was placed BEFORE variable declarations (`monthly_salary`, `basic_pay`, `overtime_pay`, `night_differential_pay`), causing silent ReferenceErrors in try-catch → bracket tables were never consulted, auto-computed contributions always returned 0, and `Math.max(manual, auto)` always picked the manual value. **Fix**: Moved entire enterprise computation block + `total_deductions` to after `basic_pay` is computed, and declared `taxableIncome` outside the try block to fix its scope bug. Bracket tables now actually work.
 - **Payslip UI merge & PDF enterprise values**: Merged the split "Enterprise Payroll Info" section into the main Salary Breakdown UI — allowances now show in earnings, auto-computed SSS/PhilHealth/Pag-IBIG/withholding tax show as itemized deductions, employer contributions sit in a clean informational section. PDF payslip and final pay slip templates updated with the same layout.
+
+### Compliance & Bug Fix Sprint
+- **🔥 Critical: Tax annualization fix**: Semi-monthly cutoff income was being fed directly into MONTHLY TRAIN brackets, causing ~88% under-withholding. **Fix**: semi-monthly taxable income now doubled to monthly → withholding computed against correct bracket → divided by 2 for semi-monthly amount. (e.g., ₱25K cutoff → ₱50K monthly bracket → correct ₱2,604 instead of ₱312).
+- **Night differential tax exemption** (RA 11701): excluded from taxable income computation.
+- **Non-taxable allowances**: `bulkGetEmployeeAllowancesTotals` now splits by `is_taxable` flag — only taxable allowances enter income tax computation; non-taxable allowances are still paid (gross pay) but not taxed.
+- **Empty contribution table guards**: `calcSssContribution`, `calcPhilHealthContribution`, `calcPagIbigContribution` now return zeros (instead of crashing or hardcoded 100) when tables are empty.
+- **Approval status guard**: payroll approval no longer overwrites VOID/LOCKED payroll status — rejects with "Payroll is not UNPAID".
+- **Approval audit trail**: create/review actions now logged via `audit.auditLog`.
+- **Browser leak fix**: `payslipGenerator.js` and `finalPaySlipGenerator.js` wrap puppeteer in try/finally so browser always closes on error.
+- **Duplicate final pay guard**: `processFinalPay` rejects if a final pay record already exists for the employee.
+- **Frontend: Mark Paid confirmation**: row-level "Mark Paid" now shows an AlertDialog confirmation before firing the API call.
+- **Frontend: "All Branches" filter fix**: approval panel was sending `"all"` as a branch ID to the API instead of `undefined`.
 
 Estimated Payroll Completion: **100%**
 
