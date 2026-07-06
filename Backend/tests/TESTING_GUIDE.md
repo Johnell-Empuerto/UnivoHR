@@ -292,9 +292,9 @@ See `appIntegration.test.js` for the reference implementation.
 ## Current Phase 4A Baseline
 
 | Metric | Value |
-|---|---|
-| Test suites | 19 |
-| Total tests | 286 |
+|---|---|---|
+| Test suites | 21 |
+| Total tests | 346 |
 | Real `app.js` integration test | `appIntegration.test.js` |
 | Backend startup | Through `Backend/index.js` (not `app.js`) |
 | Express app export | `Backend/app.js` |

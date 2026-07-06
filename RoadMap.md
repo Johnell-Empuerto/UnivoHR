@@ -1,6 +1,6 @@
 # HRMS - Roadmap & Completion Status
 
-Generated: Jul 6, 2026
+Generated: Jul 6, 2026 (Updated Batch 8)
 
 ---
 
@@ -250,19 +250,21 @@ These intentionally remain outside the automated migration.
 
 # Phase 2 — Testing
 
-## ⬜ Not Started
+## 🔷 In Progress
 
-| Task              | Status |
-| ----------------- | ------ |
-| Middleware tests  | ✅     |
-| Controller tests  | ⬜     |
-| Service tests     | ⬜     |
-| Hook tests        | ⬜     |
-| Component tests   | ⬜     |
-| Integration tests | ⬜     |
-| Permission tests  | ⬜     |
-| End-to-End tests  | ⬜     |
-| GitHub Actions    | ✅     |
+| Task              | Status | Notes |
+| ----------------- | ------ | ----- |
+| Utility tests     | ✅     | payrollFormula, inputSanitizer, passwordValidator, branchAccess, deviceKey, permissions, validationError |
+| Middleware tests  | ✅     | 8 middleware files covered |
+| GitHub Actions    | ✅     | CI pipeline configured |
+| Tax & Contribution tests | ✅ | taxCalculator, contributionCalculator — 60 tests added |
+| Service tests     | 🔷     | **41 / ~75 services covered** (Batches 1-8) |
+| Controller tests  | ⬜     | |
+| Hook tests        | ⬜     | |
+| Component tests   | ⬜     | |
+| Integration tests | ⬜     | |
+| Permission tests  | ⬜     | |
+| End-to-End tests  | ⬜     | |
 
 ---
 
@@ -379,7 +381,7 @@ Estimated Payroll Completion: **100%**
 | Phase 1H — React Performance        |   **100%** |
 | Phase 1I — UX Polish                |    **35%** |
 | Phase 1J — Final Frontend Audit     |   **100%** |
-| Phase 2 — Testing                   |    **10%** |
+| Phase 2 — Testing                   |    **32%** |
 | Phase 3 — Remaining Complex Modules |   **100%** |
 | Phase 4 — Enterprise Payroll        |   **100%** |
 | Phase 5 — Enterprise Workflow       |     **0%** |
